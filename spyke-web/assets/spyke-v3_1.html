@@ -2009,24 +2009,20 @@ onclick="preparerRelance(${r.client.id})"></button>
     // ======================================== 
     async function appelAPI(prompt) { 
         try { 
-            const response = await fetch('https://api.anthropic.com/v1/messages', { 
+            const response = await fetch('/api/claude', { 
                 method: 'POST', 
                 headers: { 
-                    'Content-Type': 'application/json', 
-                    'x-api-key': CONFIG.apiKey, 
-                    'anthropic-version': '2023-06-01', 
-                    'anthropic-dangerous-direct-browser-access': 'true' 
+                    'Content-Type': 'application/json'
                 }, 
                 body: JSON.stringify({ 
-                    model: 'claude-sonnet-4-20250514', 
-                    max_tokens: 2000, 
-                    messages: [{ role: 'user', content: prompt }] 
+                    prompt
                 }) 
             }); 
-             
+
             const data = await response.json(); 
-            if (data.error) throw new Error(data.error.message); 
-            return data.content[0].text; 
+            if (!response.ok) throw new Error(data?.error || ('HTTP ' + response.status));
+            if (data.error) throw new Error(data.error); 
+            return data.text; 
         } catch (error) { 
             throw new Error('Erreur API Claude: ' + error.message); 
         } 
