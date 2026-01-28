@@ -17,12 +17,18 @@ export default function LoginPage() {
     setError(null)
     setLoading(true)
     try {
+      const supabase = getSupabase()
       if (mode === 'signup') {
-        const supabase = getSupabase()
-        const { error } = await supabase.auth.signUp({ email, password })
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            // v1 test: no email confirmation.
+            emailRedirectTo: `${window.location.origin}/app`,
+          },
+        })
         if (error) throw error
       } else {
-        const supabase = getSupabase()
         const { error } = await supabase.auth.signInWithPassword({ email, password })
         if (error) throw error
       }
