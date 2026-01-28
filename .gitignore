@@ -1,0 +1,10 @@
+# Root ignores
+node_modules/
+
+# Clawdbot artifacts
+canvas/
+
+# Next.js app
+spyke-web/.next/
+spyke-web/node_modules/
+spyke-web/.env.local

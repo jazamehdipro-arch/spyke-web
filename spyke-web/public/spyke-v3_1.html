@@ -1,0 +1,2903 @@
+
+
+<!DOCTYPE html> 
+ 
+<html lang="fr"> 
+<head> 
+    <meta charset="UTF-8"> 
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+    <title>Spyke – Votre assistant IA pro</title> 
+    <link rel="preconnect" href="https://fonts.googleapis.com"> 
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin> 
+    <link 
+href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&fa
+mily=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"> 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script> 
+    <style> 
+        :root { 
+            --bg-primary: #0a0a0f; 
+            --bg-secondary: #12121a; 
+            --bg-card: #1a1a25; 
+            --bg-input: #0f0f18; 
+            --violet-primary: #8b5cf6; 
+            --violet-glow: #a78bfa; 
+            --cyan-accent: #22d3ee; 
+            --cyan-glow: #67e8f9; 
+            --text-primary: #f1f5f9; 
+            --text-secondary: #94a3b8; 
+            --text-muted: #64748b; 
+            --border-color: #2a2a3a; 
+            --success: #10b981; 
+            --warning: #f59e0b; 
+            --error: #ef4444; 
+        } 
+ 
+    * { margin: 0; padding: 0; box-sizing: border-box; } 
+ 
+    body { 
+        font-family: 'Space Grotesk', sans-serif; 
+        background: var(--bg-primary); 
+        min-height: 100vh; 
+        color: var(--text-primary); 
+        overflow-x: hidden; 
+    } 
+ 
+    .bg-grid { 
+        position: fixed; 
+        top: 0; left: 0; 
+        width: 100%; height: 100%; 
+        background-image:  
+
+            linear-gradient(rgba(139, 92, 246, 0.03) 1px, transparent 1px), 
+            linear-gradient(90deg, rgba(139, 92, 246, 0.03) 1px, transparent 1px); 
+        background-size: 50px 50px; 
+        pointer-events: none; 
+        z-index: 0; 
+    } 
+ 
+    .glow-orb { 
+        position: fixed; 
+        border-radius: 50%; 
+        filter: blur(120px); 
+        pointer-events: none; 
+        z-index: 0; 
+    } 
+ 
+    .glow-orb-1 { 
+        width: 500px; height: 500px; 
+        top: -200px; right: -100px; 
+        background: var(--violet-primary); 
+        opacity: 0.12; 
+    } 
+ 
+    .glow-orb-2 { 
+        width: 400px; height: 400px; 
+        bottom: -200px; left: -100px; 
+        background: var(--cyan-accent); 
+        opacity: 0.08; 
+    } 
+ 
+    .header { 
+        position: relative; 
+        z-index: 10; 
+        padding: 16px 24px; 
+        display: flex; 
+        align-items: center; 
+        justify-content: space-between; 
+        border-bottom: 1px solid var(--border-color); 
+        background: rgba(10, 10, 15, 0.8); 
+        backdrop-filter: blur(20px); 
+    } 
+ 
+    .logo { 
+        display: flex; 
+        align-items: center; 
+        gap: 12px; 
+    } 
+ 
+    .logo-icon { 
+
+        width: 40px; height: 40px; 
+        background: linear-gradient(135deg, var(--violet-primary), var(--cyan-accent)); 
+        border-radius: 12px; 
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        font-size: 20px; 
+    } 
+ 
+    .logo-text { 
+        font-size: 24px; 
+        font-weight: 700; 
+        background: linear-gradient(135deg, var(--violet-glow), var(--cyan-accent)); 
+        -webkit-background-clip: text; 
+        -webkit-text-fill-color: transparent; 
+    } 
+ 
+    .logo-badge { 
+        font-size: 10px; 
+        padding: 4px 10px; 
+        background: var(--violet-primary); 
+        border-radius: 20px; 
+        color: white; 
+        font-weight: 600; 
+    } 
+ 
+    .api-badge { 
+        font-size: 10px; 
+        padding: 4px 8px; 
+        background: rgba(139, 92, 246, 0.2); 
+        border: 1px solid var(--violet-primary); 
+        border-radius: 6px; 
+        color: var(--violet-glow); 
+        margin-left: 8px; 
+    } 
+ 
+    .user-info { 
+        display: flex; 
+        align-items: center; 
+        gap: 10px; 
+    } 
+ 
+    .user-avatar { 
+        width: 36px; height: 36px; 
+        background: linear-gradient(135deg, var(--violet-primary), var(--cyan-accent)); 
+        border-radius: 50%; 
+        display: flex; 
+        align-items: center; 
+
+        justify-content: center; 
+        font-weight: 600; 
+        font-size: 14px; 
+    } 
+ 
+    .user-name { 
+        font-size: 14px; 
+        color: var(--text-secondary); 
+    } 
+ 
+    .main-container { 
+        position: relative; 
+        z-index: 10; 
+        max-width: 900px; 
+        margin: 0 auto; 
+        padding: 30px 20px; 
+    } 
+ 
+    .tabs { 
+        display: flex; 
+        gap: 8px; 
+        margin-bottom: 24px; 
+        flex-wrap: wrap; 
+    } 
+ 
+    .tab { 
+        padding: 12px 24px; 
+        border: 1px solid var(--border-color); 
+        border-radius: 10px; 
+        background: var(--bg-card); 
+        color: var(--text-secondary); 
+        font-family: inherit; 
+        font-size: 14px; 
+        font-weight: 500; 
+        cursor: pointer; 
+        transition: all 0.3s ease; 
+        display: flex; 
+        align-items: center; 
+        gap: 8px; 
+    } 
+ 
+    .tab:hover { border-color: var(--violet-primary); color: var(--text-primary); } 
+    .tab.active { 
+        background: linear-gradient(135deg, var(--violet-primary), var(--cyan-accent)); 
+        border-color: transparent; 
+        color: white; 
+    } 
+ 
+
+    .tab-content { display: none; } 
+    .tab-content.active { display: block; } 
+ 
+    .card { 
+        background: var(--bg-card); 
+        border: 1px solid var(--border-color); 
+        border-radius: 16px; 
+        padding: 24px; 
+        margin-bottom: 20px; 
+    } 
+ 
+    .card-title { 
+        font-size: 16px; 
+        font-weight: 600; 
+        color: var(--violet-glow); 
+        margin-bottom: 16px; 
+        display: flex; 
+        align-items: center; 
+        gap: 8px; 
+    } 
+ 
+    .info-box { 
+        background: var(--bg-input); 
+        border: 1px solid var(--border-color); 
+        border-radius: 10px; 
+        padding: 12px 16px; 
+        margin-bottom: 20px; 
+        font-size: 13px; 
+        color: var(--text-secondary); 
+    } 
+ 
+    label { 
+        display: block; 
+        font-size: 13px; 
+        font-weight: 500; 
+        color: var(--text-secondary); 
+        margin-bottom: 8px; 
+        margin-top: 16px; 
+    } 
+ 
+    input, textarea, select { 
+        width: 100%; 
+        padding: 14px 16px; 
+        border: 1px solid var(--border-color); 
+        border-radius: 10px; 
+        background: var(--bg-input); 
+        color: var(--text-primary); 
+        font-family: inherit; 
+
+        font-size: 14px; 
+        transition: all 0.3s ease; 
+    } 
+ 
+    input:focus, textarea:focus, select:focus { 
+        outline: none; 
+        border-color: var(--violet-primary); 
+        box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1); 
+    } 
+ 
+    textarea { min-height: 120px; resize: vertical; } 
+ 
+    .form-grid { 
+        display: grid; 
+        grid-template-columns: repeat(2, 1fr); 
+        gap: 16px; 
+    } 
+ 
+    .form-grid label { margin-top: 0; } 
+    .form-full { grid-column: span 2; } 
+ 
+    .btn { 
+        padding: 12px 20px; 
+        border: none; 
+        border-radius: 10px; 
+        font-family: inherit; 
+        font-size: 14px; 
+        font-weight: 500; 
+        cursor: pointer; 
+        transition: all 0.3s ease; 
+    } 
+ 
+    .btn-primary { 
+        background: var(--bg-input); 
+        border: 1px solid var(--border-color); 
+        color: var(--text-primary); 
+    } 
+ 
+    .btn-primary:hover { 
+        border-color: var(--violet-primary); 
+        background: rgba(139, 92, 246, 0.1); 
+    } 
+ 
+    .btn-primary.active { 
+        background: var(--violet-primary); 
+        border-color: var(--violet-primary); 
+        color: white; 
+    } 
+
+ 
+    .btn-accent { 
+        background: linear-gradient(135deg, var(--violet-primary), var(--cyan-accent)); 
+        color: white; 
+    } 
+ 
+    .btn-accent:hover { 
+        transform: translateY(-2px); 
+        box-shadow: 0 10px 30px rgba(139, 92, 246, 0.3); 
+    } 
+ 
+    .btn-secondary { 
+        background: var(--bg-input); 
+        border: 1px solid var(--border-color); 
+        color: var(--text-secondary); 
+    } 
+ 
+    .btn-secondary:hover { 
+        border-color: var(--cyan-accent); 
+        color: var(--cyan-accent); 
+    } 
+ 
+    .btn-full { width: 100%; margin-top: 20px; } 
+ 
+    .btn-small { 
+        padding: 8px 14px; 
+        font-size: 12px; 
+    } 
+ 
+    .buttons-grid { 
+        display: grid; 
+        grid-template-columns: repeat(3, 1fr); 
+        gap: 10px; 
+        margin-top: 16px; 
+    } 
+ 
+    .result-box { 
+        margin-top: 20px; 
+        padding: 20px; 
+        background: var(--bg-input); 
+        border: 1px solid var(--border-color); 
+        border-radius: 12px; 
+        display: none; 
+    } 
+ 
+    .result-box.visible { display: block; } 
+ 
+    .result-text { 
+
+        font-family: 'JetBrains Mono', monospace; 
+        font-size: 13px; 
+        line-height: 1.7; 
+        white-space: pre-wrap; 
+        color: var(--text-primary); 
+        max-height: 400px; 
+        overflow-y: auto; 
+    } 
+ 
+    .action-buttons { 
+        display: flex; 
+        gap: 8px; 
+        margin-top: 16px; 
+        flex-wrap: wrap; 
+    } 
+ 
+    .btn-copy, .btn-modify, .btn-pdf { 
+        padding: 8px 14px; 
+        border: 1px solid var(--border-color); 
+        border-radius: 8px; 
+        background: var(--bg-card); 
+        color: var(--text-secondary); 
+        font-family: inherit; 
+        font-size: 12px; 
+        cursor: pointer; 
+        transition: all 0.3s ease; 
+    } 
+ 
+    .btn-copy:hover { border-color: var(--success); color: var(--success); } 
+    .btn-modify:hover { border-color: var(--violet-primary); color: var(--violet-glow); } 
+    .btn-pdf:hover { border-color: var(--cyan-accent); color: var(--cyan-accent); } 
+ 
+    .loading { 
+        display: none; 
+        align-items: center; 
+        justify-content: center; 
+        gap: 10px; 
+        padding: 30px; 
+        color: var(--violet-glow); 
+    } 
+ 
+    .loading.active { display: flex; } 
+ 
+    .loading-dots { display: flex; gap: 5px; } 
+ 
+    .loading-dot { 
+        width: 8px; height: 8px; 
+        background: var(--violet-primary); 
+
+        border-radius: 50%; 
+        animation: bounce 1.4s ease-in-out infinite; 
+    } 
+ 
+    .loading-dot:nth-child(2) { animation-delay: 0.2s; } 
+    .loading-dot:nth-child(3) { animation-delay: 0.4s; } 
+ 
+    @keyframes bounce { 
+        0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; } 
+        40% { transform: scale(1.2); opacity: 1; } 
+    } 
+ 
+    /* ========== NOUVEAUX STYLES ASSISTANT IA ========== */ 
+     
+    .section-divider { 
+        border-top: 1px solid var(--border-color); 
+        margin: 24px 0; 
+        padding-top: 20px; 
+    } 
+ 
+    .client-selector { 
+        display: flex; 
+        gap: 10px; 
+        align-items: center; 
+        margin-bottom: 16px; 
+    } 
+ 
+    .client-selector select { 
+        flex: 1; 
+    } 
+ 
+    .client-selector .btn { 
+        padding: 14px 16px; 
+        white-space: nowrap; 
+    } 
+ 
+    .client-badge { 
+        display: inline-flex; 
+        align-items: center; 
+        gap: 6px; 
+        padding: 6px 12px; 
+        background: rgba(139, 92, 246, 0.15); 
+        border: 1px solid var(--violet-primary); 
+        border-radius: 20px; 
+        font-size: 12px; 
+        color: var(--violet-glow); 
+        margin-right: 8px; 
+        margin-bottom: 8px; 
+
+    } 
+ 
+    .client-badge .remove { 
+        cursor: pointer; 
+        opacity: 0.7; 
+    } 
+ 
+    .client-badge .remove:hover { opacity: 1; } 
+ 
+    .templates-emails { 
+        display: grid; 
+        grid-template-columns: repeat(2, 1fr); 
+        gap: 10px; 
+        margin-top: 12px; 
+    } 
+ 
+    .template-email-card { 
+        padding: 14px; 
+        background: var(--bg-input); 
+        border: 1px solid var(--border-color); 
+        border-radius: 10px; 
+        cursor: pointer; 
+        transition: all 0.3s ease; 
+    } 
+ 
+    .template-email-card:hover { 
+        border-color: var(--violet-primary); 
+        background: rgba(139, 92, 246, 0.1); 
+    } 
+ 
+    .template-email-card.selected { 
+        border-color: var(--violet-primary); 
+        background: rgba(139, 92, 246, 0.15); 
+    } 
+ 
+    .template-email-name { 
+        font-weight: 500; 
+        font-size: 13px; 
+        margin-bottom: 4px; 
+    } 
+ 
+    .template-email-desc { 
+        font-size: 11px; 
+        color: var(--text-muted); 
+    } 
+ 
+    .context-tags { 
+        display: flex; 
+
+        flex-wrap: wrap; 
+        gap: 8px; 
+        margin-top: 10px; 
+    } 
+ 
+    .context-tag { 
+        padding: 6px 12px; 
+        background: var(--bg-input); 
+        border: 1px solid var(--border-color); 
+        border-radius: 6px; 
+        font-size: 11px; 
+        color: var(--text-secondary); 
+        cursor: pointer; 
+        transition: all 0.3s ease; 
+    } 
+ 
+    .context-tag:hover { 
+        border-color: var(--cyan-accent); 
+        color: var(--cyan-accent); 
+    } 
+ 
+    .context-tag.active { 
+        background: rgba(34, 211, 238, 0.15); 
+        border-color: var(--cyan-accent); 
+        color: var(--cyan-accent); 
+    } 
+ 
+    .smart-suggestions { 
+        background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(34, 211, 238, 0.1)); 
+        border: 1px solid var(--violet-primary); 
+        border-radius: 12px; 
+        padding: 16px; 
+        margin-bottom: 20px; 
+    } 
+ 
+    .smart-suggestions-title { 
+        font-size: 12px; 
+        font-weight: 600; 
+        color: var(--violet-glow); 
+        margin-bottom: 10px; 
+        display: flex; 
+        align-items: center; 
+        gap: 6px; 
+    } 
+ 
+    .suggestion-item { 
+        display: flex; 
+        justify-content: space-between; 
+
+        align-items: center; 
+        padding: 10px 14px; 
+        background: var(--bg-card); 
+        border-radius: 8px; 
+        margin-bottom: 8px; 
+        font-size: 13px; 
+    } 
+ 
+    .suggestion-item:last-child { margin-bottom: 0; } 
+ 
+    .suggestion-action { 
+        padding: 6px 12px; 
+        background: var(--violet-primary); 
+        border: none; 
+        border-radius: 6px; 
+        color: white; 
+        font-size: 11px; 
+        font-family: inherit; 
+        cursor: pointer; 
+    } 
+ 
+    .conversation-thread { 
+        max-height: 300px; 
+        overflow-y: auto; 
+        margin-top: 16px; 
+    } 
+ 
+    .thread-message { 
+        padding: 12px 16px; 
+        border-radius: 10px; 
+        margin-bottom: 10px; 
+        font-size: 13px; 
+        line-height: 1.5; 
+    } 
+ 
+    .thread-message.sent { 
+        background: rgba(139, 92, 246, 0.15); 
+        border: 1px solid var(--violet-primary); 
+        margin-left: 40px; 
+    } 
+ 
+    .thread-message.received { 
+        background: var(--bg-input); 
+        border: 1px solid var(--border-color); 
+        margin-right: 40px; 
+    } 
+ 
+    .thread-meta { 
+
+        font-size: 10px; 
+        color: var(--text-muted); 
+        margin-top: 6px; 
+    } 
+ 
+    .modal-overlay { 
+        position: fixed; 
+        top: 0; left: 0; 
+        width: 100%; height: 100%; 
+        background: rgba(0, 0, 0, 0.8); 
+        display: none; 
+        align-items: center; 
+        justify-content: center; 
+        z-index: 1000; 
+    } 
+ 
+    .modal-overlay.active { display: flex; } 
+ 
+    .modal { 
+        background: var(--bg-card); 
+        border: 1px solid var(--border-color); 
+        border-radius: 16px; 
+        padding: 24px; 
+        width: 90%; 
+        max-width: 500px; 
+        max-height: 80vh; 
+        overflow-y: auto; 
+    } 
+ 
+    .modal-title { 
+        font-size: 18px; 
+        font-weight: 600; 
+        margin-bottom: 20px; 
+        display: flex; 
+        align-items: center; 
+        justify-content: space-between; 
+    } 
+ 
+    .modal-close { 
+        background: none; 
+        border: none; 
+        color: var(--text-muted); 
+        font-size: 20px; 
+        cursor: pointer; 
+    } 
+ 
+    .client-list { 
+        max-height: 300px; 
+
+        overflow-y: auto; 
+    } 
+ 
+    .client-item { 
+        display: flex; 
+        justify-content: space-between; 
+        align-items: center; 
+        padding: 12px 16px; 
+        background: var(--bg-input); 
+        border: 1px solid var(--border-color); 
+        border-radius: 10px; 
+        margin-bottom: 8px; 
+        cursor: pointer; 
+        transition: all 0.3s ease; 
+    } 
+ 
+    .client-item:hover { 
+        border-color: var(--violet-primary); 
+    } 
+ 
+    .client-item-info h4 { 
+        font-size: 14px; 
+        font-weight: 500; 
+        margin-bottom: 4px; 
+    } 
+ 
+    .client-item-info span { 
+        font-size: 12px; 
+        color: var(--text-muted); 
+    } 
+ 
+    .client-item-actions { 
+        display: flex; 
+        gap: 8px; 
+    } 
+ 
+    .history-section { 
+        margin-top: 24px; 
+        padding-top: 20px; 
+        border-top: 1px solid var(--border-color); 
+        display: none; 
+    } 
+ 
+    .history-section.visible { display: block; } 
+ 
+    .history-title { 
+        font-size: 12px; 
+        font-weight: 500; 
+
+        color: var(--text-muted); 
+        text-transform: uppercase; 
+        letter-spacing: 0.5px; 
+        margin-bottom: 12px; 
+        display: flex; 
+        justify-content: space-between; 
+        align-items: center; 
+    } 
+ 
+    .history-item { 
+        padding: 12px; 
+        background: var(--bg-input); 
+        border: 1px solid var(--border-color); 
+        border-radius: 8px; 
+        margin-bottom: 8px; 
+        cursor: pointer; 
+        transition: all 0.3s ease; 
+    } 
+ 
+    .history-item:hover { border-color: var(--violet-primary); } 
+ 
+    .history-item-type { 
+        font-size: 10px; 
+        color: var(--violet-glow); 
+        text-transform: uppercase; 
+        letter-spacing: 0.5px; 
+        margin-bottom: 4px; 
+    } 
+ 
+    .history-item-preview { 
+        font-size: 12px; 
+        color: var(--text-secondary); 
+        white-space: nowrap; 
+        overflow: hidden; 
+        text-overflow: ellipsis; 
+    } 
+ 
+    /* ========== STYLES DEVIS & BRIEF ========== */ 
+ 
+    .templates-grid { 
+        display: grid; 
+        grid-template-columns: repeat(3, 1fr); 
+        gap: 12px; 
+        margin-bottom: 20px; 
+    } 
+ 
+    .template-card { 
+        padding: 20px; 
+
+        background: var(--bg-input); 
+        border: 1px solid var(--border-color); 
+        border-radius: 12px; 
+        text-align: center; 
+        cursor: pointer; 
+        transition: all 0.3s ease; 
+    } 
+ 
+    .template-card:hover { border-color: var(--violet-primary); transform: translateY(-2px); } 
+    .template-card.selected { border-color: var(--violet-primary); background: rgba(139, 92, 
+246, 0.1); } 
+ 
+    .template-icon { font-size: 28px; margin-bottom: 8px; } 
+    .template-name { font-size: 13px; font-weight: 500; } 
+ 
+    .prestations-container { margin-top: 10px; } 
+ 
+    .prestation-item { 
+        display: flex; 
+        gap: 10px; 
+        margin-bottom: 10px; 
+        align-items: center; 
+    } 
+ 
+    .prestation-nom { flex: 2; } 
+    .prestation-jours { flex: 0 0 80px; text-align: center; } 
+ 
+    .btn-remove { 
+        width: 36px; height: 36px; 
+        border: 1px solid var(--error); 
+        border-radius: 8px; 
+        background: rgba(239, 68, 68, 0.1); 
+        color: var(--error); 
+        cursor: pointer; 
+        transition: all 0.3s ease; 
+    } 
+ 
+    .btn-remove:hover { background: var(--error); color: white; } 
+ 
+    .btn-add { 
+        width: 100%; 
+        padding: 12px; 
+        border: 1px dashed var(--border-color); 
+        border-radius: 10px; 
+        background: transparent; 
+        color: var(--text-muted); 
+        font-family: inherit; 
+        font-size: 13px; 
+
+        cursor: pointer; 
+        transition: all 0.3s ease; 
+    } 
+ 
+    .btn-add:hover { border-color: var(--violet-primary); color: var(--violet-glow); } 
+ 
+    .tone-selector { 
+        display: flex; 
+        align-items: center; 
+        gap: 12px; 
+        margin-bottom: 16px; 
+    } 
+ 
+    .tone-selector label { margin: 0; } 
+    .tone-selector select { width: auto; min-width: 180px; } 
+ 
+    .analysis-result { padding: 20px; } 
+    .analysis-section { margin-bottom: 24px; } 
+    .analysis-title { font-size: 14px; font-weight: 600; color: var(--violet-glow); margin-bottom: 
+12px; } 
+    .analysis-content { font-size: 14px; line-height: 1.6; } 
+ 
+    .score-badge { 
+        display: inline-block; 
+        padding: 6px 14px; 
+        background: linear-gradient(135deg, var(--violet-primary), var(--cyan-accent)); 
+        border-radius: 20px; 
+        font-size: 14px; 
+        font-weight: 600; 
+        color: white; 
+    } 
+ 
+    .recommendation { 
+        padding: 14px 18px; 
+        border-radius: 10px; 
+        font-weight: 500; 
+    } 
+ 
+    .recommendation.accepter { background: rgba(16, 185, 129, 0.1); border: 1px solid 
+var(--success); color: var(--success); } 
+    .recommendation.negocier { background: rgba(245, 158, 11, 0.1); border: 1px solid 
+var(--warning); color: var(--warning); } 
+    .recommendation.refuser { background: rgba(239, 68, 68, 0.1); border: 1px solid 
+var(--error); color: var(--error); } 
+ 
+    .error { 
+        background: rgba(239, 68, 68, 0.1); 
+        border: 1px solid var(--error); 
+
+        border-radius: 10px; 
+        padding: 14px; 
+        color: var(--error); 
+        font-size: 13px; 
+    } 
+ 
+    .footer { 
+        text-align: center; 
+        padding: 30px; 
+        color: var(--text-muted); 
+        font-size: 11px; 
+    } 
+ 
+    .tab-badge { 
+        background: var(--cyan-accent); 
+        color: var(--bg-primary); 
+        font-size: 10px; 
+        padding: 2px 6px; 
+        border-radius: 10px; 
+        margin-left: 6px; 
+    } 
+ 
+    @media (max-width: 600px) { 
+        .buttons-grid { grid-template-columns: repeat(2, 1fr); } 
+        .templates-grid { grid-template-columns: repeat(2, 1fr); } 
+        .templates-emails { grid-template-columns: 1fr; } 
+        .form-grid { grid-template-columns: 1fr; } 
+        .form-full { grid-column: span 1; } 
+        .dashboard-grid { grid-template-columns: repeat(2, 1fr); } 
+        .dashboard-row { grid-template-columns: 1fr; } 
+    } 
+ 
+    /* Dashboard Styles */ 
+    .dashboard-grid { 
+        display: grid; 
+        grid-template-columns: repeat(4, 1fr); 
+        gap: 16px; 
+        margin-bottom: 24px; 
+    } 
+ 
+    .stat-card { 
+        background: var(--bg-card); 
+        border: 1px solid var(--border-color); 
+        border-radius: 16px; 
+        padding: 20px; 
+        position: relative; 
+        overflow: hidden; 
+    } 
+
+ 
+    .stat-card::before { 
+        content: ''; 
+        position: absolute; 
+        top: 0; left: 0; right: 0; 
+        height: 3px; 
+        background: linear-gradient(90deg, var(--violet-primary), var(--cyan-accent)); 
+    } 
+ 
+    .stat-icon { font-size: 24px; margin-bottom: 12px; } 
+    .stat-value { font-size: 28px; font-weight: 700; margin-bottom: 4px; } 
+    .stat-label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; } 
+ 
+    .dashboard-row { 
+        display: grid; 
+        grid-template-columns: 1fr 1fr; 
+        gap: 20px; 
+        margin-bottom: 20px; 
+    } 
+ 
+    .quick-actions { 
+        display: grid; 
+        grid-template-columns: repeat(2, 1fr); 
+        gap: 12px; 
+    } 
+ 
+    .quick-action { 
+        padding: 16px; 
+        background: var(--bg-input); 
+        border: 1px solid var(--border-color); 
+        border-radius: 12px; 
+        cursor: pointer; 
+        transition: all 0.3s ease; 
+        text-align: center; 
+    } 
+ 
+    .quick-action:hover { 
+        border-color: var(--violet-primary); 
+        transform: translateY(-2px); 
+    } 
+ 
+    .quick-action-icon { font-size: 24px; margin-bottom: 8px; } 
+    .quick-action-label { font-size: 12px; color: var(--text-secondary); } 
+ 
+    .activity-list { max-height: 250px; overflow-y: auto; } 
+ 
+    .activity-item { 
+        display: flex; 
+
+        align-items: center; 
+        gap: 12px; 
+        padding: 12px 0; 
+        border-bottom: 1px solid var(--border-color); 
+    } 
+ 
+    .activity-item:last-child { border-bottom: none; } 
+ 
+    .activity-icon { 
+        width: 36px; height: 36px; 
+        border-radius: 10px; 
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        font-size: 16px; 
+        background: rgba(139, 92, 246, 0.15); 
+    } 
+ 
+    .activity-content { flex: 1; } 
+    .activity-title { font-size: 13px; font-weight: 500; margin-bottom: 2px; } 
+    .activity-time { font-size: 11px; color: var(--text-muted); } 
+ 
+    .empty-state { 
+        text-align: center; 
+        padding: 30px; 
+        color: var(--text-muted); 
+        font-size: 13px; 
+    } 
+ 
+    .pending-item { 
+        display: flex; 
+        justify-content: space-between; 
+        align-items: center; 
+        padding: 12px 14px; 
+        background: var(--bg-input); 
+        border: 1px solid var(--border-color); 
+        border-radius: 10px; 
+        margin-bottom: 10px; 
+    } 
+ 
+    .pending-info h4 { font-size: 14px; font-weight: 500; margin-bottom: 4px; } 
+    .pending-info span { font-size: 12px; color: var(--text-muted); } 
+    .pending-amount { font-size: 16px; font-weight: 600; color: var(--cyan-accent); } 
+</style> 
+ 
+</head> 
+<body> 
+
+    <div class="bg-grid"></div> 
+    <div class="glow-orb glow-orb-1"></div> 
+    <div class="glow-orb glow-orb-2"></div> 
+ 
+<header class="header"> 
+    <div class="logo"> 
+        <div class="logo-icon"></div> 
+        <span class="logo-text">Spyke</span> 
+        <span class="logo-badge">Beta</span> 
+        <span class="api-badge">Claude API</span> 
+    </div> 
+    <div class="user-info"> 
+        <div class="user-avatar" id="userAvatar">JD</div> 
+        <span class="user-name" id="userName">Jean Dupont</span> 
+    </div> 
+</header> 
+ 
+<main class="main-container"> 
+    <div class="tabs"> 
+        <button class="tab active" onclick="switchTab(event, 'dashboard')"> 
+            <span></span> Dashboard 
+        </button> 
+        <button class="tab" onclick="switchTab(event, 'assistant')"> 
+            <span></span> Assistant IA 
+        </button> 
+        <button class="tab" onclick="switchTab(event, 'devis')"> 
+            <span></span> Devis 
+        </button> 
+        <button class="tab" onclick="switchTab(event, 'brief')"> 
+            <span></span> Analyseur 
+        </button> 
+        <button class="tab" onclick="switchTab(event, 'settings')"> 
+            <span></span> Paramètres 
+        </button> 
+    </div> 
+ 
+    <!-- ==================== DASHBOARD ==================== --> 
+    <div id="tab-dashboard" class="tab-content active"> 
+        <div class="dashboard-grid"> 
+            <div class="stat-card"> 
+                <div class="stat-icon"></div> 
+                <div class="stat-value" id="statCA">0 €</div> 
+                <div class="stat-label">CA ce mois</div> 
+            </div> 
+            <div class="stat-card"> 
+                <div class="stat-icon"></div> 
+                <div class="stat-value" id="statDevis">0</div> 
+
+                <div class="stat-label">Devis envoyés</div> 
+            </div> 
+            <div class="stat-card"> 
+                <div class="stat-icon"></div> 
+                <div class="stat-value" id="statClients">0</div> 
+                <div class="stat-label">Clients</div> 
+            </div> 
+            <div class="stat-card"> 
+                <div class="stat-icon"></div> 
+                <div class="stat-value" id="statEmails">0</div> 
+                <div class="stat-label">Emails générés</div> 
+            </div> 
+        </div> 
+ 
+        <div class="dashboard-row"> 
+            <div class="card"> 
+                <div class="card-title"> Actions rapides</div> 
+                <div class="quick-actions"> 
+                    <div class="quick-action" onclick="switchTab(event, 'assistant')"> 
+                        <div class="quick-action-icon"></div> 
+                        <div class="quick-action-label">Nouvel email</div> 
+                    </div> 
+                    <div class="quick-action" onclick="switchTab(event, 'devis')"> 
+                        <div class="quick-action-icon"></div> 
+                        <div class="quick-action-label">Nouveau devis</div> 
+                    </div> 
+                    <div class="quick-action" onclick="ouvrirModalClient()"> 
+                        <div class="quick-action-icon"></div> 
+                        <div class="quick-action-label">Nouveau client</div> 
+                    </div> 
+                    <div class="quick-action" onclick="switchTab(event, 'brief')"> 
+                        <div class="quick-action-icon"></div> 
+                        <div class="quick-action-label">Analyser brief</div> 
+                    </div> 
+                </div> 
+            </div> 
+ 
+            <div class="card"> 
+                <div class="card-title"> Activité récente</div> 
+                <div class="activity-list" id="activityList"> 
+                    <div class="empty-state">Aucune activité récente</div> 
+                </div> 
+            </div> 
+        </div> 
+ 
+        <div class="dashboard-row"> 
+            <div class="card"> 
+                <div class="card-title"> Devis récents</div> 
+
+                <div id="recentDevisList"> 
+                    <div class="empty-state">Aucun devis sauvegardé</div> 
+                </div> 
+            </div> 
+ 
+            <div class="card"> 
+                <div class="card-title"> Relances suggérées</div> 
+                <div id="relancesList"> 
+                    <div class="empty-state">Aucune relance nécessaire</div> 
+                </div> 
+            </div> 
+        </div> 
+    </div> 
+ 
+    <!-- ==================== ONGLET ASSISTANT IA ==================== --> 
+    <div id="tab-assistant" class="tab-content"> 
+         
+        <!-- Suggestions intelligentes --> 
+        <div class="smart-suggestions" id="smartSuggestions" style="display: none;"> 
+            <div class="smart-suggestions-title"> 
+                 Suggestions intelligentes 
+            </div> 
+            <div id="suggestionsList"></div> 
+        </div> 
+ 
+        <div class="card"> 
+            <div class="card-title"> Client</div> 
+             
+            <div class="client-selector"> 
+                <select id="clientSelect" onchange="selectionnerClient()"> 
+                    <option value="">-- Sélectionner un client --</option> 
+                </select> 
+                <button class="btn btn-secondary btn-small" onclick="ouvrirModalClient()"> 
+Nouveau</button> 
+                <button class="btn btn-secondary btn-small" 
+onclick="ouvrirModalGestionClients()"> Gérer</button> 
+            </div> 
+ 
+            <div id="clientActif" style="display: none;"> 
+                <div class="client-badge" id="clientBadge"> 
+                    <span id="clientNomBadge"></span> 
+                    <span class="remove" onclick="deselectionnerClient()">✕</span> 
+                </div> 
+                <div style="font-size: 12px; color: var(--text-muted); margin-top: 8px;"> 
+                    <span id="clientDetailsBadge"></span> 
+                </div> 
+            </div> 
+        </div> 
+
+ 
+        <div class="card"> 
+            <div class="card-title"> Rédiger un email</div> 
+ 
+            <div class="tone-selector"> 
+                <label> Ton :</label> 
+                <select id="tonSelect"> 
+                    <option value="professionnel"> Professionnel</option> 
+                    <option value="chaleureux"> Chaleureux</option> 
+                    <option value="formel"> Formel</option> 
+                    <option value="decontracte"> Décontracté</option> 
+                </select> 
+            </div> 
+ 
+            <label> Type d'email</label> 
+            <div class="templates-emails"> 
+                <div class="template-email-card" onclick="selectTemplateEmail(this, 'reponse')" 
+data-type="reponse"> 
+                    <div class="template-email-name"> Réponse</div> 
+                    <div class="template-email-desc">Répondre à un email client</div> 
+                </div> 
+                <div class="template-email-card" onclick="selectTemplateEmail(this, 'relance')" 
+data-type="relance"> 
+                    <div class="template-email-name"> Relance</div> 
+                    <div class="template-email-desc">Relancer sans réponse</div> 
+                </div> 
+                <div class="template-email-card" onclick="selectTemplateEmail(this, 
+'compte_rendu')" data-type="compte_rendu"> 
+                    <div class="template-email-name"> Compte rendu</div> 
+                    <div class="template-email-desc">Après réunion/appel</div> 
+                </div> 
+                <div class="template-email-card" onclick="selectTemplateEmail(this, 
+'negociation')" data-type="negociation"> 
+                    <div class="template-email-name"> Négociation</div> 
+                    <div class="template-email-desc">Tarifs, délais, périmètre</div> 
+                </div> 
+                <div class="template-email-card" onclick="selectTemplateEmail(this, 'refus')" 
+data-type="refus"> 
+                    <div class="template-email-name"> Refus poli</div> 
+                    <div class="template-email-desc">Décliner une proposition</div> 
+                </div> 
+                <div class="template-email-card" onclick="selectTemplateEmail(this, 'suivi')" 
+data-type="suivi"> 
+                    <div class="template-email-name"> Suivi projet</div> 
+                    <div class="template-email-desc">Point d'avancement</div> 
+                </div> 
+                <div class="template-email-card" onclick="selectTemplateEmail(this, 'bienvenue')" 
+data-type="bienvenue"> 
+
+                    <div class="template-email-name"> Bienvenue</div> 
+                    <div class="template-email-desc">Nouveau client</div> 
+                </div> 
+                <div class="template-email-card" onclick="selectTemplateEmail(this, 'devis')" 
+data-type="devis"> 
+                    <div class="template-email-name"> Envoi devis</div> 
+                    <div class="template-email-desc">Accompagner un devis</div> 
+                </div> 
+                <div class="template-email-card" onclick="selectTemplateEmail(this, 'facture')" 
+data-type="facture"> 
+                    <div class="template-email-name"> Envoi facture</div> 
+                    <div class="template-email-desc">Demande de paiement</div> 
+                </div> 
+                <div class="template-email-card" onclick="selectTemplateEmail(this, 
+'remerciement')" data-type="remerciement"> 
+                    <div class="template-email-name"> Remerciement</div> 
+                    <div class="template-email-desc">Fin de projet</div> 
+                </div> 
+            </div> 
+ 
+            <label> Contexte / Email reçu</label> 
+            <textarea id="contexteEmail" placeholder="Collez l'email du client ou décrivez le 
+contexte..."></textarea> 
+ 
+            <label> Contexte rapide (optionnel)</label> 
+            <div class="context-tags"> 
+                <span class="context-tag" onclick="toggleContextTag(this)" 
+data-context="urgent"> Urgent</span> 
+                <span class="context-tag" onclick="toggleContextTag(this)" 
+data-context="retard"> En retard</span> 
+                <span class="context-tag" onclick="toggleContextTag(this)" 
+data-context="budget"> Budget serré</span> 
+                <span class="context-tag" onclick="toggleContextTag(this)" 
+data-context="premier_contact"> 1er contact</span> 
+                <span class="context-tag" onclick="toggleContextTag(this)" 
+data-context="client_difficile"> Client difficile</span> 
+                <span class="context-tag" onclick="toggleContextTag(this)" 
+data-context="modification"> Modification demandée</span> 
+            </div> 
+ 
+            <button class="btn btn-accent btn-full" onclick="genererEmail()"> 
+                 Générer l'email 
+            </button> 
+ 
+            <div class="loading" id="loadingEmail"> 
+                <div class="loading-dots"> 
+                    <div class="loading-dot"></div> 
+                    <div class="loading-dot"></div> 
+
+                    <div class="loading-dot"></div> 
+                </div> 
+                <span>Spyke réfléchit...</span> 
+            </div> 
+ 
+            <div class="result-box" id="resultEmail"> 
+                <div class="result-text" id="textEmail"></div> 
+                <div class="action-buttons"> 
+                    <button class="btn-copy" onclick="copier('email')"> Copier</button> 
+                    <button class="btn-modify" onclick="modifier('plus court')"> Plus 
+court</button> 
+                    <button class="btn-modify" onclick="modifier('plus détaillé')"> Plus 
+long</button> 
+                    <button class="btn-modify" onclick="modifier('plus formel')"> Plus 
+formel</button> 
+                    <button class="btn-modify" onclick="modifier('plus chaleureux')"> Plus 
+chaleureux</button> 
+                    <button class="btn-modify" onclick="sauvegarderDansConversation()"> 
+Sauvegarder</button> 
+                </div> 
+            </div> 
+        </div> 
+ 
+        <!-- Fil de conversation --> 
+        <div class="card" id="conversationCard" style="display: none;"> 
+            <div class="card-title"> Fil de conversation avec <span 
+id="conversationClientNom"></span></div> 
+            <div class="conversation-thread" id="conversationThread"></div> 
+            <div style="margin-top: 16px;"> 
+                <button class="btn btn-secondary btn-small" onclick="ajouterMessageRecu()"> 
+Ajouter email reçu</button> 
+                <button class="btn btn-secondary btn-small" onclick="exporterConversation()"> 
+Exporter</button> 
+            </div> 
+        </div> 
+ 
+        <!-- Templates personnalisés --> 
+        <div class="card"> 
+            <div class="card-title"> Mes templates</div> 
+            <div id="mesTemplates"> 
+                <p style="font-size: 13px; color: var(--text-muted);">Aucun template 
+sauvegardé</p> 
+            </div> 
+            <button class="btn btn-secondary btn-small" onclick="ouvrirModalTemplate()" 
+style="margin-top: 12px;"> Créer un template</button> 
+        </div> 
+ 
+        <!-- Historique --> 
+
+        <div class="card"> 
+            <div class="history-section visible" id="historySection"> 
+                <div class="history-title"> 
+                     Historique récent 
+                    <button class="btn-copy" onclick="effacerHistorique()" style="font-size: 
+11px;"> Effacer</button> 
+                </div> 
+                <div id="historyList"> 
+                    <p style="font-size: 13px; color: var(--text-muted);">Aucun email généré</p> 
+                </div> 
+            </div> 
+        </div> 
+    </div> 
+ 
+    <!-- ==================== ONGLET 2 : GÉNÉRATEUR DEVIS 
+==================== --> 
+    <div id="tab-devis" class="tab-content"> 
+        <div class="card"> 
+            <div class="info-box"> 
+                 <strong id="info-nom-2"></strong> – <span id="info-entreprise-2"></span> 
+            </div> 
+ 
+            <div class="form-grid"> 
+                <div> 
+                    <label> Nom du client</label> 
+                    <input type="text" id="nomClient" placeholder="Ex: TechStartup SAS"> 
+                </div> 
+                <div> 
+                    <label> Type de client</label> 
+                    <select id="typeClient"> 
+                        <option value="startup">Startup</option> 
+                        <option value="pme">PME</option> 
+                        <option value="grand_groupe">Grand groupe</option> 
+                        <option value="association">Association</option> 
+                        <option value="particulier">Particulier</option> 
+                    </select> 
+                </div> 
+                <div class="form-full"> 
+                    <label> Nom du projet</label> 
+                    <input type="text" id="nomProjet" placeholder="Ex: Refonte site web 
+e-commerce"> 
+                </div> 
+                <div class="form-full"> 
+                    <label> Description du projet</label> 
+                    <textarea id="descProjet" placeholder="Décrivez brièvement le projet et les 
+attentes du client..." style="min-height: 80px;"></textarea> 
+                </div> 
+            </div> 
+
+ 
+            <label> Templates rapides</label> 
+            <div class="templates-grid"> 
+                <div class="template-card" onclick="chargerTemplate('vitrine')"> 
+                    <div class="template-icon"></div> 
+                    <div class="template-name">Site vitrine</div> 
+                </div> 
+                <div class="template-card" onclick="chargerTemplate('ecommerce')"> 
+                    <div class="template-icon"></div> 
+                    <div class="template-name">E-commerce</div> 
+                </div> 
+                <div class="template-card" onclick="chargerTemplate('app')"> 
+                    <div class="template-icon"></div> 
+                    <div class="template-name">App mobile</div> 
+                </div> 
+            </div> 
+ 
+            <label> Prestations</label> 
+            <div class="prestations-container" id="prestationsContainer"> 
+                <div class="prestation-item"> 
+                    <input type="text" placeholder="Nom de la prestation" class="prestation-nom" 
+value="Conception & Maquettage"> 
+                    <input type="number" placeholder="Jours" class="prestation-jours" value="2" 
+min="0.5" step="0.5"> 
+                    <button class="btn-remove" onclick="supprimerPrestation(this)">✕</button> 
+                </div> 
+                <div class="prestation-item"> 
+                    <input type="text" placeholder="Nom de la prestation" class="prestation-nom" 
+value="Développement"> 
+                    <input type="number" placeholder="Jours" class="prestation-jours" value="5" 
+min="0.5" step="0.5"> 
+                    <button class="btn-remove" onclick="supprimerPrestation(this)">✕</button> 
+                </div> 
+            </div> 
+            <button class="btn-add" onclick="ajouterPrestation()">+ Ajouter une 
+prestation</button> 
+ 
+            <div class="form-grid" style="margin-top: 20px;"> 
+                <div> 
+                    <label> Tarif journalier (€)</label> 
+                    <input type="number" id="tarifJour" value="500" min="0"> 
+                </div> 
+                <div> 
+                    <label> TVA (%)</label> 
+                    <select id="tvaSelect"> 
+                        <option value="0">0% (Auto-entrepreneur)</option> 
+                        <option value="10">10%</option> 
+                        <option value="20" selected>20%</option> 
+
+                    </select> 
+                </div> 
+                <div> 
+                    <label> Acompte (%)</label> 
+                    <input type="number" id="acompte" value="30" min="0" max="100"> 
+                </div> 
+                <div> 
+                    <label> Validité (jours)</label> 
+                    <input type="number" id="validite" value="30" min="1"> 
+                </div> 
+                <div class="form-full"> 
+                    <label> Délai de réalisation</label> 
+                    <input type="text" id="delai" placeholder="Ex: 3 semaines"> 
+                </div> 
+            </div> 
+ 
+            <button class="btn btn-accent btn-full" onclick="genererDevis()" style="margin-top: 
+20px;"> 
+                 Générer le devis (via Claude) 
+            </button> 
+ 
+            <div class="loading" id="loadingDevis"> 
+                <div class="loading-dots"> 
+                    <div class="loading-dot"></div> 
+                    <div class="loading-dot"></div> 
+                    <div class="loading-dot"></div> 
+                </div> 
+                <span>Génération du devis...</span> 
+            </div> 
+ 
+            <div class="result-box" id="resultDevis"> 
+                <div class="result-text" id="textDevis"></div> 
+                <div class="action-buttons"> 
+                    <button class="btn-copy" onclick="copier('devis')"> Copier</button> 
+                    <button class="btn-pdf" onclick="genererDevisPDF()"> Télécharger 
+PDF</button> 
+                    <button class="btn-modify" onclick="sauvegarderDevis()"> 
+Sauvegarder</button> 
+                    <button class="btn-modify" onclick="envoyerDevisParEmail()"> Envoyer par 
+email</button> 
+                </div> 
+            </div> 
+        </div> 
+    </div> 
+ 
+    <!-- ==================== ONGLET 3 : ANALYSEUR BRIEF 
+==================== --> 
+
+    <div id="tab-brief" class="tab-content"> 
+        <div class="card"> 
+            <div class="info-box"> 
+                 <strong id="info-nom-3"></strong> – <span id="info-metier-3"></span> 
+            </div> 
+ 
+            <label> Brief client à analyser</label> 
+            <textarea id="briefTexte" placeholder="Collez le brief client, l'appel d'offres ou la 
+demande de devis..."></textarea> 
+ 
+            <button class="btn btn-accent btn-full" onclick="analyserBrief()"> 
+                 Analyser le brief 
+            </button> 
+ 
+            <div class="loading" id="loadingBrief"> 
+                <div class="loading-dots"> 
+                    <div class="loading-dot"></div> 
+                    <div class="loading-dot"></div> 
+                    <div class="loading-dot"></div> 
+                </div> 
+                <span>Analyse en cours...</span> 
+            </div> 
+ 
+            <div class="result-box" id="resultBrief"> 
+                <div id="analyseContenu"></div> 
+                <div class="action-buttons"> 
+                    <button class="btn-copy" onclick="copier('brief')"> Copier l'analyse</button> 
+                    <button class="btn-modify" onclick="creerDevisDepuisBrief()"> Créer un 
+devis</button> 
+                </div> 
+            </div> 
+        </div> 
+    </div> 
+ 
+    <!-- ==================== ONGLET PARAMÈTRES ==================== --> 
+    <div id="tab-settings" class="tab-content"> 
+        <div class="card"> 
+            <div class="card-title"> Informations personnelles</div> 
+             
+            <div class="form-grid"> 
+                <div> 
+                    <label>Nom complet</label> 
+                    <input type="text" id="settingsNom" placeholder="Jean Dupont"> 
+                </div> 
+                <div> 
+                    <label>Métier</label> 
+                    <input type="text" id="settingsMetier" placeholder="Développeur Freelance"> 
+                </div> 
+
+                <div> 
+                    <label>Entreprise</label> 
+                    <input type="text" id="settingsEntreprise" placeholder="Mon Entreprise"> 
+                </div> 
+                <div> 
+                    <label>SIRET</label> 
+                    <input type="text" id="settingsSiret" placeholder="123 456 789 00012"> 
+                </div> 
+                <div class="form-full"> 
+                    <label>Adresse</label> 
+                    <input type="text" id="settingsAdresse" placeholder="123 Rue de la Tech"> 
+                </div> 
+                <div> 
+                    <label>Ville / Code postal</label> 
+                    <input type="text" id="settingsVille" placeholder="75001 Paris"> 
+                </div> 
+                <div> 
+                    <label>Email professionnel</label> 
+                    <input type="email" id="settingsEmail" placeholder="contact@monsite.fr"> 
+                </div> 
+                <div> 
+                    <label>Téléphone</label> 
+                    <input type="tel" id="settingsTelephone" placeholder="06 12 34 56 78"> 
+                </div> 
+                <div> 
+                    <label>Tarif journalier (€)</label> 
+                    <input type="number" id="settingsTarif" placeholder="500"> 
+                </div> 
+            </div> 
+        </div> 
+ 
+        <div class="card"> 
+            <div class="card-title"> Clé API Claude</div> 
+            <label>Clé API Anthropic</label> 
+            <input type="password" id="settingsApiKey" placeholder="sk-ant-..."> 
+            <p style="font-size: 11px; color: var(--text-muted); margin-top: 8px;"> 
+                Obtenez votre clé sur <a href="https://console.anthropic.com" target="_blank" 
+style="color: var(--violet-glow);">console.anthropic.com</a> 
+            </p> 
+        </div> 
+ 
+        <div class="card"> 
+            <div class="card-title"> Mentions légales devis</div> 
+            <label>Conditions de paiement</label> 
+            <textarea id="settingsConditions" placeholder="Paiement par virement sous 30 
+jours..." style="min-height: 80px;"></textarea> 
+ 
+            <label>Mentions légales</label> 
+
+            <textarea id="settingsMentions" placeholder="En cas de retard de paiement..." 
+style="min-height: 80px;"></textarea> 
+        </div> 
+ 
+        <div class="card"> 
+            <div class="card-title"> Numérotation devis</div> 
+            <div class="form-grid"> 
+                <div> 
+                    <label>Préfixe</label> 
+                    <input type="text" id="settingsPrefixDevis" placeholder="DEV"> 
+                </div> 
+                <div> 
+                    <label>Prochain numéro</label> 
+                    <input type="number" id="settingsNumDevis" placeholder="1" min="1"> 
+                </div> 
+            </div> 
+        </div> 
+ 
+        <div class="card"> 
+            <div class="card-title"> Données</div> 
+            <div style="display: flex; gap: 12px; flex-wrap: wrap;"> 
+                <button class="btn btn-secondary" onclick="exporterDonnees()"> Exporter 
+(JSON)</button> 
+                <button class="btn btn-secondary" 
+onclick="document.getElementById('importFile').click()"> Importer</button> 
+                <input type="file" id="importFile" accept=".json" style="display: none;" 
+onchange="importerDonnees(event)"> 
+                <button class="btn btn-secondary" onclick="reinitialiserDonnees()" 
+style="border-color: var(--error); color: var(--error);"> Réinitialiser</button> 
+            </div> 
+            <p style="font-size: 11px; color: var(--text-muted); margin-top: 12px;"> 
+                Exportez vos données pour les sauvegarder ou les transférer. 
+            </p> 
+        </div> 
+ 
+        <button class="btn btn-accent btn-full" onclick="sauvegarderParametres()"> 
+             Sauvegarder les paramètres 
+        </button> 
+    </div> 
+</main> 
+ 
+<footer class="footer"> 
+    Spyke © 2025 – Votre assistant freelance intelligent 
+</footer> 
+ 
+<!-- Modal : Nouveau Client --> 
+<div class="modal-overlay" id="modalClient"> 
+    <div class="modal"> 
+
+        <div class="modal-title"> 
+             Nouveau client 
+            <button class="modal-close" onclick="fermerModal('modalClient')">✕</button> 
+        </div> 
+        <label> Nom / Entreprise</label> 
+        <input type="text" id="newClientNom" placeholder="Ex: TechStartup SAS"> 
+         
+        <label> Email</label> 
+        <input type="email" id="newClientEmail" placeholder="contact@techstartup.com"> 
+         
+        <label> Type</label> 
+        <select id="newClientType"> 
+            <option value="startup">Startup</option> 
+            <option value="pme">PME</option> 
+            <option value="grand_groupe">Grand groupe</option> 
+            <option value="association">Association</option> 
+            <option value="particulier">Particulier</option> 
+        </select> 
+ 
+        <label> Notes</label> 
+        <textarea id="newClientNotes" placeholder="Informations utiles sur ce client..." 
+style="min-height: 80px;"></textarea> 
+ 
+        <button class="btn btn-accent btn-full" onclick="sauvegarderClient()"> 
+Sauvegarder</button> 
+    </div> 
+</div> 
+ 
+<!-- Modal : Gérer Clients --> 
+<div class="modal-overlay" id="modalGestionClients"> 
+    <div class="modal"> 
+        <div class="modal-title"> 
+             Mes clients 
+            <button class="modal-close" 
+onclick="fermerModal('modalGestionClients')">✕</button> 
+        </div> 
+        <div class="client-list" id="clientList"></div> 
+    </div> 
+</div> 
+ 
+<!-- Modal : Template personnalisé --> 
+<div class="modal-overlay" id="modalTemplate"> 
+    <div class="modal"> 
+        <div class="modal-title"> 
+             Nouveau template 
+            <button class="modal-close" onclick="fermerModal('modalTemplate')">✕</button> 
+        </div> 
+        <label> Nom du template</label> 
+
+        <input type="text" id="newTemplateNom" placeholder="Ex: Email de relance 
+paiement"> 
+         
+        <label> Contenu</label> 
+        <textarea id="newTemplateContenu" placeholder="Le contenu de votre email 
+template..." style="min-height: 150px;"></textarea> 
+ 
+        <button class="btn btn-accent btn-full" onclick="sauvegarderTemplate()"> 
+Sauvegarder</button> 
+    </div> 
+</div> 
+ 
+<script> 
+    // ======================================== 
+    // CONFIGURATION (chargée depuis localStorage) 
+    // ======================================== 
+    let CONFIG = JSON.parse(localStorage.getItem('spyke_config')) || { 
+        apiKey: '', 
+        nom: 'Jean Dupont', 
+        metier: 'Développeur Freelance', 
+        entreprise: 'Mon Entreprise', 
+        adresse: '123 Rue Example', 
+        ville: '75001 Paris', 
+        email: 'contact@exemple.fr', 
+        telephone: '06 00 00 00 00', 
+        siret: '000 000 000 00000', 
+        tarifJournalier: 500, 
+        conditions: 'Paiement par virement bancaire sous 30 jours.', 
+        mentions: 'En cas de retard de paiement, une pénalité de 3 fois le taux d\'intérêt légal 
+sera appliquée.', 
+        prefixDevis: 'DEV', 
+        numDevis: 1 
+    }; 
+ 
+    // Données persistantes 
+    let devisSauvegardes = JSON.parse(localStorage.getItem('spyke_devis_list')) || []; 
+    let activites = JSON.parse(localStorage.getItem('spyke_activites')) || []; 
+ 
+    const TEMPLATES = { 
+        vitrine: [ 
+            { nom: 'Conception & Maquettage', jours: 2 }, 
+            { nom: 'Développement Frontend', jours: 4 }, 
+            { nom: 'Intégration CMS', jours: 2 }, 
+            { nom: 'Tests & Recette', jours: 1 } 
+        ], 
+        ecommerce: [ 
+            { nom: 'Conception & Maquettage', jours: 3 }, 
+            { nom: 'Design UI/UX', jours: 3 }, 
+
+            { nom: 'Développement Frontend', jours: 5 }, 
+            { nom: 'Développement Backend', jours: 5 }, 
+            { nom: 'Tests & Recette', jours: 2 } 
+        ], 
+        app: [ 
+            { nom: 'Conception & Architecture', jours: 3 }, 
+            { nom: 'Design UI/UX Mobile', jours: 4 }, 
+            { nom: 'Développement iOS/Android', jours: 10 }, 
+            { nom: 'Tests & QA', jours: 3 } 
+        ] 
+    }; 
+ 
+    // ======================================== 
+    // DONNÉES PERSISTANTES (localStorage) 
+    // ======================================== 
+    let clients = JSON.parse(localStorage.getItem('spyke_clients')) || []; 
+    let conversations = JSON.parse(localStorage.getItem('spyke_conversations')) || {}; 
+    let templates = JSON.parse(localStorage.getItem('spyke_templates')) || []; 
+    let historique = JSON.parse(localStorage.getItem('spyke_historique')) || []; 
+ 
+    // Variables d'état 
+    let derniereReponseEmail = ''; 
+    let dernierDevis = ''; 
+    let derniereAnalyse = ''; 
+    let clientActifId = null; 
+    let typeEmailSelectionne = null; 
+    let contexteTags = []; 
+ 
+    // ======================================== 
+    // INITIALISATION 
+    // ======================================== 
+    window.onload = function() { 
+        // Charger les paramètres dans les champs 
+        chargerParametresDansUI(); 
+         
+        // Mettre à jour l'UI avec CONFIG 
+        document.getElementById('userName').textContent = CONFIG.nom; 
+        document.getElementById('userAvatar').textContent = CONFIG.nom.split(' ').map(n => 
+n[0]).join('').substring(0, 2); 
+         
+        document.getElementById('info-nom-2').textContent = CONFIG.nom; 
+        document.getElementById('info-entreprise-2').textContent = CONFIG.entreprise; 
+        document.getElementById('info-nom-3').textContent = CONFIG.nom; 
+        document.getElementById('info-metier-3').textContent = CONFIG.metier; 
+         
+        document.getElementById('tarifJour').value = CONFIG.tarifJournalier; 
+ 
+        // Charger les données 
+
+        rafraichirListeClients(); 
+        afficherMesTemplates(); 
+        afficherHistorique(); 
+        verifierSuggestions(); 
+        rafraichirDashboard(); 
+    }; 
+ 
+    // ======================================== 
+    // PARAMÈTRES 
+    // ======================================== 
+    function chargerParametresDansUI() { 
+        document.getElementById('settingsNom').value = CONFIG.nom || ''; 
+        document.getElementById('settingsMetier').value = CONFIG.metier || ''; 
+        document.getElementById('settingsEntreprise').value = CONFIG.entreprise || ''; 
+        document.getElementById('settingsSiret').value = CONFIG.siret || ''; 
+        document.getElementById('settingsAdresse').value = CONFIG.adresse || ''; 
+        document.getElementById('settingsVille').value = CONFIG.ville || ''; 
+        document.getElementById('settingsEmail').value = CONFIG.email || ''; 
+        document.getElementById('settingsTelephone').value = CONFIG.telephone || ''; 
+        document.getElementById('settingsTarif').value = CONFIG.tarifJournalier || 500; 
+        document.getElementById('settingsApiKey').value = CONFIG.apiKey || ''; 
+        document.getElementById('settingsConditions').value = CONFIG.conditions || ''; 
+        document.getElementById('settingsMentions').value = CONFIG.mentions || ''; 
+        document.getElementById('settingsPrefixDevis').value = CONFIG.prefixDevis || 'DEV'; 
+        document.getElementById('settingsNumDevis').value = CONFIG.numDevis || 1; 
+    } 
+ 
+    function sauvegarderParametres() { 
+        CONFIG.nom = document.getElementById('settingsNom').value; 
+        CONFIG.metier = document.getElementById('settingsMetier').value; 
+        CONFIG.entreprise = document.getElementById('settingsEntreprise').value; 
+        CONFIG.siret = document.getElementById('settingsSiret').value; 
+        CONFIG.adresse = document.getElementById('settingsAdresse').value; 
+        CONFIG.ville = document.getElementById('settingsVille').value; 
+        CONFIG.email = document.getElementById('settingsEmail').value; 
+        CONFIG.telephone = document.getElementById('settingsTelephone').value; 
+        CONFIG.tarifJournalier = parseInt(document.getElementById('settingsTarif').value) || 
+500; 
+        CONFIG.apiKey = document.getElementById('settingsApiKey').value; 
+        CONFIG.conditions = document.getElementById('settingsConditions').value; 
+        CONFIG.mentions = document.getElementById('settingsMentions').value; 
+        CONFIG.prefixDevis = document.getElementById('settingsPrefixDevis').value || 'DEV'; 
+        CONFIG.numDevis = parseInt(document.getElementById('settingsNumDevis').value) || 
+1; 
+ 
+        localStorage.setItem('spyke_config', JSON.stringify(CONFIG)); 
+         
+        // Rafraîchir l'UI 
+
+        document.getElementById('userName').textContent = CONFIG.nom; 
+        document.getElementById('userAvatar').textContent = CONFIG.nom.split(' ').map(n => 
+n[0]).join('').substring(0, 2); 
+        document.getElementById('tarifJour').value = CONFIG.tarifJournalier; 
+         
+        alert(' Paramètres sauvegardés !'); 
+    } 
+ 
+    function exporterDonnees() { 
+        const data = { 
+            config: CONFIG, 
+            clients: clients, 
+            templates: templates, 
+            historique: historique, 
+            devis: devisSauvegardes, 
+            activites: activites, 
+            conversations: conversations 
+        }; 
+         
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }); 
+        const url = URL.createObjectURL(blob); 
+        const a = document.createElement('a'); 
+        a.href = url; 
+        a.download = `spyke-backup-${new Date().toISOString().slice(0,10)}.json`; 
+        a.click(); 
+    } 
+ 
+    function importerDonnees(event) { 
+        const file = event.target.files[0]; 
+        if (!file) return; 
+         
+        const reader = new FileReader(); 
+        reader.onload = function(e) { 
+            try { 
+                const data = JSON.parse(e.target.result); 
+                 
+                if (data.config) { 
+                    CONFIG = data.config; 
+                    localStorage.setItem('spyke_config', JSON.stringify(CONFIG)); 
+                } 
+                if (data.clients) { 
+                    clients = data.clients; 
+                    localStorage.setItem('spyke_clients', JSON.stringify(clients)); 
+                } 
+                if (data.templates) { 
+                    templates = data.templates; 
+                    localStorage.setItem('spyke_templates', JSON.stringify(templates)); 
+                } 
+
+                if (data.historique) { 
+                    historique = data.historique; 
+                    localStorage.setItem('spyke_historique', JSON.stringify(historique)); 
+                } 
+                if (data.devis) { 
+                    devisSauvegardes = data.devis; 
+                    localStorage.setItem('spyke_devis_list', JSON.stringify(devisSauvegardes)); 
+                } 
+                if (data.activites) { 
+                    activites = data.activites; 
+                    localStorage.setItem('spyke_activites', JSON.stringify(activites)); 
+                } 
+                if (data.conversations) { 
+                    conversations = data.conversations; 
+                    localStorage.setItem('spyke_conversations', JSON.stringify(conversations)); 
+                } 
+                 
+                alert(' Données importées ! Rechargement...'); 
+                location.reload(); 
+            } catch (error) { 
+                alert(' Erreur lors de l\'import: ' + error.message); 
+            } 
+        }; 
+        reader.readAsText(file); 
+    } 
+ 
+    function reinitialiserDonnees() { 
+        if (confirm(' Supprimer TOUTES les données ? Cette action est irréversible.')) { 
+            localStorage.removeItem('spyke_config'); 
+            localStorage.removeItem('spyke_clients'); 
+            localStorage.removeItem('spyke_templates'); 
+            localStorage.removeItem('spyke_historique'); 
+            localStorage.removeItem('spyke_devis_list'); 
+            localStorage.removeItem('spyke_activites'); 
+            localStorage.removeItem('spyke_conversations'); 
+            alert('Données supprimées. Rechargement...'); 
+            location.reload(); 
+        } 
+    } 
+ 
+    // ======================================== 
+    // DASHBOARD 
+    // ======================================== 
+    function rafraichirDashboard() { 
+        // Stats 
+        document.getElementById('statClients').textContent = clients.length; 
+        document.getElementById('statEmails').textContent = historique.length; 
+        document.getElementById('statDevis').textContent = devisSauvegardes.length; 
+
+         
+        // CA du mois 
+        const moisActuel = new Date().getMonth(); 
+        const ca = devisSauvegardes 
+            .filter(d => new Date(d.date).getMonth() === moisActuel) 
+            .reduce((sum, d) => sum + (d.montant || 0), 0); 
+        document.getElementById('statCA').textContent = ca.toLocaleString('fr-FR') + ' €'; 
+ 
+        // Activités récentes 
+        afficherActivites(); 
+         
+        // Devis récents 
+        afficherDevisRecents(); 
+         
+        // Relances 
+        afficherRelances(); 
+    } 
+ 
+    function afficherActivites() { 
+        const container = document.getElementById('activityList'); 
+         
+        if (activites.length === 0) { 
+            container.innerHTML = '<div class="empty-state">Aucune activité récente</div>'; 
+            return; 
+        } 
+ 
+        container.innerHTML = activites.slice(0, 5).map(a => ` 
+            <div class="activity-item"> 
+                <div class="activity-icon">${a.icon}</div> 
+                <div class="activity-content"> 
+                    <div class="activity-title">${a.titre}</div> 
+                    <div class="activity-time">${formatTemps(a.date)}</div> 
+                </div> 
+            </div> 
+        `).join(''); 
+    } 
+ 
+    function afficherDevisRecents() { 
+        const container = document.getElementById('recentDevisList'); 
+         
+        if (devisSauvegardes.length === 0) { 
+            container.innerHTML = '<div class="empty-state">Aucun devis sauvegardé</div>'; 
+            return; 
+        } 
+ 
+        container.innerHTML = devisSauvegardes.slice(0, 3).map(d => ` 
+            <div class="pending-item"> 
+                <div class="pending-info"> 
+
+                    <h4>${d.client}</h4> 
+                    <span>${d.projet || 'Projet'} • ${formatDate(d.date)}</span> 
+                </div> 
+                <span class="pending-amount">${(d.montant || 0).toLocaleString('fr-FR')} 
+€</span> 
+            </div> 
+        `).join(''); 
+    } 
+ 
+    function afficherRelances() { 
+        const container = document.getElementById('relancesList'); 
+        const now = new Date(); 
+        const relances = []; 
+ 
+        clients.forEach(client => { 
+            if (client.dernierContact) { 
+                const dernierContact = new Date(client.dernierContact); 
+                const joursDepuis = Math.floor((now - dernierContact) / (1000 * 60 * 60 * 24)); 
+                 
+                if (joursDepuis > 14) { 
+                    relances.push({ client, jours: joursDepuis }); 
+                } 
+            } 
+        }); 
+ 
+        if (relances.length === 0) { 
+            container.innerHTML = '<div class="empty-state">Aucune relance nécessaire</div>'; 
+            return; 
+        } 
+ 
+        container.innerHTML = relances.slice(0, 3).map(r => ` 
+            <div class="pending-item"> 
+                <div class="pending-info"> 
+                    <h4>${r.client.nom}</h4> 
+                    <span>Pas de contact depuis ${r.jours} jours</span> 
+                </div> 
+                <button class="btn btn-small btn-secondary" 
+onclick="preparerRelance(${r.client.id})"></button> 
+            </div> 
+        `).join(''); 
+    } 
+ 
+    function preparerRelance(clientId) { 
+        document.getElementById('clientSelect').value = clientId; 
+        selectionnerClient(); 
+        selectTemplateEmail(document.querySelector('[data-type="relance"]'), 'relance'); 
+        switchTab(event, 'assistant'); 
+    } 
+
+ 
+    function ajouterActivite(icon, titre) { 
+        activites.unshift({ 
+            icon: icon, 
+            titre: titre, 
+            date: new Date().toISOString() 
+        }); 
+        if (activites.length > 20) activites.pop(); 
+        localStorage.setItem('spyke_activites', JSON.stringify(activites)); 
+    } 
+ 
+    function formatTemps(dateStr) { 
+        const date = new Date(dateStr); 
+        const now = new Date(); 
+        const diff = Math.floor((now - date) / 1000); 
+         
+        if (diff < 60) return 'À l\'instant'; 
+        if (diff < 3600) return `Il y a ${Math.floor(diff / 60)} min`; 
+        if (diff < 86400) return `Il y a ${Math.floor(diff / 3600)}h`; 
+        return formatDate(dateStr); 
+    } 
+ 
+    function formatDate(dateStr) { 
+        return new Date(dateStr).toLocaleDateString('fr-FR'); 
+    } 
+ 
+    // ======================================== 
+    // NAVIGATION 
+    // ======================================== 
+    function switchTab(event, tabName) { 
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active')); 
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active')); 
+         
+        // Activer le bon onglet 
+        document.querySelectorAll('.tab').forEach(t => { 
+            if (t.textContent.toLowerCase().includes(tabName.substring(0, 4)) ||  
+                (tabName === 'settings' && t.textContent.includes('Paramètres'))) { 
+                t.classList.add('active'); 
+            } 
+        }); 
+         
+        document.getElementById('tab-' + tabName).classList.add('active'); 
+         
+        if (tabName === 'dashboard') { 
+            rafraichirDashboard(); 
+        } 
+    } 
+ 
+
+    // ======================================== 
+    // API CLAUDE 
+    // ======================================== 
+    async function appelAPI(prompt) { 
+        try { 
+            const response = await fetch('https://api.anthropic.com/v1/messages', { 
+                method: 'POST', 
+                headers: { 
+                    'Content-Type': 'application/json', 
+                    'x-api-key': CONFIG.apiKey, 
+                    'anthropic-version': '2023-06-01', 
+                    'anthropic-dangerous-direct-browser-access': 'true' 
+                }, 
+                body: JSON.stringify({ 
+                    model: 'claude-sonnet-4-20250514', 
+                    max_tokens: 2000, 
+                    messages: [{ role: 'user', content: prompt }] 
+                }) 
+            }); 
+             
+            const data = await response.json(); 
+            if (data.error) throw new Error(data.error.message); 
+            return data.content[0].text; 
+        } catch (error) { 
+            throw new Error('Erreur API Claude: ' + error.message); 
+        } 
+    } 
+ 
+    // ======================================== 
+    // GESTION CLIENTS 
+    // ======================================== 
+    function ouvrirModalClient() { 
+        document.getElementById('modalClient').classList.add('active'); 
+    } 
+ 
+    function ouvrirModalGestionClients() { 
+        afficherListeClientsModal(); 
+        document.getElementById('modalGestionClients').classList.add('active'); 
+    } 
+ 
+    function fermerModal(id) { 
+        document.getElementById(id).classList.remove('active'); 
+    } 
+ 
+    function sauvegarderClient() { 
+        const client = { 
+            id: Date.now(), 
+            nom: document.getElementById('newClientNom').value, 
+
+            email: document.getElementById('newClientEmail').value, 
+            type: document.getElementById('newClientType').value, 
+            notes: document.getElementById('newClientNotes').value, 
+            dateCreation: new Date().toISOString(), 
+            dernierContact: null 
+        }; 
+ 
+        if (!client.nom) { 
+            alert('Le nom est obligatoire'); 
+            return; 
+        } 
+ 
+        clients.push(client); 
+        localStorage.setItem('spyke_clients', JSON.stringify(clients)); 
+         
+        // Reset form 
+        document.getElementById('newClientNom').value = ''; 
+        document.getElementById('newClientEmail').value = ''; 
+        document.getElementById('newClientNotes').value = ''; 
+         
+        fermerModal('modalClient'); 
+        rafraichirListeClients(); 
+        ajouterActivite('', `Nouveau client: ${client.nom}`); 
+    } 
+ 
+    function rafraichirListeClients() { 
+        const select = document.getElementById('clientSelect'); 
+        select.innerHTML = '<option value="">-- Sélectionner un client --</option>'; 
+         
+        clients.forEach(c => { 
+            const option = document.createElement('option'); 
+            option.value = c.id; 
+            option.textContent = c.nom; 
+            select.appendChild(option); 
+        }); 
+    } 
+ 
+    function afficherListeClientsModal() { 
+        const container = document.getElementById('clientList'); 
+         
+        if (clients.length === 0) { 
+            container.innerHTML = '<p style="color: var(--text-muted); font-size: 13px;">Aucun 
+client enregistré</p>'; 
+            return; 
+        } 
+ 
+        container.innerHTML = clients.map(c => ` 
+            <div class="client-item"> 
+
+                <div class="client-item-info"> 
+                    <h4>${c.nom}</h4> 
+                    <span>${c.email || 'Pas d\'email'} • ${c.type}</span> 
+                </div> 
+                <div class="client-item-actions"> 
+                    <button class="btn-copy" onclick="supprimerClient(${c.id})"></button> 
+                </div> 
+            </div> 
+        `).join(''); 
+    } 
+ 
+    function supprimerClient(id) { 
+        if (confirm('Supprimer ce client ?')) { 
+            clients = clients.filter(c => c.id !== id); 
+            localStorage.setItem('spyke_clients', JSON.stringify(clients)); 
+            rafraichirListeClients(); 
+            afficherListeClientsModal(); 
+             
+            if (clientActifId === id) { 
+                deselectionnerClient(); 
+            } 
+        } 
+    } 
+ 
+    function selectionnerClient() { 
+        const select = document.getElementById('clientSelect'); 
+        const id = parseInt(select.value); 
+         
+        if (!id) { 
+            deselectionnerClient(); 
+            return; 
+        } 
+ 
+        const client = clients.find(c => c.id === id); 
+        if (client) { 
+            clientActifId = id; 
+            document.getElementById('clientActif').style.display = 'block'; 
+            document.getElementById('clientNomBadge').textContent = client.nom; 
+            document.getElementById('clientDetailsBadge').textContent = `${client.type} • 
+${client.email || 'Pas d\'email'}`; 
+             
+            // Afficher conversation si existe 
+            afficherConversation(id); 
+             
+            // Pré-remplir le devis aussi 
+            document.getElementById('nomClient').value = client.nom; 
+            document.getElementById('typeClient').value = client.type; 
+        } 
+
+    } 
+ 
+    function deselectionnerClient() { 
+        clientActifId = null; 
+        document.getElementById('clientActif').style.display = 'none'; 
+        document.getElementById('clientSelect').value = ''; 
+        document.getElementById('conversationCard').style.display = 'none'; 
+    } 
+ 
+    // ======================================== 
+    // CONVERSATION / FIL 
+    // ======================================== 
+    function afficherConversation(clientId) { 
+        const conv = conversations[clientId]; 
+        const card = document.getElementById('conversationCard'); 
+        const thread = document.getElementById('conversationThread'); 
+         
+        const client = clients.find(c => c.id === clientId); 
+        document.getElementById('conversationClientNom').textContent = client ? client.nom : 
+''; 
+ 
+        if (!conv || conv.length === 0) { 
+            card.style.display = 'none'; 
+            return; 
+        } 
+ 
+        card.style.display = 'block'; 
+        thread.innerHTML = conv.map(m => ` 
+            <div class="thread-message ${m.type}"> 
+                ${m.contenu} 
+                <div class="thread-meta">${new Date(m.date).toLocaleDateString('fr-FR')} - 
+${m.type === 'sent' ? 'Envoyé' : 'Reçu'}</div> 
+            </div> 
+        `).join(''); 
+    } 
+ 
+    function sauvegarderDansConversation() { 
+        if (!clientActifId || !derniereReponseEmail) { 
+            alert('Sélectionnez un client et générez un email d\'abord'); 
+            return; 
+        } 
+ 
+        if (!conversations[clientActifId]) { 
+            conversations[clientActifId] = []; 
+        } 
+ 
+        conversations[clientActifId].push({ 
+            type: 'sent', 
+
+            contenu: derniereReponseEmail, 
+            date: new Date().toISOString() 
+        }); 
+ 
+        localStorage.setItem('spyke_conversations', JSON.stringify(conversations)); 
+        afficherConversation(clientActifId); 
+         
+        // Mettre à jour dernier contact 
+        const client = clients.find(c => c.id === clientActifId); 
+        if (client) { 
+            client.dernierContact = new Date().toISOString(); 
+            localStorage.setItem('spyke_clients', JSON.stringify(clients)); 
+        } 
+    } 
+ 
+    function ajouterMessageRecu() { 
+        if (!clientActifId) return; 
+         
+        const contenu = prompt('Collez l\'email reçu :'); 
+        if (!contenu) return; 
+ 
+        if (!conversations[clientActifId]) { 
+            conversations[clientActifId] = []; 
+        } 
+ 
+        conversations[clientActifId].push({ 
+            type: 'received', 
+            contenu: contenu, 
+            date: new Date().toISOString() 
+        }); 
+ 
+        localStorage.setItem('spyke_conversations', JSON.stringify(conversations)); 
+        afficherConversation(clientActifId); 
+    } 
+ 
+    function exporterConversation() { 
+        if (!clientActifId) return; 
+         
+        const conv = conversations[clientActifId]; 
+        if (!conv) return; 
+ 
+        const client = clients.find(c => c.id === clientActifId); 
+        let texte = `Conversation avec ${client.nom}\n${'='.repeat(40)}\n\n`; 
+ 
+        conv.forEach(m => { 
+            texte += `[${m.type === 'sent' ? 'ENVOYÉ' : 'REÇU'} - ${new 
+Date(m.date).toLocaleDateString('fr-FR')}]\n`; 
+            texte += m.contenu + '\n\n'; 
+
+        }); 
+ 
+        navigator.clipboard.writeText(texte); 
+        alert('Conversation copiée !'); 
+    } 
+ 
+    // ======================================== 
+    // SUGGESTIONS INTELLIGENTES 
+    // ======================================== 
+    function verifierSuggestions() { 
+        const suggestions = []; 
+        const now = new Date(); 
+ 
+        clients.forEach(client => { 
+            if (client.dernierContact) { 
+                const dernierContact = new Date(client.dernierContact); 
+                const joursDepuis = Math.floor((now - dernierContact) / (1000 * 60 * 60 * 24)); 
+                 
+                if (joursDepuis > 14) { 
+                    suggestions.push({ 
+                        type: 'relance', 
+                        client: client, 
+                        message: `${client.nom} - Pas de contact depuis ${joursDepuis} jours`, 
+                        action: () => preparerRelance(client.id) 
+                    }); 
+                } 
+            } 
+        }); 
+ 
+        if (suggestions.length > 0) { 
+            const container = document.getElementById('smartSuggestions'); 
+            const list = document.getElementById('suggestionsList'); 
+             
+            container.style.display = 'block'; 
+            list.innerHTML = suggestions.map((s, i) => ` 
+                <div class="suggestion-item"> 
+                    <span> ${s.message}</span> 
+                    <button class="suggestion-action" 
+onclick="executerSuggestion(${i})">Relancer</button> 
+                </div> 
+            `).join(''); 
+             
+            window.suggestionsList = suggestions; 
+        } 
+    } 
+ 
+    function executerSuggestion(index) { 
+        if (window.suggestionsList && window.suggestionsList[index]) { 
+
+            window.suggestionsList[index].action(); 
+        } 
+    } 
+ 
+    function preparerRelance(clientId) { 
+        document.getElementById('clientSelect').value = clientId; 
+        selectionnerClient(); 
+        selectTemplateEmail(document.querySelector('[data-type="relance"]'), 'relance'); 
+        document.getElementById('contexteEmail').value = 'Je souhaite relancer ce client avec 
+qui je n\'ai pas eu de contact depuis un moment.'; 
+    } 
+ 
+    // ======================================== 
+    // TEMPLATES EMAIL 
+    // ======================================== 
+    function selectTemplateEmail(element, type) { 
+        document.querySelectorAll('.template-email-card').forEach(c => 
+c.classList.remove('selected')); 
+        element.classList.add('selected'); 
+        typeEmailSelectionne = type; 
+    } 
+ 
+    function toggleContextTag(element) { 
+        element.classList.toggle('active'); 
+        const context = element.dataset.context; 
+         
+        if (element.classList.contains('active')) { 
+            contexteTags.push(context); 
+        } else { 
+            contexteTags = contexteTags.filter(c => c !== context); 
+        } 
+    } 
+ 
+    // ======================================== 
+    // GÉNÉRATION EMAIL 
+    // ======================================== 
+    async function genererEmail() { 
+        const contexte = document.getElementById('contexteEmail').value; 
+        const ton = document.getElementById('tonSelect').value; 
+         
+        if (!contexte.trim() && !typeEmailSelectionne) { 
+            alert('Sélectionnez un type d\'email ou entrez un contexte.'); 
+            return; 
+        } 
+ 
+        document.getElementById('loadingEmail').classList.add('active'); 
+        document.getElementById('resultEmail').classList.remove('visible'); 
+ 
+
+        const types = { 
+            reponse: "une réponse professionnelle à cet email", 
+            relance: "un email de relance polie (pas de nouvelles depuis un moment)", 
+            compte_rendu: "un compte rendu de réunion/échange", 
+            negociation: "un email de négociation (tarif, délai, ou périmètre)", 
+            refus: "un refus poli et diplomatique", 
+            suivi: "un email de suivi de projet", 
+            bienvenue: "un email de bienvenue pour un nouveau client", 
+            devis: "un email d'accompagnement pour l'envoi d'un devis", 
+            facture: "un email d'accompagnement pour l'envoi d'une facture", 
+            remerciement: "un email de remerciement pour la fin d'un projet" 
+        }; 
+ 
+        let clientContext = ''; 
+        if (clientActifId) { 
+            const client = clients.find(c => c.id === clientActifId); 
+            if (client) { 
+                clientContext = `\nClient : ${client.nom} (${client.type})`; 
+                if (client.notes) clientContext += `\nNotes sur ce client : ${client.notes}`; 
+            } 
+        } 
+ 
+        let tagsContext = ''; 
+        if (contexteTags.length > 0) { 
+            const tagsLabels = { 
+                urgent: 'Le sujet est urgent', 
+                retard: 'Le projet est en retard', 
+                budget: 'Le budget est serré', 
+                premier_contact: 'C\'est un premier contact', 
+                client_difficile: 'Le client est exigeant/difficile', 
+                modification: 'Le client demande des modifications' 
+            }; 
+            tagsContext = '\nContexte additionnel : ' + contexteTags.map(t => 
+tagsLabels[t]).join(', '); 
+        } 
+ 
+        const typeEmail = typeEmailSelectionne || 'reponse'; 
+         
+        const prompt = `Tu es ${CONFIG.nom}, ${CONFIG.metier} chez 
+${CONFIG.entreprise}. 
+ 
+${clientContext} 
+${tagsContext} 
+ 
+Contexte/Email reçu : 
+“”” 
+${contexte || ‘Pas de contexte spécifique fourni.’} 
+
+“”” 
+ 
+Génère ${types[typeEmail]} avec un ton ${ton}. 
+ 
+Règles : 
+ 
+- Sois concis et efficace 
+- Adapte le niveau de formalité au ton choisi 
+- Structure bien le message 
+- Signe avec le prénom uniquement 
+- Ne mets pas d’objet, juste le corps de l’email`; 
+   
+        try { 
+            const reponse = await appelAPI(prompt); 
+            derniereReponseEmail = reponse; 
+            document.getElementById('textEmail').textContent = reponse; 
+            document.getElementById('resultEmail').classList.add('visible'); 
+            ajouterHistorique(types[typeEmail], reponse); 
+            ajouterActivite('', `Email généré: ${types[typeEmail].substring(0, 30)}...`); 
+        } catch (error) { 
+            document.getElementById('textEmail').innerHTML = `<div class="error"> 
+${error.message}</div>`; 
+            document.getElementById('resultEmail').classList.add('visible'); 
+        } 
+         
+        document.getElementById('loadingEmail').classList.remove('active'); 
+    } 
+   
+    async function modifier(modification) { 
+        if (!derniereReponseEmail) return; 
+         
+        document.getElementById('loadingEmail').classList.add('active'); 
+   
+        const prompt = `Voici un texte : 
+ 
+“”” 
+${derniereReponseEmail} 
+“”” 
+ 
+Modifie-le pour qu’il soit ${modification}. Garde le même sens mais adapte le style.`; 
+ 
+        try { 
+            const reponse = await appelAPI(prompt); 
+            derniereReponseEmail = reponse; 
+            document.getElementById('textEmail').textContent = reponse; 
+
+        } catch (error) { 
+            alert('Erreur: ' + error.message); 
+        } 
+         
+        document.getElementById('loadingEmail').classList.remove('active'); 
+    } 
+ 
+    // ======================================== 
+    // TEMPLATES PERSONNALISÉS 
+    // ======================================== 
+    function ouvrirModalTemplate() { 
+        document.getElementById('modalTemplate').classList.add('active'); 
+    } 
+ 
+    function sauvegarderTemplate() { 
+        const nom = document.getElementById('newTemplateNom').value; 
+        const contenu = document.getElementById('newTemplateContenu').value; 
+ 
+        if (!nom || !contenu) { 
+            alert('Remplissez tous les champs'); 
+            return; 
+        } 
+ 
+        templates.push({ 
+            id: Date.now(), 
+            nom: nom, 
+            contenu: contenu 
+        }); 
+ 
+        localStorage.setItem('spyke_templates', JSON.stringify(templates)); 
+         
+        document.getElementById('newTemplateNom').value = ''; 
+        document.getElementById('newTemplateContenu').value = ''; 
+         
+        fermerModal('modalTemplate'); 
+        afficherMesTemplates(); 
+    } 
+ 
+    function afficherMesTemplates() { 
+        const container = document.getElementById('mesTemplates'); 
+ 
+        if (templates.length === 0) { 
+            container.innerHTML = '<p style="font-size: 13px; color: var(--text-muted);">Aucun 
+template sauvegardé</p>'; 
+            return; 
+        } 
+ 
+        container.innerHTML = templates.map(t => ` 
+
+            <div class="template-email-card" onclick="utiliserTemplate(${t.id})" 
+style="margin-bottom: 8px;"> 
+                <div class="template-email-name"> ${t.nom}</div> 
+                <div class="template-email-desc">${t.contenu.substring(0, 50)}...</div> 
+            </div> 
+        `).join(''); 
+    } 
+ 
+    function utiliserTemplate(id) { 
+        const template = templates.find(t => t.id === id); 
+        if (template) { 
+            derniereReponseEmail = template.contenu; 
+            document.getElementById('textEmail').textContent = template.contenu; 
+            document.getElementById('resultEmail').classList.add('visible'); 
+        } 
+    } 
+ 
+    // ======================================== 
+    // HISTORIQUE 
+    // ======================================== 
+    function ajouterHistorique(type, contenu) { 
+        historique.unshift({ type, contenu, date: new Date().toISOString() }); 
+        if (historique.length > 10) historique.pop(); 
+        localStorage.setItem('spyke_historique', JSON.stringify(historique)); 
+        afficherHistorique(); 
+    } 
+ 
+    function afficherHistorique() { 
+        const liste = document.getElementById('historyList'); 
+         
+        if (historique.length === 0) { 
+            liste.innerHTML = '<p style="font-size: 13px; color: var(--text-muted);">Aucun email 
+généré</p>'; 
+            return; 
+        } 
+ 
+        liste.innerHTML = historique.map((item, i) => ` 
+            <div class="history-item" onclick="chargerHistorique(${i})"> 
+                <div class="history-item-type">${item.type}</div> 
+                <div class="history-item-preview">${item.contenu.substring(0, 60)}...</div> 
+            </div> 
+        `).join(''); 
+    } 
+ 
+    function chargerHistorique(index) { 
+        derniereReponseEmail = historique[index].contenu; 
+        document.getElementById('textEmail').textContent = historique[index].contenu; 
+        document.getElementById('resultEmail').classList.add('visible'); 
+
+    } 
+ 
+    function effacerHistorique() { 
+        if (confirm('Effacer tout l\'historique ?')) { 
+            historique = []; 
+            localStorage.setItem('spyke_historique', JSON.stringify(historique)); 
+            afficherHistorique(); 
+        } 
+    } 
+ 
+    // ======================================== 
+    // COPIER 
+    // ======================================== 
+    function copier(type) { 
+        let texte = ''; 
+        if (type === 'email') texte = derniereReponseEmail; 
+        else if (type === 'devis') texte = dernierDevis; 
+        else if (type === 'brief') texte = derniereAnalyse; 
+ 
+        navigator.clipboard.writeText(texte).then(() => { 
+            const btn = event.target; 
+            const original = btn.textContent; 
+            btn.textContent = '✓ Copié !'; 
+            setTimeout(() => btn.textContent = original, 2000); 
+        }); 
+    } 
+ 
+    // ======================================== 
+    // GÉNÉRATEUR DEVIS 
+    // ======================================== 
+    function chargerTemplate(type) { 
+        const template = TEMPLATES[type]; 
+        if (!template) return; 
+ 
+        document.querySelectorAll('.template-card').forEach(c => 
+c.classList.remove('selected')); 
+        event.currentTarget.classList.add('selected'); 
+ 
+        const container = document.getElementById('prestationsContainer'); 
+        container.innerHTML = ''; 
+        template.forEach(p => ajouterPrestation(p.nom, p.jours)); 
+    } 
+ 
+    function ajouterPrestation(nom = '', jours = '') { 
+        const container = document.getElementById('prestationsContainer'); 
+        const div = document.createElement('div'); 
+        div.className = 'prestation-item'; 
+        div.innerHTML = ` 
+
+            <input type="text" placeholder="Nom de la prestation" class="prestation-nom" 
+value="${nom}"> 
+            <input type="number" placeholder="Jours" class="prestation-jours" value="${jours}" 
+min="0.5" step="0.5"> 
+            <button class="btn-remove" onclick="supprimerPrestation(this)">✕</button> 
+        `; 
+        container.appendChild(div); 
+    } 
+ 
+    function supprimerPrestation(btn) { 
+        btn.parentElement.remove(); 
+    } 
+ 
+    async function genererDevis() { 
+        const client = document.getElementById('nomClient').value; 
+        const projet = document.getElementById('nomProjet').value; 
+        const description = document.getElementById('descProjet').value; 
+        const tarif = parseFloat(document.getElementById('tarifJour').value) || 0; 
+        const tva = parseFloat(document.getElementById('tvaSelect').value) || 0; 
+        const acompte = parseFloat(document.getElementById('acompte').value) || 0; 
+        const validite = document.getElementById('validite').value; 
+        const delai = document.getElementById('delai').value; 
+ 
+        const prestations = []; 
+        document.querySelectorAll('.prestation-item').forEach(item => { 
+            const nom = item.querySelector('.prestation-nom').value; 
+            const jours = parseFloat(item.querySelector('.prestation-jours').value) || 0; 
+            if (nom && jours > 0) prestations.push({ nom, jours }); 
+        }); 
+ 
+        if (!client || prestations.length === 0) { 
+            alert('Remplissez le nom du client et au moins une prestation.'); 
+            return; 
+        } 
+ 
+        document.getElementById('loadingDevis').classList.add('active'); 
+        document.getElementById('resultDevis').classList.remove('visible'); 
+ 
+        const totalJours = prestations.reduce((sum, p) => sum + p.jours, 0); 
+        const totalHT = totalJours * tarif; 
+        const montantTVA = totalHT * (tva / 100); 
+        const totalTTC = totalHT + montantTVA; 
+        const montantAcompte = totalTTC * (acompte / 100); 
+ 
+        const prompt = `Tu es ${CONFIG.nom}, ${CONFIG.metier}. 
+ 
+Génère un devis professionnel et formel avec ces informations : 
+
+ 
+PRESTATAIRE : 
+ 
+- ${CONFIG.nom} 
+- ${CONFIG.entreprise} 
+- ${CONFIG.adresse}, ${CONFIG.ville} 
+- SIRET : ${CONFIG.siret} 
+- Email : ${CONFIG.email} 
+- Tél : ${CONFIG.telephone} 
+ 
+CLIENT : ${client} 
+PROJET : ${projet} 
+${description ? `DESCRIPTION : ${description}` : ‘’} 
+ 
+PRESTATIONS : 
+${prestations.map(p => `- ${p.nom} : ${p.jours} jour(s) x ${tarif}€ = ${(p.jours * 
+tarif).toFixed(2)}€`).join(’\n’)} 
+ 
+TARIFICATION : 
+ 
+- Total jours : ${totalJours} 
+- Tarif journalier : ${tarif}€ 
+- Total HT : ${totalHT.toFixed(2)}€ 
+- TVA (${tva}%) : ${montantTVA.toFixed(2)}€ 
+- Total TTC : ${totalTTC.toFixed(2)}€ 
+- Acompte (${acompte}%) : ${montantAcompte.toFixed(2)}€ 
+ 
+CONDITIONS : 
+ 
+- Validité : ${validite} jours 
+  ${delai ? `- Délai : ${delai}` : ‘’} 
+ 
+Formate ce devis de manière professionnelle avec des sections claires.`; 
+ 
+        try { 
+            const reponse = await appelAPI(prompt); 
+            dernierDevis = reponse; 
+            document.getElementById('textDevis').textContent = reponse; 
+            document.getElementById('resultDevis').classList.add('visible'); 
+        } catch (error) { 
+            document.getElementById('textDevis').innerHTML = `<div class="error"> 
+${error.message}</div>`; 
+            document.getElementById('resultDevis').classList.add('visible'); 
+        } 
+ 
+        document.getElementById('loadingDevis').classList.remove('active'); 
+    } 
+
+ 
+    function genererDevisPDF() { 
+        if (!dernierDevis) { 
+            alert('Générez d\'abord un devis.'); 
+            return; 
+        } 
+ 
+        const { jsPDF } = window.jspdf; 
+        const doc = new jsPDF(); 
+         
+        const violet = [139, 92, 246]; 
+        const gris = [100, 116, 139]; 
+        const noir = [51, 65, 85]; 
+         
+        // Header 
+        doc.setFillColor(...violet); 
+        doc.rect(0, 0, 210, 25, 'F'); 
+         
+        doc.setTextColor(255, 255, 255); 
+        doc.setFontSize(20); 
+        doc.setFont('helvetica', 'bold'); 
+        doc.text('DEVIS', 20, 17); 
+         
+        doc.setFontSize(10); 
+        doc.setFont('helvetica', 'normal'); 
+        doc.text(`Genere le ${new Date().toLocaleDateString('fr-FR')}`, 150, 17); 
+         
+        // Contenu 
+        let y = 40; 
+        doc.setTextColor(...noir); 
+        doc.setFontSize(10); 
+        doc.setFont('helvetica', 'normal'); 
+         
+        const lignes = doc.splitTextToSize(dernierDevis, 175); 
+        const lineHeight = 5; 
+         
+        lignes.forEach((ligne) => { 
+            if (y > 280) { 
+                doc.addPage(); 
+                y = 20; 
+            } 
+             
+            const isTitle = /^[A-ZÉÈÀÙÂÊÎÔÛÄËÏÖÜ\s═─\-:]+$/.test(ligne.trim()) && 
+ligne.trim().length > 2; 
+             
+            if (isTitle && ligne.trim().length > 0) { 
+                y += 3; 
+                doc.setTextColor(...violet); 
+
+                doc.setFont('helvetica', 'bold'); 
+                doc.setFontSize(11); 
+                doc.text(ligne, 20, y); 
+                doc.setTextColor(...noir); 
+                doc.setFont('helvetica', 'normal'); 
+                doc.setFontSize(10); 
+                y += lineHeight + 2; 
+            } else { 
+                doc.text(ligne, 20, y); 
+                y += lineHeight; 
+            } 
+        }); 
+         
+        // Footer 
+        const totalPages = doc.internal.getNumberOfPages(); 
+        for (let i = 1; i <= totalPages; i++) { 
+            doc.setPage(i); 
+            doc.setTextColor(...violet); 
+            doc.setFontSize(8); 
+            doc.text('Devis genere avec Spyke', 85, 290); 
+        } 
+         
+        const client = document.getElementById('nomClient').value || 'Client'; 
+        const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, ''); 
+        doc.save(`Devis_${client.replace(/\s+/g, '_')}_${dateStr}.pdf`); 
+    } 
+ 
+    function sauvegarderDevis() { 
+        if (!dernierDevis) { 
+            alert('Générez d\'abord un devis.'); 
+            return; 
+        } 
+         
+        const client = document.getElementById('nomClient').value || 'Client'; 
+        const projet = document.getElementById('nomProjet').value || 'Projet'; 
+        const tarif = parseFloat(document.getElementById('tarifJour').value) || 0; 
+         
+        // Calculer le montant 
+        let totalJours = 0; 
+        document.querySelectorAll('.prestation-item').forEach(item => { 
+            totalJours += parseFloat(item.querySelector('.prestation-jours').value) || 0; 
+        }); 
+        const montant = totalJours * tarif; 
+ 
+        const devis = { 
+            id: Date.now(), 
+            client: client, 
+            projet: projet, 
+
+            montant: montant, 
+            contenu: dernierDevis, 
+            date: new Date().toISOString() 
+        }; 
+ 
+        devisSauvegardes.unshift(devis); 
+        if (devisSauvegardes.length > 50) devisSauvegardes.pop(); 
+         
+        localStorage.setItem('spyke_devis_list', JSON.stringify(devisSauvegardes)); 
+         
+        // Incrémenter numéro devis 
+        CONFIG.numDevis++; 
+        localStorage.setItem('spyke_config', JSON.stringify(CONFIG)); 
+         
+        ajouterActivite('', `Devis sauvegardé: ${client}`); 
+         
+        alert(' Devis sauvegardé !'); 
+    } 
+ 
+    function envoyerDevisParEmail() { 
+        if (!dernierDevis) return; 
+         
+        typeEmailSelectionne = 'devis'; 
+        document.getElementById('contexteEmail').value = `Je souhaite envoyer ce devis au 
+client :\n\n${dernierDevis.substring(0, 500)}...`; 
+        switchTab({ currentTarget: document.querySelector('.tab') }, 'assistant'); 
+         
+        setTimeout(() => { 
+            document.querySelector('[data-type="devis"]').click(); 
+        }, 100); 
+    } 
+ 
+    // ======================================== 
+    // ANALYSEUR BRIEF 
+    // ======================================== 
+    async function analyserBrief() { 
+        const brief = document.getElementById('briefTexte').value; 
+ 
+        if (!brief.trim()) { 
+            alert('Collez un brief à analyser.'); 
+            return; 
+        } 
+ 
+        document.getElementById('loadingBrief').classList.add('active'); 
+        document.getElementById('resultBrief').classList.remove('visible'); 
+ 
+        const prompt = `Tu es ${CONFIG.nom}, ${CONFIG.metier} expérimenté. 
+
+ 
+Analyse ce brief client et fournis une évaluation structurée : 
+ 
+BRIEF À ANALYSER : 
+“”” 
+${brief} 
+“”” 
+ 
+Structure ta réponse ainsi : 
+ 
+1. RÉSUMÉ (2-3 phrases) 
+1. POINTS POSITIFS 
+ 
+- Liste des éléments clairs et bien définis 
+ 
+1. POINTS D’ATTENTION / RISQUES 
+ 
+- Éléments flous, manquants ou risqués 
+ 
+1. QUESTIONS À POSER AU CLIENT 
+ 
+- Questions essentielles avant de s’engager 
+ 
+1. ESTIMATION PRÉLIMINAIRE 
+ 
+- Fourchette de jours de travail 
+- Niveau de complexité (Simple/Moyen/Complexe) 
+ 
+1. RECOMMANDATION FINALE 
+ 
+- ACCEPTER / NÉGOCIER / REFUSER avec justification 
+ 
+1. SCORE DE CLARTÉ : X/10`; 
+    
+        try { 
+            const reponse = await appelAPI(prompt); 
+            derniereAnalyse = reponse; 
+            document.getElementById('analyseContenu').innerHTML = `<div 
+class="analysis-result">${formatAnalyse(reponse)}</div>`; 
+            document.getElementById('resultBrief').classList.add('visible'); 
+        } catch (error) { 
+            document.getElementById('analyseContenu').innerHTML = `<div class="error"> 
+${error.message}</div>`; 
+            document.getElementById('resultBrief').classList.add('visible'); 
+        } 
+    
+        document.getElementById('loadingBrief').classList.remove('active'); 
+
+    } 
+    
+    function formatAnalyse(texte) { 
+        return texte 
+            .replace(/ACCEPTER/g, '<span class="recommendation accepter"> 
+ACCEPTER</span>') 
+            .replace(/NÉGOCIER/g, '<span class="recommendation negocier"> 
+NÉGOCIER</span>') 
+            .replace(/REFUSER/g, '<span class="recommendation refuser"> 
+REFUSER</span>') 
+            .replace(/(\d+\/10)/g, '<span class="score-badge">$1</span>') 
+            .replace(/\n/g, '<br>'); 
+    } 
+    
+    function creerDevisDepuisBrief() { 
+        switchTab({ currentTarget: document.querySelectorAll('.tab')[1] }, 'devis'); 
+    } 
+    
+    </script> 
+ 
+</body> 
+</html> 
