@@ -26,7 +26,7 @@ export default function AppPage() {
         if (!supabase) throw new Error('Supabase non configuré')
 
         const { data } = await supabase.auth.getSession()
-        const requireAuth = process.env.NEXT_PUBLIC_REQUIRE_AUTH === '1'
+        const requireAuth = true
 
         if (requireAuth && !data.session) {
           router.replace('/login')
