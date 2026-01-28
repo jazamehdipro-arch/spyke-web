@@ -35,13 +35,19 @@ export default function AppPage() {
   if (!ready) return null
 
   return (
-    <main className="min-h-screen">
-      <iframe
-        src="/spyke-v3_1.html"
-        className="w-full h-screen border-0"
-        // allow clipboard etc if needed
-        allow="clipboard-read; clipboard-write"
-      />
+    <main className="min-h-screen flex items-center justify-center p-6">
+      <div className="w-full max-w-md rounded-xl border border-white/10 bg-black/30 p-6">
+        <h1 className="text-xl font-semibold">Spyke</h1>
+        <p className="mt-2 text-sm text-white/70">
+          Ouvre l’outil dans la page dédiée (plus fiable que l’iframe sur certains navigateurs).
+        </p>
+        <a
+          className="mt-4 inline-block rounded-md bg-white/10 hover:bg-white/15 border border-white/20 px-4 py-2 text-sm"
+          href="/spyke-v3_1.html"
+        >
+          Ouvrir Spyke
+        </a>
+      </div>
     </main>
   )
 }
