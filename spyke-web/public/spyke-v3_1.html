@@ -1641,8 +1641,7 @@ Sauvegarder</button>
         siret: '000 000 000 00000', 
         tarifJournalier: 500, 
         conditions: 'Paiement par virement bancaire sous 30 jours.', 
-        mentions: 'En cas de retard de paiement, une pénalité de 3 fois le taux d\'intérêt légal 
-sera appliquée.', 
+        mentions: 'En cas de retard de paiement, une pénalité de 3 fois le taux d\'intérêt légal sera appliquée.', 
         prefixDevis: 'DEV', 
         numDevis: 1 
     }; 
@@ -2095,8 +2094,7 @@ onclick="preparerRelance(${r.client.id})"></button>
         const container = document.getElementById('clientList'); 
          
         if (clients.length === 0) { 
-            container.innerHTML = '<p style="color: var(--text-muted); font-size: 13px;">Aucun 
-client enregistré</p>'; 
+            container.innerHTML = '<p style="color: var(--text-muted); font-size: 13px;">Aucun client enregistré</p>'; 
             return; 
         } 
  
@@ -2307,8 +2305,7 @@ onclick="executerSuggestion(${i})">Relancer</button>
         document.getElementById('clientSelect').value = clientId; 
         selectionnerClient(); 
         selectTemplateEmail(document.querySelector('[data-type="relance"]'), 'relance'); 
-        document.getElementById('contexteEmail').value = 'Je souhaite relancer ce client avec 
-qui je n\'ai pas eu de contact depuis un moment.'; 
+        document.getElementById('contexteEmail').value = 'Je souhaite relancer ce client avec qui je n\'ai pas eu de contact depuis un moment.'; 
     } 
  
     // ======================================== 
@@ -2394,7 +2391,7 @@ ${tagsContext}
  
 Contexte/Email reçu : 
 “”” 
-${contexte || ‘Pas de contexte spécifique fourni.’} 
+${contexte || 'Pas de contexte spécifique fourni.'} 
 
 “”” 
  
@@ -2484,8 +2481,7 @@ Modifie-le pour qu’il soit ${modification}. Garde le même sens mais adapte le
         const container = document.getElementById('mesTemplates'); 
  
         if (templates.length === 0) { 
-            container.innerHTML = '<p style="font-size: 13px; color: var(--text-muted);">Aucun 
-template sauvegardé</p>'; 
+            container.innerHTML = '<p style="font-size: 13px; color: var(--text-muted);">Aucun template sauvegardé</p>'; 
             return; 
         } 
  
@@ -2522,8 +2518,7 @@ style="margin-bottom: 8px;">
         const liste = document.getElementById('historyList'); 
          
         if (historique.length === 0) { 
-            liste.innerHTML = '<p style="font-size: 13px; color: var(--text-muted);">Aucun email 
-généré</p>'; 
+            liste.innerHTML = '<p style="font-size: 13px; color: var(--text-muted);">Aucun email généré</p>'; 
             return; 
         } 
  
@@ -2649,11 +2644,11 @@ PRESTATAIRE :
  
 CLIENT : ${client} 
 PROJET : ${projet} 
-${description ? `DESCRIPTION : ${description}` : ‘’} 
+${description ? `DESCRIPTION : ${description}` : ''} 
  
 PRESTATIONS : 
 ${prestations.map(p => `- ${p.nom} : ${p.jours} jour(s) x ${tarif}€ = ${(p.jours * 
-tarif).toFixed(2)}€`).join(’\n’)} 
+tarif).toFixed(2)}€`).join('\n')} 
  
 TARIFICATION : 
  
@@ -2667,7 +2662,7 @@ TARIFICATION :
 CONDITIONS : 
  
 - Validité : ${validite} jours 
-  ${delai ? `- Délai : ${delai}` : ‘’} 
+  ${delai ? `- Délai : ${delai}` : ''} 
  
 Formate ce devis de manière professionnelle avec des sections claires.`; 
  
@@ -2883,12 +2878,9 @@ ${error.message}</div>`;
     
     function formatAnalyse(texte) { 
         return texte 
-            .replace(/ACCEPTER/g, '<span class="recommendation accepter"> 
-ACCEPTER</span>') 
-            .replace(/NÉGOCIER/g, '<span class="recommendation negocier"> 
-NÉGOCIER</span>') 
-            .replace(/REFUSER/g, '<span class="recommendation refuser"> 
-REFUSER</span>') 
+            .replace(/ACCEPTER/g, '<span class="recommendation accepter">ACCEPTER</span>')
+            .replace(/NÉGOCIER/g, '<span class="recommendation negocier">NÉGOCIER</span>')
+            .replace(/REFUSER/g, '<span class="recommendation refuser">REFUSER</span>')
             .replace(/(\d+\/10)/g, '<span class="score-badge">$1</span>') 
             .replace(/\n/g, '<br>'); 
     } 
