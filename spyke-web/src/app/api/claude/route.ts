@@ -20,12 +20,30 @@ export async function POST(req: Request) {
 
     const client = new Anthropic({ apiKey })
 
-    const msg = await client.messages.create({
-      model: 'claude-3-5-sonnet-latest',
-      max_tokens: 800,
-      system: body.system,
-      messages: [{ role: 'user', content: body.prompt }],
-    })
+    const modelsToTry = [
+      'claude-3-5-sonnet-20241022',
+      'claude-3-5-haiku-20241022',
+      'claude-3-haiku-20240307',
+    ] as const
+
+    let lastErr: any = null
+    let msg: Awaited<ReturnType<typeof client.messages.create>> | null = null
+
+    for (const model of modelsToTry) {
+      try {
+        msg = await client.messages.create({
+          model,
+          max_tokens: 800,
+          system: body.system,
+          messages: [{ role: 'user', content: body.prompt }],
+        })
+        break
+      } catch (e: any) {
+        lastErr = e
+      }
+    }
+
+    if (!msg) throw lastErr || new Error('Anthropic: no model available')
 
     const text = msg.content
       .map((c) => (c.type === 'text' ? c.text : ''))
