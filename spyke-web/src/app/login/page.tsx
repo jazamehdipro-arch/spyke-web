@@ -117,6 +117,9 @@ export default function LoginPage() {
     <>
       <header>
         <Link href="/" className="logo">
+          <span aria-hidden className="bolt">
+            ⚡
+          </span>
           Spyke
         </Link>
       </header>
@@ -375,6 +378,15 @@ export default function LoginPage() {
           letter-spacing: -0.5px;
           color: var(--gray-900);
           text-decoration: none;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+        }
+
+        .bolt {
+          font-size: 22px;
+          line-height: 1;
         }
 
         main {
