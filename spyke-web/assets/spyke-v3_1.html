@@ -2009,7 +2009,10 @@ onclick="preparerRelance(${r.client.id})"></button>
     // ======================================== 
     async function appelAPI(prompt) { 
         try { 
-            const response = await fetch('/api/claude', { 
+            const baseOrigin = (window.location.origin && window.location.origin !== 'null')
+                ? window.location.origin
+                : (window.parent && window.parent.location ? window.parent.location.origin : '');
+            const response = await fetch(baseOrigin + '/api/claude', { 
                 method: 'POST', 
                 headers: { 
                     'Content-Type': 'application/json'
