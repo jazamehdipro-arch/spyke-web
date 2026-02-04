@@ -1,7 +1,5 @@
 "use client"
 
-import Link from 'next/link'
-
 export default function Home() {
   return (
     <>
@@ -210,45 +208,37 @@ export default function Home() {
           animation: fadeInUp 0.6s ease 0.2s both;
         }
 
-        .hero-form {
-          display: flex;
-          gap: 12px;
-          animation: fadeInUp 0.6s ease 0.3s both;
-        }
-
-        .hero-form input {
-          flex: 1;
-          padding: 18px 24px;
-          border: 2px solid var(--gray-200);
-          border-radius: 14px;
-          font-size: 16px;
-          font-family: inherit;
-          transition: all 0.3s ease;
-          background: var(--white);
-        }
-
-        .hero-form input:focus {
-          outline: none;
-          border-color: var(--yellow);
-          box-shadow: 0 0 0 4px rgba(250, 204, 21, 0.15);
-        }
-
-        .hero-form button {
+        .hero-btn {
+          display: inline-block;
           padding: 18px 36px;
           background: var(--black);
           color: var(--white);
-          border: none;
+          text-decoration: none;
           border-radius: 14px;
           font-size: 16px;
           font-weight: 600;
-          font-family: inherit;
-          cursor: pointer;
           transition: all 0.3s ease;
-          white-space: nowrap;
         }
 
-        .hero-form button:hover {
+        .hero-btn:hover {
           background: var(--gray-800);
+          transform: translateY(-2px);
+        }
+
+        .cta-btn {
+          display: inline-block;
+          padding: 18px 36px;
+          background: var(--yellow);
+          color: var(--black);
+          text-decoration: none;
+          border-radius: 14px;
+          font-size: 16px;
+          font-weight: 600;
+          transition: all 0.3s ease;
+        }
+
+        .cta-btn:hover {
+          background: var(--yellow-dark);
           transform: translateY(-2px);
         }
 
@@ -782,52 +772,6 @@ export default function Home() {
           margin-bottom: 40px;
         }
 
-        .cta-form {
-          display: flex;
-          gap: 12px;
-          max-width: 500px;
-          margin: 0 auto;
-        }
-
-        .cta-form input {
-          flex: 1;
-          padding: 18px 24px;
-          border: 2px solid var(--gray-700);
-          border-radius: 14px;
-          font-size: 16px;
-          font-family: inherit;
-          background: transparent;
-          color: var(--white);
-          transition: all 0.3s ease;
-        }
-
-        .cta-form input::placeholder {
-          color: var(--gray-500);
-        }
-
-        .cta-form input:focus {
-          outline: none;
-          border-color: var(--yellow);
-        }
-
-        .cta-form button {
-          padding: 18px 36px;
-          background: var(--yellow);
-          color: var(--black);
-          border: none;
-          border-radius: 14px;
-          font-size: 16px;
-          font-weight: 600;
-          font-family: inherit;
-          cursor: pointer;
-          transition: all 0.3s ease;
-        }
-
-        .cta-form button:hover {
-          background: var(--yellow-dark);
-          transform: translateY(-2px);
-        }
-
         /* ===== FOOTER ===== */
         footer {
           padding: 60px 48px;
@@ -841,7 +785,6 @@ export default function Home() {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          gap: 24px;
         }
 
         .footer-logo {
@@ -862,8 +805,6 @@ export default function Home() {
         .footer-links {
           display: flex;
           gap: 32px;
-          flex-wrap: wrap;
-          justify-content: center;
         }
 
         .footer-links a {
@@ -880,7 +821,6 @@ export default function Home() {
         .footer-copy {
           font-size: 14px;
           color: var(--gray-500);
-          text-align: right;
         }
 
         /* ===== ANIMATIONS ===== */
@@ -968,10 +908,6 @@ export default function Home() {
             font-size: 36px;
           }
 
-          .hero-form {
-            flex-direction: column;
-          }
-
           .section-header h2 {
             font-size: 36px;
           }
@@ -1001,17 +937,9 @@ export default function Home() {
             font-size: 32px;
           }
 
-          .cta-form {
-            flex-direction: column;
-          }
-
           .footer-container {
             flex-direction: column;
             gap: 24px;
-            text-align: center;
-          }
-
-          .footer-copy {
             text-align: center;
           }
         }
@@ -1019,7 +947,7 @@ export default function Home() {
 
       {/* Navigation */}
       <nav>
-        <a href="#" className="logo">
+        <a href="index.html" className="logo">
           <div className="logo-icon">
             <svg viewBox="0 0 24 24">
               <path d="M13 3L4 14h7l-2 7 9-11h-7l2-7z" />
@@ -1029,18 +957,18 @@ export default function Home() {
         </a>
         <ul className="nav-links">
           <li>
-            <a href="#features">Fonctionnalités</a>
+            <a href="fonctionnalites.html">Fonctionnalités</a>
           </li>
           <li>
-            <a href="#how">Comment ça marche</a>
+            <a href="comment-ca-marche.html">Comment ça marche</a>
           </li>
           <li>
             <a href="#pricing">Tarifs</a>
           </li>
           <li>
-            <Link href="/login" className="nav-cta">
+            <a href="connexion.html" className="nav-cta">
               Commencer
-            </Link>
+            </a>
           </li>
         </ul>
       </nav>
@@ -1052,24 +980,22 @@ export default function Home() {
             <div className="hero-badge">
               <span>✨ Nouveau</span> L&apos;IA au service des freelances
             </div>
+
             <h1>
-              Automatisez vos tâches.
+              Vos emails et devis.
               <br />
-              <span className="highlight">Gagnez du temps.</span>
+              <span className="highlight">Votre style.</span>
             </h1>
+
             <p className="hero-description">
-              Spyke génère vos devis, factures et relances en quelques clics grâce à l&apos;intelligence
-              artificielle. Concentrez-vous sur votre métier.
+              Spyke est votre assistant IA qui rédige des emails professionnels et génère des devis
+              personnalisés selon votre ton et votre vision. Fini le copier-coller.
             </p>
-            <form
-              className="hero-form"
-              onSubmit={(e) => {
-                e.preventDefault()
-              }}
-            >
-              <input type="email" placeholder="Votre email professionnel" />
-              <button type="submit">Essai gratuit</button>
-            </form>
+
+            <a href="#pricing" className="hero-btn">
+              Commencer gratuitement →
+            </a>
+
             <div className="hero-social-proof">
               <div className="avatars">
                 <img src="https://i.pravatar.cc/80?img=1" alt="User" />
@@ -1078,7 +1004,7 @@ export default function Home() {
                 <img src="https://i.pravatar.cc/80?img=4" alt="User" />
               </div>
               <p>
-                <strong>500+ freelances</strong> nous font déjà confiance
+                <strong>50+ freelances</strong> nous font déjà confiance
               </p>
             </div>
           </div>
@@ -1088,24 +1014,25 @@ export default function Home() {
               src="https://placehold.co/700x500/f4f4f5/a1a1aa?text=Interface+Spyke"
               alt="Interface Spyke"
             />
+
             <div className="hero-card hero-card-1">
               <div className="hero-card-icon">
                 <svg width="24" height="24" fill="none" stroke="#000" strokeWidth="2" viewBox="0 0 24 24">
-                  <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
               </div>
-              <h4>Temps économisé</h4>
-              <p>10h/mois</p>
+              <h4>Emails générés</h4>
+              <p>+2 450</p>
             </div>
 
             <div className="hero-card hero-card-2">
               <div className="hero-card-icon">
                 <svg width="24" height="24" fill="none" stroke="#000" strokeWidth="2" viewBox="0 0 24 24">
-                  <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <h4>Devis envoyés</h4>
-              <p>+340%</p>
+              <h4>Temps gagné</h4>
+              <p>10h/mois</p>
             </div>
           </div>
         </div>
@@ -1116,7 +1043,7 @@ export default function Home() {
         <div className="stats-container">
           <div className="stats-grid">
             <div className="stat-item">
-              <div className="stat-number">500+</div>
+              <div className="stat-number">50+</div>
               <div className="stat-label">Freelances actifs</div>
             </div>
             <div className="stat-item">
@@ -1124,12 +1051,12 @@ export default function Home() {
               <div className="stat-label">Économisées par mois</div>
             </div>
             <div className="stat-item">
-              <div className="stat-number">98%</div>
-              <div className="stat-label">Satisfaction client</div>
+              <div className="stat-number">10+</div>
+              <div className="stat-label">Templates d&apos;emails</div>
             </div>
             <div className="stat-item">
-              <div className="stat-number">2min</div>
-              <div className="stat-label">Pour créer un devis</div>
+              <div className="stat-number">30s</div>
+              <div className="stat-label">Pour un email parfait</div>
             </div>
           </div>
         </div>
@@ -1140,10 +1067,10 @@ export default function Home() {
         <div className="features-container">
           <div className="section-header">
             <span className="section-label">Fonctionnalités</span>
-            <h2>Tout ce dont vous avez besoin</h2>
+            <h2>L&apos;IA qui parle comme vous</h2>
             <p>
-              Des outils puissants conçus spécifiquement pour simplifier la vie des freelances
-              français.
+              Des outils pensés pour les freelances qui veulent garder leur style tout en gagnant du
+              temps.
             </p>
           </div>
 
@@ -1151,26 +1078,26 @@ export default function Home() {
             <div className="feature-card">
               <div className="feature-icon">
                 <svg viewBox="0 0 24 24">
-                  <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
               </div>
-              <h3>Devis intelligents</h3>
+              <h3>Emails IA personnalisés</h3>
               <p>
-                Générez des devis professionnels en quelques secondes. L&apos;IA adapte le contenu
-                selon votre client.
+                Répondez à vos clients avec votre ton et votre style. L&apos;IA s&apos;adapte à votre façon
+                de communiquer.
               </p>
             </div>
 
             <div className="feature-card">
               <div className="feature-icon">
                 <svg viewBox="0 0 24 24">
-                  <path d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                  <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
               </div>
-              <h3>Facturation auto</h3>
+              <h3>Devis sur mesure</h3>
               <p>
-                Transformez vos devis en factures conformes. Numérotation automatique et mentions
-                légales incluses.
+                Générez des devis professionnels personnalisés. Templates adaptés à votre activité
+                et vos tarifs.
               </p>
             </div>
 
@@ -1180,36 +1107,41 @@ export default function Home() {
                   <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                 </svg>
               </div>
-              <h3>Relances automatiques</h3>
+              <h3>Relances intelligentes</h3>
               <p>
-                Fini les impayés. Spyke relance vos clients automatiquement avec des messages
-                personnalisés.
+                Détectez les devis en attente et les retards de paiement. L&apos;IA suggère quand et
+                comment relancer.
               </p>
             </div>
 
             <div className="feature-card">
               <div className="feature-icon">
                 <svg viewBox="0 0 24 24">
-                  <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-              </div>
-              <h3>Emails IA</h3>
-              <p>
-                Rédigez des emails professionnels en un clic. Réponses clients, négociations, suivis
-                de projet.
-              </p>
-            </div>
-
-            <div className="feature-card">
-              <div className="feature-icon">
-                <svg viewBox="0 0 24 24">
-                  <path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                  <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                  <path d="M23 21v-2a4 4 0 00-3-3.87" />
+                  <path d="M16 3.13a4 4 0 010 7.75" />
                 </svg>
               </div>
               <h3>Gestion clients</h3>
               <p>
-                Centralisez toutes les infos de vos clients. Historique, documents, notes, tout au
-                même endroit.
+                Centralisez vos contacts et leur historique. L&apos;IA connaît le contexte de chaque
+                client.
+              </p>
+            </div>
+
+            <div className="feature-card">
+              <div className="feature-icon">
+                <svg viewBox="0 0 24 24">
+                  <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                  <path d="M2 17l10 5 10-5" />
+                  <path d="M2 12l10 5 10-5" />
+                </svg>
+              </div>
+              <h3>10+ templates emails</h3>
+              <p>
+                Réponse client, relance, négociation, envoi de devis, remerciement... Tous les cas
+                sont couverts.
               </p>
             </div>
 
@@ -1219,9 +1151,9 @@ export default function Home() {
                   <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                 </svg>
               </div>
-              <h3>Dashboard analytics</h3>
+              <h3>Dashboard clair</h3>
               <p>
-                Visualisez votre activité en temps réel. CA, devis en attente, factures à encaisser.
+                Visualisez votre activité en un coup d&apos;œil. CA, devis en cours, relances à faire.
               </p>
             </div>
           </div>
@@ -1236,28 +1168,30 @@ export default function Home() {
             <h2>Simple comme bonjour</h2>
             <p>Trois étapes pour transformer votre quotidien de freelance.</p>
           </div>
+
           <div className="steps">
             <div className="step">
               <div className="step-number">1</div>
-              <h3>Créez votre compte</h3>
+              <h3>Configurez votre profil</h3>
               <p>
-                Inscription gratuite en 30 secondes. Aucune carte bancaire requise pour commencer.
+                Renseignez votre activité, votre ton, vos tarifs. L&apos;IA apprend votre façon de
+                communiquer.
               </p>
               <div className="step-connector" />
             </div>
+
             <div className="step">
               <div className="step-number">2</div>
-              <h3>Personnalisez votre profil</h3>
-              <p>
-                Ajoutez vos infos entreprise pour des documents et emails parfaitement adaptés.
-              </p>
+              <h3>Ajoutez vos clients</h3>
+              <p>Importez vos contacts. Spyke garde le contexte de chaque relation client.</p>
               <div className="step-connector" />
             </div>
+
             <div className="step">
               <div className="step-number">3</div>
-              <h3>Laissez l&apos;IA travailler</h3>
+              <h3>Générez en 1 clic</h3>
               <p>
-                Générez devis, factures et emails en un clic. Gagnez des heures chaque semaine.
+                Emails, devis, relances... L&apos;IA écrit avec votre voix. Vous validez et envoyez.
               </p>
             </div>
           </div>
@@ -1272,12 +1206,13 @@ export default function Home() {
             <h2>Ils nous font confiance</h2>
             <p>Découvrez ce que les freelances pensent de Spyke.</p>
           </div>
+
           <div className="testimonials-grid">
             <div className="testimonial-card">
               <div className="testimonial-content">
                 <p className="testimonial-text">
-                  Spyke m&apos;a fait gagner un temps fou. Avant je passais 2h par semaine sur mes devis
-                  et factures, maintenant c&apos;est 15 minutes max.
+                  L&apos;IA a vraiment capté mon style. Mes clients ne voient pas la différence avec mes
+                  vrais emails. Je gagne un temps fou sur les réponses.
                 </p>
                 <div className="testimonial-author">
                   <div className="testimonial-avatar">SL</div>
@@ -1292,8 +1227,8 @@ export default function Home() {
             <div className="testimonial-card">
               <div className="testimonial-content">
                 <p className="testimonial-text">
-                  Les relances automatiques ont changé ma vie. Je n&apos;ai plus d&apos;impayés depuis que
-                  j&apos;utilise Spyke. L&apos;IA rédige des messages parfaits.
+                  Fini les 20 minutes à rédiger un email de relance. Je décris la situation, Spyke
+                  génère un message parfait avec le bon ton.
                 </p>
                 <div className="testimonial-author">
                   <div className="testimonial-avatar">TM</div>
@@ -1308,8 +1243,8 @@ export default function Home() {
             <div className="testimonial-card">
               <div className="testimonial-content">
                 <p className="testimonial-text">
-                  Interface super intuitive, pas besoin de formation. J&apos;ai créé mon premier devis en
-                  moins de 2 minutes. Je recommande à 100%.
+                  Les devis personnalisés c&apos;est top. Je choisis le template, je modifie deux
+                  trucs, et c&apos;est envoyé. Professionnel et rapide.
                 </p>
                 <div className="testimonial-author">
                   <div className="testimonial-avatar">JD</div>
@@ -1345,13 +1280,13 @@ export default function Home() {
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M5 13l4 4L19 7" />
                   </svg>
-                  5 devis par mois
+                  10 emails IA par mois
                 </li>
                 <li>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M5 13l4 4L19 7" />
                   </svg>
-                  5 factures par mois
+                  3 devis par mois
                 </li>
                 <li>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -1363,12 +1298,12 @@ export default function Home() {
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M5 13l4 4L19 7" />
                   </svg>
-                  10 générations IA
+                  Templates de base
                 </li>
               </ul>
-              <Link href="/login" className="pricing-btn">
+              <a href="connexion.html" className="pricing-btn">
                 Commencer gratuitement
-              </Link>
+              </a>
             </div>
 
             <div className="pricing-card featured">
@@ -1382,13 +1317,13 @@ export default function Home() {
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M5 13l4 4L19 7" />
                   </svg>
-                  Devis illimités
+                  Emails IA illimités
                 </li>
                 <li>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M5 13l4 4L19 7" />
                   </svg>
-                  Factures illimitées
+                  Devis illimités
                 </li>
                 <li>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -1400,13 +1335,13 @@ export default function Home() {
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M5 13l4 4L19 7" />
                   </svg>
-                  IA illimitée
+                  Tous les templates
                 </li>
                 <li>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M5 13l4 4L19 7" />
                   </svg>
-                  Relances automatiques
+                  Relances suggérées
                 </li>
                 <li>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -1415,9 +1350,9 @@ export default function Home() {
                   Support prioritaire
                 </li>
               </ul>
-              <Link href="/login" className="pricing-btn">
+              <a href="connexion.html" className="pricing-btn">
                 Essai gratuit 14 jours
-              </Link>
+              </a>
             </div>
           </div>
         </div>
@@ -1426,17 +1361,11 @@ export default function Home() {
       {/* CTA Section */}
       <section className="cta">
         <div className="cta-container">
-          <h2>Prêt à gagner du temps ?</h2>
-          <p>Rejoignez les 500+ freelances qui ont automatisé leur quotidien avec Spyke.</p>
-          <form
-            className="cta-form"
-            onSubmit={(e) => {
-              e.preventDefault()
-            }}
-          >
-            <input type="email" placeholder="Votre email professionnel" />
-            <button type="submit">Démarrer maintenant</button>
-          </form>
+          <h2>Prêt à écrire plus vite ?</h2>
+          <p>Rejoignez les freelances qui ont adopté l&apos;IA pour leurs emails et devis.</p>
+          <a href="#pricing" className="cta-btn">
+            Commencer gratuitement →
+          </a>
         </div>
       </section>
 
@@ -1452,10 +1381,11 @@ export default function Home() {
             Spyke
           </div>
           <div className="footer-links">
-            <a href="#features">Fonctionnalités</a>
+            <a href="fonctionnalites.html">Fonctionnalités</a>
+            <a href="comment-ca-marche.html">Comment ça marche</a>
             <a href="#pricing">Tarifs</a>
-            <a href="#">Contact</a>
-            <a href="#">Mentions légales</a>
+            <a href="mentions-legales.html">Mentions légales</a>
+            <a href="confidentialite.html">Confidentialité</a>
           </div>
           <p className="footer-copy">Spyke © 2025 – Votre assistant freelance intelligent</p>
         </div>
