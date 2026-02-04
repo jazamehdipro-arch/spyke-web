@@ -1,21 +1,21 @@
 import type { Metadata } from 'next'
-import { Geist, Geist_Mono } from 'next/font/google'
+import { DM_Sans, Syne } from 'next/font/google'
 import './globals.css'
 
-const geistSans = Geist({
-  variable: '--font-geist-sans',
+const dmSans = DM_Sans({
+  variable: '--font-dm-sans',
   subsets: ['latin'],
 })
 
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
+const syne = Syne({
+  variable: '--font-syne',
   subsets: ['latin'],
 })
 
 export const metadata: Metadata = {
-  title: 'Spyke – Assistant IA pour freelances',
+  title: "Spyke – L'assistant IA des freelances français",
   description:
-    "Spyke génère vos emails, devis et analyses de briefs en quelques secondes. Concentrez-vous sur ce qui compte vraiment.",
+    "Spyke génère vos devis, factures et relances en quelques clics grâce à l'intelligence artificielle. Concentrez-vous sur votre métier.",
 }
 
 export default function RootLayout({
@@ -25,7 +25,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>{children}</body>
+      <body className={`${dmSans.variable} ${syne.variable} antialiased`}>{children}</body>
     </html>
   )
 }
