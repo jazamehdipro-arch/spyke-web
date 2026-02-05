@@ -1509,6 +1509,29 @@ CONTEXTE UTILISATEUR :
                   />
                 </div>
 
+                <div className="form-group">
+                  <label className="form-label">Type</label>
+                  <div className="template-list">
+                    {([
+                      ['💬', 'Réponse'],
+                      ['✉️', 'Relance'],
+                      ['💰', 'Relance devis'],
+                      ['🤝', 'Négociation'],
+                      ['🚫', 'Refus poli'],
+                      ['🧾', 'Facture'],
+                    ] as Array<[string, Template]>).map(([icon, label]) => (
+                      <div
+                        key={label}
+                        className={`template-item ${template === label ? 'active' : ''}`}
+                        onClick={() => setTemplate(label)}
+                      >
+                        <span className="template-item-icon">{icon}</span>
+                        <span className="template-item-text">{label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
                 <button
                   type="button"
                   className="btn btn-yellow"
