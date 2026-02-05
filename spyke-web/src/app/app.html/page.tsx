@@ -3,6 +3,850 @@
 import { useEffect, useMemo, useState } from 'react'
 import { getSupabase } from '@/lib/supabaseClient'
 
+type DevisClientChoice =
+  | { mode: 'existing'; id: string }
+  | { mode: 'new'; name: string; siret?: string; address?: string; postalCode?: string; city?: string }
+  | { mode: 'none' }
+
+type DevisLine = {
+  id: string
+  label: string
+  description: string
+  qty: number
+  unitPriceHt: number
+  vatRate: number
+}
+
+function formatMoney(amount: number) {
+  return amount.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'
+}
+
+function formatDateFr(dateStr: string) {
+  // dateStr expected: YYYY-MM-DD
+  if (!dateStr) return ''
+  const d = new Date(dateStr + 'T00:00:00')
+  if (Number.isNaN(d.getTime())) return ''
+  return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+}
+
+function addDays(dateStr: string, days: number) {
+  const d = new Date(dateStr + 'T00:00:00')
+  if (Number.isNaN(d.getTime())) return ''
+  d.setDate(d.getDate() + (days || 0))
+  const yyyy = d.getFullYear()
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  return `${yyyy}-${mm}-${dd}`
+}
+
+function computeTotals(lines: DevisLine[]) {
+  let totalHt = 0
+  let totalTva = 0
+  for (const l of lines) {
+    const lineHt = (l.qty || 0) * (l.unitPriceHt || 0)
+    const lineTva = lineHt * ((l.vatRate || 0) / 100)
+    totalHt += lineHt
+    totalTva += lineTva
+  }
+  const totalTtc = totalHt + totalTva
+  return { totalHt, totalTva, totalTtc }
+}
+
+function genQuoteNumber(dateStr: string, sequence = 1) {
+  const d = new Date((dateStr || '').slice(0, 10) + 'T00:00:00')
+  const year = !Number.isNaN(d.getTime()) ? d.getFullYear() : new Date().getFullYear()
+  const month = String((!Number.isNaN(d.getTime()) ? d.getMonth() + 1 : new Date().getMonth() + 1)).padStart(2, '0')
+  return `D${year}${month}-${sequence}`
+}
+
+function DevisV4({
+  userFullName,
+  userJob,
+  userId,
+}: {
+  userFullName: string
+  userJob: string
+  userId: string | null
+}) {
+  const supabase = useMemo(() => {
+    try {
+      return getSupabase()
+    } catch {
+      return null
+    }
+  }, [])
+
+  const today = useMemo(() => {
+    const d = new Date()
+    const yyyy = d.getFullYear()
+    const mm = String(d.getMonth() + 1).padStart(2, '0')
+    const dd = String(d.getDate()).padStart(2, '0')
+    return `${yyyy}-${mm}-${dd}`
+  }, [])
+
+  const [title, setTitle] = useState('')
+  const [dateIssue, setDateIssue] = useState(today)
+  const [validityDays, setValidityDays] = useState(30)
+  const [quoteNumber, setQuoteNumber] = useState(() => genQuoteNumber(today, 1))
+
+  const [clientChoice, setClientChoice] = useState<DevisClientChoice>({ mode: 'none' })
+  const [clients, setClients] = useState<Array<{ id: string; name: string }>>([])
+
+  const [lines, setLines] = useState<DevisLine[]>(() => [
+    {
+      id: '0',
+      label: '',
+      description: '',
+      qty: 1,
+      unitPriceHt: 0,
+      vatRate: 20,
+    },
+  ])
+
+  const [depositPercent, setDepositPercent] = useState(30)
+  const [paymentDelayDays, setPaymentDelayDays] = useState(30)
+  const [notes, setNotes] = useState('')
+
+  // Load clients + user prefs for defaults
+  useEffect(() => {
+    ;(async () => {
+      if (!supabase || !userId) return
+
+      const [{ data: clientsData }, { data: profileData }] = await Promise.all([
+        supabase.from('clients').select('id,name').order('created_at', { ascending: false }),
+        supabase
+          .from('profiles')
+          .select('vat_enabled,deposit_percent,payment_delay_days,quote_validity_days')
+          .eq('id', userId)
+          .maybeSingle(),
+      ])
+
+      setClients((clientsData || []).map((c: any) => ({ id: c.id, name: c.name })))
+
+      const vatEnabled = Boolean((profileData as any)?.vat_enabled)
+      const defaultVat = vatEnabled ? 20 : 0
+      setLines((prev) => prev.map((l) => ({ ...l, vatRate: defaultVat })))
+
+      const dp = Number((profileData as any)?.deposit_percent)
+      if (!Number.isNaN(dp) && dp >= 0) setDepositPercent(dp)
+      const pd = Number((profileData as any)?.payment_delay_days)
+      if (!Number.isNaN(pd) && pd >= 0) setPaymentDelayDays(pd)
+      const vd = Number((profileData as any)?.quote_validity_days)
+      if (!Number.isNaN(vd) && vd > 0) setValidityDays(vd)
+    })()
+  }, [supabase, userId])
+
+  useEffect(() => {
+    setQuoteNumber(genQuoteNumber(dateIssue, 1))
+  }, [dateIssue])
+
+  const totals = useMemo(() => computeTotals(lines), [lines])
+  const depositAmount = useMemo(() => totals.totalTtc * ((depositPercent || 0) / 100), [totals.totalTtc, depositPercent])
+
+  const validityUntil = useMemo(() => addDays(dateIssue, validityDays || 0), [dateIssue, validityDays])
+
+  function updateLine(id: string, patch: Partial<DevisLine>) {
+    setLines((prev) => prev.map((l) => (l.id === id ? { ...l, ...patch } : l)))
+  }
+
+  function addLine() {
+    setLines((prev) => {
+      const nextId = String(Date.now())
+      const defaultVat = prev[0]?.vatRate ?? 20
+      return [
+        ...prev,
+        {
+          id: nextId,
+          label: '',
+          description: '',
+          qty: 1,
+          unitPriceHt: 0,
+          vatRate: defaultVat,
+        },
+      ]
+    })
+  }
+
+  function removeLine(id: string) {
+    setLines((prev) => (prev.length <= 1 ? prev : prev.filter((l) => l.id !== id)))
+  }
+
+  const previewClientLabel = useMemo(() => {
+    if (clientChoice.mode === 'existing') {
+      const c = clients.find((x) => x.id === clientChoice.id)
+      return c?.name || 'Client'
+    }
+    if (clientChoice.mode === 'new') return clientChoice.name || 'Nouveau client'
+    return 'Aucun client sélectionné'
+  }, [clientChoice, clients])
+
+  async function generatePdf() {
+    // placeholder for now – we'll wire real PDF generation next
+    alert('PDF: prochaine étape. (La page Devis a été refaite comme demandé)')
+  }
+
+  return (
+    <div className="devis-v4">
+      <style jsx global>{`
+        .devis-v4 {
+          --black: #0a0a0a;
+          --white: #ffffff;
+          --gray-50: #fafafa;
+          --gray-100: #f4f4f5;
+          --gray-200: #e4e4e7;
+          --gray-300: #d4d4d8;
+          --gray-400: #a1a1aa;
+          --gray-500: #71717a;
+          --gray-600: #52525b;
+          --gray-700: #3f3f46;
+          --gray-800: #27272a;
+          --gray-900: #18181b;
+          --yellow: #facc15;
+          --yellow-light: #fef9c3;
+          --yellow-dark: #eab308;
+          --blue: #1e40af;
+          --blue-light: #dbeafe;
+          --red: #ef4444;
+        }
+
+        .devis-v4 .devis-container {
+          display: grid;
+          grid-template-columns: 1fr 400px;
+          gap: 32px;
+          align-items: start;
+        }
+
+        .devis-v4 .card {
+          background: var(--white);
+          border-radius: 16px;
+          padding: 28px;
+          border: 1px solid var(--gray-200);
+        }
+
+        .devis-v4 .form-section {
+          margin-bottom: 28px;
+        }
+        .devis-v4 .form-section:last-child {
+          margin-bottom: 0;
+        }
+
+        .devis-v4 .form-section-title {
+          font-size: 14px;
+          font-weight: 600;
+          color: var(--gray-500);
+          text-transform: uppercase;
+          letter-spacing: 1px;
+          margin-bottom: 16px;
+          padding-bottom: 8px;
+          border-bottom: 1px solid var(--gray-200);
+        }
+
+        .devis-v4 .form-row {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 16px;
+          margin-bottom: 16px;
+        }
+        .devis-v4 .form-row.single {
+          grid-template-columns: 1fr;
+        }
+
+        .devis-v4 .form-group {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+
+        .devis-v4 .form-label {
+          font-size: 14px;
+          font-weight: 500;
+          color: var(--gray-700);
+        }
+
+        .devis-v4 .form-input,
+        .devis-v4 .form-select,
+        .devis-v4 .form-textarea {
+          padding: 12px 14px;
+          border: 1px solid var(--gray-300);
+          border-radius: 10px;
+          font-size: 14px;
+          font-family: inherit;
+          transition: all 0.2s;
+          background: var(--white);
+        }
+
+        .devis-v4 .form-input:focus,
+        .devis-v4 .form-select:focus,
+        .devis-v4 .form-textarea:focus {
+          outline: none;
+          border-color: var(--yellow);
+          box-shadow: 0 0 0 3px rgba(250, 204, 21, 0.15);
+        }
+
+        .devis-v4 .form-textarea {
+          resize: vertical;
+          min-height: 80px;
+        }
+
+        .devis-v4 .info-box {
+          background: var(--blue-light);
+          border-radius: 10px;
+          padding: 14px 16px;
+          display: flex;
+          align-items: flex-start;
+          gap: 12px;
+          margin-bottom: 20px;
+        }
+
+        .devis-v4 .info-box svg {
+          width: 20px;
+          height: 20px;
+          stroke: var(--blue);
+          flex-shrink: 0;
+          margin-top: 2px;
+        }
+
+        .devis-v4 .info-box p {
+          font-size: 13px;
+          color: var(--blue);
+          line-height: 1.5;
+        }
+
+        .devis-v4 .prestations-list {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+        }
+
+        .devis-v4 .prestation-item {
+          background: var(--gray-50);
+          border-radius: 12px;
+          padding: 20px;
+          border: 1px solid var(--gray-200);
+          position: relative;
+        }
+
+        .devis-v4 .prestation-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 16px;
+        }
+
+        .devis-v4 .prestation-number {
+          font-size: 13px;
+          font-weight: 600;
+          color: var(--gray-500);
+        }
+
+        .devis-v4 .prestation-remove {
+          width: 28px;
+          height: 28px;
+          border: none;
+          background: var(--red);
+          color: var(--white);
+          border-radius: 6px;
+          cursor: pointer;
+          font-size: 16px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.2s;
+        }
+
+        .devis-v4 .prestation-row {
+          display: grid;
+          grid-template-columns: 2fr 1fr 1fr 1fr;
+          gap: 12px;
+          margin-bottom: 12px;
+        }
+
+        .devis-v4 .btn-add-prestation {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          padding: 14px;
+          background: var(--gray-100);
+          border: 2px dashed var(--gray-300);
+          border-radius: 10px;
+          color: var(--gray-600);
+          font-size: 14px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s;
+          width: 100%;
+          font-family: inherit;
+        }
+
+        .devis-v4 .preview-card {
+          position: sticky;
+          top: 32px;
+        }
+
+        .devis-v4 .preview-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 20px;
+        }
+
+        .devis-v4 .preview-title {
+          font-family: 'Syne', sans-serif;
+          font-size: 18px;
+          font-weight: 600;
+          color: var(--black);
+        }
+
+        .devis-v4 .preview-badge {
+          background: var(--blue-light);
+          color: var(--blue);
+          padding: 4px 10px;
+          border-radius: 6px;
+          font-size: 12px;
+          font-weight: 600;
+        }
+
+        .devis-v4 .preview-section {
+          margin-bottom: 20px;
+          padding-bottom: 16px;
+          border-bottom: 1px solid var(--gray-200);
+        }
+
+        .devis-v4 .preview-section-title {
+          font-size: 12px;
+          font-weight: 600;
+          color: var(--gray-400);
+          text-transform: uppercase;
+          letter-spacing: 1px;
+          margin-bottom: 8px;
+        }
+
+        .devis-v4 .preview-info {
+          font-size: 14px;
+          color: var(--gray-700);
+        }
+
+        .devis-v4 .preview-row {
+          display: flex;
+          justify-content: space-between;
+          padding: 8px 0;
+          font-size: 14px;
+        }
+
+        .devis-v4 .preview-row.total {
+          font-weight: 600;
+          font-size: 16px;
+          color: var(--black);
+          border-top: 2px solid var(--gray-200);
+          margin-top: 8px;
+          padding-top: 12px;
+        }
+
+        .devis-v4 .btn-group {
+          display: flex;
+          gap: 12px;
+          margin-top: 24px;
+        }
+
+        .devis-v4 .btn {
+          flex: 1;
+          padding: 14px 20px;
+          border-radius: 10px;
+          font-size: 14px;
+          font-weight: 600;
+          font-family: inherit;
+          cursor: pointer;
+          transition: all 0.2s;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          border: none;
+        }
+
+        .devis-v4 .btn-primary {
+          background: var(--black);
+          color: var(--white);
+        }
+
+        .devis-v4 .btn-secondary {
+          background: var(--gray-100);
+          color: var(--gray-700);
+        }
+
+        @media (max-width: 1200px) {
+          .devis-v4 .devis-container {
+            grid-template-columns: 1fr;
+          }
+          .devis-v4 .preview-card {
+            position: static;
+          }
+        }
+
+        @media (max-width: 768px) {
+          .devis-v4 .prestation-row {
+            grid-template-columns: 1fr 1fr;
+          }
+          .devis-v4 .form-row {
+            grid-template-columns: 1fr;
+          }
+        }
+      `}</style>
+
+      <div className="devis-container">
+        <div className="form-wrapper">
+          <div className="card">
+            <div className="info-box">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 16v-4M12 8h.01" />
+              </svg>
+              <p>
+                Vos informations (nom, adresse, SIRET) sont automatiquement récupérées depuis votre profil.
+              </p>
+            </div>
+
+            <div className="form-section">
+              <div className="form-section-title">Informations du devis</div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label">Titre du devis</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="Ex: Création site vitrine"
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Numéro du devis</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={quoteNumber}
+                    readOnly
+                    style={{ background: 'var(--gray-100)' }}
+                  />
+                </div>
+              </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label">Date d'émission</label>
+                  <input
+                    type="date"
+                    className="form-input"
+                    value={dateIssue}
+                    onChange={(e) => setDateIssue(e.target.value)}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Validité (jours)</label>
+                  <select
+                    className="form-select"
+                    value={String(validityDays)}
+                    onChange={(e) => setValidityDays(Number(e.target.value))}
+                  >
+                    <option value="15">15 jours</option>
+                    <option value="30">30 jours</option>
+                    <option value="60">60 jours</option>
+                    <option value="90">90 jours</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div className="form-section">
+              <div className="form-section-title">Client</div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label">Sélectionner un client</label>
+                  <select
+                    className="form-select"
+                    value={
+                      clientChoice.mode === 'existing'
+                        ? clientChoice.id
+                        : clientChoice.mode === 'new'
+                          ? 'new'
+                          : ''
+                    }
+                    onChange={(e) => {
+                      const v = e.target.value
+                      if (v === 'new') {
+                        setClientChoice({ mode: 'new', name: '' })
+                      } else if (v) {
+                        setClientChoice({ mode: 'existing', id: v })
+                      } else {
+                        setClientChoice({ mode: 'none' })
+                      }
+                    }}
+                  >
+                    <option value="">-- Choisir un client existant --</option>
+                    {(clients || []).map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                    <option value="new">+ Nouveau client</option>
+                  </select>
+                </div>
+              </div>
+
+              {clientChoice.mode === 'new' ? (
+                <>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label className="form-label">Nom / Entreprise</label>
+                      <input
+                        type="text"
+                        className="form-input"
+                        value={clientChoice.name}
+                        onChange={(e) => setClientChoice({ ...clientChoice, name: e.target.value })}
+                        placeholder="Nom ou raison sociale"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">SIRET (optionnel)</label>
+                      <input
+                        type="text"
+                        className="form-input"
+                        value={clientChoice.siret || ''}
+                        onChange={(e) => setClientChoice({ ...clientChoice, siret: e.target.value })}
+                        placeholder="123 456 789 00012"
+                      />
+                    </div>
+                  </div>
+                  <div className="form-row single">
+                    <div className="form-group">
+                      <label className="form-label">Adresse</label>
+                      <input
+                        type="text"
+                        className="form-input"
+                        value={clientChoice.address || ''}
+                        onChange={(e) => setClientChoice({ ...clientChoice, address: e.target.value })}
+                        placeholder="Adresse complète"
+                      />
+                    </div>
+                  </div>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label className="form-label">Code postal</label>
+                      <input
+                        type="text"
+                        className="form-input"
+                        value={clientChoice.postalCode || ''}
+                        onChange={(e) => setClientChoice({ ...clientChoice, postalCode: e.target.value })}
+                        placeholder="75000"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Ville</label>
+                      <input
+                        type="text"
+                        className="form-input"
+                        value={clientChoice.city || ''}
+                        onChange={(e) => setClientChoice({ ...clientChoice, city: e.target.value })}
+                        placeholder="Paris"
+                      />
+                    </div>
+                  </div>
+                </>
+              ) : null}
+            </div>
+
+            <div className="form-section">
+              <div className="form-section-title">Prestations</div>
+              <div className="prestations-list">
+                {lines.map((l, idx) => (
+                  <div key={l.id} className="prestation-item">
+                    <div className="prestation-header">
+                      <span className="prestation-number">Prestation {idx + 1}</span>
+                      <button
+                        type="button"
+                        className="prestation-remove"
+                        onClick={() => removeLine(l.id)}
+                        style={{ display: lines.length > 1 ? 'flex' : 'none' }}
+                      >
+                        ×
+                      </button>
+                    </div>
+                    <div className="prestation-row">
+                      <div className="form-group">
+                        <label className="form-label">Libellé</label>
+                        <input
+                          type="text"
+                          className="form-input"
+                          value={l.label}
+                          onChange={(e) => updateLine(l.id, { label: e.target.value })}
+                          placeholder="Nom de la prestation"
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label">Quantité</label>
+                        <input
+                          type="number"
+                          className="form-input"
+                          value={String(l.qty)}
+                          min={1}
+                          onChange={(e) => updateLine(l.id, { qty: Number(e.target.value) || 0 })}
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label">Prix unitaire HT</label>
+                        <input
+                          type="number"
+                          className="form-input"
+                          value={String(l.unitPriceHt)}
+                          step={0.01}
+                          onChange={(e) => updateLine(l.id, { unitPriceHt: Number(e.target.value) || 0 })}
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label">TVA %</label>
+                        <select
+                          className="form-select"
+                          value={String(l.vatRate)}
+                          onChange={(e) => updateLine(l.id, { vatRate: Number(e.target.value) || 0 })}
+                        >
+                          <option value="0">0%</option>
+                          <option value="5.5">5.5%</option>
+                          <option value="10">10%</option>
+                          <option value="20">20%</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div className="form-row single">
+                      <div className="form-group">
+                        <label className="form-label">Description (optionnel)</label>
+                        <textarea
+                          className="form-textarea"
+                          value={l.description}
+                          onChange={(e) => updateLine(l.id, { description: e.target.value })}
+                          placeholder="Détails de la prestation..."
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <button type="button" className="btn-add-prestation" onClick={addLine}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
+                  <path d="M12 5v14M5 12h14" />
+                </svg>
+                Ajouter une prestation
+              </button>
+            </div>
+
+            <div className="form-section">
+              <div className="form-section-title">Options</div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label">Acompte demandé</label>
+                  <select
+                    className="form-select"
+                    value={String(depositPercent)}
+                    onChange={(e) => setDepositPercent(Number(e.target.value) || 0)}
+                  >
+                    <option value="0">Pas d'acompte</option>
+                    <option value="30">30%</option>
+                    <option value="50">50%</option>
+                    <option value="100">100%</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Délai de paiement</label>
+                  <select
+                    className="form-select"
+                    value={String(paymentDelayDays)}
+                    onChange={(e) => setPaymentDelayDays(Number(e.target.value) || 0)}
+                  >
+                    <option value="0">À réception</option>
+                    <option value="15">15 jours</option>
+                    <option value="30">30 jours</option>
+                    <option value="45">45 jours</option>
+                  </select>
+                </div>
+              </div>
+              <div className="form-row single">
+                <div className="form-group">
+                  <label className="form-label">Notes / Conditions particulières (optionnel)</label>
+                  <textarea
+                    className="form-textarea"
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="Conditions spécifiques au devis..."
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="preview-card card">
+          <div className="preview-header">
+            <span className="preview-title">Récapitulatif</span>
+            <span className="preview-badge">Brouillon</span>
+          </div>
+
+          <div className="preview-section">
+            <div className="preview-section-title">Devis</div>
+            <p className="preview-info">
+              <strong>{quoteNumber}</strong>
+            </p>
+            <p className="preview-info">{title || '-'}</p>
+            <p className="preview-info" style={{ marginTop: 8 }}>
+              Émis le {formatDateFr(dateIssue) || '-'}
+              {validityUntil ? ` · Valide jusqu'au ${formatDateFr(validityUntil)}` : ''}
+            </p>
+          </div>
+
+          <div className="preview-section">
+            <div className="preview-section-title">Client</div>
+            <p className="preview-info">{previewClientLabel}</p>
+          </div>
+
+          <div className="preview-section">
+            <div className="preview-section-title">Montants</div>
+            <div className="preview-row">
+              <span className="label">Sous-total HT</span>
+              <span className="value">{formatMoney(totals.totalHt)}</span>
+            </div>
+            <div className="preview-row">
+              <span className="label">TVA</span>
+              <span className="value">{formatMoney(totals.totalTva)}</span>
+            </div>
+            <div className="preview-row total">
+              <span className="label">Total TTC</span>
+              <span className="value">{formatMoney(totals.totalTtc)}</span>
+            </div>
+            {depositPercent > 0 && depositPercent < 100 ? (
+              <div className="preview-row">
+                <span className="label">Acompte à verser</span>
+                <span className="value">{formatMoney(depositAmount)}</span>
+              </div>
+            ) : null}
+          </div>
+
+          <div className="btn-group">
+            <button className="btn btn-secondary" type="button" onClick={() => alert('Email: à connecter')}
+            >
+              Envoyer par mail
+            </button>
+            <button className="btn btn-primary" type="button" onClick={generatePdf}>
+              Générer PDF
+            </button>
+          </div>
+
+          <div style={{ marginTop: 16, fontSize: 12, color: 'var(--gray-500)' }}>
+            Généré pour {userFullName || 'Utilisateur'} {userJob ? `· ${userJob}` : ''}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 type Tab = 'dashboard' | 'clients' | 'assistant' | 'devis' | 'analyseur' | 'settings'
 
 type ModalName = 'newClient' | 'newDevis'
@@ -1582,122 +2426,19 @@ CONTEXTE UTILISATEUR :
         <div id="tab-devis" className={`tab-content ${tab === 'devis' ? 'active' : ''}`}>
           <div className="page-header">
             <div>
-              <h1 className="page-title">Nouveau devis</h1>
-              <p className="page-subtitle">Créez un devis professionnel en quelques minutes</p>
+              <h1 className="page-title">Créer un devis</h1>
+              <p className="page-subtitle">Remplissez les informations pour générer votre devis professionnel</p>
             </div>
           </div>
 
-          <div className="devis-container">
-            <div className="devis-form">
-              <div className="devis-section">
-                <h3 className="devis-section-title">👤 Client</h3>
-                <div className="form-row">
-                  <div className="form-group">
-                    <label className="form-label">Nom / Entreprise</label>
-                    <input type="text" className="form-input" placeholder="Nom du client" />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Email</label>
-                    <input type="email" className="form-input" placeholder="email@exemple.com" />
-                  </div>
-                </div>
-              </div>
-
-              <div className="devis-section">
-                <h3 className="devis-section-title">📋 Prestations</h3>
-                <div className="prestation-item">
-                  <input type="text" placeholder="Description de la prestation" />
-                  <input type="number" placeholder="Qté" />
-                  <input type="number" placeholder="Prix HT" />
-                  <button className="btn-remove" type="button">
-                    ✕
-                  </button>
-                </div>
-                <div className="prestation-item">
-                  <input type="text" placeholder="Description de la prestation" />
-                  <input type="number" placeholder="Qté" />
-                  <input type="number" placeholder="Prix HT" />
-                  <button className="btn-remove" type="button">
-                    ✕
-                  </button>
-                </div>
-                <button className="btn-add-prestation" type="button">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
-                    <line x1="12" y1="5" x2="12" y2="19" />
-                    <line x1="5" y1="12" x2="19" y2="12" />
-                  </svg>
-                  Ajouter une prestation
-                </button>
-              </div>
-
-              <div className="devis-section">
-                <h3 className="devis-section-title">⚙️ Options</h3>
-                <div className="form-row">
-                  <div className="form-group">
-                    <label className="form-label">TVA (%)</label>
-                    <select className="form-select" defaultValue="0">
-                      <option value="0">0% (Auto-entrepreneur)</option>
-                      <option value="20">20%</option>
-                      <option value="10">10%</option>
-                      <option value="5.5">5.5%</option>
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Acompte (%)</label>
-                    <select className="form-select" defaultValue="0">
-                      <option value="0">Pas d&apos;acompte</option>
-                      <option value="30">30%</option>
-                      <option value="50">50%</option>
-                    </select>
-                  </div>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Notes / Conditions</label>
-                  <textarea className="form-textarea" rows={3} placeholder="Conditions de paiement, délais..." />
-                </div>
-              </div>
-            </div>
-
-            <div className="devis-preview">
-              <h3 className="preview-title">Récapitulatif</h3>
-              <div className="preview-row">
-                <span className="preview-label">Sous-total HT</span>
-                <span className="preview-value">0,00 €</span>
-              </div>
-              <div className="preview-row">
-                <span className="preview-label">TVA (0%)</span>
-                <span className="preview-value">0,00 €</span>
-              </div>
-              <div className="preview-row total">
-                <span className="preview-label">Total TTC</span>
-                <span className="preview-value">0,00 €</span>
-              </div>
-              <div className="preview-row">
-                <span className="preview-label">Acompte</span>
-                <span className="preview-value">0,00 €</span>
-              </div>
-
-              <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <button className="btn btn-yellow" type="button" style={{ width: '100%' }}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
-                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
-                    <path d="M14 2v6h6" />
-                  </svg>
-                  Générer PDF
-                </button>
-                <button className="btn btn-secondary" type="button" style={{ width: '100%' }}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
-                    <path d="M22 2L11 13" />
-                    <path d="M22 2l-7 20-4-9-9-4 20-7z" />
-                  </svg>
-                  Envoyer par email
-                </button>
-              </div>
-            </div>
-          </div>
+          <DevisV4
+            userFullName={userFullName}
+            userJob={userJob}
+            userId={userId}
+          />
         </div>
 
-        {/* Analyseur */}
+{/* Analyseur */}
         <div id="tab-analyseur" className={`tab-content ${tab === 'analyseur' ? 'active' : ''}`}>
           <div className="page-header">
             <div>
