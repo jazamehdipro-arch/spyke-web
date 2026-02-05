@@ -142,6 +142,10 @@ RÈGLES :
 - Écris uniquement l'email, rien d'autre (pas d'explication, pas de commentaire)
 - Ne signe jamais “Spyke” ou “Spyke assistance IA”. La signature doit être celle du freelance.
 
+LONGUEUR : Adapte la longueur au contexte.
+- Relance / message simple → court (4-6 lignes)
+- Réponse détaillée / négociation / explication → plus long si nécessaire
+
 CONTEXTE UTILISATEUR :
 - Prénom : ${prenom}
 - Métier : ${metier}
@@ -728,6 +732,13 @@ CONTEXTE UTILISATEUR :
           font-size: 14px;
           font-weight: 500;
           color: var(--gray-700);
+          line-height: 1.2;
+        }
+
+        .template-item-subtext {
+          font-size: 12px;
+          color: var(--gray-500);
+          margin-top: 2px;
         }
 
         .template-item.active .template-item-text {
@@ -1439,21 +1450,24 @@ CONTEXTE UTILISATEUR :
               <h3>Type d&apos;email</h3>
               <div className="template-list">
                 {([
-                  ['✉️', 'Réponse client'],
-                  ['🔔', 'Relance'],
-                  ['📄', 'Envoi de devis'],
-                  ['💰', 'Envoi facture'],
-                  ['🤝', 'Négociation'],
-                  ['👋', 'Bienvenue'],
-                  ['🙏', 'Remerciement'],
-                ] as Array<[string, Template]>).map(([icon, label]) => (
+                  ['✉️', 'Réponse client', "Répondre à un email"],
+                  ['🔔', 'Relance', 'Sans réponse'],
+                  ['📄', 'Envoi de devis', 'Devis à envoyer'],
+                  ['💰', 'Envoi facture', 'Paiement / facture'],
+                  ['🤝', 'Négociation', 'Tarifs, délais'],
+                  ['👋', 'Bienvenue', 'Premier contact'],
+                  ['🙏', 'Remerciement', 'Après prestation'],
+                ] as Array<[string, Template, string]>).map(([icon, label, sub]) => (
                   <div
                     key={label}
                     className={`template-item ${template === label ? 'active' : ''}`}
                     onClick={() => setTemplate(label)}
                   >
                     <span className="template-item-icon">{icon}</span>
-                    <span className="template-item-text">{label}</span>
+                    <div>
+                      <div className="template-item-text">{label}</div>
+                      <div className="template-item-subtext">{sub}</div>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -1505,6 +1519,33 @@ CONTEXTE UTILISATEUR :
                     value={assistantContext}
                     onChange={(e) => setAssistantContext(e.target.value)}
                   />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Type</label>
+                  <div className="template-list">
+                    {([
+                      ['✉️', 'Réponse client', "Répondre à un email"],
+                      ['🔔', 'Relance', 'Sans réponse'],
+                      ['📄', 'Envoi de devis', 'Devis à envoyer'],
+                      ['💰', 'Envoi facture', 'Paiement / facture'],
+                      ['🤝', 'Négociation', 'Tarifs, délais'],
+                      ['👋', 'Bienvenue', 'Premier contact'],
+                      ['🙏', 'Remerciement', 'Après prestation'],
+                    ] as Array<[string, Template, string]>).map(([icon, label, sub]) => (
+                      <div
+                        key={label}
+                        className={`template-item ${template === label ? 'active' : ''}`}
+                        onClick={() => setTemplate(label)}
+                      >
+                        <span className="template-item-icon">{icon}</span>
+                        <div>
+                          <div className="template-item-text">{label}</div>
+                          <div className="template-item-subtext">{sub}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 <button
