@@ -1,6 +1,7 @@
 "use client"
 
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { getSupabase } from '@/lib/supabaseClient'
 
 type TvaChoice = 'oui' | 'non'
 
@@ -10,7 +11,17 @@ export default function OnboardingPage() {
   const [currentStep, setCurrentStep] = useState(1)
   const [tva, setTva] = useState<TvaChoice>('non')
   const [tone, setTone] = useState<ToneChoice>('professionnel')
+  const [loading, setLoading] = useState(false)
 
+  const supabase = useMemo(() => {
+    try {
+      return getSupabase()
+    } catch {
+      return null
+    }
+  }, [])
+
+  const [logoFile, setLogoFile] = useState<File | null>(null)
   const [logoPreviewUrl, setLogoPreviewUrl] = useState<string>('')
   const [logoPreviewName, setLogoPreviewName] = useState<string>('logo.png')
   const [logoPreviewSize, setLogoPreviewSize] = useState<string>('0 KB')
@@ -22,6 +33,17 @@ export default function OnboardingPage() {
     // Here we approximate with %: step1=0%, step2=50%, step3=100%.
     return `${((currentStep - 1) / 2) * 100}%`
   }, [currentStep])
+
+  useEffect(() => {
+    ;(async () => {
+      if (!supabase) return
+      const { data } = await supabase.auth.getSession()
+      if (!data.session) {
+        // must be logged in to complete onboarding
+        window.location.href = 'connexion.html'
+      }
+    })()
+  }, [supabase])
 
   function nextStep(step: number) {
     setCurrentStep(step)
@@ -36,6 +58,8 @@ export default function OnboardingPage() {
   function handleLogoUpload(file?: File) {
     if (!file) return
 
+    setLogoFile(file)
+
     const reader = new FileReader()
     reader.onload = (e) => {
       const url = String(e.target?.result || '')
@@ -48,6 +72,7 @@ export default function OnboardingPage() {
 
   function removeLogo() {
     if (logoInputRef.current) logoInputRef.current.value = ''
+    setLogoFile(null)
     setLogoPreviewUrl('')
   }
 
@@ -56,34 +81,61 @@ export default function OnboardingPage() {
     return el?.value ?? ''
   }
 
-  function finishOnboarding() {
-    const data = {
-      prenom: getValue('prenom'),
-      nom: getValue('nom'),
-      metier: getValue('metier'),
-      statut: getValue('statut'),
-      siret: getValue('siret'),
-      numtva: getValue('numtva'),
-      adresse: getValue('adresse'),
-      tva,
-      tauxTva: getValue('tauxTva'),
-      tjm: getValue('tjm'),
-      delaiPaiement: getValue('delaiPaiement'),
-      acompte: getValue('acompte'),
-      validiteDevis: getValue('validiteDevis'),
-      tone,
-      mentionsLegales: getValue('mentionsLegales'),
-      logo: logoPreviewUrl || null,
+  async function finishOnboarding() {
+    if (!supabase) {
+      alert('Supabase non configuré (env manquantes)')
+      return
     }
 
-    console.log('Données onboarding:', data)
+    try {
+      setLoading(true)
 
-    // TODO: envoyer à Supabase. Pour l’instant: démo via localStorage.
-    localStorage.setItem('spyke_user', JSON.stringify(data))
-    localStorage.setItem('spyke_onboarding_done', 'true')
+      const { data: sessionData } = await supabase.auth.getSession()
+      const session = sessionData.session
+      if (!session?.user) throw new Error('Vous devez être connecté pour terminer l’onboarding')
 
-    alert('Configuration terminée ! Redirection vers votre dashboard...')
-    window.location.href = 'app.html'
+      const userId = session.user.id
+
+      let logoPath: string | null = null
+      if (logoFile) {
+        // Convention: <userId>/<filename>
+        logoPath = `${userId}/${logoFile.name}`
+        const { error: uploadError } = await supabase.storage
+          .from('logos')
+          .upload(logoPath, logoFile, { upsert: true })
+        if (uploadError) throw uploadError
+      }
+
+      const payload = {
+        id: userId,
+        first_name: getValue('prenom'),
+        last_name: getValue('nom'),
+        job: getValue('metier'),
+        legal_status: getValue('statut'),
+        siret: getValue('siret') || null,
+        vat_number: getValue('numtva') || null,
+        address: getValue('adresse') || null,
+        vat_enabled: tva === 'oui',
+        vat_rate: tva === 'oui' ? Number(getValue('tauxTva') || 0) : 0,
+        tjm: Number(getValue('tjm') || 0) || null,
+        payment_delay_days: Number(getValue('delaiPaiement') || 0) || null,
+        deposit_percent: Number(getValue('acompte') || 0) || null,
+        quote_validity_days: Number(getValue('validiteDevis') || 0) || null,
+        email_tone: tone,
+        legal_mentions: getValue('mentionsLegales') || null,
+        logo_url: logoPath,
+        onboarding_completed: true,
+      }
+
+      const { error: upsertError } = await supabase.from('profiles').upsert(payload, { onConflict: 'id' })
+      if (upsertError) throw upsertError
+
+      window.location.href = 'app.html'
+    } catch (err: any) {
+      alert(err?.message || 'Erreur onboarding')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (

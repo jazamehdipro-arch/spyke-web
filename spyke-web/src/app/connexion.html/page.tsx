@@ -1,11 +1,21 @@
 "use client"
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { getSupabase } from '@/lib/supabaseClient'
 
 type Tab = 'connexion' | 'inscription'
 
 export default function ConnexionPage() {
   const [tab, setTab] = useState<Tab>('connexion')
+  const [loading, setLoading] = useState(false)
+
+  const supabase = useMemo(() => {
+    try {
+      return getSupabase()
+    } catch {
+      return null
+    }
+  }, [])
 
   useEffect(() => {
     // Expose switchTab() for inline onclicks in the markup (kept for fidelity)
@@ -398,20 +408,67 @@ export default function ConnexionPage() {
           <form
             className={`auth-form ${isConnexion ? 'active' : ''}`}
             id="formConnexion"
-            onSubmit={(e) => {
+            onSubmit={async (e) => {
               e.preventDefault()
-              // TODO: brancher auth réelle (Supabase). Pour l’instant: démo via localStorage.
-              const onboardingDone = localStorage.getItem('spyke_onboarding_done') === 'true'
-              window.location.href = onboardingDone ? 'app.html' : 'onboarding.html'
+              if (!supabase) {
+                alert('Supabase non configuré (env manquantes)')
+                return
+              }
+
+              try {
+                setLoading(true)
+
+                const form = e.currentTarget
+                const fd = new FormData(form)
+                const email = String(fd.get('email') || '')
+                const password = String(fd.get('password') || '')
+
+                const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+                  email,
+                  password,
+                })
+                if (signInError) throw signInError
+
+                const user = signInData.user
+                if (!user) throw new Error('Utilisateur introuvable')
+
+                const { data: profile, error: profileError } = await supabase
+                  .from('profiles')
+                  .select('onboarding_completed')
+                  .eq('id', user.id)
+                  .maybeSingle()
+
+                if (profileError) throw profileError
+
+                // If profile doesn't exist yet, treat as first login
+                const done = Boolean(profile?.onboarding_completed)
+                window.location.href = done ? 'app.html' : 'onboarding.html'
+              } catch (err: any) {
+                alert(err?.message || 'Erreur de connexion')
+              } finally {
+                setLoading(false)
+              }
             }}
           >
             <div className="form-group">
               <label className="form-label">Email</label>
-              <input type="email" className="form-input" placeholder="vous@exemple.com" />
+              <input
+                name="email"
+                type="email"
+                className="form-input"
+                placeholder="vous@exemple.com"
+                required
+              />
             </div>
             <div className="form-group">
               <label className="form-label">Mot de passe</label>
-              <input type="password" className="form-input" placeholder="••••••••" />
+              <input
+                name="password"
+                type="password"
+                className="form-input"
+                placeholder="••••••••"
+                required
+              />
             </div>
             <div className="form-row">
               <label className="form-checkbox">
@@ -422,8 +479,8 @@ export default function ConnexionPage() {
                 Mot de passe oublié ?
               </a>
             </div>
-            <button type="submit" className="btn btn-primary">
-              Se connecter
+            <button type="submit" className="btn btn-primary" disabled={loading}>
+              {loading ? 'Connexion…' : 'Se connecter'}
             </button>
 
             <div className="divider">
@@ -457,19 +514,61 @@ export default function ConnexionPage() {
           <form
             className={`auth-form ${!isConnexion ? 'active' : ''}`}
             id="formInscription"
-            onSubmit={(e) => {
+            onSubmit={async (e) => {
               e.preventDefault()
-              // TODO: brancher auth réelle (Supabase). Pour l’instant: on envoie vers l’onboarding.
-              window.location.href = 'onboarding.html'
+              if (!supabase) {
+                alert('Supabase non configuré (env manquantes)')
+                return
+              }
+
+              try {
+                setLoading(true)
+
+                const form = e.currentTarget
+                const fd = new FormData(form)
+                const email = String(fd.get('email') || '')
+                const password = String(fd.get('password') || '')
+
+                const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+                  email,
+                  password,
+                })
+                if (signUpError) throw signUpError
+
+                // If email confirmations are enabled, session may be null.
+                // We still send the user to onboarding; onboarding will ask to login if no session.
+                if (signUpData.user && signUpData.session) {
+                  // Ensure profile row exists
+                  await supabase.from('profiles').upsert({ id: signUpData.user.id }, { onConflict: 'id' })
+                }
+
+                window.location.href = 'onboarding.html'
+              } catch (err: any) {
+                alert(err?.message || 'Erreur inscription')
+              } finally {
+                setLoading(false)
+              }
             }}
           >
             <div className="form-group">
               <label className="form-label">Email</label>
-              <input type="email" className="form-input" placeholder="vous@exemple.com" />
+              <input
+                name="email"
+                type="email"
+                className="form-input"
+                placeholder="vous@exemple.com"
+                required
+              />
             </div>
             <div className="form-group">
               <label className="form-label">Mot de passe</label>
-              <input type="password" className="form-input" placeholder="8 caractères minimum" />
+              <input
+                name="password"
+                type="password"
+                className="form-input"
+                placeholder="8 caractères minimum"
+                required
+              />
             </div>
             <div className="form-group">
               <label className="form-checkbox">
@@ -480,8 +579,8 @@ export default function ConnexionPage() {
                 </a>
               </label>
             </div>
-            <button type="submit" className="btn btn-primary">
-              Créer mon compte
+            <button type="submit" className="btn btn-primary" disabled={loading}>
+              {loading ? 'Inscription…' : 'Créer mon compte'}
             </button>
 
             <div className="divider">
