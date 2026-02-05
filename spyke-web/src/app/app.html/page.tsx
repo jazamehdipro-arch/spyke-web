@@ -45,6 +45,8 @@ export default function AppHtmlPage() {
 
   const [userFullName, setUserFullName] = useState<string>('')
   const [userPlan, setUserPlan] = useState<string>('Plan Free')
+  const [userJob, setUserJob] = useState<string>('')
+  const [userDefaultTone, setUserDefaultTone] = useState<string>('')
 
   const [clients, setClients] = useState<ClientRow[]>([])
   const [selectedClientId, setSelectedClientId] = useState<string>('')
@@ -74,12 +76,14 @@ export default function AppHtmlPage() {
 
         const { data: profile } = await supabase
           .from('profiles')
-          .select('first_name,last_name')
+          .select('first_name,last_name,job,email_tone')
           .eq('id', userId)
           .maybeSingle()
 
         const full = [profile?.first_name, profile?.last_name].filter(Boolean).join(' ').trim()
         setUserFullName(full || 'Utilisateur')
+        setUserJob(String((profile as any)?.job || ''))
+        setUserDefaultTone(String((profile as any)?.email_tone || ''))
 
         const { data: clientsData, error: clientsError } = await supabase
           .from('clients')
@@ -120,8 +124,28 @@ export default function AppHtmlPage() {
       const toneLabel =
         tone === 'pro' ? 'professionnel' : tone === 'chaleureux' ? 'chaleureux' : 'formel'
 
-      const system =
-        "Tu es Spyke, assistant administratif pour freelances en France. Tu rédiges des emails courts, clairs et actionnables."
+      const prenom = userFullName.split(' ').filter(Boolean)[0] || 'Utilisateur'
+      const metier = userJob || 'Freelance'
+      const tonPrefere = userDefaultTone || 'professionnel'
+
+      const system = `Tu es l'assistant email de Spyke, un outil pour freelances français.
+
+Tu génères des emails professionnels en français.
+
+RÈGLES :
+- Sois concis, pas de blabla inutile
+- Adapte le ton selon ce qui est demandé (professionnel, chaleureux, formel, décontracté)
+- Utilise le nom du client si fourni
+- Ne mets jamais de placeholders comme [Nom] ou [Date], écris directement
+- Termine toujours par une formule de politesse adaptée au ton
+- Ne mets pas d'objet sauf si demandé
+- Écris uniquement l'email, rien d'autre (pas d'explication, pas de commentaire)
+- Ne signe jamais “Spyke” ou “Spyke assistance IA”. La signature doit être celle du freelance.
+
+CONTEXTE UTILISATEUR :
+- Prénom : ${prenom}
+- Métier : ${metier}
+- Ton préféré par défaut : ${tonPrefere}`
 
       const prompt = [
         `Type d'email: ${template}`,
