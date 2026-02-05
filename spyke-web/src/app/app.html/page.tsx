@@ -10,13 +10,12 @@ type ModalName = 'newClient' | 'newDevis'
 type Tone = 'pro' | 'chaleureux' | 'formel'
 
 type Template =
-  | 'Réponse client'
+  | 'Réponse'
   | 'Relance'
-  | 'Envoi de devis'
-  | 'Envoi facture'
+  | 'Relance devis'
   | 'Négociation'
-  | 'Bienvenue'
-  | 'Remerciement'
+  | 'Refus poli'
+  | 'Facture'
 
 type ClientRow = {
   id: string
@@ -30,7 +29,7 @@ export default function AppHtmlPage() {
   const [tab, setTab] = useState<Tab>('dashboard')
   const [modal, setModal] = useState<ModalName | null>(null)
   const [tone, setTone] = useState<Tone>('pro')
-  const [template, setTemplate] = useState<Template>('Réponse client')
+  const [template, setTemplate] = useState<Template>('Réponse')
 
   const [loading, setLoading] = useState(false)
   const [userId, setUserId] = useState<string | null>(null)
@@ -732,13 +731,6 @@ CONTEXTE UTILISATEUR :
           font-size: 14px;
           font-weight: 500;
           color: var(--gray-700);
-          line-height: 1.2;
-        }
-
-        .template-item-subtext {
-          font-size: 12px;
-          color: var(--gray-500);
-          margin-top: 2px;
         }
 
         .template-item.active .template-item-text {
@@ -1450,24 +1442,20 @@ CONTEXTE UTILISATEUR :
               <h3>Type d&apos;email</h3>
               <div className="template-list">
                 {([
-                  ['✉️', 'Réponse client', "Répondre à un email"],
-                  ['🔔', 'Relance', 'Sans réponse'],
-                  ['📄', 'Envoi de devis', 'Devis à envoyer'],
-                  ['💰', 'Envoi facture', 'Paiement / facture'],
-                  ['🤝', 'Négociation', 'Tarifs, délais'],
-                  ['👋', 'Bienvenue', 'Premier contact'],
-                  ['🙏', 'Remerciement', 'Après prestation'],
-                ] as Array<[string, Template, string]>).map(([icon, label, sub]) => (
+                  ['💬', 'Réponse'],
+                  ['✉️', 'Relance'],
+                  ['💰', 'Relance devis'],
+                  ['🤝', 'Négociation'],
+                  ['🚫', 'Refus poli'],
+                  ['🧾', 'Facture'],
+                ] as Array<[string, Template]>).map(([icon, label]) => (
                   <div
                     key={label}
                     className={`template-item ${template === label ? 'active' : ''}`}
                     onClick={() => setTemplate(label)}
                   >
                     <span className="template-item-icon">{icon}</span>
-                    <div>
-                      <div className="template-item-text">{label}</div>
-                      <div className="template-item-subtext">{sub}</div>
-                    </div>
+                    <span className="template-item-text">{label}</span>
                   </div>
                 ))}
               </div>
@@ -1519,33 +1507,6 @@ CONTEXTE UTILISATEUR :
                     value={assistantContext}
                     onChange={(e) => setAssistantContext(e.target.value)}
                   />
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Type</label>
-                  <div className="template-list">
-                    {([
-                      ['✉️', 'Réponse client', "Répondre à un email"],
-                      ['🔔', 'Relance', 'Sans réponse'],
-                      ['📄', 'Envoi de devis', 'Devis à envoyer'],
-                      ['💰', 'Envoi facture', 'Paiement / facture'],
-                      ['🤝', 'Négociation', 'Tarifs, délais'],
-                      ['👋', 'Bienvenue', 'Premier contact'],
-                      ['🙏', 'Remerciement', 'Après prestation'],
-                    ] as Array<[string, Template, string]>).map(([icon, label, sub]) => (
-                      <div
-                        key={label}
-                        className={`template-item ${template === label ? 'active' : ''}`}
-                        onClick={() => setTemplate(label)}
-                      >
-                        <span className="template-item-icon">{icon}</span>
-                        <div>
-                          <div className="template-item-text">{label}</div>
-                          <div className="template-item-subtext">{sub}</div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
                 </div>
 
                 <button
