@@ -400,8 +400,9 @@ export default function ConnexionPage() {
             id="formConnexion"
             onSubmit={(e) => {
               e.preventDefault()
-              // TODO: brancher auth réelle. Pour l'instant on garde l'intention de redirection.
-              window.location.href = 'app.html'
+              // TODO: brancher auth réelle (Supabase). Pour l’instant: démo via localStorage.
+              const onboardingDone = localStorage.getItem('spyke_onboarding_done') === 'true'
+              window.location.href = onboardingDone ? 'app.html' : 'onboarding.html'
             }}
           >
             <div className="form-group">
@@ -458,7 +459,7 @@ export default function ConnexionPage() {
             id="formInscription"
             onSubmit={(e) => {
               e.preventDefault()
-              // TODO: brancher auth réelle. Pour l'instant on garde l'intention de redirection.
+              // TODO: brancher auth réelle (Supabase). Pour l’instant: on envoie vers l’onboarding.
               window.location.href = 'onboarding.html'
             }}
           >
