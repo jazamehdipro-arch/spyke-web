@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from 'react'
+import { getSupabase } from '@/lib/supabaseClient'
 
 type Tab = 'dashboard' | 'clients' | 'assistant' | 'devis' | 'analyseur' | 'settings'
 
@@ -17,30 +18,81 @@ type Template =
   | 'Bienvenue'
   | 'Remerciement'
 
+type ClientRow = {
+  id: string
+  name: string
+  email: string | null
+  phone: string | null
+  notes: string | null
+}
+
 export default function AppHtmlPage() {
   const [tab, setTab] = useState<Tab>('dashboard')
   const [modal, setModal] = useState<ModalName | null>(null)
   const [tone, setTone] = useState<Tone>('pro')
   const [template, setTemplate] = useState<Template>('Réponse client')
 
-  const [userFullName, setUserFullName] = useState<string>('Mehdi Jaza')
-  const [userPlan, setUserPlan] = useState<string>('Plan Pro')
+  const [loading, setLoading] = useState(false)
+  const [userId, setUserId] = useState<string | null>(null)
 
-  useEffect(() => {
-    // Demo: hydrate name from onboarding localStorage if present
+  const supabase = useMemo(() => {
     try {
-      const raw = localStorage.getItem('spyke_user')
-      if (raw) {
-        const data = JSON.parse(raw)
-        const prenom = String(data?.prenom || '').trim()
-        const nom = String(data?.nom || '').trim()
-        const full = [prenom, nom].filter(Boolean).join(' ').trim()
-        if (full) setUserFullName(full)
-      }
+      return getSupabase()
     } catch {
-      // ignore
+      return null
     }
   }, [])
+
+  const [userFullName, setUserFullName] = useState<string>('')
+  const [userPlan, setUserPlan] = useState<string>('Plan Free')
+
+  const [clients, setClients] = useState<ClientRow[]>([])
+  const [selectedClientId, setSelectedClientId] = useState<string>('')
+
+  const [assistantContext, setAssistantContext] = useState<string>('')
+  const [assistantOutput, setAssistantOutput] = useState<string>('')
+
+  // Ensure authenticated session for the app
+  useEffect(() => {
+    ;(async () => {
+      if (!supabase) return
+      const { data } = await supabase.auth.getSession()
+      if (!data.session?.user) {
+        window.location.href = 'connexion.html'
+        return
+      }
+      setUserId(data.session.user.id)
+    })()
+  }, [supabase])
+
+  // Load profile + clients
+  useEffect(() => {
+    ;(async () => {
+      if (!supabase || !userId) return
+      try {
+        setLoading(true)
+
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('first_name,last_name')
+          .eq('id', userId)
+          .maybeSingle()
+
+        const full = [profile?.first_name, profile?.last_name].filter(Boolean).join(' ').trim()
+        setUserFullName(full || 'Utilisateur')
+
+        const { data: clientsData, error: clientsError } = await supabase
+          .from('clients')
+          .select('id,name,email,phone,notes')
+          .order('created_at', { ascending: false })
+
+        if (clientsError) throw clientsError
+        setClients((clientsData || []) as ClientRow[])
+      } finally {
+        setLoading(false)
+      }
+    })()
+  }, [supabase, userId])
 
   const initials = useMemo(() => {
     const parts = userFullName.split(' ').filter(Boolean)
@@ -48,6 +100,55 @@ export default function AppHtmlPage() {
     const b = parts[1]?.[0] ?? ''
     return (a + b).toUpperCase()
   }, [userFullName])
+
+  async function refreshClients() {
+    if (!supabase) return
+    const { data, error } = await supabase
+      .from('clients')
+      .select('id,name,email,phone,notes')
+      .order('created_at', { ascending: false })
+    if (!error) setClients((data || []) as ClientRow[])
+  }
+
+  async function generateAssistantEmail() {
+    try {
+      setLoading(true)
+      setAssistantOutput('')
+
+      const client = clients.find((c) => c.id === selectedClientId)
+
+      const toneLabel =
+        tone === 'pro' ? 'professionnel' : tone === 'chaleureux' ? 'chaleureux' : 'formel'
+
+      const system =
+        "Tu es Spyke, assistant administratif pour freelances en France. Tu rédiges des emails courts, clairs et actionnables."
+
+      const prompt = [
+        `Type d'email: ${template}`,
+        `Ton: ${toneLabel}`,
+        client ? `Client: ${client.name}${client.email ? ` (${client.email})` : ''}` : '',
+        `Contexte: ${assistantContext || '(vide)'}`,
+        '',
+        'Rédige l\'email final.',
+      ]
+        .filter(Boolean)
+        .join('\n')
+
+      const res = await fetch('/api/claude', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ prompt, system }),
+      })
+      const json = await res.json().catch(() => null)
+      if (!res.ok) throw new Error(json?.error || `Erreur IA (${res.status})`)
+
+      setAssistantOutput(String(json?.text || '').trim())
+    } catch (e: any) {
+      alert(e?.message || 'Erreur IA')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <>
@@ -1256,20 +1357,47 @@ export default function AppHtmlPage() {
           </div>
 
           <div className="clients-grid">
-            <div className="card" style={{ gridColumn: '1 / -1' }}>
-              <div className="empty-state">
-                <div className="empty-state-icon">👥</div>
-                <h4>Aucun client</h4>
-                <p>Ajoutez votre premier client pour commencer</p>
-                <button className="btn btn-primary" style={{ marginTop: 16 }} onClick={() => setModal('newClient')}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
-                    <line x1="12" y1="5" x2="12" y2="19" />
-                    <line x1="5" y1="12" x2="19" y2="12" />
-                  </svg>
-                  Ajouter un client
-                </button>
+            {clients.length === 0 ? (
+              <div className="card" style={{ gridColumn: '1 / -1' }}>
+                <div className="empty-state">
+                  <div className="empty-state-icon">👥</div>
+                  <h4>Aucun client</h4>
+                  <p>Ajoutez votre premier client pour commencer</p>
+                  <button className="btn btn-primary" style={{ marginTop: 16 }} onClick={() => setModal('newClient')}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
+                      <line x1="12" y1="5" x2="12" y2="19" />
+                      <line x1="5" y1="12" x2="19" y2="12" />
+                    </svg>
+                    Ajouter un client
+                  </button>
+                </div>
               </div>
-            </div>
+            ) : (
+              clients.map((c) => (
+                <div key={c.id} className="card" style={{ cursor: 'pointer' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                    <div>
+                      <div className="card-title">{c.name}</div>
+                      <div style={{ fontSize: 13, color: 'var(--gray-500)', marginTop: 6 }}>
+                        {c.email || '—'}
+                        {c.phone ? ` · ${c.phone}` : ''}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setSelectedClientId(c.id)
+                        setTab('assistant')
+                      }}
+                    >
+                      ✉️ Email
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
@@ -1312,8 +1440,17 @@ export default function AppHtmlPage() {
                 <div className="form-row">
                   <div className="form-group">
                     <label className="form-label">Client</label>
-                    <select className="form-select" defaultValue="">
+                    <select
+                      className="form-select"
+                      value={selectedClientId}
+                      onChange={(e) => setSelectedClientId(e.target.value)}
+                    >
                       <option value="">Sélectionner un client</option>
+                      {clients.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
@@ -1338,14 +1475,19 @@ export default function AppHtmlPage() {
 
                 <div className="form-group">
                   <label className="form-label">Contexte</label>
-                  <textarea className="form-textarea" placeholder="Décrivez la situation, ce que vous souhaitez communiquer..." />
+                  <textarea
+                    className="form-textarea"
+                    placeholder="Décrivez la situation, ce que vous souhaitez communiquer..."
+                    value={assistantContext}
+                    onChange={(e) => setAssistantContext(e.target.value)}
+                  />
                 </div>
 
                 <button
                   type="button"
                   className="btn btn-yellow"
                   style={{ width: '100%' }}
-                  onClick={() => alert(`Générer IA (template: ${template}, ton: ${tone}) — à brancher`)}
+                  onClick={generateAssistantEmail}
                 >
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
                     <path d="M12 2L2 7l10 5 10-5-10-5z" />
@@ -1357,16 +1499,23 @@ export default function AppHtmlPage() {
 
                 <div className="form-group">
                   <label className="form-label">Résultat</label>
-                  <div className="output-box empty">L&apos;email généré apparaîtra ici...</div>
+                  <div className={`output-box ${assistantOutput ? '' : 'empty'}`}>{assistantOutput || "L'email généré apparaîtra ici..."}</div>
                   <div className="output-actions">
-                    <button type="button" className="btn btn-secondary" onClick={() => alert('Copier: bientôt')}>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={async () => {
+                        if (!assistantOutput) return
+                        await navigator.clipboard.writeText(assistantOutput)
+                      }}
+                    >
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
                         <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
                         <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
                       </svg>
                       Copier
                     </button>
-                    <button type="button" className="btn btn-secondary" onClick={() => alert('Régénérer: bientôt')}>
+                    <button type="button" className="btn btn-secondary" onClick={generateAssistantEmail}>
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
                         <polyline points="1 4 1 10 7 10" />
                         <path d="M3.51 15a9 9 0 102.13-9.36L1 10" />
@@ -1585,26 +1734,77 @@ export default function AppHtmlPage() {
           <div className="modal-body">
             <div className="form-group">
               <label className="form-label">Nom / Entreprise</label>
-              <input type="text" className="form-input" placeholder="Ex: Digital Agency" />
+              <input name="client_name" type="text" className="form-input" placeholder="Ex: Digital Agency" />
             </div>
             <div className="form-group">
               <label className="form-label">Email</label>
-              <input type="email" className="form-input" placeholder="contact@example.com" />
+              <input name="client_email" type="email" className="form-input" placeholder="contact@example.com" />
             </div>
             <div className="form-group">
               <label className="form-label">Téléphone</label>
-              <input type="tel" className="form-input" placeholder="06 12 34 56 78" />
+              <input name="client_phone" type="tel" className="form-input" placeholder="06 12 34 56 78" />
             </div>
             <div className="form-group">
               <label className="form-label">Notes</label>
-              <textarea className="form-textarea" rows={3} placeholder="Informations complémentaires..." />
+              <textarea
+                name="client_notes"
+                className="form-textarea"
+                rows={3}
+                placeholder="Informations complémentaires..."
+              />
             </div>
             <div className="modal-actions">
               <button className="btn btn-secondary" type="button" onClick={() => setModal(null)}>
                 Annuler
               </button>
-              <button className="btn btn-primary" type="button" onClick={() => alert('Ajouter client: bientôt')}>
-                Ajouter le client
+              <button
+                className="btn btn-primary"
+                type="button"
+                onClick={async () => {
+                  if (!supabase || !userId) {
+                    alert('Session manquante')
+                    return
+                  }
+
+                  const modalEl = document.getElementById('modal-newClient')
+                  const name = String(
+                    (modalEl?.querySelector('[name="client_name"]') as HTMLInputElement | null)?.value || ''
+                  ).trim()
+                  const email = String(
+                    (modalEl?.querySelector('[name="client_email"]') as HTMLInputElement | null)?.value || ''
+                  ).trim()
+                  const phone = String(
+                    (modalEl?.querySelector('[name="client_phone"]') as HTMLInputElement | null)?.value || ''
+                  ).trim()
+                  const notes = String(
+                    (modalEl?.querySelector('[name="client_notes"]') as HTMLTextAreaElement | null)?.value || ''
+                  ).trim()
+
+                  if (!name) {
+                    alert('Nom requis')
+                    return
+                  }
+
+                  try {
+                    setLoading(true)
+                    const { error } = await supabase.from('clients').insert({
+                      user_id: userId,
+                      name,
+                      email: email || null,
+                      phone: phone || null,
+                      notes: notes || null,
+                    })
+                    if (error) throw error
+                    setModal(null)
+                    await refreshClients()
+                  } catch (e: any) {
+                    alert(e?.message || 'Erreur ajout client')
+                  } finally {
+                    setLoading(false)
+                  }
+                }}
+              >
+                {loading ? 'Ajout…' : 'Ajouter le client'}
               </button>
             </div>
           </div>
