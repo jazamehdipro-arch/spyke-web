@@ -98,12 +98,18 @@ export default function OnboardingPage() {
 
       let logoPath: string | null = null
       if (logoFile) {
-        // Convention: <userId>/<filename>
-        logoPath = `${userId}/${logoFile.name}`
-        const { error: uploadError } = await supabase.storage
-          .from('logos')
-          .upload(logoPath, logoFile, { upsert: true })
-        if (uploadError) throw uploadError
+        const accessToken = session.access_token
+        const fd = new FormData()
+        fd.set('file', logoFile)
+
+        const res = await fetch('/api/upload-logo', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${accessToken}` },
+          body: fd,
+        })
+        const json = await res.json().catch(() => null)
+        if (!res.ok) throw new Error(json?.error || `Erreur upload logo (${res.status})`)
+        logoPath = String(json?.path || '')
       }
 
       const payload = {
