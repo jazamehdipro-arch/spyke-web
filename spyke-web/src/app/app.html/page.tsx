@@ -17,6 +17,13 @@ type DevisLine = {
   vatRate: number
 }
 
+type InvoiceLine = {
+  id: string
+  description: string
+  qty: number
+  unitPrice: number
+}
+
 function formatMoney(amount: number) {
   return amount.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'
 }
@@ -48,6 +55,14 @@ function computeTotals(lines: DevisLine[]) {
     totalHt += lineHt
     totalTva += lineTva
   }
+  const totalTtc = totalHt + totalTva
+  return { totalHt, totalTva, totalTtc }
+}
+
+function computeInvoiceTotals(lines: InvoiceLine[]) {
+  let totalHt = 0
+  for (const l of lines) totalHt += (l.qty || 0) * (l.unitPrice || 0)
+  const totalTva = 0
   const totalTtc = totalHt + totalTva
   return { totalHt, totalTva, totalTtc }
 }
@@ -308,6 +323,28 @@ function DevisV4({
           msg = t || msg
         } catch {}
         throw new Error(msg)
+      }
+
+      // save quote data for "import into invoice" later
+      try {
+        const key = 'spyke_quotes_v1'
+        const prev = JSON.parse(localStorage.getItem(key) || '[]') as any[]
+        const next = [
+          {
+            id: `${Date.now()}`,
+            quoteNumber,
+            title,
+            dateIssue,
+            validityUntil,
+            buyer,
+            lines,
+            totals,
+          },
+          ...prev,
+        ].slice(0, 30)
+        localStorage.setItem(key, JSON.stringify(next))
+      } catch {
+        // ignore
       }
 
       const url = URL.createObjectURL(blob)
@@ -1006,12 +1043,200 @@ function DevisV4({
   )
 }
 
+function genInvoiceNumber(dateStr: string, sequence = 1) {
+  const d = new Date((dateStr || '').slice(0, 10) + 'T00:00:00')
+  const year = !Number.isNaN(d.getTime()) ? d.getFullYear() : new Date().getFullYear()
+  return `${year}-${String(sequence).padStart(3, '0')}`
+}
+
 function FacturesV1({
   clients,
+  userId,
+  userFullName,
 }: {
   clients: Array<{ id: string; name: string; email: string | null }>
+  userId: string | null
+  userFullName: string
 }) {
+  const supabase = useMemo(() => {
+    try {
+      return getSupabase()
+    } catch {
+      return null
+    }
+  }, [])
+
+  const today = useMemo(() => {
+    const d = new Date()
+    const yyyy = d.getFullYear()
+    const mm = String(d.getMonth() + 1).padStart(2, '0')
+    const dd = String(d.getDate()).padStart(2, '0')
+    return `${yyyy}-${mm}-${dd}`
+  }, [])
+
   const [mode, setMode] = useState<'list' | 'create'>('list')
+
+  const [quotes, setQuotes] = useState<any[]>([])
+  const [selectedQuoteId, setSelectedQuoteId] = useState<string>('')
+
+  const [invoiceDate, setInvoiceDate] = useState(today)
+  const [paymentDelayDays, setPaymentDelayDays] = useState(30)
+  const [dueDate, setDueDate] = useState(() => addDays(today, 30))
+  const [invoiceNumber, setInvoiceNumber] = useState(() => genInvoiceNumber(today, 1))
+
+  const [buyer, setBuyer] = useState<any>({ name: '', addressLines: [] })
+  const [lines, setLines] = useState<InvoiceLine[]>(() => [
+    { id: '0', description: '', qty: 1, unitPrice: 0 },
+  ])
+
+  const totals = useMemo(() => computeInvoiceTotals(lines), [lines])
+
+  useEffect(() => {
+    setDueDate(addDays(invoiceDate, paymentDelayDays || 0))
+    setInvoiceNumber(genInvoiceNumber(invoiceDate, 1))
+  }, [invoiceDate, paymentDelayDays])
+
+  useEffect(() => {
+    try {
+      const key = 'spyke_quotes_v1'
+      const q = JSON.parse(localStorage.getItem(key) || '[]')
+      setQuotes(Array.isArray(q) ? q : [])
+    } catch {
+      setQuotes([])
+    }
+  }, [mode])
+
+  function importQuote(id: string) {
+    setSelectedQuoteId(id)
+    const q = quotes.find((x) => String(x.id) === String(id))
+    if (!q) return
+    setBuyer(q.buyer || { name: '', addressLines: [] })
+    const imported = (q.lines || []).map((l: any, idx: number) => ({
+      id: String(Date.now() + idx),
+      description: l.label ? `${l.label}${l.description ? ` — ${l.description}` : ''}` : (l.description || ''),
+      qty: Number(l.qty || 0),
+      unitPrice: Number(l.unitPriceHt || 0),
+    }))
+    setLines(imported.length ? imported : [{ id: '0', description: '', qty: 1, unitPrice: 0 }])
+  }
+
+  function updateLine(id: string, patch: Partial<InvoiceLine>) {
+    setLines((prev) => prev.map((l) => (l.id === id ? { ...l, ...patch } : l)))
+  }
+
+  function addLine() {
+    setLines((prev) => [...prev, { id: String(Date.now()), description: '', qty: 1, unitPrice: 0 }])
+  }
+
+  function removeLine(id: string) {
+    setLines((prev) => (prev.length <= 1 ? prev : prev.filter((l) => l.id !== id)))
+  }
+
+  async function generateInvoicePdf() {
+    try {
+      if (!supabase) throw new Error('Supabase non initialisé')
+      const { data: sessionData } = await supabase.auth.getSession()
+      const token = sessionData?.session?.access_token
+      if (!token) throw new Error('Non connecté')
+
+      let seller: any = {
+        name: userFullName || 'Votre entreprise',
+        addressLines: [],
+        siret: '',
+        iban: '',
+        bic: '',
+        bankName: '',
+        bankAccount: '',
+        logoUrl: '',
+      }
+
+      if (userId) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('full_name,company_name,logo_path,address,postal_code,city,country,siret,iban,bic,bank_name,bank_account')
+          .eq('id', userId)
+          .maybeSingle()
+
+        const companyName = (profile as any)?.company_name || (profile as any)?.full_name || userFullName
+        const addressLines: string[] = []
+        const addr = (profile as any)?.address
+        const pc = (profile as any)?.postal_code
+        const city = (profile as any)?.city
+        const country = (profile as any)?.country
+        if (addr) addressLines.push(String(addr))
+        const cityLine = [pc, city].filter(Boolean).join(' ')
+        if (cityLine) addressLines.push(cityLine)
+        if (country) addressLines.push(String(country))
+
+        const logoPath = String((profile as any)?.logo_path || '')
+        let logoUrl = ''
+        if (logoPath) {
+          const pub = supabase.storage.from('logos').getPublicUrl(logoPath)
+          logoUrl = String(pub?.data?.publicUrl || '')
+        }
+
+        seller = {
+          ...seller,
+          name: companyName || seller.name,
+          addressLines,
+          siret: String((profile as any)?.siret || ''),
+          iban: String((profile as any)?.iban || ''),
+          bic: String((profile as any)?.bic || ''),
+          bankName: String((profile as any)?.bank_name || ''),
+          bankAccount: String((profile as any)?.bank_account || ''),
+          logoUrl,
+        }
+      }
+
+      const payload = {
+        invoiceNumber,
+        dateIssue: invoiceDate,
+        dueDate,
+        logoUrl: String((seller as any)?.logoUrl || ''),
+        seller: {
+          name: seller.name,
+          addressLines: seller.addressLines,
+          siret: seller.siret,
+          iban: seller.iban,
+          bic: seller.bic,
+          bankName: seller.bankName,
+          bankAccount: seller.bankAccount,
+        },
+        buyer,
+        lines: lines.map((l) => ({ description: l.description, qty: l.qty, unitPrice: l.unitPrice })),
+        totals,
+      }
+
+      const res = await fetch('/api/facture-pdf', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      })
+
+      const blob = await res.blob()
+      if (!res.ok) {
+        let msg = 'Erreur PDF'
+        try {
+          msg = (await blob.text()) || msg
+        } catch {}
+        throw new Error(msg)
+      }
+
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `Facture-${invoiceNumber}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+    } catch (e: any) {
+      alert(e?.message || 'Erreur PDF')
+    }
+  }
 
   return (
     <div>
@@ -1112,32 +1337,116 @@ function FacturesV1({
           <div className="card">
             <div className="form-row">
               <div className="form-group">
-                <label className="form-label">Client</label>
-                <select className="form-select" defaultValue="">
-                  <option value="">Sélectionner…</option>
-                  {clients.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
+                <label className="form-label">Importer depuis un devis</label>
+                <select
+                  className="form-select"
+                  value={selectedQuoteId}
+                  onChange={(e) => importQuote(e.target.value)}
+                >
+                  <option value="">Choisir un devis…</option>
+                  {quotes.map((q) => (
+                    <option key={q.id} value={q.id}>
+                      {q.quoteNumber}{q.title ? ` — ${q.title}` : ''}
                     </option>
                   ))}
                 </select>
+                <div style={{ marginTop: 6, fontSize: 12, color: 'var(--gray-500)' }}>
+                  Astuce : génère au moins un devis en PDF pour qu’il apparaisse ici.
+                </div>
               </div>
               <div className="form-group">
-                <label className="form-label">Date d'émission</label>
-                <input className="form-input" type="date" />
+                <label className="form-label">N° de facture</label>
+                <input className="form-input" value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} />
               </div>
             </div>
 
-            <div className="form-group" style={{ marginTop: 12 }}>
-              <label className="form-label">Notes</label>
-              <textarea className="form-textarea" placeholder="Conditions de paiement, etc." />
+            <div className="form-row">
+              <div className="form-group">
+                <label className="form-label">Date</label>
+                <input className="form-input" type="date" value={invoiceDate} onChange={(e) => setInvoiceDate(e.target.value)} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Délai de paiement</label>
+                <select className="form-select" value={String(paymentDelayDays)} onChange={(e) => setPaymentDelayDays(Number(e.target.value) || 0)}>
+                  <option value="0">À réception</option>
+                  <option value="15">15 jours</option>
+                  <option value="30">30 jours</option>
+                  <option value="45">45 jours</option>
+                  <option value="60">60 jours</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="form-row">
+              <div className="form-group">
+                <label className="form-label">Échéance</label>
+                <input className="form-input" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Destinataire (nom)</label>
+                <input className="form-input" value={buyer?.name || ''} onChange={(e) => setBuyer({ ...buyer, name: e.target.value })} />
+              </div>
+            </div>
+
+            <div className="form-group" style={{ marginTop: 8 }}>
+              <label className="form-label">Prestations</label>
+              <div className="prestations-list">
+                {lines.map((l, idx) => (
+                  <div key={l.id} className="prestation-item">
+                    <div className="prestation-header">
+                      <span className="prestation-number">Ligne {idx + 1}</span>
+                      <button type="button" className="prestation-remove" onClick={() => removeLine(l.id)} style={{ display: lines.length > 1 ? 'flex' : 'none' }}>
+                        ×
+                      </button>
+                    </div>
+                    <div className="prestation-row" style={{ gridTemplateColumns: '2fr 1fr 1fr 0.7fr' }}>
+                      <div className="form-group">
+                        <label className="form-label">Description</label>
+                        <input className="form-input" value={l.description} onChange={(e) => updateLine(l.id, { description: e.target.value })} />
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label">Qté</label>
+                        <input className="form-input" type="number" value={String(l.qty)} onChange={(e) => updateLine(l.id, { qty: Number(e.target.value) || 0 })} />
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label">PU</label>
+                        <input className="form-input" type="number" value={String(l.unitPrice)} onChange={(e) => updateLine(l.id, { unitPrice: Number(e.target.value) || 0 })} />
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label">Total</label>
+                        <input className="form-input" disabled value={formatMoney((l.qty || 0) * (l.unitPrice || 0))} />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <button type="button" className="btn-add-prestation" onClick={addLine}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
+                  <path d="M12 5v14M5 12h14" />
+                </svg>
+                Ajouter une ligne
+              </button>
+            </div>
+
+            <div className="preview-card" style={{ marginTop: 16 }}>
+              <div className="preview-section">
+                <div className="preview-section-title">Totaux</div>
+                <div className="preview-row">
+                  <span>Total HT</span>
+                  <span>{formatMoney(totals.totalHt)}</span>
+                </div>
+                <div className="preview-row">
+                  <span>Total TTC</span>
+                  <span>{formatMoney(totals.totalTtc)}</span>
+                </div>
+              </div>
             </div>
 
             <div className="btn-group" style={{ marginTop: 18 }}>
               <button className="btn btn-secondary" type="button" onClick={() => alert('Brouillon: à connecter')}>
                 Enregistrer brouillon
               </button>
-              <button className="btn btn-primary" type="button" onClick={() => alert('Facture PDF: prochaine étape')}>
+              <button className="btn btn-primary" type="button" onClick={generateInvoicePdf}>
                 Générer PDF
               </button>
             </div>
@@ -2747,7 +3056,7 @@ CONTEXTE UTILISATEUR :
 
         {/* Factures */}
         <div id="tab-factures" className={`tab-content ${tab === 'factures' ? 'active' : ''}`}>
-          <FacturesV1 clients={clients} />
+          <FacturesV1 clients={clients} userId={userId} userFullName={userFullName} />
         </div>
 
 {/* Analyseur */}
