@@ -21,6 +21,7 @@ const BodySchema = z.object({
   title: z.string().optional().default(''),
   dateIssue: z.string().min(1), // YYYY-MM-DD
   validityUntil: z.string().optional().default(''),
+  logoUrl: z.string().optional().default(''),
 
   seller: z.object({
     name: z.string().min(1),
@@ -95,6 +96,7 @@ export async function POST(req: Request) {
       Page,
       Text,
       View,
+      Image,
       StyleSheet,
       pdf,
     } = await import('@react-pdf/renderer')
@@ -115,6 +117,11 @@ export async function POST(req: Request) {
       },
       partyBlock: {
         width: '48%',
+      },
+      logo: {
+        height: 26,
+        marginBottom: 8,
+        objectFit: 'contain',
       },
       partyName: {
         fontSize: 12,
@@ -225,15 +232,22 @@ export async function POST(req: Request) {
         fontWeight: 700,
       },
 
-      signBox: {
+      signRow: {
+        flexDirection: 'row',
+        justifyContent: 'flex-end',
         marginTop: 18,
+      },
+      signBox: {
         borderWidth: 1,
         borderColor: '#e5e7eb',
         borderRadius: 8,
         padding: 12,
-        width: 320,
+        width: 340,
       },
-      signTitle: { fontSize: 10, fontWeight: 700, marginBottom: 4 },
+      signTitle: { fontSize: 10, fontWeight: 700, marginBottom: 6, color: '#111827' },
+      signLine: { fontSize: 10, color: '#111827', marginTop: 6 },
+      signValue: { fontSize: 10, color: '#111827', marginTop: 2 },
+      underline: { fontSize: 10, color: '#9ca3af' },
       footer: {
         position: 'absolute',
         left: 42,
@@ -263,6 +277,9 @@ export async function POST(req: Request) {
             React.createElement(
               View,
               { style: styles.partyBlock },
+              body.logoUrl
+                ? React.createElement(Image, { style: styles.logo, src: body.logoUrl })
+                : null,
               React.createElement(Text, { style: styles.partyName }, body.seller.name),
               ...(body.seller.addressLines || []).map((l, i) =>
                 React.createElement(Text, { key: `s-${i}`, style: styles.partyLine }, l)
@@ -364,10 +381,16 @@ export async function POST(req: Request) {
 
           React.createElement(
             View,
-            { style: styles.signBox },
-            React.createElement(Text, { style: styles.signTitle }, 'Bon pour accord'),
-            React.createElement(Text, null, 'Signé le :'),
-            React.createElement(Text, null, 'À :')
+            { style: styles.signRow },
+            React.createElement(
+              View,
+              { style: styles.signBox },
+              React.createElement(Text, { style: styles.signTitle }, 'Bon pour accord'),
+              React.createElement(Text, { style: styles.signLine }, 'Signé le :'),
+              React.createElement(Text, { style: styles.underline }, '____________________________'),
+              React.createElement(Text, { style: styles.signLine }, 'À :'),
+              React.createElement(Text, { style: styles.underline }, '____________________________')
+            )
           ),
 
           React.createElement(

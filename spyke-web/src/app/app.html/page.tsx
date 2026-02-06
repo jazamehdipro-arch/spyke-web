@@ -201,7 +201,7 @@ function DevisV4({
         const { data: profile } = await supabase
           .from('profiles')
           // fields are best-effort (some may not exist depending on your schema)
-          .select('full_name,company_name,address,postal_code,city,country,siret,vat_number,iban,bic')
+          .select('full_name,company_name,logo_path,address,postal_code,city,country,siret,vat_number,iban,bic')
           .eq('id', userId)
           .maybeSingle()
 
@@ -216,6 +216,13 @@ function DevisV4({
         if (cityLine) addressLines.push(cityLine)
         if (country) addressLines.push(String(country))
 
+        const logoPath = String((profile as any)?.logo_path || '')
+        let logoUrl = ''
+        if (logoPath) {
+          const pub = supabase.storage.from('logos').getPublicUrl(logoPath)
+          logoUrl = String(pub?.data?.publicUrl || '')
+        }
+
         seller = {
           ...seller,
           name: companyName || seller.name,
@@ -224,6 +231,7 @@ function DevisV4({
           vatNumber: String((profile as any)?.vat_number || ''),
           iban: String((profile as any)?.iban || ''),
           bic: String((profile as any)?.bic || ''),
+          logoUrl,
         }
       }
 
@@ -268,7 +276,15 @@ function DevisV4({
         title,
         dateIssue,
         validityUntil,
-        seller,
+        logoUrl: String((seller as any)?.logoUrl || ''),
+        seller: {
+          name: seller.name,
+          addressLines: seller.addressLines,
+          siret: seller.siret,
+          vatNumber: seller.vatNumber,
+          iban: seller.iban,
+          bic: seller.bic,
+        },
         buyer,
         lines,
         notes,
