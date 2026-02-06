@@ -1239,7 +1239,7 @@ function FacturesV1({
   }
 
   return (
-    <div>
+    <div className="factures-v1">
       {mode === 'list' ? (
         <>
           <div className="page-header">
@@ -1390,42 +1390,66 @@ function FacturesV1({
 
             <div className="form-group" style={{ marginTop: 8 }}>
               <label className="form-label">Prestations</label>
-              <div className="prestations-list">
-                {lines.map((l, idx) => (
-                  <div key={l.id} className="prestation-item">
-                    <div className="prestation-header">
-                      <span className="prestation-number">Ligne {idx + 1}</span>
-                      <button type="button" className="prestation-remove" onClick={() => removeLine(l.id)} style={{ display: lines.length > 1 ? 'flex' : 'none' }}>
-                        ×
-                      </button>
-                    </div>
-                    <div className="prestation-row" style={{ gridTemplateColumns: '2fr 1fr 1fr 0.7fr' }}>
-                      <div className="form-group">
-                        <label className="form-label">Description</label>
-                        <input className="form-input" value={l.description} onChange={(e) => updateLine(l.id, { description: e.target.value })} />
-                      </div>
-                      <div className="form-group">
-                        <label className="form-label">Qté</label>
-                        <input className="form-input" type="number" value={String(l.qty)} onChange={(e) => updateLine(l.id, { qty: Number(e.target.value) || 0 })} />
-                      </div>
-                      <div className="form-group">
-                        <label className="form-label">PU</label>
-                        <input className="form-input" type="number" value={String(l.unitPrice)} onChange={(e) => updateLine(l.id, { unitPrice: Number(e.target.value) || 0 })} />
-                      </div>
-                      <div className="form-group">
-                        <label className="form-label">Total</label>
-                        <input className="form-input" disabled value={formatMoney((l.qty || 0) * (l.unitPrice || 0))} />
-                      </div>
-                    </div>
+
+              <div className="invoice-lines">
+                <div className="invoice-lines-header">
+                  <div>Description</div>
+                  <div style={{ textAlign: 'center' }}>Qté</div>
+                  <div style={{ textAlign: 'right' }}>PU</div>
+                  <div style={{ textAlign: 'right' }}>Total</div>
+                  <div />
+                </div>
+
+                {lines.map((l) => (
+                  <div key={l.id} className="invoice-line">
+                    <input
+                      className="form-input"
+                      value={l.description}
+                      onChange={(e) => updateLine(l.id, { description: e.target.value })}
+                      placeholder="Description de la prestation"
+                    />
+                    <input
+                      className="form-input"
+                      type="number"
+                      value={String(l.qty)}
+                      min={0}
+                      onChange={(e) => updateLine(l.id, { qty: Number(e.target.value) || 0 })}
+                      style={{ textAlign: 'center' }}
+                    />
+                    <input
+                      className="form-input"
+                      type="number"
+                      value={String(l.unitPrice)}
+                      min={0}
+                      step={0.01}
+                      onChange={(e) => updateLine(l.id, { unitPrice: Number(e.target.value) || 0 })}
+                      style={{ textAlign: 'right' }}
+                    />
+                    <input
+                      className="form-input"
+                      disabled
+                      value={formatMoney((l.qty || 0) * (l.unitPrice || 0))}
+                      style={{ textAlign: 'right' }}
+                    />
+                    <button
+                      type="button"
+                      className="invoice-remove"
+                      onClick={() => removeLine(l.id)}
+                      style={{ visibility: lines.length > 1 ? 'visible' : 'hidden' }}
+                      title="Supprimer"
+                    >
+                      ×
+                    </button>
                   </div>
                 ))}
+
+                <button type="button" className="btn-add-prestation" onClick={addLine}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
+                    <path d="M12 5v14M5 12h14" />
+                  </svg>
+                  Ajouter une ligne
+                </button>
               </div>
-              <button type="button" className="btn-add-prestation" onClick={addLine}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
-                  <path d="M12 5v14M5 12h14" />
-                </svg>
-                Ajouter une ligne
-              </button>
             </div>
 
             <div className="preview-card" style={{ marginTop: 16 }}>
@@ -2305,6 +2329,71 @@ CONTEXTE UTILISATEUR :
           display: grid;
           grid-template-columns: 1fr 360px;
           gap: 24px;
+        }
+
+        /* ===== FACTURES (UI) ===== */
+        .factures-v1 .invoice-lines {
+          border: 1px solid var(--gray-200);
+          border-radius: 14px;
+          padding: 12px;
+          background: var(--gray-50);
+        }
+
+        .factures-v1 .invoice-lines-header {
+          display: grid;
+          grid-template-columns: 2fr 90px 130px 140px 40px;
+          gap: 10px;
+          padding: 6px 4px 10px;
+          font-size: 11px;
+          font-weight: 700;
+          color: var(--gray-400);
+          text-transform: uppercase;
+          letter-spacing: 0.6px;
+        }
+
+        .factures-v1 .invoice-line {
+          display: grid;
+          grid-template-columns: 2fr 90px 130px 140px 40px;
+          gap: 10px;
+          align-items: center;
+          padding: 8px 4px;
+        }
+
+        .factures-v1 .invoice-line .form-input {
+          width: 100%;
+          max-width: 100%;
+        }
+
+        .factures-v1 .invoice-remove {
+          width: 34px;
+          height: 34px;
+          border: none;
+          border-radius: 10px;
+          background: var(--red-light);
+          color: var(--red);
+          cursor: pointer;
+          font-size: 18px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.2s ease;
+        }
+
+        .factures-v1 .invoice-remove:hover {
+          background: var(--red);
+          color: var(--white);
+        }
+
+        @media (max-width: 900px) {
+          .factures-v1 .invoice-lines-header {
+            display: none;
+          }
+          .factures-v1 .invoice-line {
+            grid-template-columns: 1fr 1fr;
+          }
+          .factures-v1 .invoice-line input:nth-child(1) {
+            grid-column: 1 / -1;
+          }
         }
 
         .devis-form {
