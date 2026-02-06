@@ -361,6 +361,15 @@ function DevisV4({
           margin-bottom: 12px;
         }
 
+        .devis-v4 .prestation-item .form-row.single {
+          margin-top: 12px;
+        }
+
+        .devis-v4 .prestation-item .form-textarea {
+          width: 100%;
+          display: block;
+        }
+
         .devis-v4 .btn-add-prestation {
           display: flex;
           align-items: center;
