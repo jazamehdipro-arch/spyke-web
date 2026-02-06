@@ -1006,7 +1006,149 @@ function DevisV4({
   )
 }
 
-type Tab = 'dashboard' | 'clients' | 'assistant' | 'devis' | 'analyseur' | 'settings'
+function FacturesV1({
+  clients,
+}: {
+  clients: Array<{ id: string; name: string; email: string | null }>
+}) {
+  const [mode, setMode] = useState<'list' | 'create'>('list')
+
+  return (
+    <div>
+      {mode === 'list' ? (
+        <>
+          <div className="page-header">
+            <div>
+              <h1 className="page-title">Factures</h1>
+              <p className="page-subtitle">Gérez et suivez toutes vos factures</p>
+            </div>
+            <div className="header-actions">
+              <button className="btn btn-primary" type="button" onClick={() => setMode('create')}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                Nouvelle facture
+              </button>
+            </div>
+          </div>
+
+          <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+            <div className="stat-card">
+              <div className="stat-header">
+                <div className="stat-icon blue">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12 1v22" />
+                    <path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
+                  </svg>
+                </div>
+              </div>
+              <div className="stat-value">0 €</div>
+              <div className="stat-label">Total facturé</div>
+            </div>
+
+            <div className="stat-card">
+              <div className="stat-header">
+                <div className="stat-icon green">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M22 11.08V12a10 10 0 11-5.93-9.14" />
+                    <polyline points="22 4 12 14.01 9 11.01" />
+                  </svg>
+                </div>
+              </div>
+              <div className="stat-value">0 €</div>
+              <div className="stat-label">Payé</div>
+            </div>
+
+            <div className="stat-card">
+              <div className="stat-header">
+                <div className="stat-icon yellow">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M12 6v6l4 2" />
+                  </svg>
+                </div>
+              </div>
+              <div className="stat-value">0 €</div>
+              <div className="stat-label">En attente</div>
+            </div>
+
+            <div className="stat-card">
+              <div className="stat-header">
+                <div className="stat-icon red">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                  </svg>
+                </div>
+              </div>
+              <div className="stat-value">0 €</div>
+              <div className="stat-label">En retard</div>
+            </div>
+          </div>
+
+          <div className="card" style={{ marginTop: 20 }}>
+            <div className="empty-state">
+              <div className="empty-state-icon">📄</div>
+              <h4>Aucune facture pour l'instant</h4>
+              <p>Créez votre première facture en cliquant sur “Nouvelle facture”.</p>
+            </div>
+          </div>
+        </>
+      ) : (
+        <>
+          <button className="btn btn-secondary" type="button" onClick={() => setMode('list')} style={{ marginBottom: 16 }}>
+            ← Retour aux factures
+          </button>
+
+          <div className="page-header">
+            <div>
+              <h1 className="page-title">Nouvelle facture</h1>
+              <p className="page-subtitle">Créez une facture (UI) — la sauvegarde viendra ensuite</p>
+            </div>
+          </div>
+
+          <div className="card">
+            <div className="form-row">
+              <div className="form-group">
+                <label className="form-label">Client</label>
+                <select className="form-select" defaultValue="">
+                  <option value="">Sélectionner…</option>
+                  {clients.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Date d'émission</label>
+                <input className="form-input" type="date" />
+              </div>
+            </div>
+
+            <div className="form-group" style={{ marginTop: 12 }}>
+              <label className="form-label">Notes</label>
+              <textarea className="form-textarea" placeholder="Conditions de paiement, etc." />
+            </div>
+
+            <div className="btn-group" style={{ marginTop: 18 }}>
+              <button className="btn btn-secondary" type="button" onClick={() => alert('Brouillon: à connecter')}>
+                Enregistrer brouillon
+              </button>
+              <button className="btn btn-primary" type="button" onClick={() => alert('Facture PDF: prochaine étape')}>
+                Générer PDF
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+type Tab = 'dashboard' | 'clients' | 'assistant' | 'devis' | 'factures' | 'analyseur' | 'settings'
 
 type ModalName = 'newClient' | 'newDevis'
 
@@ -2198,6 +2340,16 @@ CONTEXTE UTILISATEUR :
             Devis
           </button>
 
+          <button className={`nav-item ${tab === 'factures' ? 'active' : ''}`} onClick={() => setTab('factures')}>
+            <svg viewBox="0 0 24 24">
+              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+              <line x1="16" y1="13" x2="8" y2="13" />
+              <line x1="16" y1="17" x2="8" y2="17" />
+            </svg>
+            Factures
+          </button>
+
           <span className="nav-section-title">Outils</span>
 
           <button className={`nav-item ${tab === 'analyseur' ? 'active' : ''}`} onClick={() => setTab('analyseur')}>
@@ -2590,11 +2742,12 @@ CONTEXTE UTILISATEUR :
             </div>
           </div>
 
-          <DevisV4
-            userFullName={userFullName}
-            userJob={userJob}
-            userId={userId}
-          />
+          <DevisV4 userFullName={userFullName} userJob={userJob} userId={userId} />
+        </div>
+
+        {/* Factures */}
+        <div id="tab-factures" className={`tab-content ${tab === 'factures' ? 'active' : ''}`}>
+          <FacturesV1 clients={clients} />
         </div>
 
 {/* Analyseur */}
