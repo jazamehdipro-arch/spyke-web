@@ -181,8 +181,130 @@ function DevisV4({
   }, [clientChoice, clients])
 
   async function generatePdf() {
-    // placeholder for now – we'll wire real PDF generation next
-    alert('PDF: prochaine étape. (La page Devis a été refaite comme demandé)')
+    try {
+      if (!supabase) throw new Error('Supabase non initialisé')
+      const { data: sessionData } = await supabase.auth.getSession()
+      const token = sessionData?.session?.access_token
+      if (!token) throw new Error('Non connecté')
+
+      // Seller info from profile (best-effort)
+      let seller: any = {
+        name: userFullName || 'Votre entreprise',
+        addressLines: [],
+        siret: '',
+        vatNumber: '',
+        iban: '',
+        bic: '',
+      }
+
+      if (userId) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          // fields are best-effort (some may not exist depending on your schema)
+          .select('full_name,company_name,address,postal_code,city,country,siret,vat_number,iban,bic')
+          .eq('id', userId)
+          .maybeSingle()
+
+        const companyName = (profile as any)?.company_name || (profile as any)?.full_name || userFullName
+        const addressLines: string[] = []
+        const addr = (profile as any)?.address
+        const pc = (profile as any)?.postal_code
+        const city = (profile as any)?.city
+        const country = (profile as any)?.country
+        if (addr) addressLines.push(String(addr))
+        const cityLine = [pc, city].filter(Boolean).join(' ')
+        if (cityLine) addressLines.push(cityLine)
+        if (country) addressLines.push(String(country))
+
+        seller = {
+          ...seller,
+          name: companyName || seller.name,
+          addressLines,
+          siret: String((profile as any)?.siret || ''),
+          vatNumber: String((profile as any)?.vat_number || ''),
+          iban: String((profile as any)?.iban || ''),
+          bic: String((profile as any)?.bic || ''),
+        }
+      }
+
+      // Buyer info
+      let buyer: any = { name: previewClientLabel || 'Client', addressLines: [], siret: '' }
+      if (clientChoice.mode === 'existing' && clientChoice.id) {
+        const { data: c } = await supabase
+          .from('clients')
+          .select('name,siret,address,postal_code,city,country')
+          .eq('id', clientChoice.id)
+          .maybeSingle()
+
+        const addressLines: string[] = []
+        const addr = (c as any)?.address
+        const pc = (c as any)?.postal_code
+        const city = (c as any)?.city
+        const country = (c as any)?.country
+        if (addr) addressLines.push(String(addr))
+        const cityLine = [pc, city].filter(Boolean).join(' ')
+        if (cityLine) addressLines.push(cityLine)
+        if (country) addressLines.push(String(country))
+
+        buyer = {
+          name: String((c as any)?.name || previewClientLabel || 'Client'),
+          siret: String((c as any)?.siret || ''),
+          addressLines,
+        }
+      } else if (clientChoice.mode === 'new') {
+        const addressLines: string[] = []
+        if (clientChoice.address) addressLines.push(String(clientChoice.address))
+        const cityLine = [clientChoice.postalCode, clientChoice.city].filter(Boolean).join(' ')
+        if (cityLine) addressLines.push(cityLine)
+        buyer = {
+          name: clientChoice.name || previewClientLabel || 'Client',
+          siret: String(clientChoice.siret || ''),
+          addressLines,
+        }
+      }
+
+      const payload = {
+        quoteNumber,
+        title,
+        dateIssue,
+        validityUntil,
+        seller,
+        buyer,
+        lines,
+        notes,
+        totals,
+      }
+
+      const res = await fetch('/api/devis-pdf', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      })
+
+      const blob = await res.blob()
+      if (!res.ok) {
+        let msg = 'Erreur PDF'
+        try {
+          const t = await blob.text()
+          msg = t || msg
+        } catch {}
+        throw new Error(msg)
+      }
+
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `Devis-${quoteNumber}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+    } catch (e: any) {
+      alert(e?.message || 'Erreur PDF')
+    }
   }
 
   return (
