@@ -266,6 +266,9 @@ function DevisV4({
         .devis-v4 .form-input,
         .devis-v4 .form-select,
         .devis-v4 .form-textarea {
+          box-sizing: border-box;
+          width: 100%;
+          max-width: 100%;
           padding: 12px 14px;
           border: 1px solid var(--gray-300);
           border-radius: 10px;
@@ -319,11 +322,20 @@ function DevisV4({
         }
 
         .devis-v4 .prestation-item {
+          /* Important: override older global styles in this file that target .prestation-item */
+          display: block;
           background: var(--gray-50);
           border-radius: 12px;
           padding: 20px;
           border: 1px solid var(--gray-200);
           position: relative;
+        }
+
+        .devis-v4 .prestation-item input.form-input,
+        .devis-v4 .prestation-item select.form-select,
+        .devis-v4 .prestation-item textarea.form-textarea {
+          width: 100%;
+          max-width: 100%;
         }
 
         .devis-v4 .prestation-header {
