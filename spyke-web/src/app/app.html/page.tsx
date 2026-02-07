@@ -105,7 +105,7 @@ function DevisV4({
   const [quoteNumber, setQuoteNumber] = useState(() => genQuoteNumber(today, 1))
 
   const [clientChoice, setClientChoice] = useState<DevisClientChoice>({ mode: 'none' })
-  const [clients, setClients] = useState<Array<{ id: string; name: string }>>([])
+  const [clients, setClients] = useState<Array<{ id: string; name: string; email?: string | null; siret?: string | null; address?: string | null; postal_code?: string | null; city?: string | null; country?: string | null }>>([])
 
   const [lines, setLines] = useState<DevisLine[]>(() => [
     {
@@ -128,7 +128,7 @@ function DevisV4({
       if (!supabase || !userId) return
 
       const [{ data: clientsData }, { data: profileData }] = await Promise.all([
-        supabase.from('clients').select('id,name').order('created_at', { ascending: false }),
+        supabase.from('clients').select('id,name,email,siret,address,postal_code,city,country').order('created_at', { ascending: false }),
         supabase
           .from('profiles')
           .select('vat_enabled,deposit_percent,payment_delay_days,quote_validity_days')
@@ -136,7 +136,18 @@ function DevisV4({
           .maybeSingle(),
       ])
 
-      setClients((clientsData || []).map((c: any) => ({ id: c.id, name: c.name })))
+      setClients(
+        (clientsData || []).map((c: any) => ({
+          id: c.id,
+          name: c.name,
+          email: c.email,
+          siret: c.siret,
+          address: c.address,
+          postal_code: c.postal_code,
+          city: c.city,
+          country: c.country,
+        }))
+      )
 
       const vatEnabled = Boolean((profileData as any)?.vat_enabled)
       const defaultVat = vatEnabled ? 20 : 0
@@ -789,7 +800,23 @@ function DevisV4({
                 </div>
               </div>
 
-              {clientChoice.mode === 'new' ? (
+              {clientChoice.mode === 'existing' ? (
+                (() => {
+                  const c = clients.find((x) => x.id === clientChoice.id)
+                  const addressLine = [c?.address, [c?.postal_code, c?.city].filter(Boolean).join(' '), c?.country]
+                    .filter(Boolean)
+                    .join(', ')
+                  return (
+                    <div className="card" style={{ background: 'var(--gray-50)', border: '1px dashed var(--gray-200)', marginTop: 12 }}>
+                      <div style={{ fontSize: 13, color: 'var(--gray-500)' }}>
+                        <div><b>Email</b> : {c?.email || '—'}</div>
+                        <div><b>SIRET</b> : {c?.siret || '—'}</div>
+                        <div><b>Adresse</b> : {addressLine || '—'}</div>
+                      </div>
+                    </div>
+                  )
+                })()
+              ) : clientChoice.mode === 'new' ? (
                 <>
                   <div className="form-row">
                     <div className="form-group">
@@ -1621,7 +1648,8 @@ function FacturesV1({
   const [dueDate, setDueDate] = useState(() => addDays(today, 30))
   const [invoiceNumber, setInvoiceNumber] = useState(() => genInvoiceNumber(today, 1))
 
-  const [buyer, setBuyer] = useState<any>({ name: '', addressLines: [] })
+  const [buyer, setBuyer] = useState<any>({ name: '', email: '', addressLines: [] })
+  const [clientId, setClientId] = useState('')
   const [lines, setLines] = useState<InvoiceLine[]>(() => [
     { id: '0', description: '', qty: 1, unitPrice: 0 },
   ])
@@ -1643,11 +1671,37 @@ function FacturesV1({
     }
   }, [mode])
 
+  async function selectClient(id: string) {
+    setClientId(id)
+    if (!supabase || !id) return
+    const { data: c } = await supabase
+      .from('clients')
+      .select('name,email,address,postal_code,city,country')
+      .eq('id', id)
+      .maybeSingle()
+
+    const addressLines: string[] = []
+    const addr = (c as any)?.address
+    const pc = (c as any)?.postal_code
+    const city = (c as any)?.city
+    const country = (c as any)?.country
+    if (addr) addressLines.push(String(addr))
+    const cityLine = [pc, city].filter(Boolean).join(' ')
+    if (cityLine) addressLines.push(cityLine)
+    if (country) addressLines.push(String(country))
+
+    setBuyer({
+      name: String((c as any)?.name || ''),
+      email: String((c as any)?.email || ''),
+      addressLines,
+    })
+  }
+
   function importQuote(id: string) {
     setSelectedQuoteId(id)
     const q = quotes.find((x) => String(x.id) === String(id))
     if (!q) return
-    setBuyer(q.buyer || { name: '', addressLines: [] })
+    setBuyer(q.buyer || { name: '', email: '', addressLines: [] })
     const imported = (q.lines || []).map((l: any, idx: number) => ({
       id: String(Date.now() + idx),
       description: l.label ? `${l.label}${l.description ? ` — ${l.description}` : ''}` : (l.description || ''),
@@ -1739,7 +1793,10 @@ function FacturesV1({
           bankName: seller.bankName,
           bankAccount: seller.bankAccount,
         },
-        buyer,
+        buyer: {
+          name: buyer?.name || '',
+          addressLines: buyer?.addressLines || [],
+        },
         lines: lines.map((l) => ({ description: l.description, qty: l.qty, unitPrice: l.unitPrice })),
         totals,
       }
@@ -1892,6 +1949,17 @@ function FacturesV1({
                 </div>
               </div>
               <div className="form-group">
+                <label className="form-label">Ou sélectionner un client</label>
+                <select className="form-select" value={clientId} onChange={(e) => selectClient(e.target.value)}>
+                  <option value="">Choisir…</option>
+                  {clients.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group">
                 <label className="form-label">N° de facture</label>
                 <input className="form-input" value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} />
               </div>
@@ -1922,6 +1990,11 @@ function FacturesV1({
               <div className="form-group">
                 <label className="form-label">Destinataire (nom)</label>
                 <input className="form-input" value={buyer?.name || ''} onChange={(e) => setBuyer({ ...buyer, name: e.target.value })} />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Email (optionnel)</label>
+                <input className="form-input" value={buyer?.email || ''} onChange={(e) => setBuyer({ ...buyer, email: e.target.value })} />
               </div>
             </div>
 
@@ -2037,6 +2110,11 @@ type ClientRow = {
   name: string
   email: string | null
   phone: string | null
+  siret: string | null
+  address: string | null
+  postal_code: string | null
+  city: string | null
+  country: string | null
   notes: string | null
 }
 
@@ -2101,7 +2179,7 @@ export default function AppHtmlPage() {
 
         const { data: clientsData, error: clientsError } = await supabase
           .from('clients')
-          .select('id,name,email,phone,notes')
+          .select('id,name,email,phone,siret,address,postal_code,city,country,notes')
           .order('created_at', { ascending: false })
 
         if (clientsError) throw clientsError
@@ -2123,7 +2201,7 @@ export default function AppHtmlPage() {
     if (!supabase) return
     const { data, error } = await supabase
       .from('clients')
-      .select('id,name,email,phone,notes')
+      .select('id,name,email,phone,siret,address,postal_code,city,country,notes')
       .order('created_at', { ascending: false })
     if (!error) setClients((data || []) as ClientRow[])
   }
@@ -3257,12 +3335,7 @@ CONTEXTE UTILISATEUR :
             Clients
           </button>
 
-          <button className={`nav-item ${tab === 'assistant' ? 'active' : ''}`} onClick={() => setTab('assistant')}>
-            <svg viewBox="0 0 24 24">
-              <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
-            </svg>
-            Assistant IA
-          </button>
+          {/* Assistant IA (déplacé plus bas) */}
 
           <button className={`nav-item ${tab === 'devis' ? 'active' : ''}`} onClick={() => setTab('devis')}>
             <svg viewBox="0 0 24 24">
@@ -3303,6 +3376,13 @@ CONTEXTE UTILISATEUR :
               <path d="M21 21l-4.35-4.35" />
             </svg>
             Analyseur de projet
+          </button>
+
+          <button className={`nav-item ${tab === 'assistant' ? 'active' : ''}`} onClick={() => setTab('assistant')}>
+            <svg viewBox="0 0 24 24">
+              <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+            </svg>
+            Assistant IA
           </button>
         </nav>
 
@@ -3508,6 +3588,7 @@ CONTEXTE UTILISATEUR :
                       <div style={{ fontSize: 13, color: 'var(--gray-500)', marginTop: 6 }}>
                         {c.email || '—'}
                         {c.phone ? ` · ${c.phone}` : ''}
+                        {c.city ? ` · ${c.city}` : ''}
                       </div>
                     </div>
                     <button
@@ -3797,6 +3878,26 @@ CONTEXTE UTILISATEUR :
               <input name="client_phone" type="tel" className="form-input" placeholder="06 12 34 56 78" />
             </div>
             <div className="form-group">
+              <label className="form-label">SIRET (optionnel)</label>
+              <input name="client_siret" type="text" className="form-input" placeholder="123 456 789 00012" />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Adresse</label>
+              <input name="client_address" type="text" className="form-input" placeholder="12 rue de la Paix" />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Code postal</label>
+              <input name="client_postal_code" type="text" className="form-input" placeholder="75002" />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Ville</label>
+              <input name="client_city" type="text" className="form-input" placeholder="Paris" />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Pays</label>
+              <input name="client_country" type="text" className="form-input" placeholder="France" />
+            </div>
+            <div className="form-group">
               <label className="form-label">Notes</label>
               <textarea
                 name="client_notes"
@@ -3828,6 +3929,21 @@ CONTEXTE UTILISATEUR :
                   const phone = String(
                     (modalEl?.querySelector('[name="client_phone"]') as HTMLInputElement | null)?.value || ''
                   ).trim()
+                  const siret = String(
+                    (modalEl?.querySelector('[name="client_siret"]') as HTMLInputElement | null)?.value || ''
+                  ).trim()
+                  const address = String(
+                    (modalEl?.querySelector('[name="client_address"]') as HTMLInputElement | null)?.value || ''
+                  ).trim()
+                  const postal_code = String(
+                    (modalEl?.querySelector('[name="client_postal_code"]') as HTMLInputElement | null)?.value || ''
+                  ).trim()
+                  const city = String(
+                    (modalEl?.querySelector('[name="client_city"]') as HTMLInputElement | null)?.value || ''
+                  ).trim()
+                  const country = String(
+                    (modalEl?.querySelector('[name="client_country"]') as HTMLInputElement | null)?.value || ''
+                  ).trim()
                   const notes = String(
                     (modalEl?.querySelector('[name="client_notes"]') as HTMLTextAreaElement | null)?.value || ''
                   ).trim()
@@ -3844,6 +3960,11 @@ CONTEXTE UTILISATEUR :
                       name,
                       email: email || null,
                       phone: phone || null,
+                      siret: siret || null,
+                      address: address || null,
+                      postal_code: postal_code || null,
+                      city: city || null,
+                      country: country || null,
                       notes: notes || null,
                     })
                     if (error) throw error
