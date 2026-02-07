@@ -1049,6 +1049,543 @@ function genInvoiceNumber(dateStr: string, sequence = 1) {
   return `${year}-${String(sequence).padStart(3, '0')}`
 }
 
+function ContratsV1({
+  clients,
+  userId,
+  userFullName,
+  userJob,
+}: {
+  clients: Array<{ id: string; name: string; email: string | null }>
+  userId: string | null
+  userFullName: string
+  userJob: string
+}) {
+  const supabase = useMemo(() => {
+    try {
+      return getSupabase()
+    } catch {
+      return null
+    }
+  }, [])
+
+  const today = useMemo(() => {
+    const d = new Date()
+    const yyyy = d.getFullYear()
+    const mm = String(d.getMonth() + 1).padStart(2, '0')
+    const dd = String(d.getDate()).padStart(2, '0')
+    return `${yyyy}-${mm}-${dd}`
+  }, [])
+
+  const [prestaName, setPrestaName] = useState(userFullName || '')
+  const [prestaSiret, setPrestaSiret] = useState('')
+  const [prestaAddress, setPrestaAddress] = useState('')
+  const [prestaActivity, setPrestaActivity] = useState(userJob || '')
+  const [prestaEmail, setPrestaEmail] = useState('')
+
+  const [clientId, setClientId] = useState('')
+  const [clientName, setClientName] = useState('')
+  const [clientSiret, setClientSiret] = useState('')
+  const [clientAddress, setClientAddress] = useState('')
+  const [clientRepresentant, setClientRepresentant] = useState('')
+  const [clientEmail, setClientEmail] = useState('')
+
+  const [missionDescription, setMissionDescription] = useState('')
+  const [missionLivrables, setMissionLivrables] = useState('')
+  const [missionStart, setMissionStart] = useState(today)
+  const [missionEnd, setMissionEnd] = useState(addDays(today, 30))
+  const [missionLieu, setMissionLieu] = useState<'distance' | 'client' | 'prestataire' | 'mixte'>('distance')
+  const [missionRevisions, setMissionRevisions] = useState<'2' | '3' | '5' | 'illimite'>('2')
+
+  const [pricingType, setPricingType] = useState<'forfait' | 'tjm' | 'horaire'>('forfait')
+  const [pricingAmount, setPricingAmount] = useState<number>(0)
+  const [pricingDays, setPricingDays] = useState<number>(0)
+  const [tvaRegime, setTvaRegime] = useState<'franchise' | 'tva'>('franchise')
+  const [paymentSchedule, setPaymentSchedule] = useState<'30' | '50' | 'tiers' | 'fin'>('30')
+  const [paymentDelay, setPaymentDelay] = useState<'reception' | '15' | '30' | '45'>('30')
+
+  const [ipClause, setIpClause] = useState<'cession' | 'licence' | 'prestataire'>('cession')
+  const [confidentialityClause, setConfidentialityClause] = useState<'oui' | 'non'>('oui')
+  const [nonCompeteClause, setNonCompeteClause] = useState<'non' | '6mois' | '12mois'>('non')
+  const [terminationClause, setTerminationClause] = useState<'15' | '30' | 'mutuel'>('15')
+
+  const [contractText, setContractText] = useState<string>('')
+
+  // Prefill seller from profile (best-effort)
+  useEffect(() => {
+    ;(async () => {
+      if (!supabase || !userId) return
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name,company_name,address,postal_code,city,country,siret,email')
+        .eq('id', userId)
+        .maybeSingle()
+
+      const companyName = (profile as any)?.company_name || (profile as any)?.full_name || userFullName
+      const addr = (profile as any)?.address
+      const pc = (profile as any)?.postal_code
+      const city = (profile as any)?.city
+      const country = (profile as any)?.country
+
+      const addressLines: string[] = []
+      if (addr) addressLines.push(String(addr))
+      const cityLine = [pc, city].filter(Boolean).join(' ')
+      if (cityLine) addressLines.push(cityLine)
+      if (country) addressLines.push(String(country))
+
+      setPrestaName(String(companyName || ''))
+      setPrestaSiret(String((profile as any)?.siret || ''))
+      setPrestaAddress(addressLines.join(', '))
+      setPrestaEmail(String((profile as any)?.email || ''))
+    })()
+  }, [supabase, userId, userFullName])
+
+  async function selectClient(id: string) {
+    setClientId(id)
+    if (!supabase || !id) return
+    const { data: c } = await supabase
+      .from('clients')
+      .select('name,email,siret,address,postal_code,city,country')
+      .eq('id', id)
+      .maybeSingle()
+
+    const addr = (c as any)?.address
+    const pc = (c as any)?.postal_code
+    const city = (c as any)?.city
+    const country = (c as any)?.country
+    const addressLines: string[] = []
+    if (addr) addressLines.push(String(addr))
+    const cityLine = [pc, city].filter(Boolean).join(' ')
+    if (cityLine) addressLines.push(cityLine)
+    if (country) addressLines.push(String(country))
+
+    setClientName(String((c as any)?.name || ''))
+    setClientEmail(String((c as any)?.email || ''))
+    setClientSiret(String((c as any)?.siret || ''))
+    setClientAddress(addressLines.join(', '))
+  }
+
+  function buildContractText() {
+    const todayStr = new Date().toLocaleDateString('fr-FR')
+    const startDate = formatDateFr(missionStart) || 'À définir'
+    const endDate = formatDateFr(missionEnd) || 'À définir'
+
+    const lieuMap: any = {
+      distance: 'à distance',
+      client: 'dans les locaux du client',
+      prestataire: 'dans les locaux du prestataire',
+      mixte: 'en mode mixte (distance et présentiel)',
+    }
+    const revMap: any = {
+      '2': 'deux (2)',
+      '3': 'trois (3)',
+      '5': 'cinq (5)',
+      illimite: 'un nombre illimité de',
+    }
+
+    const amount = Number(pricingAmount || 0).toFixed(2)
+    let pricingText = ''
+    if (pricingType === 'forfait') {
+      pricingText = `La rémunération du Prestataire est fixée à un forfait global de ${amount} € HT.`
+    } else if (pricingType === 'tjm') {
+      const est = (Number(pricingAmount || 0) * Number(pricingDays || 0)).toFixed(2)
+      pricingText = `La rémunération du Prestataire est fixée à un taux journalier de ${amount} € HT/jour, pour une durée estimée de ${pricingDays} jours, soit un montant estimé de ${est} € HT.`
+    } else {
+      const est = (Number(pricingAmount || 0) * Number(pricingDays || 0)).toFixed(2)
+      pricingText = `La rémunération du Prestataire est fixée à un taux horaire de ${amount} € HT/heure, pour une durée estimée de ${pricingDays} heures, soit un montant estimé de ${est} € HT.`
+    }
+
+    const tvaText = tvaRegime === 'franchise'
+      ? 'TVA non applicable, article 293 B du CGI.'
+      : 'Les montants sont soumis à la TVA au taux de 20%.'
+
+    const scheduleMap: any = {
+      '30': '30% du montant total à la signature du présent contrat, et 70% à la livraison finale',
+      '50': '50% du montant total à la signature du présent contrat, et 50% à la livraison finale',
+      tiers: '1/3 du montant total à la signature, 1/3 à mi-parcours de la mission, et 1/3 à la livraison finale',
+      fin: '100% du montant total à la livraison finale',
+    }
+
+    const delayMap: any = { reception: 'à réception de facture', '15': 'sous 15 jours', '30': 'sous 30 jours', '45': 'sous 45 jours' }
+
+    const ipMap: any = {
+      cession: `Le Prestataire cède au Client, à titre exclusif, l'ensemble des droits de propriété intellectuelle sur les livrables produits dans le cadre du présent contrat (droits de reproduction, de représentation, d'adaptation et de modification), pour le monde entier et pour toute la durée de protection légale. Cette cession est effective après paiement intégral de la rémunération prévue.`,
+      licence: `Le Prestataire accorde au Client une licence d'utilisation non exclusive sur les livrables produits dans le cadre du présent contrat. Le Client peut utiliser, reproduire et diffuser les livrables pour ses besoins propres. Le Prestataire conserve la propriété intellectuelle et le droit de réutiliser les méthodes et savoir-faire développés.`,
+      prestataire: `Le Prestataire conserve l'intégralité des droits de propriété intellectuelle sur les livrables produits. Le Client dispose d'un droit d'usage limité à l'objet du contrat. Toute reproduction, modification ou diffusion au-delà de cet usage nécessite l'accord écrit préalable du Prestataire.`,
+    }
+
+    const termMap: any = { '15': '15 jours calendaires', '30': '30 jours calendaires', mutuel: "d'un commun accord entre les Parties, formalisé par écrit" }
+
+    const lines: string[] = []
+    lines.push('CONTRAT DE PRESTATION DE SERVICE')
+    lines.push(`Établi le ${todayStr}`)
+    lines.push('')
+    lines.push('Entre les soussignés :')
+    lines.push(`${prestaName || 'Le Prestataire'}, ${prestaActivity || 'Prestataire de services'}, immatriculé sous le SIRET ${prestaSiret || '—'}, dont le siège est situé au ${prestaAddress || '—'}, ci-après dénommé « le Prestataire ». 
+`) 
+    lines.push(`${clientName || 'Le Client'}, immatriculé sous le SIRET ${clientSiret || '—'}, dont le siège est situé au ${clientAddress || '—'}, représenté par ${clientRepresentant || '—'}, ci-après dénommé « le Client ». 
+`)
+
+    lines.push('Article 1 — Objet du contrat')
+    lines.push(missionDescription || 'Prestation de service.')
+    lines.push('')
+
+    lines.push('Article 2 — Livrables')
+    lines.push(missionLivrables || 'Livrables à définir.')
+    lines.push(`Le Client dispose de ${revMap[missionRevisions]} révisions incluses dans le prix convenu.`)
+    lines.push('')
+
+    lines.push('Article 3 — Durée et lieu d\'exécution')
+    lines.push(`La mission débute le ${startDate} et se termine le ${endDate}. Elle sera exécutée ${lieuMap[missionLieu]}.`)
+    lines.push('')
+
+    lines.push('Article 4 — Rémunération')
+    lines.push(pricingText)
+    lines.push(tvaText)
+    lines.push(`Le paiement sera effectué selon l'échéancier suivant : ${scheduleMap[paymentSchedule]}. Chaque paiement est exigible ${delayMap[paymentDelay]}.`)
+    lines.push('')
+
+    lines.push('Article 5 — Propriété intellectuelle')
+    lines.push(ipMap[ipClause])
+    lines.push('')
+
+    if (confidentialityClause === 'oui') {
+      lines.push('Article 6 — Confidentialité')
+      lines.push("Chacune des Parties s'engage à considérer comme confidentielles et à ne pas divulguer les informations de l'autre Partie dont elle pourrait avoir connaissance à l'occasion de l'exécution du présent contrat. Cette obligation reste en vigueur pendant 2 ans après la fin du contrat.")
+      lines.push('')
+    }
+
+    if (nonCompeteClause !== 'non') {
+      const duration = nonCompeteClause === '6mois' ? '6 mois' : '12 mois'
+      lines.push('Article 7 — Non-concurrence')
+      lines.push(`Le Prestataire s'engage, pendant une durée de ${duration} à compter de la fin du présent contrat, à ne pas fournir de services similaires à un concurrent direct du Client, identifié d'un commun accord entre les Parties.`)
+      lines.push('')
+    }
+
+    lines.push('Article 8 — Résiliation')
+    lines.push(`Le présent contrat peut être résilié par anticipation moyennant un préavis de ${termMap[terminationClause]}.`)
+    lines.push('')
+
+    lines.push('Fait en deux exemplaires originaux.')
+    lines.push('')
+    lines.push('Signatures :')
+    lines.push(`Le Prestataire : ${prestaName || ''}`)
+    lines.push('Signature : ____________________')
+    lines.push('')
+    lines.push(`Le Client : ${clientName || ''}`)
+    lines.push('Signature : ____________________')
+
+    return lines.join('\n')
+  }
+
+  async function generateContractPdf() {
+    try {
+      if (!supabase) throw new Error('Supabase non initialisé')
+      const { data: sessionData } = await supabase.auth.getSession()
+      const token = sessionData?.session?.access_token
+      if (!token) throw new Error('Non connecté')
+
+      // best-effort logo
+      let logoUrl = ''
+      if (userId) {
+        const { data: profile } = await supabase.from('profiles').select('logo_path').eq('id', userId).maybeSingle()
+        const logoPath = String((profile as any)?.logo_path || '')
+        if (logoPath) {
+          const pub = supabase.storage.from('logos').getPublicUrl(logoPath)
+          logoUrl = String(pub?.data?.publicUrl || '')
+        }
+      }
+
+      const payload = {
+        title: 'Contrat de prestation de service',
+        date: today,
+        logoUrl,
+        contractText: contractText || buildContractText(),
+        parties: {
+          sellerName: prestaName,
+          buyerName: clientName,
+        },
+      }
+
+      const res = await fetch('/api/contrat-pdf', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      })
+      const blob = await res.blob()
+      if (!res.ok) throw new Error((await blob.text()) || 'Erreur PDF')
+
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `Contrat-${new Date().toISOString().slice(0, 10)}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+    } catch (e: any) {
+      alert(e?.message || 'Erreur PDF')
+    }
+  }
+
+  return (
+    <div className="contrats-v1">
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Contrats</h1>
+          <p className="page-subtitle">Générez un contrat de prestation de service en quelques minutes</p>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="form-section-title">Prestataire (vous)</div>
+        <div className="form-row">
+          <div className="form-group">
+            <label className="form-label">Nom / Raison sociale</label>
+            <input className="form-input" value={prestaName} onChange={(e) => setPrestaName(e.target.value)} />
+          </div>
+          <div className="form-group">
+            <label className="form-label">SIRET</label>
+            <input className="form-input" value={prestaSiret} onChange={(e) => setPrestaSiret(e.target.value)} />
+          </div>
+        </div>
+        <div className="form-row single">
+          <div className="form-group">
+            <label className="form-label">Adresse</label>
+            <input className="form-input" value={prestaAddress} onChange={(e) => setPrestaAddress(e.target.value)} />
+          </div>
+        </div>
+        <div className="form-row">
+          <div className="form-group">
+            <label className="form-label">Activité / Métier</label>
+            <input className="form-input" value={prestaActivity} onChange={(e) => setPrestaActivity(e.target.value)} />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Email</label>
+            <input className="form-input" type="email" value={prestaEmail} onChange={(e) => setPrestaEmail(e.target.value)} />
+          </div>
+        </div>
+
+        <div className="form-section" style={{ marginTop: 24 }}>
+          <div className="form-section-title">Client</div>
+          <div className="form-row">
+            <div className="form-group">
+              <label className="form-label">Importer depuis vos clients</label>
+              <select className="form-select" value={clientId} onChange={(e) => selectClient(e.target.value)}>
+                <option value="">Choisir…</option>
+                {clients.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Nom / Raison sociale</label>
+              <input className="form-input" value={clientName} onChange={(e) => setClientName(e.target.value)} />
+            </div>
+          </div>
+          <div className="form-row">
+            <div className="form-group">
+              <label className="form-label">SIRET client</label>
+              <input className="form-input" value={clientSiret} onChange={(e) => setClientSiret(e.target.value)} />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Représentant du client</label>
+              <input className="form-input" value={clientRepresentant} onChange={(e) => setClientRepresentant(e.target.value)} placeholder="Jean Martin, Directeur" />
+            </div>
+          </div>
+          <div className="form-row single">
+            <div className="form-group">
+              <label className="form-label">Adresse du client</label>
+              <input className="form-input" value={clientAddress} onChange={(e) => setClientAddress(e.target.value)} />
+            </div>
+          </div>
+          <div className="form-row single">
+            <div className="form-group">
+              <label className="form-label">Email du client</label>
+              <input className="form-input" type="email" value={clientEmail} onChange={(e) => setClientEmail(e.target.value)} />
+            </div>
+          </div>
+        </div>
+
+        <div className="form-section" style={{ marginTop: 24 }}>
+          <div className="form-section-title">Mission</div>
+          <div className="form-row single">
+            <div className="form-group">
+              <label className="form-label">Description détaillée</label>
+              <textarea className="form-textarea" value={missionDescription} onChange={(e) => setMissionDescription(e.target.value)} />
+            </div>
+          </div>
+          <div className="form-row single">
+            <div className="form-group">
+              <label className="form-label">Livrables attendus</label>
+              <textarea className="form-textarea" value={missionLivrables} onChange={(e) => setMissionLivrables(e.target.value)} />
+            </div>
+          </div>
+          <div className="form-row">
+            <div className="form-group">
+              <label className="form-label">Début</label>
+              <input className="form-input" type="date" value={missionStart} onChange={(e) => setMissionStart(e.target.value)} />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Fin</label>
+              <input className="form-input" type="date" value={missionEnd} onChange={(e) => setMissionEnd(e.target.value)} />
+            </div>
+          </div>
+          <div className="form-row">
+            <div className="form-group">
+              <label className="form-label">Lieu d'exécution</label>
+              <select className="form-select" value={missionLieu} onChange={(e) => setMissionLieu(e.target.value as any)}>
+                <option value="distance">À distance</option>
+                <option value="client">Locaux du client</option>
+                <option value="prestataire">Locaux du prestataire</option>
+                <option value="mixte">Mixte</option>
+              </select>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Révisions incluses</label>
+              <select className="form-select" value={missionRevisions} onChange={(e) => setMissionRevisions(e.target.value as any)}>
+                <option value="2">2 révisions</option>
+                <option value="3">3 révisions</option>
+                <option value="5">5 révisions</option>
+                <option value="illimite">Illimitées</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div className="form-section" style={{ marginTop: 24 }}>
+          <div className="form-section-title">Conditions financières</div>
+          <div className="form-row">
+            <div className="form-group">
+              <label className="form-label">Type de tarification</label>
+              <select className="form-select" value={pricingType} onChange={(e) => setPricingType(e.target.value as any)}>
+                <option value="forfait">Forfait</option>
+                <option value="tjm">TJM</option>
+                <option value="horaire">Horaire</option>
+              </select>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Montant (€ HT)</label>
+              <input className="form-input" type="number" value={String(pricingAmount)} onChange={(e) => setPricingAmount(Number(e.target.value) || 0)} />
+            </div>
+          </div>
+
+          {pricingType === 'tjm' || pricingType === 'horaire' ? (
+            <div className="form-row single">
+              <div className="form-group">
+                <label className="form-label">Nombre de jours/heures estimés</label>
+                <input className="form-input" type="number" value={String(pricingDays)} onChange={(e) => setPricingDays(Number(e.target.value) || 0)} />
+              </div>
+            </div>
+          ) : null}
+
+          <div className="form-row">
+            <div className="form-group">
+              <label className="form-label">Régime TVA</label>
+              <select className="form-select" value={tvaRegime} onChange={(e) => setTvaRegime(e.target.value as any)}>
+                <option value="franchise">Franchise en base</option>
+                <option value="tva">Assujetti à la TVA</option>
+              </select>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Modalités de paiement</label>
+              <select className="form-select" value={paymentSchedule} onChange={(e) => setPaymentSchedule(e.target.value as any)}>
+                <option value="30">30/70</option>
+                <option value="50">50/50</option>
+                <option value="tiers">1/3 - 1/3 - 1/3</option>
+                <option value="fin">100% fin</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label className="form-label">Délai de paiement</label>
+              <select className="form-select" value={paymentDelay} onChange={(e) => setPaymentDelay(e.target.value as any)}>
+                <option value="reception">À réception</option>
+                <option value="15">15 jours</option>
+                <option value="30">30 jours</option>
+                <option value="45">45 jours</option>
+              </select>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Propriété intellectuelle</label>
+              <select className="form-select" value={ipClause} onChange={(e) => setIpClause(e.target.value as any)}>
+                <option value="cession">Cession après paiement</option>
+                <option value="licence">Licence</option>
+                <option value="prestataire">Reste au prestataire</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label className="form-label">Confidentialité</label>
+              <select className="form-select" value={confidentialityClause} onChange={(e) => setConfidentialityClause(e.target.value as any)}>
+                <option value="oui">Oui</option>
+                <option value="non">Non</option>
+              </select>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Non concurrence</label>
+              <select className="form-select" value={nonCompeteClause} onChange={(e) => setNonCompeteClause(e.target.value as any)}>
+                <option value="non">Non</option>
+                <option value="6mois">6 mois</option>
+                <option value="12mois">12 mois</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="form-row single">
+            <div className="form-group">
+              <label className="form-label">Résiliation anticipée</label>
+              <select className="form-select" value={terminationClause} onChange={(e) => setTerminationClause(e.target.value as any)}>
+                <option value="15">Préavis 15 jours</option>
+                <option value="30">Préavis 30 jours</option>
+                <option value="mutuel">Commun accord</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div className="btn-group" style={{ marginTop: 18 }}>
+          <button
+            className="btn btn-secondary"
+            type="button"
+            onClick={() => {
+              const txt = buildContractText()
+              setContractText(txt)
+              try {
+                const key = 'spyke_contracts_v1'
+                const prev = JSON.parse(localStorage.getItem(key) || '[]') as any[]
+                localStorage.setItem(key, JSON.stringify([{ id: `${Date.now()}`, txt }, ...prev].slice(0, 30)))
+              } catch {}
+            }}
+          >
+            Générer l'aperçu
+          </button>
+          <button className="btn btn-primary" type="button" onClick={generateContractPdf}>
+            Télécharger PDF
+          </button>
+        </div>
+
+        {contractText ? (
+          <div style={{ marginTop: 18 }}>
+            <div className="form-section-title">Aperçu</div>
+            <div className="output-box" style={{ whiteSpace: 'pre-wrap', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' }}>
+              {contractText}
+            </div>
+          </div>
+        ) : null}
+      </div>
+    </div>
+  )
+}
+
 function FacturesV1({
   clients,
   userId,
@@ -1481,7 +2018,7 @@ function FacturesV1({
   )
 }
 
-type Tab = 'dashboard' | 'clients' | 'assistant' | 'devis' | 'factures' | 'analyseur' | 'settings'
+type Tab = 'dashboard' | 'clients' | 'assistant' | 'devis' | 'factures' | 'contrats' | 'analyseur' | 'settings'
 
 type ModalName = 'newClient' | 'newDevis'
 
@@ -2748,6 +3285,16 @@ CONTEXTE UTILISATEUR :
             Factures
           </button>
 
+          <button className={`nav-item ${tab === 'contrats' ? 'active' : ''}`} onClick={() => setTab('contrats')}>
+            <svg viewBox="0 0 24 24">
+              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+              <path d="M8 13h8" />
+              <path d="M8 17h8" />
+            </svg>
+            Contrats
+          </button>
+
           <span className="nav-section-title">Outils</span>
 
           <button className={`nav-item ${tab === 'analyseur' ? 'active' : ''}`} onClick={() => setTab('analyseur')}>
@@ -3146,6 +3693,11 @@ CONTEXTE UTILISATEUR :
         {/* Factures */}
         <div id="tab-factures" className={`tab-content ${tab === 'factures' ? 'active' : ''}`}>
           <FacturesV1 clients={clients} userId={userId} userFullName={userFullName} />
+        </div>
+
+        {/* Contrats */}
+        <div id="tab-contrats" className={`tab-content ${tab === 'contrats' ? 'active' : ''}`}>
+          <ContratsV1 clients={clients} userId={userId} userFullName={userFullName} userJob={userJob} />
         </div>
 
 {/* Analyseur */}
