@@ -3493,13 +3493,6 @@ CONTEXTE UTILISATEUR :
                 <h3 className="card-title">⚡ Actions rapides</h3>
               </div>
               <div className="quick-actions">
-                <div className="quick-action" onClick={() => setTab('assistant')}>
-                  <div className="quick-action-icon">✉️</div>
-                  <div className="quick-action-text">
-                    <h4>Nouvel email</h4>
-                    <p>Générer avec l&apos;IA</p>
-                  </div>
-                </div>
                 <div className="quick-action" onClick={() => setTab('devis')}>
                   <div className="quick-action-icon">📄</div>
                   <div className="quick-action-text">
@@ -3507,6 +3500,39 @@ CONTEXTE UTILISATEUR :
                     <p>Créer en 2 min</p>
                   </div>
                 </div>
+
+                <div className="quick-action" onClick={() => setTab('factures')}> 
+                  <div className="quick-action-icon">💰</div>
+                  <div className="quick-action-text">
+                    <h4>Nouvelle facture</h4>
+                    <p>Importer un devis</p>
+                  </div>
+                </div>
+
+                <div className="quick-action" onClick={() => setTab('contrats')}>
+                  <div className="quick-action-icon">📝</div>
+                  <div className="quick-action-text">
+                    <h4>Nouveau contrat</h4>
+                    <p>Générer un PDF</p>
+                  </div>
+                </div>
+
+                <div className="quick-action" onClick={() => setTab('analyseur')}>
+                  <div className="quick-action-icon">🔍</div>
+                  <div className="quick-action-text">
+                    <h4>Analyse projet</h4>
+                    <p>Lire un brief</p>
+                  </div>
+                </div>
+
+                <div className="quick-action" onClick={() => setTab('assistant')}>
+                  <div className="quick-action-icon">✉️</div>
+                  <div className="quick-action-text">
+                    <h4>Assistant IA</h4>
+                    <p>Emails & relances</p>
+                  </div>
+                </div>
+
                 <div className="quick-action" onClick={() => setModal('newClient')}>
                   <div className="quick-action-icon">👤</div>
                   <div className="quick-action-text">
@@ -3514,33 +3540,66 @@ CONTEXTE UTILISATEUR :
                     <p>Nouveau contact</p>
                   </div>
                 </div>
-                <div className="quick-action" onClick={() => alert('Factures: bientôt')}>
-                  <div className="quick-action-icon">💰</div>
-                  <div className="quick-action-text">
-                    <h4>Nouvelle facture</h4>
-                    <p>Facturer un client</p>
-                  </div>
-                </div>
               </div>
             </div>
           </div>
 
-          <div className="card">
-            <div className="card-header">
-              <h3 className="card-title">📄 Devis récents</h3>
-              <a
-                href="#"
-                className="card-action"
-                onClick={(e) => {
-                  e.preventDefault()
-                  setTab('devis')
-                }}
-              >
-                Tout voir
-              </a>
+          <div className="cards-grid">
+            <div className="card">
+              <div className="card-header">
+                <h3 className="card-title">📄 Devis récents</h3>
+                <a
+                  href="#"
+                  className="card-action"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    setTab('devis')
+                  }}
+                >
+                  Tout voir
+                </a>
+              </div>
+              <div className="empty-state" style={{ padding: 24 }}>
+                <p>Aucun devis pour le moment</p>
+              </div>
             </div>
-            <div className="empty-state" style={{ padding: 24 }}>
-              <p>Aucun devis pour le moment</p>
+
+            <div className="card">
+              <div className="card-header">
+                <h3 className="card-title">💰 Factures</h3>
+                <a
+                  href="#"
+                  className="card-action"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    setTab('factures')
+                  }}
+                >
+                  Ouvrir
+                </a>
+              </div>
+              <div className="empty-state" style={{ padding: 24 }}>
+                <p>Importez un devis puis générez la facture PDF.</p>
+              </div>
+            </div>
+
+            <div className="card">
+              <div className="card-header">
+                <h3 className="card-title">📝 Contrats</h3>
+                <a
+                  href="#"
+                  className="card-action"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    setTab('contrats')
+                  }}
+                >
+                  Ouvrir
+                </a>
+              </div>
+              <div className="empty-state" style={{ padding: 24 }}>
+                <p>Générez un contrat et téléchargez le PDF.</p>
+              </div>
             </div>
           </div>
         </div>
