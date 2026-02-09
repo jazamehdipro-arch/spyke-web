@@ -2143,6 +2143,8 @@ export default function AppHtmlPage() {
   const [clients, setClients] = useState<ClientRow[]>([])
   const [selectedClientId, setSelectedClientId] = useState<string>('')
   const [editingClientId, setEditingClientId] = useState<string>('')
+  const [clientsView, setClientsView] = useState<'list' | 'detail'>('list')
+  const [viewClientId, setViewClientId] = useState<string>('')
 
   const [assistantContext, setAssistantContext] = useState<string>('')
   const [assistantOutput, setAssistantOutput] = useState<string>('')
@@ -2205,6 +2207,58 @@ export default function AppHtmlPage() {
       .select('id,name,email,phone,siret,address,postal_code,city,country,notes')
       .order('created_at', { ascending: false })
     if (!error) setClients((data || []) as ClientRow[])
+  }
+
+  async function deleteClient(id: string) {
+    if (!supabase) return
+    const c = clients.find((x) => x.id === id)
+    const ok = confirm(`Supprimer le client “${c?.name || ''}” ?`)
+    if (!ok) return
+
+    try {
+      setLoading(true)
+      const { error } = await supabase.from('clients').delete().eq('id', id)
+      if (error) throw error
+      if (selectedClientId === id) setSelectedClientId('')
+      if (editingClientId === id) setEditingClientId('')
+      if (viewClientId === id) {
+        setViewClientId('')
+        setClientsView('list')
+      }
+      await refreshClients()
+    } catch (e: any) {
+      alert(e?.message || 'Erreur suppression client')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function duplicateClient(id: string) {
+    if (!supabase || !userId) return
+    const c = clients.find((x) => x.id === id)
+    if (!c) return
+
+    try {
+      setLoading(true)
+      const { error } = await supabase.from('clients').insert({
+        user_id: userId,
+        name: `${c.name} (copie)`,
+        email: c.email,
+        phone: c.phone,
+        siret: c.siret,
+        address: c.address,
+        postal_code: c.postal_code,
+        city: c.city,
+        country: c.country,
+        notes: c.notes,
+      })
+      if (error) throw error
+      await refreshClients()
+    } catch (e: any) {
+      alert(e?.message || 'Erreur duplication client')
+    } finally {
+      setLoading(false)
+    }
   }
 
   async function generateAssistantEmail() {
@@ -3623,64 +3677,193 @@ CONTEXTE UTILISATEUR :
             </div>
           </div>
 
-          <div className="clients-grid">
-            {clients.length === 0 ? (
-              <div className="card" style={{ gridColumn: '1 / -1' }}>
-                <div className="empty-state">
-                  <div className="empty-state-icon">👥</div>
-                  <h4>Aucun client</h4>
-                  <p>Ajoutez votre premier client pour commencer</p>
-                  <button className="btn btn-primary" style={{ marginTop: 16 }} onClick={() => setModal('newClient')}>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
-                      <line x1="12" y1="5" x2="12" y2="19" />
-                      <line x1="5" y1="12" x2="19" y2="12" />
-                    </svg>
-                    Ajouter un client
+          {clientsView === 'detail' ? (
+            (() => {
+              const c = clients.find((x) => x.id === viewClientId)
+              return (
+                <div className="card">
+                  <button
+                    className="btn btn-secondary"
+                    type="button"
+                    onClick={() => {
+                      setClientsView('list')
+                      setViewClientId('')
+                    }}
+                    style={{ marginBottom: 12 }}
+                  >
+                    ← Retour
                   </button>
-                </div>
-              </div>
-            ) : (
-              clients.map((c) => (
-                <div key={c.id} className="card" style={{ cursor: 'pointer' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+
+                  <div className="page-header" style={{ marginBottom: 12 }}>
                     <div>
-                      <div className="card-title">{c.name}</div>
-                      <div style={{ fontSize: 13, color: 'var(--gray-500)', marginTop: 6 }}>
-                        {c.email || '—'}
-                        {c.phone ? ` · ${c.phone}` : ''}
-                        {c.city ? ` · ${c.city}` : ''}
-                      </div>
+                      <h2 className="page-title" style={{ fontSize: 20 }}>Fiche client</h2>
+                      <p className="page-subtitle">{c?.name || ''}</p>
                     </div>
-                    <div style={{ display: 'flex', gap: 8 }}>
+                    <div className="header-actions">
                       <button
-                        type="button"
                         className="btn btn-secondary"
-                        onClick={(e) => {
-                          e.stopPropagation()
+                        type="button"
+                        onClick={() => {
+                          if (!c) return
                           setEditingClientId(c.id)
                           setModal('editClient')
                         }}
                       >
                         ✏️ Modifier
                       </button>
-
                       <button
-                        type="button"
                         className="btn btn-secondary"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setSelectedClientId(c.id)
-                          setTab('assistant')
+                        type="button"
+                        onClick={() => {
+                          if (!c) return
+                          duplicateClient(c.id)
                         }}
                       >
-                        ✉️ Email
+                        ⧉ Dupliquer
+                      </button>
+                      <button
+                        className="btn btn-secondary"
+                        type="button"
+                        onClick={() => {
+                          if (!c) return
+                          deleteClient(c.id)
+                        }}
+                      >
+                        🗑️ Supprimer
                       </button>
                     </div>
                   </div>
+
+                  {!c ? (
+                    <div className="empty-state"><p>Client introuvable</p></div>
+                  ) : (
+                    <div style={{ fontSize: 14, color: 'var(--gray-700)' }}>
+                      <div><b>Email:</b> {c.email || '—'}</div>
+                      <div><b>Téléphone:</b> {c.phone || '—'}</div>
+                      <div><b>SIRET:</b> {c.siret || '—'}</div>
+                      <div style={{ marginTop: 8 }}>
+                        <b>Adresse:</b> {[c.address, [c.postal_code, c.city].filter(Boolean).join(' '), c.country].filter(Boolean).join(', ') || '—'}
+                      </div>
+                      {c.notes ? (
+                        <div style={{ marginTop: 8 }}>
+                          <b>Notes:</b>
+                          <div style={{ whiteSpace: 'pre-wrap', marginTop: 4 }}>{c.notes}</div>
+                        </div>
+                      ) : null}
+
+                      <div className="btn-group" style={{ marginTop: 18 }}>
+                        <button
+                          className="btn btn-secondary"
+                          type="button"
+                          onClick={() => {
+                            setSelectedClientId(c.id)
+                            setTab('assistant')
+                          }}
+                        >
+                          ✉️ Écrire un email
+                        </button>
+                        <button className="btn btn-secondary" type="button" onClick={() => setTab('devis')}>
+                          📄 Faire un devis
+                        </button>
+                        <button className="btn btn-secondary" type="button" onClick={() => setTab('factures')}>
+                          💰 Faire une facture
+                        </button>
+                        <button className="btn btn-secondary" type="button" onClick={() => setTab('contrats')}>
+                          📝 Faire un contrat
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              ))
-            )}
-          </div>
+              )
+            })()
+          ) : (
+            <div className="clients-grid">
+              {clients.length === 0 ? (
+                <div className="card" style={{ gridColumn: '1 / -1' }}>
+                  <div className="empty-state">
+                    <div className="empty-state-icon">👥</div>
+                    <h4>Aucun client</h4>
+                    <p>Ajoutez votre premier client pour commencer</p>
+                    <button className="btn btn-primary" style={{ marginTop: 16 }} onClick={() => setModal('newClient')}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
+                        <line x1="12" y1="5" x2="12" y2="19" />
+                        <line x1="5" y1="12" x2="19" y2="12" />
+                      </svg>
+                      Ajouter un client
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                clients.map((c) => (
+                  <div
+                    key={c.id}
+                    className="card"
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => {
+                      setViewClientId(c.id)
+                      setClientsView('detail')
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                      <div>
+                        <div className="card-title">{c.name}</div>
+                        <div style={{ fontSize: 13, color: 'var(--gray-500)', marginTop: 6 }}>
+                          {c.email || '—'}
+                          {c.phone ? ` · ${c.phone}` : ''}
+                          {c.city ? ` · ${c.city}` : ''}
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                        <button
+                          type="button"
+                          className="btn btn-secondary"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setEditingClientId(c.id)
+                            setModal('editClient')
+                          }}
+                        >
+                          ✏️ Modifier
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-secondary"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            duplicateClient(c.id)
+                          }}
+                        >
+                          ⧉ Dupliquer
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-secondary"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            deleteClient(c.id)
+                          }}
+                        >
+                          🗑️
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-secondary"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setSelectedClientId(c.id)
+                            setTab('assistant')
+                          }}
+                        >
+                          ✉️
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
         </div>
 
         {/* Assistant */}
