@@ -2093,7 +2093,7 @@ function FacturesV1({
 
 type Tab = 'dashboard' | 'clients' | 'assistant' | 'devis' | 'factures' | 'contrats' | 'analyseur' | 'settings'
 
-type ModalName = 'newClient' | 'newDevis'
+type ModalName = 'newClient' | 'editClient' | 'newDevis'
 
 type Tone = 'pro' | 'chaleureux' | 'formel'
 
@@ -2142,6 +2142,7 @@ export default function AppHtmlPage() {
 
   const [clients, setClients] = useState<ClientRow[]>([])
   const [selectedClientId, setSelectedClientId] = useState<string>('')
+  const [editingClientId, setEditingClientId] = useState<string>('')
 
   const [assistantContext, setAssistantContext] = useState<string>('')
   const [assistantOutput, setAssistantOutput] = useState<string>('')
@@ -3650,17 +3651,31 @@ CONTEXTE UTILISATEUR :
                         {c.city ? ` · ${c.city}` : ''}
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      className="btn btn-secondary"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setSelectedClientId(c.id)
-                        setTab('assistant')
-                      }}
-                    >
-                      ✉️ Email
-                    </button>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setEditingClientId(c.id)
+                          setModal('editClient')
+                        }}
+                      >
+                        ✏️ Modifier
+                      </button>
+
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setSelectedClientId(c.id)
+                          setTab('assistant')
+                        }}
+                      >
+                        ✉️ Email
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))
@@ -4039,6 +4054,131 @@ CONTEXTE UTILISATEUR :
                 {loading ? 'Ajout…' : 'Ajouter le client'}
               </button>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Modal: Edit Client */}
+      <div
+        className={`modal-overlay ${modal === 'editClient' ? 'active' : ''}`}
+        id="modal-editClient"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) setModal(null)
+        }}
+      >
+        <div className="modal">
+          <div className="modal-header">
+            <h3 className="modal-title">Modifier le client</h3>
+            <button className="modal-close" type="button" onClick={() => setModal(null)}>
+              ✕
+            </button>
+          </div>
+          <div className="modal-body">
+            {(() => {
+              const c = clients.find((x) => x.id === editingClientId)
+              if (!c) return <div className="empty-state"><p>Client introuvable</p></div>
+
+              return (
+                <>
+                  <div className="form-group">
+                    <label className="form-label">Nom / Entreprise</label>
+                    <input name="edit_client_name" type="text" className="form-input" defaultValue={c.name || ''} />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Email</label>
+                    <input name="edit_client_email" type="email" className="form-input" defaultValue={c.email || ''} />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Téléphone</label>
+                    <input name="edit_client_phone" type="tel" className="form-input" defaultValue={c.phone || ''} />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">SIRET</label>
+                    <input name="edit_client_siret" type="text" className="form-input" defaultValue={c.siret || ''} />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Adresse</label>
+                    <input name="edit_client_address" type="text" className="form-input" defaultValue={c.address || ''} />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Code postal</label>
+                    <input name="edit_client_postal_code" type="text" className="form-input" defaultValue={c.postal_code || ''} />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Ville</label>
+                    <input name="edit_client_city" type="text" className="form-input" defaultValue={c.city || ''} />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Pays</label>
+                    <input name="edit_client_country" type="text" className="form-input" defaultValue={c.country || ''} />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Notes</label>
+                    <textarea name="edit_client_notes" className="form-textarea" rows={3} defaultValue={c.notes || ''} />
+                  </div>
+
+                  <div className="modal-actions">
+                    <button className="btn btn-secondary" type="button" onClick={() => setModal(null)}>
+                      Annuler
+                    </button>
+                    <button
+                      className="btn btn-primary"
+                      type="button"
+                      onClick={async () => {
+                        if (!supabase || !userId) {
+                          alert('Session manquante')
+                          return
+                        }
+
+                        const modalEl = document.getElementById('modal-editClient')
+                        const name = String((modalEl?.querySelector('[name="edit_client_name"]') as HTMLInputElement | null)?.value || '').trim()
+                        const email = String((modalEl?.querySelector('[name="edit_client_email"]') as HTMLInputElement | null)?.value || '').trim()
+                        const phone = String((modalEl?.querySelector('[name="edit_client_phone"]') as HTMLInputElement | null)?.value || '').trim()
+                        const siret = String((modalEl?.querySelector('[name="edit_client_siret"]') as HTMLInputElement | null)?.value || '').trim()
+                        const address = String((modalEl?.querySelector('[name="edit_client_address"]') as HTMLInputElement | null)?.value || '').trim()
+                        const postal_code = String((modalEl?.querySelector('[name="edit_client_postal_code"]') as HTMLInputElement | null)?.value || '').trim()
+                        const city = String((modalEl?.querySelector('[name="edit_client_city"]') as HTMLInputElement | null)?.value || '').trim()
+                        const country = String((modalEl?.querySelector('[name="edit_client_country"]') as HTMLInputElement | null)?.value || '').trim()
+                        const notes = String((modalEl?.querySelector('[name="edit_client_notes"]') as HTMLTextAreaElement | null)?.value || '').trim()
+
+                        if (!name) {
+                          alert('Nom requis')
+                          return
+                        }
+
+                        try {
+                          setLoading(true)
+                          const { error } = await supabase
+                            .from('clients')
+                            .update({
+                              name,
+                              email: email || null,
+                              phone: phone || null,
+                              siret: siret || null,
+                              address: address || null,
+                              postal_code: postal_code || null,
+                              city: city || null,
+                              country: country || null,
+                              notes: notes || null,
+                            })
+                            .eq('id', c.id)
+
+                          if (error) throw error
+                          setModal(null)
+                          await refreshClients()
+                        } catch (e: any) {
+                          alert(e?.message || 'Erreur modification client')
+                        } finally {
+                          setLoading(false)
+                        }
+                      }}
+                    >
+                      {loading ? 'Enregistrement…' : 'Enregistrer'}
+                    </button>
+                  </div>
+                </>
+              )
+            })()}
           </div>
         </div>
       </div>
