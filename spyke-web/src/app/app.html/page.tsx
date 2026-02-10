@@ -120,6 +120,9 @@ function DevisV4({
     }
   }, [])
 
+  const [showQuotes, setShowQuotes] = useState(false)
+  const [quotes, setQuotes] = useState<any[]>([])
+
   const [lines, setLines] = useState<DevisLine[]>(() => [
     {
       id: '0',
@@ -135,18 +138,19 @@ function DevisV4({
   const [paymentDelayDays, setPaymentDelayDays] = useState(30)
   const [notes, setNotes] = useState('')
 
-  // Load clients + user prefs for defaults
+  // Load clients + user prefs + quotes
   useEffect(() => {
     ;(async () => {
       if (!supabase || !userId) return
 
-      const [{ data: clientsData }, { data: profileData }] = await Promise.all([
+      const [{ data: clientsData }, { data: profileData }, { data: quotesData }] = await Promise.all([
         supabase.from('clients').select('id,name,email,siret,address,postal_code,city,country').order('created_at', { ascending: false }),
         supabase
           .from('profiles')
           .select('vat_enabled,deposit_percent,payment_delay_days,quote_validity_days')
           .eq('id', userId)
           .maybeSingle(),
+        supabase.from('quotes').select('id,number,title,status,total_ttc,created_at').order('created_at', { ascending: false }).limit(30),
       ])
 
       setClients(
@@ -161,6 +165,8 @@ function DevisV4({
           country: c.country,
         }))
       )
+
+      setQuotes(quotesData || [])
 
       const vatEnabled = Boolean((profileData as any)?.vat_enabled)
       const defaultVat = vatEnabled ? 20 : 0
@@ -1124,9 +1130,69 @@ function DevisV4({
             </button>
           </div>
 
-          <div style={{ marginTop: 16, fontSize: 12, color: 'var(--gray-500)' }}>
-            Généré pour {userFullName || 'Utilisateur'} {userJob ? `· ${userJob}` : ''}
+          <div style={{ marginTop: 16, fontSize: 12, color: 'var(--gray-500)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            <span>
+              Généré pour {userFullName || 'Utilisateur'} {userJob ? `· ${userJob}` : ''}
+            </span>
+            <button className="btn btn-secondary" type="button" onClick={() => setShowQuotes((s) => !s)}>
+              {showQuotes ? 'Masquer' : 'Voir'} mes devis
+            </button>
           </div>
+
+          {showQuotes ? (
+            <div className="card" style={{ marginTop: 16 }}>
+              <div className="card-header">
+                <h3 className="card-title">📄 Mes devis récents</h3>
+              </div>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ textAlign: 'left', fontSize: 12, color: 'var(--gray-500)' }}>
+                      <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>N°</th>
+                      <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Titre</th>
+                      <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Statut</th>
+                      <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)', textAlign: 'right' }}>Total</th>
+                      <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)', textAlign: 'right' }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {quotes.map((q) => (
+                      <tr key={q.id}>
+                        <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{q.number}</td>
+                        <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{q.title || '—'}</td>
+                        <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{q.status || 'draft'}</td>
+                        <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)', textAlign: 'right', fontWeight: 700 }}>{formatMoney(Number(q.total_ttc || 0))}</td>
+                        <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)', textAlign: 'right' }}>
+                          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                            <button
+                              className="btn btn-secondary"
+                              type="button"
+                              onClick={() => {
+                                try { localStorage.setItem('spyke_contract_from_quote_id', String(q.id)) } catch {}
+                                ;(window as any).__spyke_setTab?.('contrats')
+                              }}
+                            >
+                              Contrat
+                            </button>
+                            <button
+                              className="btn btn-secondary"
+                              type="button"
+                              onClick={() => {
+                                try { localStorage.setItem('spyke_invoice_from_quote_id', String(q.id)) } catch {}
+                                ;(window as any).__spyke_setTab?.('factures')
+                              }}
+                            >
+                              Facture
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : null}
         </div>
       </div>
     </div>
@@ -1940,6 +2006,18 @@ function FacturesV1({
     ;(async () => {
       try {
         if (!supabase) return
+
+        // Auto-import from Devis list
+        try {
+          const key = 'spyke_invoice_from_quote_id'
+          const id = String(localStorage.getItem(key) || '')
+          if (id) {
+            localStorage.removeItem(key)
+            await importQuote(id)
+            setMode('create')
+          }
+        } catch {}
+
         const { data, error } = await supabase
           .from('quotes')
           .select('id,number,title,date_issue,total_ttc')
