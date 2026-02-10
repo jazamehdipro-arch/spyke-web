@@ -336,26 +336,54 @@ function DevisV4({
         throw new Error(msg)
       }
 
-      // save quote data for "import into invoice" later
+      // Persist quote in DB for chain devis → facture/contrat
       try {
-        const key = 'spyke_quotes_v1'
-        const prev = JSON.parse(localStorage.getItem(key) || '[]') as any[]
-        const next = [
-          {
-            id: `${Date.now()}`,
-            quoteNumber,
-            title,
-            dateIssue,
-            validityUntil,
-            buyer,
-            lines,
-            totals,
-          },
-          ...prev,
-        ].slice(0, 30)
-        localStorage.setItem(key, JSON.stringify(next))
+        if (userId) {
+          // Find client_id when possible
+          const client_id = clientChoice.mode === 'existing' ? clientChoice.id : null
+
+          const { data: qRow, error: qErr } = await supabase
+            .from('quotes')
+            .upsert(
+              {
+                user_id: userId,
+                client_id,
+                number: quoteNumber,
+                title: title || null,
+                status: 'draft',
+                date_issue: dateIssue || null,
+                validity_until: validityUntil || null,
+                notes: notes || null,
+                total_ht: totals.totalHt,
+                total_tva: totals.totalTva,
+                total_ttc: totals.totalTtc,
+                buyer_snapshot: buyer,
+                seller_snapshot: seller,
+              } as any
+            )
+            .select('id')
+            .single()
+
+          if (!qErr && qRow?.id) {
+            // Replace lines
+            await supabase.from('quote_lines').delete().eq('quote_id', qRow.id)
+            if (lines.length) {
+              await supabase.from('quote_lines').insert(
+                lines.map((l, idx) => ({
+                  quote_id: qRow.id,
+                  position: idx,
+                  label: l.label,
+                  description: l.description,
+                  qty: l.qty,
+                  unit_price_ht: l.unitPriceHt,
+                  vat_rate: l.vatRate,
+                })) as any
+              )
+            }
+          }
+        }
       } catch {
-        // ignore
+        // ignore persistence errors for now
       }
 
       const url = URL.createObjectURL(blob)
@@ -1662,14 +1690,21 @@ function FacturesV1({
   }, [invoiceDate, paymentDelayDays])
 
   useEffect(() => {
-    try {
-      const key = 'spyke_quotes_v1'
-      const q = JSON.parse(localStorage.getItem(key) || '[]')
-      setQuotes(Array.isArray(q) ? q : [])
-    } catch {
-      setQuotes([])
-    }
-  }, [mode])
+    ;(async () => {
+      try {
+        if (!supabase) return
+        const { data, error } = await supabase
+          .from('quotes')
+          .select('id,number,title,date_issue,total_ttc')
+          .order('created_at', { ascending: false })
+          .limit(50)
+        if (error) throw error
+        setQuotes((data || []) as any[])
+      } catch {
+        setQuotes([])
+      }
+    })()
+  }, [mode, supabase])
 
   async function selectClient(id: string) {
     setClientId(id)
@@ -1697,17 +1732,39 @@ function FacturesV1({
     })
   }
 
-  function importQuote(id: string) {
+  async function importQuote(id: string) {
     setSelectedQuoteId(id)
-    const q = quotes.find((x) => String(x.id) === String(id))
-    if (!q) return
-    setBuyer(q.buyer || { name: '', email: '', addressLines: [] })
-    const imported = (q.lines || []).map((l: any, idx: number) => ({
+    if (!supabase || !id) return
+
+    const { data: q, error: qErr } = await supabase
+      .from('quotes')
+      .select('id,number,title,date_issue,validity_until,total_ht,total_tva,total_ttc,buyer_snapshot')
+      .eq('id', id)
+      .maybeSingle()
+    if (qErr || !q) return
+
+    const { data: qLines } = await supabase
+      .from('quote_lines')
+      .select('label,description,qty,unit_price_ht,vat_rate,position')
+      .eq('quote_id', id)
+      .order('position', { ascending: true })
+
+    const buyerSnap: any = (q as any).buyer_snapshot || null
+    if (buyerSnap) {
+      setBuyer({
+        name: String(buyerSnap.name || ''),
+        email: String(buyerSnap.email || ''),
+        addressLines: Array.isArray(buyerSnap.addressLines) ? buyerSnap.addressLines : [],
+      })
+    }
+
+    const imported = (qLines || []).map((l: any, idx: number) => ({
       id: String(Date.now() + idx),
-      description: l.label ? `${l.label}${l.description ? ` — ${l.description}` : ''}` : (l.description || ''),
+      description: l.label ? `${l.label}${l.description ? ` — ${l.description}` : ''}` : String(l.description || ''),
       qty: Number(l.qty || 0),
-      unitPrice: Number(l.unitPriceHt || 0),
+      unitPrice: Number(l.unit_price_ht || 0),
     }))
+
     setLines(imported.length ? imported : [{ id: '0', description: '', qty: 1, unitPrice: 0 }])
   }
 
@@ -1940,7 +1997,7 @@ function FacturesV1({
                   <option value="">Choisir un devis…</option>
                   {quotes.map((q) => (
                     <option key={q.id} value={q.id}>
-                      {q.quoteNumber}{q.title ? ` — ${q.title}` : ''}
+                      {q.number}{q.title ? ` — ${q.title}` : ''}{q.total_ttc != null ? ` (${formatMoney(Number(q.total_ttc) || 0)})` : ''}
                     </option>
                   ))}
                 </select>
