@@ -107,6 +107,19 @@ function DevisV4({
   const [clientChoice, setClientChoice] = useState<DevisClientChoice>({ mode: 'none' })
   const [clients, setClients] = useState<Array<{ id: string; name: string; email?: string | null; siret?: string | null; address?: string | null; postal_code?: string | null; city?: string | null; country?: string | null }>>([])
 
+  // Prefill from Client page (chain)
+  useEffect(() => {
+    try {
+      const key = 'spyke_devis_client_id'
+      const id = String(localStorage.getItem(key) || '')
+      if (!id) return
+      localStorage.removeItem(key)
+      setClientChoice({ mode: 'existing', id })
+    } catch {
+      // ignore
+    }
+  }, [])
+
   const [lines, setLines] = useState<DevisLine[]>(() => [
     {
       id: '0',
@@ -2527,8 +2540,10 @@ export default function AppHtmlPage() {
   const [clients, setClients] = useState<ClientRow[]>([])
   const [selectedClientId, setSelectedClientId] = useState<string>('')
   const [editingClientId, setEditingClientId] = useState<string>('')
-  const [clientsView, setClientsView] = useState<'list' | 'detail'>('list')
+  const [clientsView, setClientsView] = useState<'table' | 'detail'>('table')
   const [viewClientId, setViewClientId] = useState<string>('')
+  const [clientSearch, setClientSearch] = useState<string>('')
+  const [clientStats, setClientStats] = useState<Record<string, { quotes: number; invoices: number; totalInvoiced: number; lastStatus: string }>>({})
 
   const [assistantContext, setAssistantContext] = useState<string>('')
   const [assistantOutput, setAssistantOutput] = useState<string>('')
@@ -2581,6 +2596,7 @@ export default function AppHtmlPage() {
 
         if (clientsError) throw clientsError
         setClients((clientsData || []) as ClientRow[])
+        await refreshClientStats()
       } finally {
         setLoading(false)
       }
@@ -2600,7 +2616,10 @@ export default function AppHtmlPage() {
       .from('clients')
       .select('id,name,email,phone,siret,address,postal_code,city,country,notes')
       .order('created_at', { ascending: false })
-    if (!error) setClients((data || []) as ClientRow[])
+    if (!error) {
+      setClients((data || []) as ClientRow[])
+      await refreshClientStats()
+    }
   }
 
   async function deleteClient(id: string) {
@@ -2617,7 +2636,7 @@ export default function AppHtmlPage() {
       if (editingClientId === id) setEditingClientId('')
       if (viewClientId === id) {
         setViewClientId('')
-        setClientsView('list')
+        setClientsView('table')
       }
       await refreshClients()
     } catch (e: any) {
@@ -2627,33 +2646,45 @@ export default function AppHtmlPage() {
     }
   }
 
-  async function duplicateClient(id: string) {
-    if (!supabase || !userId) return
-    const c = clients.find((x) => x.id === id)
-    if (!c) return
-
+  async function refreshClientStats() {
+    if (!supabase) return
     try {
-      setLoading(true)
-      const { error } = await supabase.from('clients').insert({
-        user_id: userId,
-        name: `${c.name} (copie)`,
-        email: c.email,
-        phone: c.phone,
-        siret: c.siret,
-        address: c.address,
-        postal_code: c.postal_code,
-        city: c.city,
-        country: c.country,
-        notes: c.notes,
-      })
-      if (error) throw error
-      await refreshClients()
-    } catch (e: any) {
-      alert(e?.message || 'Erreur duplication client')
-    } finally {
-      setLoading(false)
+      const [{ data: qData }, { data: iData }] = await Promise.all([
+        supabase.from('quotes').select('client_id').not('client_id', 'is', null),
+        supabase.from('invoices').select('client_id,total_ttc,status,created_at').not('client_id', 'is', null),
+      ])
+
+      const map: Record<string, { quotes: number; invoices: number; totalInvoiced: number; lastStatus: string; lastAt: number }> = {}
+
+      for (const q of (qData || []) as any[]) {
+        const id = String(q.client_id)
+        if (!map[id]) map[id] = { quotes: 0, invoices: 0, totalInvoiced: 0, lastStatus: '—', lastAt: 0 }
+        map[id].quotes += 1
+      }
+
+      for (const inv of (iData || []) as any[]) {
+        const id = String(inv.client_id)
+        if (!map[id]) map[id] = { quotes: 0, invoices: 0, totalInvoiced: 0, lastStatus: '—', lastAt: 0 }
+        map[id].invoices += 1
+        map[id].totalInvoiced += Number(inv.total_ttc || 0)
+        const t = inv.created_at ? new Date(inv.created_at).getTime() : 0
+        if (t >= map[id].lastAt) {
+          map[id].lastAt = t
+          map[id].lastStatus = String(inv.status || '—')
+        }
+      }
+
+      const cleaned: any = {}
+      for (const [k, v] of Object.entries(map)) {
+        cleaned[k] = { quotes: v.quotes, invoices: v.invoices, totalInvoiced: v.totalInvoiced, lastStatus: v.lastStatus }
+      }
+      setClientStats(cleaned)
+    } catch {
+      // ignore
     }
   }
+
+  // (duplication removed: replaced by "Nouveau devis")
 
   async function generateAssistantEmail() {
     try {
@@ -4080,7 +4111,7 @@ CONTEXTE UTILISATEUR :
                     className="btn btn-secondary"
                     type="button"
                     onClick={() => {
-                      setClientsView('list')
+                      setClientsView('table')
                       setViewClientId('')
                     }}
                     style={{ marginBottom: 12 }}
@@ -4110,10 +4141,13 @@ CONTEXTE UTILISATEUR :
                         type="button"
                         onClick={() => {
                           if (!c) return
-                          duplicateClient(c.id)
+                          try {
+                            localStorage.setItem('spyke_devis_client_id', c.id)
+                          } catch {}
+                          ;(window as any).__spyke_setTab?.('devis')
                         }}
                       >
-                        ⧉ Dupliquer
+                        📄 Nouveau devis
                       </button>
                       <button
                         className="btn btn-secondary"
@@ -4172,90 +4206,127 @@ CONTEXTE UTILISATEUR :
               )
             })()
           ) : (
-            <div className="clients-grid">
-              {clients.length === 0 ? (
-                <div className="card" style={{ gridColumn: '1 / -1' }}>
-                  <div className="empty-state">
-                    <div className="empty-state-icon">👥</div>
-                    <h4>Aucun client</h4>
-                    <p>Ajoutez votre premier client pour commencer</p>
-                    <button className="btn btn-primary" style={{ marginTop: 16 }} onClick={() => setModal('newClient')}>
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
-                        <line x1="12" y1="5" x2="12" y2="19" />
-                        <line x1="5" y1="12" x2="19" y2="12" />
-                      </svg>
-                      Ajouter un client
-                    </button>
-                  </div>
+            <div className="card">
+              <div className="form-row" style={{ marginBottom: 0 }}>
+                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                  <label className="form-label">Rechercher</label>
+                  <input
+                    className="form-input"
+                    placeholder="Tapez un nom, un email, une ville…"
+                    value={clientSearch}
+                    onChange={(e) => setClientSearch(e.target.value)}
+                  />
                 </div>
-              ) : (
-                clients.map((c) => (
-                  <div
-                    key={c.id}
-                    className="card"
-                    style={{ cursor: 'pointer' }}
-                    onClick={() => {
-                      setViewClientId(c.id)
-                      setClientsView('detail')
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-                      <div>
-                        <div className="card-title">{c.name}</div>
-                        <div style={{ fontSize: 13, color: 'var(--gray-500)', marginTop: 6 }}>
-                          {c.email || '—'}
-                          {c.phone ? ` · ${c.phone}` : ''}
-                          {c.city ? ` · ${c.city}` : ''}
-                        </div>
-                      </div>
-                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                        <button
-                          type="button"
-                          className="btn btn-secondary"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setEditingClientId(c.id)
-                            setModal('editClient')
-                          }}
-                        >
-                          ✏️ Modifier
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-secondary"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            duplicateClient(c.id)
-                          }}
-                        >
-                          ⧉ Dupliquer
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-secondary"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            deleteClient(c.id)
-                          }}
-                        >
-                          🗑️
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-secondary"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setSelectedClientId(c.id)
-                            setTab('assistant')
-                          }}
-                        >
-                          ✉️
-                        </button>
-                      </div>
-                    </div>
+              </div>
+
+              <div style={{ marginTop: 12, overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ textAlign: 'left', fontSize: 12, color: 'var(--gray-500)' }}>
+                      <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Client</th>
+                      <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Contact</th>
+                      <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Ville</th>
+                      <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Devis</th>
+                      <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Factures</th>
+                      <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)', textAlign: 'right' }}>Total facturé</th>
+                      <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Dernier statut</th>
+                      <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)', textAlign: 'right' }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(clients
+                      .filter((c) => {
+                        const q = clientSearch.trim().toLowerCase()
+                        if (!q) return true
+                        return [c.name, c.email, c.phone, c.city, c.address]
+                          .filter(Boolean)
+                          .some((x) => String(x).toLowerCase().includes(q))
+                      })
+                      .map((c) => {
+                        const s = clientStats[c.id] || { quotes: 0, invoices: 0, totalInvoiced: 0, lastStatus: '—' }
+                        return (
+                          <tr
+                            key={c.id}
+                            style={{ cursor: 'pointer' }}
+                            onClick={() => {
+                              setViewClientId(c.id)
+                              setClientsView('detail')
+                            }}
+                          >
+                            <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>
+                              <div style={{ fontWeight: 700, color: 'var(--black)' }}>{c.name}</div>
+                              <div style={{ fontSize: 12, color: 'var(--gray-500)' }}>{c.siret || ''}</div>
+                            </td>
+                            <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>
+                              <div style={{ fontSize: 13 }}>{c.email || '—'}</div>
+                              <div style={{ fontSize: 12, color: 'var(--gray-500)' }}>{c.phone || ''}</div>
+                            </td>
+                            <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{c.city || '—'}</td>
+                            <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{s.quotes}</td>
+                            <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{s.invoices}</td>
+                            <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)', textAlign: 'right', fontWeight: 700 }}>
+                              {formatMoney(Number(s.totalInvoiced || 0))}
+                            </td>
+                            <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{s.lastStatus}</td>
+                            <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)', textAlign: 'right' }}>
+                              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                                <button
+                                  type="button"
+                                  className="btn btn-secondary"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setEditingClientId(c.id)
+                                    setModal('editClient')
+                                  }}
+                                >
+                                  ✏️
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn btn-secondary"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    try { localStorage.setItem('spyke_devis_client_id', c.id) } catch {}
+                                    ;(window as any).__spyke_setTab?.('devis')
+                                  }}
+                                >
+                                  📄
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn btn-secondary"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setSelectedClientId(c.id)
+                                    setTab('assistant')
+                                  }}
+                                >
+                                  ✉️
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn btn-secondary"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    deleteClient(c.id)
+                                  }}
+                                >
+                                  🗑️
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        )
+                      }))}
+                  </tbody>
+                </table>
+
+                {clients.length === 0 ? (
+                  <div className="empty-state" style={{ padding: 24 }}>
+                    <p>Aucun client</p>
                   </div>
-                ))
-              )}
+                ) : null}
+              </div>
             </div>
           )}
         </div>
