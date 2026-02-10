@@ -1540,14 +1540,9 @@ function ContratsV1({
               : Number(pricingAmount || 0) * Number(pricingDays || 0)
 
           // try find existing by (user_id, client_id, mission_start) - best-effort
-          const { data: existing } = await supabase
-            .from('contracts')
-            .select('id')
-            .eq('user_id', userId)
-            .eq('client_id', clientId || null)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle()
+          let existingQ = supabase.from('contracts').select('id').eq('user_id', userId)
+          existingQ = clientId ? existingQ.eq('client_id', clientId) : existingQ.is('client_id', null)
+          const { data: existing } = await existingQ.order('created_at', { ascending: false }).limit(1).maybeSingle()
 
           const row = {
             user_id: userId,
