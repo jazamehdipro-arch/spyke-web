@@ -365,6 +365,11 @@ function DevisV4({
             .single()
 
           if (!qErr && qRow?.id) {
+            // Save for chain navigation
+            try {
+              localStorage.setItem('spyke_last_quote_id', String(qRow.id))
+            } catch {}
+
             // Replace lines
             await supabase.from('quote_lines').delete().eq('quote_id', qRow.id)
             if (lines.length) {
@@ -1084,6 +1089,23 @@ function DevisV4({
             >
               Envoyer par mail
             </button>
+            <button
+              className="btn btn-secondary"
+              type="button"
+              onClick={() => {
+                try {
+                  localStorage.setItem('spyke_contract_from_quote_number', quoteNumber)
+                } catch {}
+                ;(window as any).__spyke_setTab?.('contrats')
+                try {
+                  const key = 'spyke_contract_from_quote_id'
+                  // Prefer DB id if available (saved after PDF)
+                  // Fallback: contracts page can search by number later
+                } catch {}
+              }}
+            >
+              Générer un contrat
+            </button>
             <button className="btn btn-primary" type="button" onClick={generatePdf}>
               Générer PDF
             </button>
@@ -1136,6 +1158,9 @@ function ContratsV1({
   const [prestaAddress, setPrestaAddress] = useState('')
   const [prestaActivity, setPrestaActivity] = useState(userJob || '')
   const [prestaEmail, setPrestaEmail] = useState('')
+
+  const [contractFromQuoteId, setContractFromQuoteId] = useState<string>('')
+  const [quotes, setQuotes] = useState<any[]>([])
 
   const [clientId, setClientId] = useState('')
   const [clientName, setClientName] = useState('')
@@ -1193,6 +1218,81 @@ function ContratsV1({
       setPrestaEmail(String((profile as any)?.email || ''))
     })()
   }, [supabase, userId, userFullName])
+
+  useEffect(() => {
+    ;(async () => {
+      try {
+        if (!supabase) return
+        const { data, error } = await supabase
+          .from('quotes')
+          .select('id,number,title,total_ttc,created_at')
+          .order('created_at', { ascending: false })
+          .limit(50)
+        if (error) throw error
+        setQuotes((data || []) as any[])
+      } catch {
+        setQuotes([])
+      }
+
+      // Auto-import from Devis button
+      try {
+        const key = 'spyke_contract_from_quote_id'
+        let id = String(localStorage.getItem(key) || '')
+        if (!id) id = String(localStorage.getItem('spyke_last_quote_id') || '')
+        if (id) {
+          localStorage.removeItem(key)
+          await importFromQuote(id)
+        }
+      } catch {}
+    })()
+  }, [supabase])
+
+  async function importFromQuote(id: string) {
+    setContractFromQuoteId(id)
+    if (!supabase || !id) return
+
+    const { data: q, error: qErr } = await supabase
+      .from('quotes')
+      .select('id,client_id,title,total_ht,total_ttc,date_issue,validity_until,buyer_snapshot')
+      .eq('id', id)
+      .maybeSingle()
+    if (qErr || !q) return
+
+    const buyerSnap: any = (q as any).buyer_snapshot || null
+    if (buyerSnap) {
+      setClientName(String(buyerSnap.name || ''))
+      setClientSiret(String(buyerSnap.siret || ''))
+      setClientAddress(Array.isArray(buyerSnap.addressLines) ? buyerSnap.addressLines.filter(Boolean).join(', ') : '')
+      setClientEmail(String(buyerSnap.email || ''))
+    }
+
+    if ((q as any).client_id) setClientId(String((q as any).client_id))
+
+    const { data: qLines } = await supabase
+      .from('quote_lines')
+      .select('label,description,qty,unit_price_ht,position')
+      .eq('quote_id', id)
+      .order('position', { ascending: true })
+
+    const desc = (qLines || [])
+      .map((l: any) => {
+        const base = l.label || ''
+        const extra = l.description ? ` — ${l.description}` : ''
+        return `${base}${extra}`.trim()
+      })
+      .filter(Boolean)
+      .join('\n')
+
+    if (desc) setMissionDescription(desc)
+    if (!missionLivrables) setMissionLivrables('Livrables à définir.')
+
+    const ht = Number((q as any).total_ht || 0)
+    setPricingType('forfait')
+    setPricingAmount(ht)
+    setPricingDays(0)
+
+    if ((q as any).date_issue) setMissionStart(String((q as any).date_issue))
+  }
 
   async function selectClient(id: string) {
     setClientId(id)
@@ -1350,11 +1450,68 @@ function ContratsV1({
         }
       }
 
+      const finalText = contractText || buildContractText()
+
+      // Persist contract in DB
+      try {
+        if (userId) {
+          const amount_ht =
+            pricingType === 'forfait'
+              ? Number(pricingAmount || 0)
+              : Number(pricingAmount || 0) * Number(pricingDays || 0)
+
+          // try find existing by (user_id, client_id, mission_start) - best-effort
+          const { data: existing } = await supabase
+            .from('contracts')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('client_id', clientId || null)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle()
+
+          const row = {
+            user_id: userId,
+            client_id: clientId || null,
+            quote_id: contractFromQuoteId || null,
+            title: 'Contrat de prestation de service',
+            status: 'draft',
+            contract_text: finalText,
+            mission_start: missionStart || null,
+            mission_end: missionEnd || null,
+            amount_ht,
+            tva_regime: tvaRegime,
+            buyer_snapshot: {
+              name: clientName,
+              email: clientEmail,
+              siret: clientSiret,
+              addressLines: clientAddress ? String(clientAddress).split(',').map((x) => x.trim()).filter(Boolean) : [],
+              representant: clientRepresentant,
+            },
+            seller_snapshot: {
+              name: prestaName,
+              email: prestaEmail,
+              siret: prestaSiret,
+              addressLines: prestaAddress ? String(prestaAddress).split(',').map((x) => x.trim()).filter(Boolean) : [],
+              activity: prestaActivity,
+            },
+          } as any
+
+          if (existing?.id) {
+            await supabase.from('contracts').update(row).eq('id', existing.id)
+          } else {
+            await supabase.from('contracts').insert(row)
+          }
+        }
+      } catch {
+        // ignore persistence errors
+      }
+
       const payload = {
         title: 'Contrat de prestation de service',
         date: today,
         logoUrl,
-        contractText: contractText || buildContractText(),
+        contractText: finalText,
         parties: {
           sellerName: prestaName,
           buyerName: clientName,
@@ -1395,6 +1552,26 @@ function ContratsV1({
       </div>
 
       <div className="card">
+        <div className="form-section">
+          <div className="form-section-title">Importer depuis un devis</div>
+          <div className="form-row">
+            <div className="form-group">
+              <label className="form-label">Choisir un devis</label>
+              <select className="form-select" value={contractFromQuoteId} onChange={(e) => importFromQuote(e.target.value)}>
+                <option value="">—</option>
+                {quotes.map((q) => (
+                  <option key={q.id} value={q.id}>
+                    {q.number}{q.title ? ` — ${q.title}` : ''}{q.total_ttc != null ? ` (${formatMoney(Number(q.total_ttc) || 0)})` : ''}
+                  </option>
+                ))}
+              </select>
+              <div style={{ marginTop: 6, fontSize: 12, color: 'var(--gray-500)' }}>
+                Astuce : génère un devis en PDF pour qu’il apparaisse ici.
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div className="form-section-title">Prestataire (vous)</div>
         <div className="form-row">
           <div className="form-group">
@@ -1614,15 +1791,72 @@ function ContratsV1({
             onClick={() => {
               const txt = buildContractText()
               setContractText(txt)
-              try {
-                const key = 'spyke_contracts_v1'
-                const prev = JSON.parse(localStorage.getItem(key) || '[]') as any[]
-                localStorage.setItem(key, JSON.stringify([{ id: `${Date.now()}`, txt }, ...prev].slice(0, 30)))
-              } catch {}
             }}
           >
             Générer l'aperçu
           </button>
+
+          <button
+            className="btn btn-secondary"
+            type="button"
+            onClick={async () => {
+              try {
+                // Persist contract then jump to Factures with link
+                if (!supabase || !userId) throw new Error('Session manquante')
+
+                const txt = contractText || buildContractText()
+                const amount_ht =
+                  pricingType === 'forfait'
+                    ? Number(pricingAmount || 0)
+                    : Number(pricingAmount || 0) * Number(pricingDays || 0)
+
+                const row = {
+                  user_id: userId,
+                  client_id: clientId || null,
+                  quote_id: contractFromQuoteId || null,
+                  title: 'Contrat de prestation de service',
+                  status: 'draft',
+                  contract_text: txt,
+                  mission_start: missionStart || null,
+                  mission_end: missionEnd || null,
+                  amount_ht,
+                  tva_regime: tvaRegime,
+                  buyer_snapshot: {
+                    name: clientName,
+                    email: clientEmail,
+                    siret: clientSiret,
+                    addressLines: clientAddress ? String(clientAddress).split(',').map((x) => x.trim()).filter(Boolean) : [],
+                    representant: clientRepresentant,
+                  },
+                  seller_snapshot: {
+                    name: prestaName,
+                    email: prestaEmail,
+                    siret: prestaSiret,
+                    addressLines: prestaAddress ? String(prestaAddress).split(',').map((x) => x.trim()).filter(Boolean) : [],
+                    activity: prestaActivity,
+                  },
+                } as any
+
+                const { data: inserted, error } = await supabase
+                  .from('contracts')
+                  .insert(row)
+                  .select('id')
+                  .single()
+
+                if (error) throw error
+
+                if (inserted?.id) {
+                  localStorage.setItem('spyke_invoice_from_contract_id', String(inserted.id))
+                  ;(window as any).__spyke_setTab?.('factures')
+                }
+              } catch (e: any) {
+                alert(e?.message || 'Erreur')
+              }
+            }}
+          >
+            Générer une facture
+          </button>
+
           <button className="btn btn-primary" type="button" onClick={generateContractPdf}>
             Télécharger PDF
           </button>
@@ -1780,6 +2014,42 @@ function FacturesV1({
     setLines((prev) => (prev.length <= 1 ? prev : prev.filter((l) => l.id !== id)))
   }
 
+  useEffect(() => {
+    ;(async () => {
+      try {
+        if (!supabase) return
+        const key = 'spyke_invoice_from_contract_id'
+        const contractId = String(localStorage.getItem(key) || '')
+        if (!contractId) return
+        localStorage.removeItem(key)
+
+        const { data: c } = await supabase
+          .from('contracts')
+          .select('id,quote_id,client_id,buyer_snapshot,amount_ht,mission_start,mission_end')
+          .eq('id', contractId)
+          .maybeSingle()
+        if (!c) return
+
+        if ((c as any).client_id) {
+          await selectClient(String((c as any).client_id))
+        } else {
+          const buyerSnap: any = (c as any).buyer_snapshot || null
+          if (buyerSnap) setBuyer({ name: String(buyerSnap.name || ''), email: String(buyerSnap.email || ''), addressLines: buyerSnap.addressLines || [] })
+        }
+
+        // If linked to a quote, import it for lines
+        if ((c as any).quote_id) {
+          await importQuote(String((c as any).quote_id))
+        } else {
+          const amt = Number((c as any).amount_ht || 0)
+          setLines([{ id: String(Date.now()), description: 'Prestation', qty: 1, unitPrice: amt }])
+        }
+      } catch {
+        // ignore
+      }
+    })()
+  }, [supabase])
+
   async function generateInvoicePdf() {
     try {
       if (!supabase) throw new Error('Supabase non initialisé')
@@ -1874,6 +2144,63 @@ function FacturesV1({
           msg = (await blob.text()) || msg
         } catch {}
         throw new Error(msg)
+      }
+
+      // Persist invoice in DB
+      try {
+        if (userId) {
+          const client_id = clientId || null
+
+          const { data: existing } = await supabase
+            .from('invoices')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('number', invoiceNumber)
+            .maybeSingle()
+
+          const row = {
+            user_id: userId,
+            client_id,
+            quote_id: selectedQuoteId || null,
+            number: invoiceNumber,
+            status: 'draft',
+            date_issue: invoiceDate || null,
+            due_date: dueDate || null,
+            payment_terms_days: paymentDelayDays || null,
+            notes: null,
+            total_ht: totals.totalHt,
+            total_tva: totals.totalTva,
+            total_ttc: totals.totalTtc,
+            buyer_snapshot: buyer,
+            seller_snapshot: seller,
+          } as any
+
+          let invoiceId: string | null = null
+          if (existing?.id) {
+            await supabase.from('invoices').update(row).eq('id', existing.id)
+            invoiceId = String(existing.id)
+          } else {
+            const { data: inv, error: invErr } = await supabase.from('invoices').insert(row).select('id').single()
+            if (!invErr && inv?.id) invoiceId = String(inv.id)
+          }
+
+          if (invoiceId) {
+            await supabase.from('invoice_lines').delete().eq('invoice_id', invoiceId)
+            if (lines.length) {
+              await supabase.from('invoice_lines').insert(
+                lines.map((l, idx) => ({
+                  invoice_id: invoiceId,
+                  position: idx,
+                  description: l.description,
+                  qty: l.qty,
+                  unit_price: l.unitPrice,
+                })) as any
+              )
+            }
+          }
+        }
+      } catch {
+        // ignore
       }
 
       const url = URL.createObjectURL(blob)
@@ -2205,6 +2532,16 @@ export default function AppHtmlPage() {
 
   const [assistantContext, setAssistantContext] = useState<string>('')
   const [assistantOutput, setAssistantOutput] = useState<string>('')
+
+  // Allow sub-components to navigate tabs
+  useEffect(() => {
+    ;(window as any).__spyke_setTab = (t: Tab) => setTab(t)
+    return () => {
+      try {
+        delete (window as any).__spyke_setTab
+      } catch {}
+    }
+  }, [])
 
   // Ensure authenticated session for the app
   useEffect(() => {
