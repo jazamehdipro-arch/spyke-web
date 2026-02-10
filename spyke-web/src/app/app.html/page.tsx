@@ -1984,6 +1984,7 @@ function FacturesV1({
   const [quotes, setQuotes] = useState<any[]>([])
   const [invoices, setInvoices] = useState<any[]>([])
   const [selectedQuoteId, setSelectedQuoteId] = useState<string>('')
+  const [selectedInvoiceId, setSelectedInvoiceId] = useState<string>('')
 
   const [invoiceDate, setInvoiceDate] = useState(today)
   const [paymentDelayDays, setPaymentDelayDays] = useState(30)
@@ -2101,6 +2102,50 @@ function FacturesV1({
     }))
 
     setLines(imported.length ? imported : [{ id: '0', description: '', qty: 1, unitPrice: 0 }])
+  }
+
+  async function openInvoice(id: string) {
+    setSelectedInvoiceId(id)
+    if (!supabase || !id) return
+
+    const { data: inv } = await supabase
+      .from('invoices')
+      .select('id,number,status,date_issue,due_date,payment_terms_days,total_ttc,buyer_snapshot,client_id')
+      .eq('id', id)
+      .maybeSingle()
+    if (!inv) return
+
+    setInvoiceNumber(String((inv as any).number || ''))
+    if ((inv as any).date_issue) setInvoiceDate(String((inv as any).date_issue))
+    if ((inv as any).due_date) setDueDate(String((inv as any).due_date))
+    if ((inv as any).payment_terms_days != null) setPaymentDelayDays(Number((inv as any).payment_terms_days) || 0)
+
+    const buyerSnap: any = (inv as any).buyer_snapshot || null
+    if (buyerSnap) {
+      setBuyer({
+        name: String(buyerSnap.name || ''),
+        email: String(buyerSnap.email || ''),
+        addressLines: Array.isArray(buyerSnap.addressLines) ? buyerSnap.addressLines : [],
+      })
+    } else if ((inv as any).client_id) {
+      await selectClient(String((inv as any).client_id))
+    }
+
+    const { data: invLines } = await supabase
+      .from('invoice_lines')
+      .select('description,qty,unit_price,position')
+      .eq('invoice_id', id)
+      .order('position', { ascending: true })
+
+    const mapped = (invLines || []).map((l: any, idx: number) => ({
+      id: String(Date.now() + idx),
+      description: String(l.description || ''),
+      qty: Number(l.qty || 0),
+      unitPrice: Number(l.unit_price || 0),
+    }))
+    setLines(mapped.length ? mapped : [{ id: '0', description: '', qty: 1, unitPrice: 0 }])
+
+    setMode('create')
   }
 
   function updateLine(id: string, patch: Partial<InvoiceLine>) {
@@ -2409,6 +2454,7 @@ function FacturesV1({
                   <thead>
                     <tr style={{ textAlign: 'left', fontSize: 12, color: 'var(--gray-500)' }}>
                       <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>N°</th>
+                      <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Client</th>
                       <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Statut</th>
                       <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Émise le</th>
                       <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Échéance</th>
@@ -2420,19 +2466,15 @@ function FacturesV1({
                     {invoices.map((inv) => (
                       <tr key={inv.id}>
                         <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{inv.number}</td>
+                        <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>
+                          {clients.find((c) => c.id === inv.client_id)?.name || '—'}
+                        </td>
                         <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{inv.status || 'draft'}</td>
                         <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{inv.date_issue ? formatDateFr(String(inv.date_issue)) : '—'}</td>
                         <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{inv.due_date ? formatDateFr(String(inv.due_date)) : '—'}</td>
                         <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)', textAlign: 'right', fontWeight: 700 }}>{formatMoney(Number(inv.total_ttc || 0))}</td>
                         <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)', textAlign: 'right' }}>
-                          <button
-                            className="btn btn-secondary"
-                            type="button"
-                            onClick={() => {
-                              // quick: open create view with the last selected quote (or manual)
-                              setMode('create')
-                            }}
-                          >
+                          <button className="btn btn-secondary" type="button" onClick={() => openInvoice(String(inv.id))}>
                             Ouvrir
                           </button>
                         </td>
