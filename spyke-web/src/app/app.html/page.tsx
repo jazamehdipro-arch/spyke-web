@@ -1982,6 +1982,7 @@ function FacturesV1({
   const [mode, setMode] = useState<'list' | 'create'>('list')
 
   const [quotes, setQuotes] = useState<any[]>([])
+  const [invoices, setInvoices] = useState<any[]>([])
   const [selectedQuoteId, setSelectedQuoteId] = useState<string>('')
 
   const [invoiceDate, setInvoiceDate] = useState(today)
@@ -2018,13 +2019,22 @@ function FacturesV1({
           }
         } catch {}
 
-        const { data, error } = await supabase
-          .from('quotes')
-          .select('id,number,title,date_issue,total_ttc')
-          .order('created_at', { ascending: false })
-          .limit(50)
+        const [{ data, error }, { data: invData }] = await Promise.all([
+          supabase
+            .from('quotes')
+            .select('id,number,title,date_issue,total_ttc')
+            .order('created_at', { ascending: false })
+            .limit(50),
+          supabase
+            .from('invoices')
+            .select('id,number,status,date_issue,due_date,total_ttc,client_id,created_at')
+            .order('created_at', { ascending: false })
+            .limit(50),
+        ])
+
         if (error) throw error
         setQuotes((data || []) as any[])
+        setInvoices((invData || []) as any[])
       } catch {
         setQuotes([])
       }
@@ -2383,11 +2393,55 @@ function FacturesV1({
           </div>
 
           <div className="card" style={{ marginTop: 20 }}>
-            <div className="empty-state">
-              <div className="empty-state-icon">📄</div>
-              <h4>Aucune facture pour l'instant</h4>
-              <p>Créez votre première facture en cliquant sur “Nouvelle facture”.</p>
+            <div className="card-header">
+              <h3 className="card-title">🧾 Factures récentes</h3>
             </div>
+
+            {invoices.length === 0 ? (
+              <div className="empty-state" style={{ padding: 24 }}>
+                <div className="empty-state-icon">📄</div>
+                <h4>Aucune facture</h4>
+                <p>Créez votre première facture en cliquant sur “Nouvelle facture”.</p>
+              </div>
+            ) : (
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ textAlign: 'left', fontSize: 12, color: 'var(--gray-500)' }}>
+                      <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>N°</th>
+                      <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Statut</th>
+                      <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Émise le</th>
+                      <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Échéance</th>
+                      <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)', textAlign: 'right' }}>Total</th>
+                      <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)', textAlign: 'right' }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {invoices.map((inv) => (
+                      <tr key={inv.id}>
+                        <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{inv.number}</td>
+                        <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{inv.status || 'draft'}</td>
+                        <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{inv.date_issue ? formatDateFr(String(inv.date_issue)) : '—'}</td>
+                        <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{inv.due_date ? formatDateFr(String(inv.due_date)) : '—'}</td>
+                        <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)', textAlign: 'right', fontWeight: 700 }}>{formatMoney(Number(inv.total_ttc || 0))}</td>
+                        <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)', textAlign: 'right' }}>
+                          <button
+                            className="btn btn-secondary"
+                            type="button"
+                            onClick={() => {
+                              // quick: open create view with the last selected quote (or manual)
+                              setMode('create')
+                            }}
+                          >
+                            Ouvrir
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </>
       ) : (
