@@ -71,7 +71,7 @@ function genQuoteNumber(dateStr: string, sequence = 1) {
   const d = new Date((dateStr || '').slice(0, 10) + 'T00:00:00')
   const year = !Number.isNaN(d.getTime()) ? d.getFullYear() : new Date().getFullYear()
   const month = String((!Number.isNaN(d.getTime()) ? d.getMonth() + 1 : new Date().getMonth() + 1)).padStart(2, '0')
-  return `D${year}${month}-${sequence}`
+  return `D${year}${month}-${String(sequence).padStart(3, '0')}`
 }
 
 function DevisV4({
@@ -103,9 +103,46 @@ function DevisV4({
   const [dateIssue, setDateIssue] = useState(today)
   const [validityDays, setValidityDays] = useState(30)
   const [quoteNumber, setQuoteNumber] = useState(() => genQuoteNumber(today, 1))
+  const [quoteNumberDirty, setQuoteNumberDirty] = useState(false)
 
   const [clientChoice, setClientChoice] = useState<DevisClientChoice>({ mode: 'none' })
   const [clients, setClients] = useState<Array<{ id: string; name: string; email?: string | null; siret?: string | null; address?: string | null; postal_code?: string | null; city?: string | null; country?: string | null }>>([])
+
+  // Auto-number: DYYYYMM-001 (per user, per month)
+  useEffect(() => {
+    ;(async () => {
+      try {
+        if (!supabase || !userId) return
+        if (quoteNumberDirty) return
+
+        const d = new Date((dateIssue || '').slice(0, 10) + 'T00:00:00')
+        const year = !Number.isNaN(d.getTime()) ? d.getFullYear() : new Date().getFullYear()
+        const month = String((!Number.isNaN(d.getTime()) ? d.getMonth() + 1 : new Date().getMonth() + 1)).padStart(2, '0')
+        const prefix = `D${year}${month}-`
+
+        const { data } = await supabase
+          .from('quotes')
+          .select('number')
+          .eq('user_id', userId)
+          .like('number', `${prefix}%`)
+          .order('created_at', { ascending: false })
+          .limit(200)
+
+        let max = 0
+        for (const r of (data || []) as any[]) {
+          const n = String(r.number || '')
+          if (!n.startsWith(prefix)) continue
+          const tail = n.slice(prefix.length)
+          const seq = Number(tail)
+          if (!Number.isNaN(seq)) max = Math.max(max, seq)
+        }
+
+        setQuoteNumber(genQuoteNumber(dateIssue, max + 1))
+      } catch {
+        // ignore
+      }
+    })()
+  }, [supabase, userId, dateIssue, quoteNumberDirty])
 
   // Prefill from Client page (chain)
   useEffect(() => {
@@ -785,9 +822,15 @@ function DevisV4({
                     type="text"
                     className="form-input"
                     value={quoteNumber}
-                    readOnly
-                    style={{ background: 'var(--gray-100)' }}
+                    onChange={(e) => {
+                      setQuoteNumber(e.target.value)
+                      setQuoteNumberDirty(true)
+                    }}
+                    placeholder="D202602-001"
                   />
+                  <div style={{ marginTop: 6, fontSize: 12, color: 'var(--gray-500)' }}>
+                    Format conseillé : DYYYYMM-001 (auto). Vous pouvez modifier ce numéro si besoin.
+                  </div>
                 </div>
               </div>
               <div className="form-row">
