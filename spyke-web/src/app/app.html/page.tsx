@@ -1241,6 +1241,10 @@ function ContratsV1({
   const [contractFromQuoteId, setContractFromQuoteId] = useState<string>('')
   const [quotes, setQuotes] = useState<any[]>([])
 
+  const [showContracts, setShowContracts] = useState(false)
+  const [contracts, setContracts] = useState<any[]>([])
+  const [selectedContractId, setSelectedContractId] = useState<string>('')
+
   const [clientId, setClientId] = useState('')
   const [clientName, setClientName] = useState('')
   const [clientSiret, setClientSiret] = useState('')
@@ -1302,15 +1306,24 @@ function ContratsV1({
     ;(async () => {
       try {
         if (!supabase) return
-        const { data, error } = await supabase
-          .from('quotes')
-          .select('id,number,title,total_ttc,created_at')
-          .order('created_at', { ascending: false })
-          .limit(50)
+        const [{ data, error }, { data: cData }] = await Promise.all([
+          supabase
+            .from('quotes')
+            .select('id,number,title,total_ttc,created_at')
+            .order('created_at', { ascending: false })
+            .limit(50),
+          supabase
+            .from('contracts')
+            .select('id,title,status,amount_ht,created_at,client_id,quote_id')
+            .order('created_at', { ascending: false })
+            .limit(50),
+        ])
         if (error) throw error
         setQuotes((data || []) as any[])
+        setContracts((cData || []) as any[])
       } catch {
         setQuotes([])
+        setContracts([])
       }
 
       // Auto-import from Devis button
@@ -1371,6 +1384,54 @@ function ContratsV1({
     setPricingDays(0)
 
     if ((q as any).date_issue) setMissionStart(String((q as any).date_issue))
+  }
+
+  async function openContract(id: string) {
+    setSelectedContractId(id)
+    if (!supabase || !id) return
+
+    const { data: c } = await supabase
+      .from('contracts')
+      .select('id,client_id,quote_id,title,status,contract_text,mission_start,mission_end,amount_ht,tva_regime,buyer_snapshot,seller_snapshot')
+      .eq('id', id)
+      .maybeSingle()
+    if (!c) return
+
+    if ((c as any).quote_id) setContractFromQuoteId(String((c as any).quote_id))
+    if ((c as any).client_id) setClientId(String((c as any).client_id))
+    if ((c as any).mission_start) setMissionStart(String((c as any).mission_start))
+    if ((c as any).mission_end) setMissionEnd(String((c as any).mission_end))
+
+    const buyerSnap: any = (c as any).buyer_snapshot || null
+    if (buyerSnap) {
+      setClientName(String(buyerSnap.name || ''))
+      setClientEmail(String(buyerSnap.email || ''))
+      setClientSiret(String(buyerSnap.siret || ''))
+      setClientAddress(Array.isArray(buyerSnap.addressLines) ? buyerSnap.addressLines.filter(Boolean).join(', ') : String(buyerSnap.address || ''))
+      setClientRepresentant(String(buyerSnap.representant || ''))
+    }
+
+    const sellerSnap: any = (c as any).seller_snapshot || null
+    if (sellerSnap) {
+      setPrestaName(String(sellerSnap.name || prestaName || ''))
+      setPrestaEmail(String(sellerSnap.email || prestaEmail || ''))
+      setPrestaSiret(String(sellerSnap.siret || prestaSiret || ''))
+      setPrestaAddress(Array.isArray(sellerSnap.addressLines) ? sellerSnap.addressLines.filter(Boolean).join(', ') : String(sellerSnap.address || ''))
+      setPrestaActivity(String(sellerSnap.activity || prestaActivity || ''))
+    }
+
+    if ((c as any).amount_ht != null) {
+      setPricingType('forfait')
+      setPricingAmount(Number((c as any).amount_ht || 0))
+      setPricingDays(0)
+    }
+
+    if ((c as any).tva_regime) setTvaRegime(String((c as any).tva_regime) === 'tva' ? 'tva' : 'franchise')
+
+    const txt = String((c as any).contract_text || '')
+    if (txt) setContractText(txt)
+
+    setShowContracts(false)
   }
 
   async function selectClient(id: string) {
@@ -1623,7 +1684,66 @@ function ContratsV1({
           <h1 className="page-title">Contrats</h1>
           <p className="page-subtitle">Générez un contrat de prestation de service en quelques minutes</p>
         </div>
+        <div className="header-actions">
+          <button className="btn btn-secondary" type="button" onClick={() => setShowContracts((s) => !s)}>
+            {showContracts ? 'Masquer' : 'Voir'} mes contrats
+          </button>
+        </div>
       </div>
+
+      {showContracts ? (
+        <div className="card" style={{ marginBottom: 16 }}>
+          <div className="card-header">
+            <h3 className="card-title">📝 Mes contrats récents</h3>
+          </div>
+          {contracts.length === 0 ? (
+            <div className="empty-state" style={{ padding: 24 }}>
+              <p>Aucun contrat pour le moment.</p>
+            </div>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ textAlign: 'left', fontSize: 12, color: 'var(--gray-500)' }}>
+                    <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Titre</th>
+                    <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Statut</th>
+                    <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)', textAlign: 'right' }}>Montant</th>
+                    <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)', textAlign: 'right' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {contracts.map((c) => (
+                    <tr key={c.id}>
+                      <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{c.title || 'Contrat'}</td>
+                      <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{c.status || 'draft'}</td>
+                      <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)', textAlign: 'right', fontWeight: 700 }}>
+                        {formatMoney(Number(c.amount_ht || 0))}
+                      </td>
+                      <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)', textAlign: 'right' }}>
+                        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                          <button className="btn btn-secondary" type="button" onClick={() => openContract(String(c.id))}>
+                            Ouvrir
+                          </button>
+                          <button
+                            className="btn btn-secondary"
+                            type="button"
+                            onClick={() => {
+                              try { localStorage.setItem('spyke_invoice_from_contract_id', String(c.id)) } catch {}
+                              ;(window as any).__spyke_setTab?.('factures')
+                            }}
+                          >
+                            Facture
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      ) : null}
 
       <div className="card">
         <div className="form-section">
