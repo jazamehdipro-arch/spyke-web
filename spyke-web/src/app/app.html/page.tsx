@@ -481,6 +481,8 @@ function DevisV4({
 
           const { data: qRow, error: qErr } = await supabase
             .from('quotes')
+            // Important: onConflict must match the unique constraint (user_id, number)
+            // otherwise repeated “Générer PDF” won’t update the same quote.
             .upsert(
               {
                 user_id: userId,
@@ -496,7 +498,8 @@ function DevisV4({
                 total_ttc: totals.totalTtc,
                 buyer_snapshot: buyer,
                 seller_snapshot: seller,
-              } as any
+              } as any,
+              { onConflict: 'user_id,number' }
             )
             .select('id')
             .single()
@@ -532,8 +535,12 @@ function DevisV4({
             setQuotes(quotesData || [])
           }
         }
-      } catch {
-        // ignore persistence errors for now
+      } catch (e: any) {
+        // Do not fail PDF generation, but surface the issue so it can be fixed (RLS, schema, etc.)
+        try {
+          console.error('Persist quote failed', e)
+        } catch {}
+        alert(`PDF généré, mais sauvegarde en base impossible: ${e?.message || 'Erreur Supabase'}`)
       }
 
       const url = URL.createObjectURL(blob)
