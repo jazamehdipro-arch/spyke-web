@@ -2712,10 +2712,20 @@ export default function AppHtmlPage() {
   const [clientsView, setClientsView] = useState<'table' | 'detail'>('table')
   const [viewClientId, setViewClientId] = useState<string>('')
   const [clientSearch, setClientSearch] = useState<string>('')
-  const [clientStats, setClientStats] = useState<Record<string, { quotes: number; invoices: number; totalInvoiced: number; lastStatus: string }>>({})
+  const [clientStats, setClientStats] = useState<
+    Record<string, { quotes: number; invoices: number; contracts: number; totalInvoiced: number; lastStatus: string }>
+  >({})
 
   const [assistantContext, setAssistantContext] = useState<string>('')
   const [assistantOutput, setAssistantOutput] = useState<string>('')
+
+  // Dashboard data
+  const [dashboardQuotes, setDashboardQuotes] = useState<any[]>([])
+  const [dashboardInvoices, setDashboardInvoices] = useState<any[]>([])
+  const [dashboardContracts, setDashboardContracts] = useState<any[]>([])
+  const [dashboardCaMonth, setDashboardCaMonth] = useState<number>(0)
+  const [dashboardActiveClients, setDashboardActiveClients] = useState<number>(0)
+  const [dashboardPendingQuotes, setDashboardPendingQuotes] = useState<number>(0)
 
   // Allow sub-components to navigate tabs
   useEffect(() => {
@@ -2766,6 +2776,7 @@ export default function AppHtmlPage() {
         if (clientsError) throw clientsError
         setClients((clientsData || []) as ClientRow[])
         await refreshClientStats()
+        await refreshDashboardData()
       } finally {
         setLoading(false)
       }
@@ -2815,25 +2826,81 @@ export default function AppHtmlPage() {
     }
   }
 
+  async function refreshDashboardData() {
+    if (!supabase || !userId) return
+    try {
+      const now = new Date()
+      const y = now.getFullYear()
+      const m = now.getMonth()
+      const start = new Date(y, m, 1)
+      const end = new Date(y, m + 1, 1)
+      const startStr = start.toISOString().slice(0, 10)
+      const endStr = end.toISOString().slice(0, 10)
+
+      const [{ data: q }, { data: inv }, { data: ctr }, { data: invMonth }, { count: clientsCount }] = await Promise.all([
+        supabase.from('quotes').select('id,number,title,status,total_ttc,created_at').order('created_at', { ascending: false }).limit(5),
+        supabase
+          .from('invoices')
+          .select('id,number,status,total_ttc,created_at,due_date,client_id')
+          .order('created_at', { ascending: false })
+          .limit(5),
+        supabase.from('contracts').select('id,title,status,amount_ht,created_at,client_id').order('created_at', { ascending: false }).limit(5),
+        supabase
+          .from('invoices')
+          .select('total_ttc,date_issue')
+          .gte('date_issue', startStr)
+          .lt('date_issue', endStr),
+        supabase.from('clients').select('id', { count: 'exact', head: true }),
+      ])
+
+      setDashboardQuotes(q || [])
+      setDashboardInvoices(inv || [])
+      setDashboardContracts(ctr || [])
+      setDashboardActiveClients(Number(clientsCount || 0))
+
+      let ca = 0
+      for (const r of (invMonth || []) as any[]) ca += Number(r.total_ttc || 0)
+      setDashboardCaMonth(ca)
+
+      const pending = (q || []).filter((x: any) => {
+        const s = String(x.status || '')
+        return s && !['accepted', 'paid', 'rejected', 'cancelled'].includes(s)
+      }).length
+      setDashboardPendingQuotes(pending)
+    } catch {
+      // ignore
+    }
+  }
+
   async function refreshClientStats() {
     if (!supabase) return
     try {
-      const [{ data: qData }, { data: iData }] = await Promise.all([
+      const [{ data: qData }, { data: iData }, { data: cData }] = await Promise.all([
         supabase.from('quotes').select('client_id').not('client_id', 'is', null),
         supabase.from('invoices').select('client_id,total_ttc,status,created_at').not('client_id', 'is', null),
+        supabase.from('contracts').select('client_id').not('client_id', 'is', null),
       ])
 
-      const map: Record<string, { quotes: number; invoices: number; totalInvoiced: number; lastStatus: string; lastAt: number }> = {}
+      const map: Record<
+        string,
+        { quotes: number; invoices: number; contracts: number; totalInvoiced: number; lastStatus: string; lastAt: number }
+      > = {}
 
       for (const q of (qData || []) as any[]) {
         const id = String(q.client_id)
-        if (!map[id]) map[id] = { quotes: 0, invoices: 0, totalInvoiced: 0, lastStatus: '—', lastAt: 0 }
+        if (!map[id]) map[id] = { quotes: 0, invoices: 0, contracts: 0, totalInvoiced: 0, lastStatus: '—', lastAt: 0 }
         map[id].quotes += 1
+      }
+
+      for (const c of (cData || []) as any[]) {
+        const id = String(c.client_id)
+        if (!map[id]) map[id] = { quotes: 0, invoices: 0, contracts: 0, totalInvoiced: 0, lastStatus: '—', lastAt: 0 }
+        map[id].contracts += 1
       }
 
       for (const inv of (iData || []) as any[]) {
         const id = String(inv.client_id)
-        if (!map[id]) map[id] = { quotes: 0, invoices: 0, totalInvoiced: 0, lastStatus: '—', lastAt: 0 }
+        if (!map[id]) map[id] = { quotes: 0, invoices: 0, contracts: 0, totalInvoiced: 0, lastStatus: '—', lastAt: 0 }
         map[id].invoices += 1
         map[id].totalInvoiced += Number(inv.total_ttc || 0)
         const t = inv.created_at ? new Date(inv.created_at).getTime() : 0
@@ -2845,7 +2912,13 @@ export default function AppHtmlPage() {
 
       const cleaned: any = {}
       for (const [k, v] of Object.entries(map)) {
-        cleaned[k] = { quotes: v.quotes, invoices: v.invoices, totalInvoiced: v.totalInvoiced, lastStatus: v.lastStatus }
+        cleaned[k] = {
+          quotes: v.quotes,
+          invoices: v.invoices,
+          contracts: v.contracts,
+          totalInvoiced: v.totalInvoiced,
+          lastStatus: v.lastStatus,
+        }
       }
       setClientStats(cleaned)
     } catch {
@@ -4083,7 +4156,7 @@ CONTEXTE UTILISATEUR :
                   </svg>
                 </div>
               </div>
-              <div className="stat-value">0 €</div>
+              <div className="stat-value">{formatMoney(dashboardCaMonth)}</div>
               <div className="stat-label">CA ce mois</div>
             </div>
 
@@ -4109,7 +4182,7 @@ CONTEXTE UTILISATEUR :
                   </svg>
                 </div>
               </div>
-              <div className="stat-value">0</div>
+              <div className="stat-value">{dashboardActiveClients}</div>
               <div className="stat-label">Clients actifs</div>
             </div>
 
@@ -4122,7 +4195,7 @@ CONTEXTE UTILISATEUR :
                   </svg>
                 </div>
               </div>
-              <div className="stat-value">0</div>
+              <div className="stat-value">{dashboardPendingQuotes}</div>
               <div className="stat-label">Devis en attente</div>
             </div>
           </div>
@@ -4208,9 +4281,36 @@ CONTEXTE UTILISATEUR :
                   Tout voir
                 </a>
               </div>
-              <div className="empty-state" style={{ padding: 24 }}>
-                <p>Aucun devis pour le moment</p>
-              </div>
+              {dashboardQuotes.length === 0 ? (
+                <div className="empty-state" style={{ padding: 24 }}>
+                  <p>Aucun devis pour le moment</p>
+                </div>
+              ) : (
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr style={{ textAlign: 'left', fontSize: 12, color: 'var(--gray-500)' }}>
+                        <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>N°</th>
+                        <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Titre</th>
+                        <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Statut</th>
+                        <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)', textAlign: 'right' }}>Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {dashboardQuotes.map((q) => (
+                        <tr key={q.id}>
+                          <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{q.number}</td>
+                          <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{q.title || '—'}</td>
+                          <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{q.status || 'draft'}</td>
+                          <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)', textAlign: 'right', fontWeight: 700 }}>
+                            {formatMoney(Number(q.total_ttc || 0))}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
 
             <div className="card">
@@ -4227,9 +4327,38 @@ CONTEXTE UTILISATEUR :
                   Ouvrir
                 </a>
               </div>
-              <div className="empty-state" style={{ padding: 24 }}>
-                <p>Importez un devis puis générez la facture PDF.</p>
-              </div>
+              {dashboardInvoices.length === 0 ? (
+                <div className="empty-state" style={{ padding: 24 }}>
+                  <p>Importez un devis puis générez la facture PDF.</p>
+                </div>
+              ) : (
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr style={{ textAlign: 'left', fontSize: 12, color: 'var(--gray-500)' }}>
+                        <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>N°</th>
+                        <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Statut</th>
+                        <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Échéance</th>
+                        <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)', textAlign: 'right' }}>Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {dashboardInvoices.map((inv) => (
+                        <tr key={inv.id}>
+                          <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{inv.number}</td>
+                          <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{inv.status || 'draft'}</td>
+                          <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>
+                            {inv.due_date ? formatDateFr(String(inv.due_date)) : '—'}
+                          </td>
+                          <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)', textAlign: 'right', fontWeight: 700 }}>
+                            {formatMoney(Number(inv.total_ttc || 0))}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
 
             <div className="card">
@@ -4246,9 +4375,34 @@ CONTEXTE UTILISATEUR :
                   Ouvrir
                 </a>
               </div>
-              <div className="empty-state" style={{ padding: 24 }}>
-                <p>Générez un contrat et téléchargez le PDF.</p>
-              </div>
+              {dashboardContracts.length === 0 ? (
+                <div className="empty-state" style={{ padding: 24 }}>
+                  <p>Générez un contrat et téléchargez le PDF.</p>
+                </div>
+              ) : (
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr style={{ textAlign: 'left', fontSize: 12, color: 'var(--gray-500)' }}>
+                        <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Titre</th>
+                        <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Statut</th>
+                        <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)', textAlign: 'right' }}>Montant</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {dashboardContracts.map((c) => (
+                        <tr key={c.id}>
+                          <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{c.title || 'Contrat'}</td>
+                          <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{c.status || 'draft'}</td>
+                          <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)', textAlign: 'right', fontWeight: 700 }}>
+                            {formatMoney(Number(c.amount_ht || 0))}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -4396,6 +4550,7 @@ CONTEXTE UTILISATEUR :
                       <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Contact</th>
                       <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Ville</th>
                       <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Devis</th>
+                      <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Contrats</th>
                       <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Factures</th>
                       <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)', textAlign: 'right' }}>Total facturé</th>
                       <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Dernier statut</th>
@@ -4412,7 +4567,7 @@ CONTEXTE UTILISATEUR :
                           .some((x) => String(x).toLowerCase().includes(q))
                       })
                       .map((c) => {
-                        const s = clientStats[c.id] || { quotes: 0, invoices: 0, totalInvoiced: 0, lastStatus: '—' }
+                        const s = clientStats[c.id] || { quotes: 0, invoices: 0, contracts: 0, totalInvoiced: 0, lastStatus: '—' }
                         return (
                           <tr
                             key={c.id}
@@ -4432,6 +4587,7 @@ CONTEXTE UTILISATEUR :
                             </td>
                             <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{c.city || '—'}</td>
                             <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{s.quotes}</td>
+                            <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{s.contracts}</td>
                             <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{s.invoices}</td>
                             <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)', textAlign: 'right', fontWeight: 700 }}>
                               {formatMoney(Number(s.totalInvoiced || 0))}
