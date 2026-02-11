@@ -157,6 +157,7 @@ function DevisV4({
     }
   }, [])
 
+  const [mode, setMode] = useState<'list' | 'create'>('list')
   const [showQuotes, setShowQuotes] = useState(false)
   const [quotes, setQuotes] = useState<any[]>([])
 
@@ -226,6 +227,86 @@ function DevisV4({
   const depositAmount = useMemo(() => totals.totalTtc * ((depositPercent || 0) / 100), [totals.totalTtc, depositPercent])
 
   const validityUntil = useMemo(() => addDays(dateIssue, validityDays || 0), [dateIssue, validityDays])
+
+  async function openQuote(id: string) {
+    try {
+      if (!supabase || !id) return
+      const { data: q } = await supabase
+        .from('quotes')
+        .select('id,client_id,number,title,status,date_issue,validity_until,notes,total_ttc')
+        .eq('id', id)
+        .maybeSingle()
+      if (!q) return
+
+      const { data: qLines } = await supabase
+        .from('quote_lines')
+        .select('label,description,qty,unit_price_ht,vat_rate,position')
+        .eq('quote_id', id)
+        .order('position', { ascending: true })
+
+      setTitle(String((q as any).title || ''))
+      setNotes(String((q as any).notes || ''))
+
+      const num = String((q as any).number || '')
+      if (num) {
+        setQuoteNumber(num)
+        setQuoteNumberDirty(true)
+      }
+
+      const di = String((q as any).date_issue || '')
+      if (di) setDateIssue(di)
+
+      // Best-effort: validityUntil → validityDays
+      const vu = String((q as any).validity_until || '')
+      if (di && vu) {
+        const a = new Date(di + 'T00:00:00').getTime()
+        const b = new Date(vu + 'T00:00:00').getTime()
+        if (!Number.isNaN(a) && !Number.isNaN(b) && b >= a) {
+          const days = Math.round((b - a) / (1000 * 60 * 60 * 24))
+          if (days > 0 && days < 366) setValidityDays(days)
+        }
+      }
+
+      if ((q as any).client_id) setClientChoice({ mode: 'existing', id: String((q as any).client_id) })
+
+      if (Array.isArray(qLines) && qLines.length) {
+        setLines(
+          qLines.map((l: any, idx: number) => ({
+            id: String(Date.now()) + '-' + String(idx),
+            label: String(l.label || ''),
+            description: String(l.description || ''),
+            qty: Number(l.qty || 0) || 0,
+            unitPriceHt: Number(l.unit_price_ht || 0) || 0,
+            vatRate: Number(l.vat_rate || 0) || 0,
+          }))
+        )
+      }
+
+      setMode('create')
+    } catch {
+      // ignore
+    }
+  }
+
+  function resetNewQuote() {
+    setMode('create')
+    setTitle('')
+    setNotes('')
+    setClientChoice({ mode: 'existing', id: '' })
+    setLines([
+      {
+        id: '0',
+        label: '',
+        description: '',
+        qty: 1,
+        unitPriceHt: 0,
+        vatRate: lines[0]?.vatRate ?? 20,
+      },
+    ])
+    const t = new Date().toISOString().slice(0, 10)
+    setDateIssue(t)
+    setQuoteNumberDirty(false)
+  }
 
   function updateLine(id: string, patch: Partial<DevisLine>) {
     setLines((prev) => prev.map((l) => (l.id === id ? { ...l, ...patch } : l)))
@@ -441,6 +522,14 @@ function DevisV4({
                 })) as any
               )
             }
+
+            // Refresh list
+            const { data: quotesData } = await supabase
+              .from('quotes')
+              .select('id,number,title,status,total_ttc,created_at')
+              .order('created_at', { ascending: false })
+              .limit(30)
+            setQuotes(quotesData || [])
           }
         }
       } catch {
@@ -790,7 +879,96 @@ function DevisV4({
         }
       `}</style>
 
-      <div className="devis-container">
+      {mode === 'list' ? (
+        <>
+          <div className="page-header">
+            <div>
+              <h1 className="page-title">Devis</h1>
+              <p className="page-subtitle">Consultez vos devis et créez-en un nouveau</p>
+            </div>
+            <div className="header-actions">
+              <button className="btn btn-primary" type="button" onClick={resetNewQuote}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                Nouveau devis
+              </button>
+            </div>
+          </div>
+
+          <div className="card" style={{ marginTop: 20 }}>
+            <div className="card-header">
+              <h3 className="card-title">📄 Devis récents</h3>
+            </div>
+
+            {quotes.length === 0 ? (
+              <div className="empty-state" style={{ padding: 24 }}>
+                <div className="empty-state-icon">📄</div>
+                <h4>Aucun devis</h4>
+                <p>Créez votre premier devis en cliquant sur “Nouveau devis”.</p>
+              </div>
+            ) : (
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ textAlign: 'left', fontSize: 12, color: 'var(--gray-500)' }}>
+                      <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>N°</th>
+                      <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Titre</th>
+                      <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Statut</th>
+                      <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)', textAlign: 'right' }}>Total</th>
+                      <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)', textAlign: 'right' }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {quotes.map((q) => (
+                      <tr key={q.id}>
+                        <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{q.number}</td>
+                        <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{q.title || '—'}</td>
+                        <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{q.status || 'draft'}</td>
+                        <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)', textAlign: 'right', fontWeight: 700 }}>{formatMoney(Number(q.total_ttc || 0))}</td>
+                        <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)', textAlign: 'right' }}>
+                          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                            <button className="btn btn-secondary" type="button" onClick={() => openQuote(String(q.id))}>
+                              Ouvrir
+                            </button>
+                            <button
+                              className="btn btn-secondary"
+                              type="button"
+                              onClick={() => {
+                                try { localStorage.setItem('spyke_contract_from_quote_id', String(q.id)) } catch {}
+                                ;(window as any).__spyke_setTab?.('contrats')
+                              }}
+                            >
+                              Contrat
+                            </button>
+                            <button
+                              className="btn btn-secondary"
+                              type="button"
+                              onClick={() => {
+                                try { localStorage.setItem('spyke_invoice_from_quote_id', String(q.id)) } catch {}
+                                ;(window as any).__spyke_setTab?.('factures')
+                              }}
+                            >
+                              Facture
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </>
+      ) : (
+        <>
+          <button className="btn btn-secondary" type="button" onClick={() => setMode('list')} style={{ marginBottom: 16 }}>
+            ← Retour aux devis
+          </button>
+
+          <div className="devis-container">
         <div className="form-wrapper">
           <div className="card">
             <div className="info-box">
@@ -1236,8 +1414,10 @@ function DevisV4({
               </div>
             </div>
           ) : null}
+          </div>
         </div>
-      </div>
+        </>
+      )}
     </div>
   )
 }
@@ -1284,6 +1464,7 @@ function ContratsV1({
   const [contractFromQuoteId, setContractFromQuoteId] = useState<string>('')
   const [quotes, setQuotes] = useState<any[]>([])
 
+  const [mode, setMode] = useState<'list' | 'create'>('list')
   const [showContracts, setShowContracts] = useState(false)
   const [contracts, setContracts] = useState<any[]>([])
   const [selectedContractId, setSelectedContractId] = useState<string>('')
@@ -1725,23 +1906,29 @@ function ContratsV1({
       <div className="page-header">
         <div>
           <h1 className="page-title">Contrats</h1>
-          <p className="page-subtitle">Générez un contrat de prestation de service en quelques minutes</p>
+          <p className="page-subtitle">Consultez vos contrats et créez-en un nouveau</p>
         </div>
         <div className="header-actions">
-          <button className="btn btn-secondary" type="button" onClick={() => setShowContracts((s) => !s)}>
-            {showContracts ? 'Masquer' : 'Voir'} mes contrats
+          <button className="btn btn-primary" type="button" onClick={() => setMode('create')}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            Nouveau contrat
           </button>
         </div>
       </div>
 
-      {showContracts ? (
-        <div className="card" style={{ marginBottom: 16 }}>
+      {mode === 'list' ? (
+        <div className="card" style={{ marginTop: 20 }}>
           <div className="card-header">
-            <h3 className="card-title">📝 Mes contrats récents</h3>
+            <h3 className="card-title">📝 Contrats récents</h3>
           </div>
           {contracts.length === 0 ? (
             <div className="empty-state" style={{ padding: 24 }}>
-              <p>Aucun contrat pour le moment.</p>
+              <div className="empty-state-icon">📝</div>
+              <h4>Aucun contrat</h4>
+              <p>Créez votre premier contrat en cliquant sur “Nouveau contrat”.</p>
             </div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
@@ -1764,7 +1951,14 @@ function ContratsV1({
                       </td>
                       <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)', textAlign: 'right' }}>
                         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-                          <button className="btn btn-secondary" type="button" onClick={() => openContract(String(c.id))}>
+                          <button
+                            className="btn btn-secondary"
+                            type="button"
+                            onClick={() => {
+                              openContract(String(c.id))
+                              setMode('create')
+                            }}
+                          >
                             Ouvrir
                           </button>
                           <button
@@ -1786,9 +1980,13 @@ function ContratsV1({
             </div>
           )}
         </div>
-      ) : null}
+      ) : (
+        <>
+          <button className="btn btn-secondary" type="button" onClick={() => setMode('list')} style={{ marginBottom: 16 }}>
+            ← Retour aux contrats
+          </button>
 
-      <div className="card">
+          <div className="card">
         <div className="form-section">
           <div className="form-section-title">Importer depuis un devis</div>
           <div className="form-row">
@@ -2108,6 +2306,8 @@ function ContratsV1({
           </div>
         ) : null}
       </div>
+        </>
+      )}
     </div>
   )
 }
