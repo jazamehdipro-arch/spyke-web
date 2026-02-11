@@ -504,16 +504,28 @@ function DevisV4({
             .select('id')
             .single()
 
-          if (!qErr && qRow?.id) {
+          if (qErr) {
+            try {
+              console.error('Persist quote error', qErr)
+            } catch {}
+            alert(`PDF généré, mais sauvegarde en base impossible: ${qErr.message}`)
+          } else if (qRow?.id) {
             // Save for chain navigation
             try {
               localStorage.setItem('spyke_last_quote_id', String(qRow.id))
             } catch {}
 
             // Replace lines
-            await supabase.from('quote_lines').delete().eq('quote_id', qRow.id)
+            const { error: delErr } = await supabase.from('quote_lines').delete().eq('quote_id', qRow.id)
+            if (delErr) {
+              try {
+                console.error('Persist quote lines delete error', delErr)
+              } catch {}
+              alert(`PDF généré, mais lignes devis non sauvegardées: ${delErr.message}`)
+            }
+
             if (lines.length) {
-              await supabase.from('quote_lines').insert(
+              const { error: insErr } = await supabase.from('quote_lines').insert(
                 lines.map((l, idx) => ({
                   quote_id: qRow.id,
                   position: idx,
@@ -524,15 +536,28 @@ function DevisV4({
                   vat_rate: l.vatRate,
                 })) as any
               )
+              if (insErr) {
+                try {
+                  console.error('Persist quote lines insert error', insErr)
+                } catch {}
+                alert(`PDF généré, mais lignes devis non sauvegardées: ${insErr.message}`)
+              }
             }
 
             // Refresh list
-            const { data: quotesData } = await supabase
+            const { data: quotesData, error: qSelErr } = await supabase
               .from('quotes')
               .select('id,number,title,status,total_ttc,created_at')
               .order('created_at', { ascending: false })
               .limit(30)
+            if (qSelErr) {
+              try {
+                console.error('Refresh quotes list error', qSelErr)
+              } catch {}
+            }
             setQuotes(quotesData || [])
+          } else {
+            alert('PDF généré, mais sauvegarde en base impossible: aucun identifiant devis retourné')
           }
         }
       } catch (e: any) {
