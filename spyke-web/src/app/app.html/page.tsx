@@ -1460,6 +1460,13 @@ function genInvoiceNumber(dateStr: string, sequence = 1) {
   return `${year}-${String(sequence).padStart(3, '0')}`
 }
 
+function genContractNumber(dateStr: string, sequence = 1) {
+  const d = new Date((dateStr || '').slice(0, 10) + 'T00:00:00')
+  const year = !Number.isNaN(d.getTime()) ? d.getFullYear() : new Date().getFullYear()
+  const month = String((!Number.isNaN(d.getTime()) ? d.getMonth() + 1 : new Date().getMonth() + 1)).padStart(2, '0')
+  return `C${year}${month}-${String(sequence).padStart(3, '0')}`
+}
+
 function ContratsV1({
   clients,
   userId,
@@ -1489,6 +1496,10 @@ function ContratsV1({
 
   const [prestaName, setPrestaName] = useState(userFullName || '')
   const [prestaSiret, setPrestaSiret] = useState('')
+
+  const [contractNumber, setContractNumber] = useState(() => genContractNumber(today, 1))
+  const [contractNumberDirty, setContractNumberDirty] = useState(false)
+
   const [prestaAddress, setPrestaAddress] = useState('')
   const [prestaActivity, setPrestaActivity] = useState(userJob || '')
   const [prestaEmail, setPrestaEmail] = useState('')
@@ -1558,6 +1569,42 @@ function ContratsV1({
     })()
   }, [supabase, userId, userFullName])
 
+  // Auto-number: CYYYYMM-001 (per user, per month)
+  useEffect(() => {
+    ;(async () => {
+      try {
+        if (!supabase || !userId) return
+        if (contractNumberDirty) return
+
+        const d = new Date((today || '').slice(0, 10) + 'T00:00:00')
+        const year = !Number.isNaN(d.getTime()) ? d.getFullYear() : new Date().getFullYear()
+        const month = String((!Number.isNaN(d.getTime()) ? d.getMonth() + 1 : new Date().getMonth() + 1)).padStart(2, '0')
+        const prefix = `C${year}${month}-`
+
+        const { data } = await supabase
+          .from('contracts')
+          .select('number')
+          .eq('user_id', userId)
+          .like('number', `${prefix}%`)
+          .order('created_at', { ascending: false })
+          .limit(200)
+
+        let max = 0
+        for (const r of (data || []) as any[]) {
+          const n = String(r.number || '')
+          if (!n.startsWith(prefix)) continue
+          const tail = n.slice(prefix.length)
+          const seq = Number(tail)
+          if (!Number.isNaN(seq)) max = Math.max(max, seq)
+        }
+
+        setContractNumber(genContractNumber(today, max + 1))
+      } catch {
+        // ignore
+      }
+    })()
+  }, [supabase, userId, today, contractNumberDirty])
+
   useEffect(() => {
     ;(async () => {
       try {
@@ -1570,7 +1617,7 @@ function ContratsV1({
             .limit(50),
           supabase
             .from('contracts')
-            .select('id,title,status,amount_ht,created_at,client_id,quote_id')
+            .select('id,number,title,status,amount_ht,created_at,client_id,quote_id')
             .order('created_at', { ascending: false })
             .limit(50),
         ])
@@ -1648,10 +1695,15 @@ function ContratsV1({
 
     const { data: c } = await supabase
       .from('contracts')
-      .select('id,client_id,quote_id,title,status,contract_text,mission_start,mission_end,amount_ht,tva_regime,buyer_snapshot,seller_snapshot')
+      .select('id,number,client_id,quote_id,title,status,contract_text,mission_start,mission_end,amount_ht,tva_regime,buyer_snapshot,seller_snapshot')
       .eq('id', id)
       .maybeSingle()
     if (!c) return
+
+    if ((c as any).number) {
+      setContractNumber(String((c as any).number || ''))
+      setContractNumberDirty(true)
+    }
 
     if ((c as any).quote_id) setContractFromQuoteId(String((c as any).quote_id))
     if ((c as any).client_id) setClientId(String((c as any).client_id))
@@ -1859,15 +1911,24 @@ function ContratsV1({
               ? Number(pricingAmount || 0)
               : Number(pricingAmount || 0) * Number(pricingDays || 0)
 
-          // try find existing by (user_id, client_id, mission_start) - best-effort
-          let existingQ = supabase.from('contracts').select('id').eq('user_id', userId)
-          existingQ = clientId ? existingQ.eq('client_id', clientId) : existingQ.is('client_id', null)
-          const { data: existing } = await existingQ.order('created_at', { ascending: false }).limit(1).maybeSingle()
+          // Uniqueness check: number must be unique per user
+          const { data: existing, error: existingErr } = await supabase
+            .from('contracts')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('number', contractNumber)
+            .maybeSingle()
+          if (existingErr) throw existingErr
+
+          if (existing?.id && String(existing.id) !== String(selectedContractId || '')) {
+            throw new Error('Numéro de contrat déjà utilisé')
+          }
 
           const row = {
             user_id: userId,
             client_id: clientId || null,
             quote_id: contractFromQuoteId || null,
+            number: contractNumber,
             title: 'Contrat de prestation de service',
             status: 'draft',
             contract_text: finalText,
@@ -1903,7 +1964,7 @@ function ContratsV1({
           try {
             const { data: cData } = await supabase
               .from('contracts')
-              .select('id,title,status,amount_ht,created_at,client_id,quote_id')
+              .select('id,number,title,status,amount_ht,created_at,client_id,quote_id')
               .order('created_at', { ascending: false })
               .limit(50)
             setContracts((cData || []) as any[])
@@ -1986,6 +2047,7 @@ function ContratsV1({
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr style={{ textAlign: 'left', fontSize: 12, color: 'var(--gray-500)' }}>
+                    <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>N°</th>
                     <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Titre</th>
                     <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Statut</th>
                     <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)', textAlign: 'right' }}>Montant</th>
@@ -1995,6 +2057,7 @@ function ContratsV1({
                 <tbody>
                   {contracts.map((c) => (
                     <tr key={c.id}>
+                      <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{(c as any).number || '—'}</td>
                       <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{c.title || 'Contrat'}</td>
                       <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{c.status || 'draft'}</td>
                       <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)', textAlign: 'right', fontWeight: 700 }}>
@@ -2038,6 +2101,28 @@ function ContratsV1({
           </button>
 
           <div className="card">
+        <div className="form-section">
+          <div className="form-section-title">Informations du contrat</div>
+          <div className="form-row">
+            <div className="form-group">
+              <label className="form-label">Numéro du contrat</label>
+              <input
+                type="text"
+                className="form-input"
+                value={contractNumber}
+                onChange={(e) => {
+                  setContractNumber(e.target.value)
+                  setContractNumberDirty(true)
+                }}
+                placeholder="C202602-001"
+              />
+              <div style={{ marginTop: 6, fontSize: 12, color: 'var(--gray-500)' }}>
+                Format conseillé : CYYYYMM-001 (auto). Vous pouvez modifier si besoin.
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div className="form-section">
           <div className="form-section-title">Importer depuis un devis</div>
           <div className="form-row">
@@ -2408,6 +2493,36 @@ function FacturesV1({
 
   const totals = useMemo(() => computeInvoiceTotals(lines), [lines])
 
+  const todayStr = useMemo(() => new Date().toISOString().slice(0, 10), [])
+
+  const invoiceStats = useMemo(() => {
+    let total = 0
+    let paid = 0
+    let pending = 0
+    let late = 0
+
+    for (const inv of invoices || []) {
+      const amount = Number((inv as any)?.total_ttc || 0) || 0
+      total += amount
+
+      const paidAt = (inv as any)?.paid_at
+      const due = String((inv as any)?.due_date || '')
+
+      if (paidAt) {
+        paid += amount
+        continue
+      }
+
+      if (due && due < todayStr) {
+        late += amount
+      } else {
+        pending += amount
+      }
+    }
+
+    return { total, paid, pending, late }
+  }, [invoices, todayStr])
+
   useEffect(() => {
     setDueDate(addDays(invoiceDate, paymentDelayDays || 0))
     setInvoiceNumber(genInvoiceNumber(invoiceDate, 1))
@@ -2437,7 +2552,7 @@ function FacturesV1({
             .limit(50),
           supabase
             .from('invoices')
-            .select('id,number,status,date_issue,due_date,total_ttc,client_id,created_at')
+            .select('id,number,status,paid_at,date_issue,due_date,total_ttc,client_id,created_at')
             .order('created_at', { ascending: false })
             .limit(50),
         ])
@@ -2519,7 +2634,7 @@ function FacturesV1({
 
     const { data: inv } = await supabase
       .from('invoices')
-      .select('id,number,status,date_issue,due_date,payment_terms_days,total_ttc,buyer_snapshot,client_id')
+      .select('id,number,status,paid_at,date_issue,due_date,payment_terms_days,total_ttc,buyer_snapshot,client_id')
       .eq('id', id)
       .maybeSingle()
     if (!inv) return
@@ -2709,12 +2824,18 @@ function FacturesV1({
 
           const client_id = clientId || null
 
-          const { data: existing } = await supabase
+          const { data: existing, error: existingErr } = await supabase
             .from('invoices')
             .select('id')
             .eq('user_id', userId)
             .eq('number', invoiceNumber)
             .maybeSingle()
+          if (existingErr) throw existingErr
+
+          // If another invoice already uses this number, block creation
+          if (existing?.id && String(existing.id) !== String(selectedInvoiceId || '')) {
+            throw new Error('Numéro de facture déjà utilisé')
+          }
 
           const row = {
             user_id: userId,
@@ -2765,7 +2886,7 @@ function FacturesV1({
           try {
             const { data: invData } = await supabase
               .from('invoices')
-              .select('id,number,status,date_issue,due_date,total_ttc,client_id,created_at')
+              .select('id,number,status,paid_at,date_issue,due_date,total_ttc,client_id,created_at')
               .order('created_at', { ascending: false })
               .limit(50)
             setInvoices((invData || []) as any[])
@@ -2822,7 +2943,7 @@ function FacturesV1({
                   </svg>
                 </div>
               </div>
-              <div className="stat-value">0 €</div>
+              <div className="stat-value">{formatMoney(invoiceStats.total)}</div>
               <div className="stat-label">Total facturé</div>
             </div>
 
@@ -2835,7 +2956,7 @@ function FacturesV1({
                   </svg>
                 </div>
               </div>
-              <div className="stat-value">0 €</div>
+              <div className="stat-value">{formatMoney(invoiceStats.paid)}</div>
               <div className="stat-label">Payé</div>
             </div>
 
@@ -2848,7 +2969,7 @@ function FacturesV1({
                   </svg>
                 </div>
               </div>
-              <div className="stat-value">0 €</div>
+              <div className="stat-value">{formatMoney(invoiceStats.pending)}</div>
               <div className="stat-label">En attente</div>
             </div>
 
@@ -2862,7 +2983,7 @@ function FacturesV1({
                   </svg>
                 </div>
               </div>
-              <div className="stat-value">0 €</div>
+              <div className="stat-value">{formatMoney(invoiceStats.late)}</div>
               <div className="stat-label">En retard</div>
             </div>
           </div>
@@ -2899,14 +3020,51 @@ function FacturesV1({
                         <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>
                           {clients.find((c) => c.id === inv.client_id)?.name || '—'}
                         </td>
-                        <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{inv.status || 'draft'}</td>
+                        <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>
+                          {(() => {
+                            const paidAt = (inv as any)?.paid_at
+                            const due = String((inv as any)?.due_date || '')
+                            if (paidAt) return 'paid'
+                            if (due && due < todayStr) return 'late'
+                            return String((inv as any)?.status || 'pending')
+                          })()}
+                        </td>
                         <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{inv.date_issue ? formatDateFr(String(inv.date_issue)) : '—'}</td>
                         <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{inv.due_date ? formatDateFr(String(inv.due_date)) : '—'}</td>
                         <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)', textAlign: 'right', fontWeight: 700 }}>{formatMoney(Number(inv.total_ttc || 0))}</td>
                         <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)', textAlign: 'right' }}>
-                          <button className="btn btn-secondary" type="button" onClick={() => openInvoice(String(inv.id))}>
-                            Ouvrir
-                          </button>
+                          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                            <button className="btn btn-secondary" type="button" onClick={() => openInvoice(String(inv.id))}>
+                              Ouvrir
+                            </button>
+                            {!(inv as any)?.paid_at ? (
+                              <button
+                                className="btn btn-secondary"
+                                type="button"
+                                onClick={async () => {
+                                  try {
+                                    if (!supabase) return
+                                    const { error } = await supabase
+                                      .from('invoices')
+                                      .update({ paid_at: new Date().toISOString(), status: 'paid' } as any)
+                                      .eq('id', String(inv.id))
+                                    if (error) throw error
+
+                                    const { data: invData } = await supabase
+                                      .from('invoices')
+                                      .select('id,number,status,paid_at,date_issue,due_date,total_ttc,client_id,created_at')
+                                      .order('created_at', { ascending: false })
+                                      .limit(50)
+                                    setInvoices((invData || []) as any[])
+                                  } catch (e: any) {
+                                    alert(e?.message || 'Erreur mise à jour facture')
+                                  }
+                                }}
+                              >
+                                Marquer payé
+                              </button>
+                            ) : null}
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -3276,7 +3434,7 @@ export default function AppHtmlPage() {
         supabase.from('quotes').select('id,number,title,status,total_ttc,created_at').order('created_at', { ascending: false }).limit(5),
         supabase
           .from('invoices')
-          .select('id,number,status,total_ttc,created_at,due_date,client_id')
+          .select('id,number,status,paid_at,total_ttc,created_at,due_date,client_id')
           .order('created_at', { ascending: false })
           .limit(5),
         supabase.from('contracts').select('id,title,status,amount_ht,created_at,client_id').order('created_at', { ascending: false }).limit(5),
