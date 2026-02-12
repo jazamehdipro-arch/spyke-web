@@ -1647,7 +1647,7 @@ function ContratsV1({
     ;(async () => {
       try {
         if (!supabase) return
-        const [{ data, error }, { data: cData }] = await Promise.all([
+        const [{ data, error }, { data: cData, error: cErr }] = await Promise.all([
           supabase
             .from('quotes')
             .select('id,number,title,total_ttc,created_at')
@@ -1660,6 +1660,7 @@ function ContratsV1({
             .limit(50),
         ])
         if (error) throw error
+        if (cErr) throw cErr
         setQuotes((data || []) as any[])
         setContracts((cData || []) as any[])
       } catch {
@@ -3394,6 +3395,21 @@ export default function AppHtmlPage() {
   const [userJob, setUserJob] = useState<string>('')
   const [userDefaultTone, setUserDefaultTone] = useState<string>('')
 
+  // Settings fields (profile)
+  const [settingsFirstName, setSettingsFirstName] = useState<string>('')
+  const [settingsLastName, setSettingsLastName] = useState<string>('')
+  const [settingsJob, setSettingsJob] = useState<string>('')
+  const [settingsEmailTone, setSettingsEmailTone] = useState<string>('')
+  const [settingsCompanyName, setSettingsCompanyName] = useState<string>('')
+  const [settingsAddress, setSettingsAddress] = useState<string>('')
+  const [settingsPostalCode, setSettingsPostalCode] = useState<string>('')
+  const [settingsCity, setSettingsCity] = useState<string>('')
+  const [settingsCountry, setSettingsCountry] = useState<string>('')
+  const [settingsSiret, setSettingsSiret] = useState<string>('')
+  const [settingsVatNumber, setSettingsVatNumber] = useState<string>('')
+  const [settingsIban, setSettingsIban] = useState<string>('')
+  const [settingsBic, setSettingsBic] = useState<string>('')
+
   const [clients, setClients] = useState<ClientRow[]>([])
   const [selectedClientId, setSelectedClientId] = useState<string>('')
   const [editingClientId, setEditingClientId] = useState<string>('')
@@ -3447,14 +3463,35 @@ export default function AppHtmlPage() {
 
         const { data: profile } = await supabase
           .from('profiles')
-          .select('first_name,last_name,job,email_tone,plan')
+          .select('first_name,last_name,job,email_tone,plan,company_name,address,postal_code,city,country,siret,vat_number,iban,bic')
           .eq('id', userId)
           .maybeSingle()
 
-        const full = [profile?.first_name, profile?.last_name].filter(Boolean).join(' ').trim()
+        const firstName = String((profile as any)?.first_name || '')
+        const lastName = String((profile as any)?.last_name || '')
+        const full = [firstName, lastName].filter(Boolean).join(' ').trim()
         setUserFullName(full || 'Utilisateur')
-        setUserJob(String((profile as any)?.job || ''))
-        setUserDefaultTone(String((profile as any)?.email_tone || ''))
+
+        const job = String((profile as any)?.job || '')
+        setUserJob(job)
+
+        const emailTone = String((profile as any)?.email_tone || '')
+        setUserDefaultTone(emailTone)
+
+        // Init settings form
+        setSettingsFirstName(firstName)
+        setSettingsLastName(lastName)
+        setSettingsJob(job)
+        setSettingsEmailTone(emailTone)
+        setSettingsCompanyName(String((profile as any)?.company_name || ''))
+        setSettingsAddress(String((profile as any)?.address || ''))
+        setSettingsPostalCode(String((profile as any)?.postal_code || ''))
+        setSettingsCity(String((profile as any)?.city || ''))
+        setSettingsCountry(String((profile as any)?.country || ''))
+        setSettingsSiret(String((profile as any)?.siret || ''))
+        setSettingsVatNumber(String((profile as any)?.vat_number || ''))
+        setSettingsIban(String((profile as any)?.iban || ''))
+        setSettingsBic(String((profile as any)?.bic || ''))
 
         const plan = String((profile as any)?.plan || 'free') === 'pro' ? 'pro' : 'free'
         setPlanCode(plan)
@@ -5608,13 +5645,164 @@ CONTEXTE UTILISATEUR :
                   Passer Pro (19,90€/mois)
                 </button>
               ) : (
-                <p style={{ color: 'var(--gray-600)' }}>Votre abonnement Pro est actif ✅</p>
+                <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <p style={{ color: 'var(--gray-600)', margin: 0 }}>Votre abonnement Pro est actif ✅</p>
+                  <button
+                    className="btn btn-secondary"
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        if (!supabase) throw new Error('Supabase non initialisé')
+                        const { data: sessionData } = await supabase.auth.getSession()
+                        const token = sessionData?.session?.access_token
+                        if (!token) throw new Error('Non connecté')
+
+                        const res = await fetch('/api/stripe/portal', {
+                          method: 'POST',
+                          headers: { authorization: `Bearer ${token}` },
+                        })
+                        const json = await res.json().catch(() => null)
+                        if (!res.ok) throw new Error(json?.error || 'Erreur portail Stripe')
+                        const url = String(json?.url || '')
+                        if (!url) throw new Error('URL portail Stripe manquante')
+                        window.location.href = url
+                      } catch (e: any) {
+                        alert(e?.message || 'Erreur portail Stripe')
+                      }
+                    }}
+                  >
+                    Gérer / Résilier
+                  </button>
+                </div>
               )}
 
               <div style={{ marginTop: 14, fontSize: 13, color: 'var(--gray-500)' }}>
                 Free : 10 emails IA / mois, 3 devis / mois, 3 clients max.
                 <br />
                 Pro : illimité.
+              </div>
+            </div>
+
+            <div className="form-section" style={{ marginTop: 24 }}>
+              <div className="form-section-title">Profil (utilisé dans Devis / Factures / Contrats)</div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label">Prénom</label>
+                  <input className="form-input" value={settingsFirstName} onChange={(e) => setSettingsFirstName(e.target.value)} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Nom</label>
+                  <input className="form-input" value={settingsLastName} onChange={(e) => setSettingsLastName(e.target.value)} />
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label">Entreprise (optionnel)</label>
+                  <input className="form-input" value={settingsCompanyName} onChange={(e) => setSettingsCompanyName(e.target.value)} placeholder="Nom de l'entreprise" />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Métier</label>
+                  <input className="form-input" value={settingsJob} onChange={(e) => setSettingsJob(e.target.value)} placeholder="Ex: Développeur" />
+                </div>
+              </div>
+
+              <div className="form-row single">
+                <div className="form-group">
+                  <label className="form-label">Adresse</label>
+                  <input className="form-input" value={settingsAddress} onChange={(e) => setSettingsAddress(e.target.value)} placeholder="12 rue de la Paix" />
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label">Code postal</label>
+                  <input className="form-input" value={settingsPostalCode} onChange={(e) => setSettingsPostalCode(e.target.value)} placeholder="75000" />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Ville</label>
+                  <input className="form-input" value={settingsCity} onChange={(e) => setSettingsCity(e.target.value)} placeholder="Paris" />
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label">Pays</label>
+                  <input className="form-input" value={settingsCountry} onChange={(e) => setSettingsCountry(e.target.value)} placeholder="France" />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">SIRET</label>
+                  <input className="form-input" value={settingsSiret} onChange={(e) => setSettingsSiret(e.target.value)} placeholder="" />
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label">N° TVA (optionnel)</label>
+                  <input className="form-input" value={settingsVatNumber} onChange={(e) => setSettingsVatNumber(e.target.value)} placeholder="FR…" />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Ton email par défaut</label>
+                  <input className="form-input" value={settingsEmailTone} onChange={(e) => setSettingsEmailTone(e.target.value)} placeholder="professionnel / chaleureux / formel" />
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label">IBAN (optionnel)</label>
+                  <input className="form-input" value={settingsIban} onChange={(e) => setSettingsIban(e.target.value)} placeholder="" />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">BIC (optionnel)</label>
+                  <input className="form-input" value={settingsBic} onChange={(e) => setSettingsBic(e.target.value)} placeholder="" />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 12 }}>
+                <button
+                  className="btn btn-primary"
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      if (!supabase || !userId) throw new Error('Session manquante')
+                      setLoading(true)
+
+                      const payload = {
+                        first_name: settingsFirstName || null,
+                        last_name: settingsLastName || null,
+                        job: settingsJob || null,
+                        email_tone: settingsEmailTone || null,
+                        company_name: settingsCompanyName || null,
+                        address: settingsAddress || null,
+                        postal_code: settingsPostalCode || null,
+                        city: settingsCity || null,
+                        country: settingsCountry || null,
+                        siret: settingsSiret || null,
+                        vat_number: settingsVatNumber || null,
+                        iban: settingsIban || null,
+                        bic: settingsBic || null,
+                      } as any
+
+                      const { error } = await supabase.from('profiles').update(payload).eq('id', userId)
+                      if (error) throw error
+
+                      // Refresh display fields
+                      const full = [settingsFirstName, settingsLastName].filter(Boolean).join(' ').trim()
+                      setUserFullName(full || 'Utilisateur')
+                      setUserJob(settingsJob)
+                      setUserDefaultTone(settingsEmailTone)
+
+                      alert('Profil mis à jour')
+                    } catch (e: any) {
+                      alert(e?.message || 'Erreur mise à jour profil')
+                    } finally {
+                      setLoading(false)
+                    }
+                  }}
+                >
+                  Enregistrer
+                </button>
               </div>
             </div>
           </div>
