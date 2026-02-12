@@ -3024,9 +3024,9 @@ function FacturesV1({
                           {(() => {
                             const paidAt = (inv as any)?.paid_at
                             const due = String((inv as any)?.due_date || '')
-                            if (paidAt) return 'paid'
-                            if (due && due < todayStr) return 'late'
-                            return String((inv as any)?.status || 'pending')
+                            if (paidAt) return 'Payée'
+                            if (due && due < todayStr) return 'En retard'
+                            return 'Non payée'
                           })()}
                         </td>
                         <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{inv.date_issue ? formatDateFr(String(inv.date_issue)) : '—'}</td>
