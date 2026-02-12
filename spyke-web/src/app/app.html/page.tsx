@@ -78,10 +78,12 @@ function DevisV4({
   userFullName,
   userJob,
   userId,
+  planCode,
 }: {
   userFullName: string
   userJob: string
   userId: string | null
+  planCode: 'free' | 'pro'
 }) {
   const supabase = useMemo(() => {
     try {
@@ -349,6 +351,28 @@ function DevisV4({
   async function generatePdf() {
     try {
       if (!supabase) throw new Error('Supabase non initialisé')
+
+      // Free quota: 3 documents / month (Devis)
+      if (planCode !== 'pro' && userId) {
+        const now = new Date()
+        const start = new Date(now.getFullYear(), now.getMonth(), 1)
+        const end = new Date(now.getFullYear(), now.getMonth() + 1, 1)
+        const startStr = start.toISOString()
+        const endStr = end.toISOString()
+
+        const { count, error } = await supabase
+          .from('quotes')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', userId)
+          .gte('created_at', startStr)
+          .lt('created_at', endStr)
+        if (error) throw error
+        if (Number(count || 0) >= 3) {
+          alert('Limite du plan Free atteinte : 3 devis / mois. Passe Pro pour illimité.')
+          return
+        }
+      }
+
       const { data: sessionData } = await supabase.auth.getSession()
       const token = sessionData?.session?.access_token
       if (!token) throw new Error('Non connecté')
@@ -3365,6 +3389,7 @@ export default function AppHtmlPage() {
   }, [])
 
   const [userFullName, setUserFullName] = useState<string>('')
+  const [planCode, setPlanCode] = useState<'free' | 'pro'>('free')
   const [userPlan, setUserPlan] = useState<string>('Plan Free')
   const [userJob, setUserJob] = useState<string>('')
   const [userDefaultTone, setUserDefaultTone] = useState<string>('')
@@ -3422,7 +3447,7 @@ export default function AppHtmlPage() {
 
         const { data: profile } = await supabase
           .from('profiles')
-          .select('first_name,last_name,job,email_tone')
+          .select('first_name,last_name,job,email_tone,plan')
           .eq('id', userId)
           .maybeSingle()
 
@@ -3430,6 +3455,10 @@ export default function AppHtmlPage() {
         setUserFullName(full || 'Utilisateur')
         setUserJob(String((profile as any)?.job || ''))
         setUserDefaultTone(String((profile as any)?.email_tone || ''))
+
+        const plan = String((profile as any)?.plan || 'free') === 'pro' ? 'pro' : 'free'
+        setPlanCode(plan)
+        setUserPlan(plan === 'pro' ? 'Plan Pro' : 'Plan Free')
 
         const { data: clientsData, error: clientsError } = await supabase
           .from('clients')
@@ -3593,6 +3622,31 @@ export default function AppHtmlPage() {
 
   async function generateAssistantEmail() {
     try {
+      // Free quota: 10 emails / month
+      if (planCode !== 'pro') {
+        if (!supabase || !userId) {
+          alert('Session manquante')
+          return
+        }
+
+        const start = new Date()
+        start.setDate(1)
+        start.setHours(0, 0, 0, 0)
+        const startStr = start.toISOString()
+
+        const { count, error } = await supabase
+          .from('assistant_generations')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', userId)
+          .gte('created_at', startStr)
+
+        if (error) throw error
+        if (Number(count || 0) >= 10) {
+          alert('Limite du plan Free atteinte : 10 emails IA / mois. Passe Pro pour illimité.')
+          return
+        }
+      }
+
       setLoading(true)
       setAssistantOutput('')
 
@@ -3647,7 +3701,17 @@ CONTEXTE UTILISATEUR :
       const json = await res.json().catch(() => null)
       if (!res.ok) throw new Error(json?.error || `Erreur IA (${res.status})`)
 
-      setAssistantOutput(String(json?.text || '').trim())
+      const out = String(json?.text || '').trim()
+      setAssistantOutput(out)
+
+      // Track usage (best-effort)
+      try {
+        if (supabase && userId && out) {
+          await supabase.from('assistant_generations').insert({ user_id: userId, kind: template })
+        }
+      } catch {
+        // ignore
+      }
     } catch (e: any) {
       alert(e?.message || 'Erreur IA')
     } finally {
@@ -5438,7 +5502,7 @@ CONTEXTE UTILISATEUR :
             </div>
           </div>
 
-          <DevisV4 userFullName={userFullName} userJob={userJob} userId={userId} />
+          <DevisV4 userFullName={userFullName} userJob={userJob} userId={userId} planCode={planCode} />
         </div>
 
         {/* Factures */}
@@ -5510,10 +5574,48 @@ CONTEXTE UTILISATEUR :
             </div>
           </div>
           <div className="card">
-            <div className="empty-state">
-              <div className="empty-state-icon">⚙️</div>
-              <h4>Paramètres</h4>
-              <p>Section en cours de développement</p>
+            <div className="form-section">
+              <div className="form-section-title">Abonnement</div>
+              <p style={{ marginBottom: 12, color: 'var(--gray-600)' }}>
+                Plan actuel : <b>{planCode === 'pro' ? 'Pro' : 'Free'}</b>
+              </p>
+
+              {planCode !== 'pro' ? (
+                <button
+                  className="btn btn-primary"
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      if (!supabase) throw new Error('Supabase non initialisé')
+                      const { data: sessionData } = await supabase.auth.getSession()
+                      const token = sessionData?.session?.access_token
+                      if (!token) throw new Error('Non connecté')
+
+                      const res = await fetch('/api/stripe/checkout', {
+                        method: 'POST',
+                        headers: { authorization: `Bearer ${token}` },
+                      })
+                      const json = await res.json().catch(() => null)
+                      if (!res.ok) throw new Error(json?.error || 'Erreur Stripe')
+                      const url = String(json?.url || '')
+                      if (!url) throw new Error('URL Stripe manquante')
+                      window.location.href = url
+                    } catch (e: any) {
+                      alert(e?.message || 'Erreur abonnement')
+                    }
+                  }}
+                >
+                  Passer Pro (19,90€/mois)
+                </button>
+              ) : (
+                <p style={{ color: 'var(--gray-600)' }}>Votre abonnement Pro est actif ✅</p>
+              )}
+
+              <div style={{ marginTop: 14, fontSize: 13, color: 'var(--gray-500)' }}>
+                Free : 10 emails IA / mois, 3 devis / mois, 3 clients max.
+                <br />
+                Pro : illimité.
+              </div>
             </div>
           </div>
         </div>
@@ -5586,6 +5688,11 @@ CONTEXTE UTILISATEUR :
                 onClick={async () => {
                   if (!supabase || !userId) {
                     alert('Session manquante')
+                    return
+                  }
+
+                  if (planCode !== 'pro' && (clients?.length || 0) >= 3) {
+                    alert('Limite du plan Free atteinte : 3 clients maximum. Passe Pro pour illimité.')
                     return
                   }
 
