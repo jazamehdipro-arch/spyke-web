@@ -1850,7 +1850,10 @@ function ContratsV1({
 
       // Persist contract in DB
       try {
-        if (userId) {
+        if (!userId) {
+          alert("PDF généré, mais l'utilisateur n'est pas chargé (userId manquant) : impossible de sauvegarder le contrat en base. Recharge la page et réessaie.")
+        } else {
+
           const amount_ht =
             pricingType === 'forfait'
               ? Number(pricingAmount || 0)
@@ -2698,7 +2701,10 @@ function FacturesV1({
 
       // Persist invoice in DB
       try {
-        if (userId) {
+        if (!userId) {
+          alert("PDF généré, mais l'utilisateur n'est pas chargé (userId manquant) : impossible de sauvegarder la facture en base. Recharge la page et réessaie.")
+        } else {
+
           const client_id = clientId || null
 
           const { data: existing } = await supabase
