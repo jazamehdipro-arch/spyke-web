@@ -160,6 +160,7 @@ function DevisV4({
   const [mode, setMode] = useState<'list' | 'create'>('list')
   const [showQuotes, setShowQuotes] = useState(false)
   const [quotes, setQuotes] = useState<any[]>([])
+  const [currentQuoteId, setCurrentQuoteId] = useState<string>('')
 
   const [lines, setLines] = useState<DevisLine[]>(() => [
     {
@@ -282,6 +283,7 @@ function DevisV4({
         )
       }
 
+      setCurrentQuoteId(id)
       setMode('create')
     } catch {
       // ignore
@@ -290,6 +292,7 @@ function DevisV4({
 
   function resetNewQuote() {
     setMode('create')
+    setCurrentQuoteId('')
     setTitle('')
     setNotes('')
     setClientChoice({ mode: 'existing', id: '' })
@@ -479,44 +482,55 @@ function DevisV4({
           // Find client_id when possible
           const client_id = clientChoice.mode === 'existing' ? clientChoice.id : null
 
-          const { data: qRow, error: qErr } = await supabase
+          // Enforce unique quote number per user (no duplicates)
+          const { data: existing, error: existingErr } = await supabase
             .from('quotes')
-            // Important: onConflict must match the unique constraint (user_id, number)
-            // otherwise repeated “Générer PDF” won’t update the same quote.
-            .upsert(
-              {
-                user_id: userId,
-                client_id,
-                number: quoteNumber,
-                title: title || null,
-                status: 'draft',
-                date_issue: dateIssue || null,
-                validity_until: validityUntil || null,
-                notes: notes || null,
-                total_ht: totals.totalHt,
-                total_tva: totals.totalTva,
-                total_ttc: totals.totalTtc,
-                buyer_snapshot: buyer,
-                seller_snapshot: seller,
-              } as any,
-              { onConflict: 'user_id,number' }
-            )
             .select('id')
-            .single()
+            .eq('user_id', userId)
+            .eq('number', quoteNumber)
+            .maybeSingle()
+          if (existingErr) throw existingErr
 
-          if (qErr) {
-            try {
-              console.error('Persist quote error', qErr)
-            } catch {}
-            alert(`PDF généré, mais sauvegarde en base impossible: ${qErr.message}`)
-          } else if (qRow?.id) {
+          if (existing?.id && String(existing.id) !== String(currentQuoteId || '')) {
+            throw new Error('Numéro de devis déjà utilisé')
+          }
+
+          const row = {
+            user_id: userId,
+            client_id,
+            number: quoteNumber,
+            title: title || null,
+            status: 'draft',
+            date_issue: dateIssue || null,
+            validity_until: validityUntil || null,
+            notes: notes || null,
+            total_ht: totals.totalHt,
+            total_tva: totals.totalTva,
+            total_ttc: totals.totalTtc,
+            buyer_snapshot: buyer,
+            seller_snapshot: seller,
+          } as any
+
+          let quoteId: string | null = currentQuoteId || null
+
+          if (quoteId) {
+            const { error: updErr } = await supabase.from('quotes').update(row).eq('id', quoteId)
+            if (updErr) throw updErr
+          } else {
+            const { data: qRow, error: insErr } = await supabase.from('quotes').insert(row).select('id').single()
+            if (insErr) throw insErr
+            if (qRow?.id) quoteId = String(qRow.id)
+          }
+
+          if (quoteId) {
+            setCurrentQuoteId(String(quoteId))
             // Save for chain navigation
             try {
-              localStorage.setItem('spyke_last_quote_id', String(qRow.id))
+              localStorage.setItem('spyke_last_quote_id', String(quoteId))
             } catch {}
 
             // Replace lines
-            const { error: delErr } = await supabase.from('quote_lines').delete().eq('quote_id', qRow.id)
+            const { error: delErr } = await supabase.from('quote_lines').delete().eq('quote_id', quoteId)
             if (delErr) {
               try {
                 console.error('Persist quote lines delete error', delErr)
@@ -527,7 +541,7 @@ function DevisV4({
             if (lines.length) {
               const { error: insErr } = await supabase.from('quote_lines').insert(
                 lines.map((l, idx) => ({
-                  quote_id: qRow.id,
+                  quote_id: quoteId,
                   position: idx,
                   label: l.label,
                   description: l.description,
@@ -4140,24 +4154,7 @@ CONTEXTE UTILISATEUR :
 
         /* ===== ASSISTANT IA TAB ===== */
         .assistant-container {
-          display: grid;
-          grid-template-columns: 300px 1fr;
-          gap: 24px;
-        }
-
-        .assistant-sidebar {
-          background: var(--white);
-          border-radius: 16px;
-          padding: 24px;
-          border: 1px solid var(--gray-200);
-        }
-
-        .assistant-sidebar h3 {
-          font-family: 'Syne', sans-serif;
-          font-size: 16px;
-          font-weight: 600;
-          color: var(--black);
-          margin-bottom: 16px;
+          display: block;
         }
 
         .template-list {
@@ -5315,29 +5312,6 @@ CONTEXTE UTILISATEUR :
           </div>
 
           <div className="assistant-container">
-            <div className="assistant-sidebar">
-              <h3>Type d&apos;email</h3>
-              <div className="template-list">
-                {([
-                  ['💬', 'Réponse'],
-                  ['✉️', 'Relance'],
-                  ['💰', 'Relance devis'],
-                  ['🤝', 'Négociation'],
-                  ['🚫', 'Refus poli'],
-                  ['🧾', 'Facture'],
-                ] as Array<[string, Template]>).map(([icon, label]) => (
-                  <div
-                    key={label}
-                    className={`template-item ${template === label ? 'active' : ''}`}
-                    onClick={() => setTemplate(label)}
-                  >
-                    <span className="template-item-icon">{icon}</span>
-                    <span className="template-item-text">{label}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
             <div className="assistant-main">
               <form className="assistant-form" onSubmit={(e) => e.preventDefault()}>
                 <div className="form-row">
