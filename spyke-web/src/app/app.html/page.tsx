@@ -3063,7 +3063,63 @@ function FacturesV1({
                               >
                                 Marquer payé
                               </button>
-                            ) : null}
+                            ) : (
+                              <button
+                                className="btn btn-secondary"
+                                type="button"
+                                onClick={async () => {
+                                  try {
+                                    if (!supabase) return
+                                    const { error } = await supabase
+                                      .from('invoices')
+                                      .update({ paid_at: null, status: 'pending' } as any)
+                                      .eq('id', String(inv.id))
+                                    if (error) throw error
+
+                                    const { data: invData } = await supabase
+                                      .from('invoices')
+                                      .select('id,number,status,paid_at,date_issue,due_date,total_ttc,client_id,created_at')
+                                      .order('created_at', { ascending: false })
+                                      .limit(50)
+                                    setInvoices((invData || []) as any[])
+                                  } catch (e: any) {
+                                    alert(e?.message || 'Erreur mise à jour facture')
+                                  }
+                                }}
+                              >
+                                Démarquer payé
+                              </button>
+                            )}
+
+                            <button
+                              className="btn btn-secondary"
+                              type="button"
+                              onClick={async () => {
+                                try {
+                                  if (!supabase) return
+                                  const ok = confirm(`Supprimer la facture ${String((inv as any)?.number || '')} ?`)
+                                  if (!ok) return
+
+                                  const id = String(inv.id)
+                                  const { error: delLinesErr } = await supabase.from('invoice_lines').delete().eq('invoice_id', id)
+                                  if (delLinesErr) throw delLinesErr
+
+                                  const { error: delInvErr } = await supabase.from('invoices').delete().eq('id', id)
+                                  if (delInvErr) throw delInvErr
+
+                                  const { data: invData } = await supabase
+                                    .from('invoices')
+                                    .select('id,number,status,paid_at,date_issue,due_date,total_ttc,client_id,created_at')
+                                    .order('created_at', { ascending: false })
+                                    .limit(50)
+                                  setInvoices((invData || []) as any[])
+                                } catch (e: any) {
+                                  alert(e?.message || 'Erreur suppression facture')
+                                }
+                              }}
+                            >
+                              Supprimer
+                            </button>
                           </div>
                         </td>
                       </tr>
