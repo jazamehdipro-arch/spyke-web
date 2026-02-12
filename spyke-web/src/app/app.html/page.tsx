@@ -1893,9 +1893,23 @@ function ContratsV1({
           } else {
             await supabase.from('contracts').insert(row)
           }
+
+          // Refresh list so it appears immediately in the UI/dashboard
+          try {
+            const { data: cData } = await supabase
+              .from('contracts')
+              .select('id,title,status,amount_ht,created_at,client_id,quote_id')
+              .order('created_at', { ascending: false })
+              .limit(50)
+            setContracts((cData || []) as any[])
+          } catch {}
         }
-      } catch {
-        // ignore persistence errors
+      } catch (e: any) {
+        // Do not fail PDF generation, but surface the issue so it can be fixed (RLS, schema, etc.)
+        try {
+          console.error('Persist contract failed', e)
+        } catch {}
+        alert(`PDF généré, mais sauvegarde du contrat en base impossible: ${e?.message || 'Erreur Supabase'}`)
       }
 
       const payload = {
@@ -2734,9 +2748,23 @@ function FacturesV1({
               )
             }
           }
+
+          // Refresh list so it appears immediately in the UI/dashboard
+          try {
+            const { data: invData } = await supabase
+              .from('invoices')
+              .select('id,number,status,date_issue,due_date,total_ttc,client_id,created_at')
+              .order('created_at', { ascending: false })
+              .limit(50)
+            setInvoices((invData || []) as any[])
+          } catch {}
         }
-      } catch {
-        // ignore
+      } catch (e: any) {
+        // Do not fail PDF generation, but surface the issue so it can be fixed (RLS, schema, etc.)
+        try {
+          console.error('Persist invoice failed', e)
+        } catch {}
+        alert(`PDF généré, mais sauvegarde de la facture en base impossible: ${e?.message || 'Erreur Supabase'}`)
       }
 
       const url = URL.createObjectURL(blob)
