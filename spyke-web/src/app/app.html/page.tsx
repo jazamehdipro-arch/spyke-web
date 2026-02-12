@@ -1892,9 +1892,11 @@ function ContratsV1({
           } as any
 
           if (existing?.id) {
-            await supabase.from('contracts').update(row).eq('id', existing.id)
+            const { error: updErr } = await supabase.from('contracts').update(row).eq('id', existing.id)
+            if (updErr) throw updErr
           } else {
-            await supabase.from('contracts').insert(row)
+            const { error: insErr } = await supabase.from('contracts').insert(row)
+            if (insErr) throw insErr
           }
 
           // Refresh list so it appears immediately in the UI/dashboard
@@ -2733,17 +2735,20 @@ function FacturesV1({
 
           let invoiceId: string | null = null
           if (existing?.id) {
-            await supabase.from('invoices').update(row).eq('id', existing.id)
+            const { error: updErr } = await supabase.from('invoices').update(row).eq('id', existing.id)
+            if (updErr) throw updErr
             invoiceId = String(existing.id)
           } else {
             const { data: inv, error: invErr } = await supabase.from('invoices').insert(row).select('id').single()
-            if (!invErr && inv?.id) invoiceId = String(inv.id)
+            if (invErr) throw invErr
+            if (inv?.id) invoiceId = String(inv.id)
           }
 
           if (invoiceId) {
-            await supabase.from('invoice_lines').delete().eq('invoice_id', invoiceId)
+            const { error: delErr } = await supabase.from('invoice_lines').delete().eq('invoice_id', invoiceId)
+            if (delErr) throw delErr
             if (lines.length) {
-              await supabase.from('invoice_lines').insert(
+              const { error: insErr } = await supabase.from('invoice_lines').insert(
                 lines.map((l, idx) => ({
                   invoice_id: invoiceId,
                   position: idx,
@@ -2752,6 +2757,7 @@ function FacturesV1({
                   unit_price: l.unitPrice,
                 })) as any
               )
+              if (insErr) throw insErr
             }
           }
 
