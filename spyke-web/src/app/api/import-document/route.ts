@@ -333,37 +333,46 @@ export async function POST(req: Request) {
     const system = buildSystem(type)
     const prompt = buildPrompt(type, extractedText)
 
-    // Best-effort: if the AI fails (model access, transient error, non-JSON), don't block the user.
+    // If the AI is down / inaccessible: this is a real error (user wants an error message).
     let jsonText = ''
     try {
       jsonText = await claudeToJson({ system, prompt })
     } catch (e: any) {
-      const warnings = [`IA indisponible: ${e?.message || 'Erreur'}`]
-      if (type === 'devis') return NextResponse.json({ type, data: ImportDevisSchema.parse({ warnings }) })
-      if (type === 'facture') return NextResponse.json({ type, data: ImportFactureSchema.parse({ warnings }) })
-      return NextResponse.json({ type, data: ImportContratSchema.parse({ warnings }) })
+      return NextResponse.json(
+        {
+          error: `IA indisponible: ${e?.message || 'Erreur'}`,
+        },
+        { status: 503 }
+      )
     }
 
     let parsed: any
     try {
       parsed = JSON.parse(jsonText)
     } catch {
-      const warnings = ['IA: réponse non-JSON (import partiel)']
-      if (type === 'devis') return NextResponse.json({ type, data: ImportDevisSchema.parse({ warnings }) })
-      if (type === 'facture') return NextResponse.json({ type, data: ImportFactureSchema.parse({ warnings }) })
-      return NextResponse.json({ type, data: ImportContratSchema.parse({ warnings }) })
+      return NextResponse.json(
+        {
+          error: 'IA: réponse non-JSON',
+          raw: jsonText.slice(0, 2000),
+        },
+        { status: 502 }
+      )
     }
 
+    // If the AI responds but can't find info, it should return empty values + warnings.
+    // Validation errors mean the AI output is not in the expected shape → treat as AI failure.
     let data: any
     try {
       if (type === 'devis') data = ImportDevisSchema.parse(parsed)
       if (type === 'facture') data = ImportFactureSchema.parse(parsed)
       if (type === 'contrat') data = ImportContratSchema.parse(parsed)
     } catch (e: any) {
-      const warnings = [`IA: données invalides (import partiel): ${e?.message || 'Erreur validation'}`]
-      if (type === 'devis') return NextResponse.json({ type, data: ImportDevisSchema.parse({ warnings }) })
-      if (type === 'facture') return NextResponse.json({ type, data: ImportFactureSchema.parse({ warnings }) })
-      return NextResponse.json({ type, data: ImportContratSchema.parse({ warnings }) })
+      return NextResponse.json(
+        {
+          error: `IA: données invalides: ${e?.message || 'Erreur validation'}`,
+        },
+        { status: 502 }
+      )
     }
 
     return NextResponse.json({ type, data })
