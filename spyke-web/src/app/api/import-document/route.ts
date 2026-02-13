@@ -169,12 +169,35 @@ async function claudeToJson({ system, prompt }: { system: string; prompt: string
   if (!apiKey) throw new Error('ANTHROPIC_API_KEY manquant côté serveur')
 
   const client = new Anthropic({ apiKey })
-  const msg = await client.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
-    max_tokens: 1200,
-    system,
-    messages: [{ role: 'user', content: prompt }],
-  })
+
+  // Some Anthropic accounts don't have access to every dated model id.
+  // Try a small fallback set.
+  const modelsToTry = [
+    'claude-3-5-sonnet-latest',
+    'claude-3-5-sonnet-20241022',
+    'claude-3-5-haiku-latest',
+    'claude-3-5-haiku-20241022',
+    'claude-3-haiku-20240307',
+  ] as const
+
+  let lastErr: any = null
+  let msg: Awaited<ReturnType<typeof client.messages.create>> | null = null
+
+  for (const model of modelsToTry) {
+    try {
+      msg = await client.messages.create({
+        model,
+        max_tokens: 1200,
+        system,
+        messages: [{ role: 'user', content: prompt }],
+      })
+      break
+    } catch (e: any) {
+      lastErr = e
+    }
+  }
+
+  if (!msg) throw lastErr || new Error('Anthropic: no model available')
 
   const text = msg.content
     .map((c) => (c.type === 'text' ? c.text : ''))
@@ -309,19 +332,39 @@ export async function POST(req: Request) {
 
     const system = buildSystem(type)
     const prompt = buildPrompt(type, extractedText)
-    const jsonText = await claudeToJson({ system, prompt })
+
+    // Best-effort: if the AI fails (model access, transient error, non-JSON), don't block the user.
+    let jsonText = ''
+    try {
+      jsonText = await claudeToJson({ system, prompt })
+    } catch (e: any) {
+      const warnings = [`IA indisponible: ${e?.message || 'Erreur'}`]
+      if (type === 'devis') return NextResponse.json({ type, data: ImportDevisSchema.parse({ warnings }) })
+      if (type === 'facture') return NextResponse.json({ type, data: ImportFactureSchema.parse({ warnings }) })
+      return NextResponse.json({ type, data: ImportContratSchema.parse({ warnings }) })
+    }
 
     let parsed: any
     try {
       parsed = JSON.parse(jsonText)
     } catch {
-      return NextResponse.json({ error: 'Réponse IA non-JSON', raw: jsonText.slice(0, 2000) }, { status: 400 })
+      const warnings = ['IA: réponse non-JSON (import partiel)']
+      if (type === 'devis') return NextResponse.json({ type, data: ImportDevisSchema.parse({ warnings }) })
+      if (type === 'facture') return NextResponse.json({ type, data: ImportFactureSchema.parse({ warnings }) })
+      return NextResponse.json({ type, data: ImportContratSchema.parse({ warnings }) })
     }
 
     let data: any
-    if (type === 'devis') data = ImportDevisSchema.parse(parsed)
-    if (type === 'facture') data = ImportFactureSchema.parse(parsed)
-    if (type === 'contrat') data = ImportContratSchema.parse(parsed)
+    try {
+      if (type === 'devis') data = ImportDevisSchema.parse(parsed)
+      if (type === 'facture') data = ImportFactureSchema.parse(parsed)
+      if (type === 'contrat') data = ImportContratSchema.parse(parsed)
+    } catch (e: any) {
+      const warnings = [`IA: données invalides (import partiel): ${e?.message || 'Erreur validation'}`]
+      if (type === 'devis') return NextResponse.json({ type, data: ImportDevisSchema.parse({ warnings }) })
+      if (type === 'facture') return NextResponse.json({ type, data: ImportFactureSchema.parse({ warnings }) })
+      return NextResponse.json({ type, data: ImportContratSchema.parse({ warnings }) })
+    }
 
     return NextResponse.json({ type, data })
   } catch (e: any) {
