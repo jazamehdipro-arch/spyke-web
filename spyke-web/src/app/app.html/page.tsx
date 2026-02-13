@@ -1330,6 +1330,159 @@ Réponds uniquement par le texte de la description.`
           <div className="devis-container">
         <div className="form-wrapper">
           <div className="card">
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
+              <button
+                className="btn btn-secondary"
+                type="button"
+                onClick={() => {
+                  try {
+                    const input = document.getElementById('import-devis-pdf') as HTMLInputElement | null
+                    input?.click()
+                  } catch {}
+                }}
+              >
+                Importer depuis un PDF
+              </button>
+              <button
+                className="btn btn-secondary"
+                type="button"
+                onClick={() => {
+                  try {
+                    const input = document.getElementById('import-devis-photo') as HTMLInputElement | null
+                    input?.click()
+                  } catch {}
+                }}
+              >
+                Importer depuis une photo
+              </button>
+              <input
+                id="import-devis-pdf"
+                type="file"
+                accept="application/pdf"
+                style={{ display: 'none' }}
+                onChange={async (e) => {
+                  const f = e.target.files?.[0]
+                  e.target.value = ''
+                  if (!f) return
+                  try {
+                    if (!supabase) throw new Error('Supabase non initialisé')
+                    const { data: s } = await supabase.auth.getSession()
+                    const token = s.session?.access_token
+                    if (!token) throw new Error('Non connecté')
+
+                    const fd = new FormData()
+                    fd.set('type', 'devis')
+                    fd.set('file', f)
+
+                    const res = await fetch('/api/import-document', {
+                      method: 'POST',
+                      headers: { authorization: `Bearer ${token}` },
+                      body: fd,
+                    })
+                    const json = await res.json()
+                    if (!res.ok) throw new Error(json?.error || 'Import échoué')
+                    const d = json?.data || {}
+
+                    if (d.title) setTitle(String(d.title))
+                    if (d.dateIssue) setDateIssue(String(d.dateIssue))
+                    if (typeof d.validityDays === 'number') setValidityDays(Number(d.validityDays))
+                    if (d.client?.name) {
+                      setClientChoice({
+                        mode: 'new',
+                        name: String(d.client.name || ''),
+                        siret: String(d.client.siret || ''),
+                        address: String(d.client.address || ''),
+                        postalCode: String(d.client.postalCode || ''),
+                        city: String(d.client.city || ''),
+                      })
+                    }
+                    if (Array.isArray(d.lines) && d.lines.length) {
+                      setLines(
+                        d.lines.map((l: any, idx: number) => ({
+                          id: String(idx),
+                          label: String(l.label || ''),
+                          description: String(l.description || ''),
+                          qty: Number(l.qty ?? 1),
+                          unitPriceHt: Number(l.unitPriceHt ?? 0),
+                          vatRate: Number(l.vatRate ?? 0),
+                        }))
+                      )
+                    }
+                    if (typeof d.notes === 'string') setNotes(d.notes)
+
+                    if (Array.isArray(d.warnings) && d.warnings.length) {
+                      alert('Import terminé. Points à vérifier:\n- ' + d.warnings.join('\n- '))
+                    }
+                  } catch (err: any) {
+                    alert(err?.message || 'Import échoué')
+                  }
+                }}
+              />
+              <input
+                id="import-devis-photo"
+                type="file"
+                accept="image/*"
+                style={{ display: 'none' }}
+                onChange={async (e) => {
+                  const f = e.target.files?.[0]
+                  e.target.value = ''
+                  if (!f) return
+                  try {
+                    if (!supabase) throw new Error('Supabase non initialisé')
+                    const { data: s } = await supabase.auth.getSession()
+                    const token = s.session?.access_token
+                    if (!token) throw new Error('Non connecté')
+
+                    const fd = new FormData()
+                    fd.set('type', 'devis')
+                    fd.set('file', f)
+
+                    const res = await fetch('/api/import-document', {
+                      method: 'POST',
+                      headers: { authorization: `Bearer ${token}` },
+                      body: fd,
+                    })
+                    const json = await res.json()
+                    if (!res.ok) throw new Error(json?.error || 'Import échoué')
+                    const d = json?.data || {}
+
+                    if (d.title) setTitle(String(d.title))
+                    if (d.dateIssue) setDateIssue(String(d.dateIssue))
+                    if (typeof d.validityDays === 'number') setValidityDays(Number(d.validityDays))
+                    if (d.client?.name) {
+                      setClientChoice({
+                        mode: 'new',
+                        name: String(d.client.name || ''),
+                        siret: String(d.client.siret || ''),
+                        address: String(d.client.address || ''),
+                        postalCode: String(d.client.postalCode || ''),
+                        city: String(d.client.city || ''),
+                      })
+                    }
+                    if (Array.isArray(d.lines) && d.lines.length) {
+                      setLines(
+                        d.lines.map((l: any, idx: number) => ({
+                          id: String(idx),
+                          label: String(l.label || ''),
+                          description: String(l.description || ''),
+                          qty: Number(l.qty ?? 1),
+                          unitPriceHt: Number(l.unitPriceHt ?? 0),
+                          vatRate: Number(l.vatRate ?? 0),
+                        }))
+                      )
+                    }
+                    if (typeof d.notes === 'string') setNotes(d.notes)
+
+                    if (Array.isArray(d.warnings) && d.warnings.length) {
+                      alert('Import terminé. Points à vérifier:\n- ' + d.warnings.join('\n- '))
+                    }
+                  } catch (err: any) {
+                    alert(err?.message || 'Import échoué')
+                  }
+                }}
+              />
+            </div>
+
             <div className="info-box">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <circle cx="12" cy="12" r="10" />
@@ -2645,6 +2798,151 @@ function ContratsV1({
             ← Retour aux contrats
           </button>
 
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
+            <button
+              className="btn btn-secondary"
+              type="button"
+              onClick={() => {
+                try {
+                  const input = document.getElementById('import-contrat-pdf') as HTMLInputElement | null
+                  input?.click()
+                } catch {}
+              }}
+            >
+              Importer depuis un PDF
+            </button>
+            <button
+              className="btn btn-secondary"
+              type="button"
+              onClick={() => {
+                try {
+                  const input = document.getElementById('import-contrat-photo') as HTMLInputElement | null
+                  input?.click()
+                } catch {}
+              }}
+            >
+              Importer depuis une photo
+            </button>
+            <input
+              id="import-contrat-pdf"
+              type="file"
+              accept="application/pdf"
+              style={{ display: 'none' }}
+              onChange={async (e) => {
+                const f = e.target.files?.[0]
+                e.target.value = ''
+                if (!f) return
+                try {
+                  if (!supabase) throw new Error('Supabase non initialisé')
+                  const { data: s } = await supabase.auth.getSession()
+                  const token = s.session?.access_token
+                  if (!token) throw new Error('Non connecté')
+
+                  const fd = new FormData()
+                  fd.set('type', 'contrat')
+                  fd.set('file', f)
+
+                  const res = await fetch('/api/import-document', {
+                    method: 'POST',
+                    headers: { authorization: `Bearer ${token}` },
+                    body: fd,
+                  })
+                  const json = await res.json()
+                  if (!res.ok) throw new Error(json?.error || 'Import échoué')
+                  const d = json?.data || {}
+
+                  if (d.title) {
+                    // contract title is currently hardcoded in PDF payload, but we can use it as a hint in mission description
+                    setMissionDescription((prev) => (prev ? prev : String(d.title)))
+                  }
+                  if (d.startDate) setMissionStart(String(d.startDate))
+                  if (d.endDate) setMissionEnd(String(d.endDate))
+                  if (d.client?.name) setClientName(String(d.client.name || ''))
+                  if (d.client?.siret) setClientSiret(String(d.client.siret || ''))
+                  if (d.client?.address || d.client?.postalCode || d.client?.city) {
+                    const addr = [d.client.address, [d.client.postalCode, d.client.city].filter(Boolean).join(' ')].filter(Boolean).join(', ')
+                    setClientAddress(String(addr))
+                  }
+                  if (d.scope) {
+                    setMissionDescription(String(d.scope))
+                  }
+                  if (d.price?.mode) {
+                    if (d.price.mode === 'tjm') setPricingType('tjm')
+                    else if (d.price.mode === 'horaire') setPricingType('horaire')
+                    else setPricingType('forfait')
+                  }
+                  if (typeof d.price?.amount === 'number') {
+                    setPricingAmount(Number(d.price.amount || 0))
+                  }
+                  if (d.notes) {
+                    // keep as extra context
+                    setContractText((prev) => prev || String(d.notes))
+                  }
+
+                  if (Array.isArray(d.warnings) && d.warnings.length) {
+                    alert('Import terminé. Points à vérifier:\n- ' + d.warnings.join('\n- '))
+                  }
+                } catch (err: any) {
+                  alert(err?.message || 'Import échoué')
+                }
+              }}
+            />
+            <input
+              id="import-contrat-photo"
+              type="file"
+              accept="image/*"
+              style={{ display: 'none' }}
+              onChange={async (e) => {
+                const f = e.target.files?.[0]
+                e.target.value = ''
+                if (!f) return
+                try {
+                  if (!supabase) throw new Error('Supabase non initialisé')
+                  const { data: s } = await supabase.auth.getSession()
+                  const token = s.session?.access_token
+                  if (!token) throw new Error('Non connecté')
+
+                  const fd = new FormData()
+                  fd.set('type', 'contrat')
+                  fd.set('file', f)
+
+                  const res = await fetch('/api/import-document', {
+                    method: 'POST',
+                    headers: { authorization: `Bearer ${token}` },
+                    body: fd,
+                  })
+                  const json = await res.json()
+                  if (!res.ok) throw new Error(json?.error || 'Import échoué')
+                  const d = json?.data || {}
+
+                  if (d.title) setMissionDescription((prev) => (prev ? prev : String(d.title)))
+                  if (d.startDate) setMissionStart(String(d.startDate))
+                  if (d.endDate) setMissionEnd(String(d.endDate))
+                  if (d.client?.name) setClientName(String(d.client.name || ''))
+                  if (d.client?.siret) setClientSiret(String(d.client.siret || ''))
+                  if (d.client?.address || d.client?.postalCode || d.client?.city) {
+                    const addr = [d.client.address, [d.client.postalCode, d.client.city].filter(Boolean).join(' ')].filter(Boolean).join(', ')
+                    setClientAddress(String(addr))
+                  }
+                  if (d.scope) setMissionDescription(String(d.scope))
+                  if (d.price?.mode) {
+                    if (d.price.mode === 'tjm') setPricingType('tjm')
+                    else if (d.price.mode === 'horaire') setPricingType('horaire')
+                    else setPricingType('forfait')
+                  }
+                  if (typeof d.price?.amount === 'number') setPricingAmount(Number(d.price.amount || 0))
+                  if (d.notes) setContractText((prev) => prev || String(d.notes))
+
+                  if (Array.isArray(d.warnings) && d.warnings.length) {
+                    alert('Import terminé. Points à vérifier:\n- ' + d.warnings.join('\n- '))
+                  }
+                } catch (err: any) {
+                  alert(err?.message || 'Import échoué')
+                }
+              }}
+            />
+          </div>
+
           <div className="card">
         <div className="form-section">
           <div className="form-section-title">Informations du contrat</div>
@@ -3686,6 +3984,139 @@ function FacturesV1({
               <h1 className="page-title">Nouvelle facture</h1>
               <p className="page-subtitle">Créez une facture (UI) — la sauvegarde viendra ensuite</p>
             </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
+            <button
+              className="btn btn-secondary"
+              type="button"
+              onClick={() => {
+                try {
+                  const input = document.getElementById('import-facture-pdf') as HTMLInputElement | null
+                  input?.click()
+                } catch {}
+              }}
+            >
+              Importer depuis un PDF
+            </button>
+            <button
+              className="btn btn-secondary"
+              type="button"
+              onClick={() => {
+                try {
+                  const input = document.getElementById('import-facture-photo') as HTMLInputElement | null
+                  input?.click()
+                } catch {}
+              }}
+            >
+              Importer depuis une photo
+            </button>
+            <input
+              id="import-facture-pdf"
+              type="file"
+              accept="application/pdf"
+              style={{ display: 'none' }}
+              onChange={async (e) => {
+                const f = e.target.files?.[0]
+                e.target.value = ''
+                if (!f) return
+                try {
+                  if (!supabase) throw new Error('Supabase non initialisé')
+                  const { data: s } = await supabase.auth.getSession()
+                  const token = s.session?.access_token
+                  if (!token) throw new Error('Non connecté')
+
+                  const fd = new FormData()
+                  fd.set('type', 'facture')
+                  fd.set('file', f)
+
+                  const res = await fetch('/api/import-document', {
+                    method: 'POST',
+                    headers: { authorization: `Bearer ${token}` },
+                    body: fd,
+                  })
+                  const json = await res.json()
+                  if (!res.ok) throw new Error(json?.error || 'Import échoué')
+                  const d = json?.data || {}
+
+                  if (d.invoiceNumber) setInvoiceNumber(String(d.invoiceNumber))
+                  if (d.dateIssue) setInvoiceDate(String(d.dateIssue))
+                  if (d.client?.name) {
+                    const addr = [d.client.address, [d.client.postalCode, d.client.city].filter(Boolean).join(' ')].filter(Boolean).join(', ')
+                    setBuyer({ ...buyer, name: String(d.client.name || ''), addressLines: addr ? String(addr).split(',').map((x) => x.trim()).filter(Boolean) : [] })
+                  }
+                  if (Array.isArray(d.lines) && d.lines.length) {
+                    setLines(
+                      d.lines.map((l: any, idx: number) => ({
+                        id: String(idx),
+                        description: String(l.description || ''),
+                        qty: Number(l.qty ?? 1),
+                        unitPrice: Number(l.unitPrice ?? 0),
+                      }))
+                    )
+                  }
+
+                  if (Array.isArray(d.warnings) && d.warnings.length) {
+                    alert('Import terminé. Points à vérifier:\n- ' + d.warnings.join('\n- '))
+                  }
+                } catch (err: any) {
+                  alert(err?.message || 'Import échoué')
+                }
+              }}
+            />
+            <input
+              id="import-facture-photo"
+              type="file"
+              accept="image/*"
+              style={{ display: 'none' }}
+              onChange={async (e) => {
+                const f = e.target.files?.[0]
+                e.target.value = ''
+                if (!f) return
+                try {
+                  if (!supabase) throw new Error('Supabase non initialisé')
+                  const { data: s } = await supabase.auth.getSession()
+                  const token = s.session?.access_token
+                  if (!token) throw new Error('Non connecté')
+
+                  const fd = new FormData()
+                  fd.set('type', 'facture')
+                  fd.set('file', f)
+
+                  const res = await fetch('/api/import-document', {
+                    method: 'POST',
+                    headers: { authorization: `Bearer ${token}` },
+                    body: fd,
+                  })
+                  const json = await res.json()
+                  if (!res.ok) throw new Error(json?.error || 'Import échoué')
+                  const d = json?.data || {}
+
+                  if (d.invoiceNumber) setInvoiceNumber(String(d.invoiceNumber))
+                  if (d.dateIssue) setInvoiceDate(String(d.dateIssue))
+                  if (d.client?.name) {
+                    const addr = [d.client.address, [d.client.postalCode, d.client.city].filter(Boolean).join(' ')].filter(Boolean).join(', ')
+                    setBuyer({ ...buyer, name: String(d.client.name || ''), addressLines: addr ? String(addr).split(',').map((x) => x.trim()).filter(Boolean) : [] })
+                  }
+                  if (Array.isArray(d.lines) && d.lines.length) {
+                    setLines(
+                      d.lines.map((l: any, idx: number) => ({
+                        id: String(idx),
+                        description: String(l.description || ''),
+                        qty: Number(l.qty ?? 1),
+                        unitPrice: Number(l.unitPrice ?? 0),
+                      }))
+                    )
+                  }
+
+                  if (Array.isArray(d.warnings) && d.warnings.length) {
+                    alert('Import terminé. Points à vérifier:\n- ' + d.warnings.join('\n- '))
+                  }
+                } catch (err: any) {
+                  alert(err?.message || 'Import échoué')
+                }
+              }}
+            />
           </div>
 
           <div className="card">
