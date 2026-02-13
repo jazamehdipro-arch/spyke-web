@@ -260,7 +260,46 @@ export async function POST(req: Request) {
     }
 
     // 2) Fallback to OCR (Document AI) for images and scanned PDFs
+    // If OCR env isn't configured yet, keep the feature "à bientôt" instead of failing hard.
     if (!extractedText || extractedText.length < 50) {
+      const hasOcrEnv =
+        !!process.env.GCP_PROJECT_ID &&
+        !!process.env.DOCUMENT_AI_PROCESSOR_ID &&
+        !!process.env.GCP_SERVICE_ACCOUNT_JSON
+
+      const isPdf = mimeType === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')
+      const isImage = (mimeType || '').startsWith('image/') || /\.(png|jpe?g|webp)$/i.test(file.name)
+
+      if (!hasOcrEnv) {
+        // If it's an image or a scanned PDF, we can't proceed without OCR.
+        if (isImage) {
+          return NextResponse.json(
+            {
+              error:
+                "Import photo bientôt disponible (OCR non configuré). Utilise un PDF texte en attendant.",
+            },
+            { status: 501 }
+          )
+        }
+
+        if (isPdf) {
+          return NextResponse.json(
+            {
+              error:
+                "Ce PDF semble scanné (pas de texte détecté). L'import OCR arrive bientôt.",
+            },
+            { status: 400 }
+          )
+        }
+
+        return NextResponse.json(
+          {
+            error: "Format non supporté pour l'instant.",
+          },
+          { status: 400 }
+        )
+      }
+
       extractedText = await extractTextWithDocumentAI(buf, mimeType)
     }
 
