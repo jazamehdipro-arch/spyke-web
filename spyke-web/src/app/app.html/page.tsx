@@ -179,6 +179,19 @@ function DevisV4({
   const [paymentDelayDays, setPaymentDelayDays] = useState(30)
   const [notes, setNotes] = useState('')
 
+  // Catalogue prestations (service_items)
+  const [showCatalog, setShowCatalog] = useState(false)
+  const [catalogSearch, setCatalogSearch] = useState('')
+  const [catalogItems, setCatalogItems] = useState<any[]>([])
+
+  // Templates (quote_templates)
+  const [showTemplates, setShowTemplates] = useState(false)
+  const [templates, setTemplates] = useState<any[]>([])
+  const [templateSearch, setTemplateSearch] = useState('')
+
+  // AI line assistant
+  const [aiLineBusyId, setAiLineBusyId] = useState<string>('')
+
   // Load clients + user prefs + quotes
   useEffect(() => {
     ;(async () => {
@@ -191,7 +204,7 @@ function DevisV4({
           .select('vat_enabled,deposit_percent,payment_delay_days,quote_validity_days')
           .eq('id', userId)
           .maybeSingle(),
-        supabase.from('quotes').select('id,number,title,status,total_ttc,created_at').order('created_at', { ascending: false }).limit(30),
+        supabase.from('quotes').select('id,number,title,status,total_ttc,created_at,date_issue,validity_until').order('created_at', { ascending: false }).limit(30),
       ])
 
       setClients(
@@ -230,6 +243,76 @@ function DevisV4({
   const depositAmount = useMemo(() => totals.totalTtc * ((depositPercent || 0) / 100), [totals.totalTtc, depositPercent])
 
   const validityUntil = useMemo(() => addDays(dateIssue, validityDays || 0), [dateIssue, validityDays])
+
+  function daysUntil(dateStr: string) {
+    if (!dateStr) return null as null | number
+    const now = new Date()
+    const start = new Date(now.toISOString().slice(0, 10) + 'T00:00:00').getTime()
+    const target = new Date(String(dateStr).slice(0, 10) + 'T00:00:00').getTime()
+    if (Number.isNaN(start) || Number.isNaN(target)) return null
+    return Math.round((target - start) / (1000 * 60 * 60 * 24))
+  }
+
+  async function duplicateQuote(id: string) {
+    try {
+      if (!supabase || !id) return
+
+      const { data: q } = await supabase
+        .from('quotes')
+        .select('id,client_id,number,title,status,date_issue,validity_until,notes,total_ttc')
+        .eq('id', id)
+        .maybeSingle()
+      if (!q) return
+
+      const { data: qLines } = await supabase
+        .from('quote_lines')
+        .select('label,description,qty,unit_price_ht,vat_rate,position')
+        .eq('quote_id', id)
+        .order('position', { ascending: true })
+
+      // Copy values
+      setTitle(String((q as any).title || ''))
+      setNotes(String((q as any).notes || ''))
+
+      if ((q as any).client_id) setClientChoice({ mode: 'existing', id: String((q as any).client_id) })
+
+      if (Array.isArray(qLines) && qLines.length) {
+        setLines(
+          qLines.map((l: any, idx: number) => ({
+            id: String(Date.now()) + '-' + String(idx),
+            label: String(l.label || ''),
+            description: String(l.description || ''),
+            qty: Number(l.qty || 0) || 0,
+            unitPriceHt: Number(l.unit_price_ht || 0) || 0,
+            vatRate: Number(l.vat_rate || 0) || 0,
+          }))
+        )
+      }
+
+      // Reset identity fields for a new quote
+      setCurrentQuoteId('')
+      const t = new Date().toISOString().slice(0, 10)
+      setDateIssue(t)
+      setQuoteNumber(genQuoteNumber(t, 1))
+      setQuoteNumberDirty(false)
+
+      // Keep validity days if we can infer it
+      const di = String((q as any).date_issue || '')
+      const vu = String((q as any).validity_until || '')
+      if (di && vu) {
+        const a = new Date(di + 'T00:00:00').getTime()
+        const b = new Date(vu + 'T00:00:00').getTime()
+        if (!Number.isNaN(a) && !Number.isNaN(b) && b >= a) {
+          const days = Math.round((b - a) / (1000 * 60 * 60 * 24))
+          if (days > 0 && days < 366) setValidityDays(days)
+        }
+      }
+
+      setMode('create')
+    } catch {
+      // ignore
+    }
+  }
 
   async function openQuote(id: string) {
     try {
@@ -337,6 +420,186 @@ function DevisV4({
 
   function removeLine(id: string) {
     setLines((prev) => (prev.length <= 1 ? prev : prev.filter((l) => l.id !== id)))
+  }
+
+  async function refreshCatalog() {
+    try {
+      if (!supabase || !userId) return
+      const { data, error } = await supabase
+        .from('service_items')
+        .select('id,name,description,unit,unit_price_ht,vat_rate,created_at')
+        .order('created_at', { ascending: false })
+        .limit(200)
+      if (error) throw error
+      setCatalogItems(data || [])
+    } catch (e: any) {
+      // If table is missing, silently show empty + let UI explain.
+      setCatalogItems([])
+    }
+  }
+
+  async function refreshTemplates() {
+    try {
+      if (!supabase || !userId) return
+      const { data, error } = await supabase
+        .from('quote_templates')
+        .select('id,name,validity_days,deposit_percent,payment_delay_days,notes,created_at')
+        .order('created_at', { ascending: false })
+        .limit(200)
+      if (error) throw error
+      setTemplates(data || [])
+    } catch {
+      setTemplates([])
+    }
+  }
+
+  async function addLineFromCatalog(item: any) {
+    try {
+      const nextId = String(Date.now())
+      setLines((prev) => [
+        ...prev,
+        {
+          id: nextId,
+          label: String(item?.name || ''),
+          description: String(item?.description || ''),
+          qty: 1,
+          unitPriceHt: Number(item?.unit_price_ht || 0) || 0,
+          vatRate: Number(item?.vat_rate || 0) || 0,
+        },
+      ])
+      setShowCatalog(false)
+    } catch {
+      // ignore
+    }
+  }
+
+  async function saveCurrentAsTemplate() {
+    try {
+      if (!supabase || !userId) return
+      const name = prompt('Nom du template ?')
+      if (!name) return
+
+      const { data: tRow, error: tErr } = await supabase
+        .from('quote_templates')
+        .insert({
+          user_id: userId,
+          name,
+          validity_days: validityDays,
+          deposit_percent: depositPercent,
+          payment_delay_days: paymentDelayDays,
+          notes: notes || '',
+        } as any)
+        .select('id')
+        .single()
+      if (tErr) throw tErr
+      const templateId = String((tRow as any)?.id || '')
+      if (!templateId) return
+
+      if (lines.length) {
+        const { error: lErr } = await supabase.from('quote_template_lines').insert(
+          lines.map((l, idx) => ({
+            template_id: templateId,
+            position: idx,
+            label: l.label,
+            description: l.description,
+            qty: l.qty,
+            unit_price_ht: l.unitPriceHt,
+            vat_rate: l.vatRate,
+          })) as any
+        )
+        if (lErr) throw lErr
+      }
+
+      alert('Template enregistré')
+      await refreshTemplates()
+    } catch (e: any) {
+      alert(e?.message || 'Erreur template')
+    }
+  }
+
+  async function applyTemplate(templateId: string) {
+    try {
+      if (!supabase || !templateId) return
+      const { data: tpl, error: tErr } = await supabase
+        .from('quote_templates')
+        .select('id,name,validity_days,deposit_percent,payment_delay_days,notes')
+        .eq('id', templateId)
+        .maybeSingle()
+      if (tErr) throw tErr
+      if (!tpl) return
+
+      const { data: tLines, error: lErr } = await supabase
+        .from('quote_template_lines')
+        .select('label,description,qty,unit_price_ht,vat_rate,position')
+        .eq('template_id', templateId)
+        .order('position', { ascending: true })
+      if (lErr) throw lErr
+
+      setValidityDays(Number((tpl as any).validity_days || 30) || 30)
+      setDepositPercent(Number((tpl as any).deposit_percent || 0) || 0)
+      setPaymentDelayDays(Number((tpl as any).payment_delay_days || 30) || 30)
+      setNotes(String((tpl as any).notes || ''))
+
+      if (Array.isArray(tLines) && tLines.length) {
+        setLines(
+          tLines.map((l: any, idx: number) => ({
+            id: String(Date.now()) + '-' + String(idx),
+            label: String(l.label || ''),
+            description: String(l.description || ''),
+            qty: Number(l.qty || 0) || 0,
+            unitPriceHt: Number(l.unit_price_ht || 0) || 0,
+            vatRate: Number(l.vat_rate || 0) || 0,
+          }))
+        )
+      }
+
+      setShowTemplates(false)
+    } catch (e: any) {
+      alert(e?.message || 'Erreur template')
+    }
+  }
+
+  async function aiGenerateLineDescription(lineId: string) {
+    try {
+      const line = lines.find((x) => x.id === lineId)
+      if (!line) return
+      if (!line.label.trim()) {
+        alert('Ajoute un libellé de prestation avant de générer la description')
+        return
+      }
+      setAiLineBusyId(lineId)
+
+      const prompt = `Tu es un assistant pour freelances.
+Rédige une description courte et professionnelle (1 à 3 phrases) pour une ligne de devis.
+Contexte:
+- Prestation: ${line.label}
+- Détails actuels: ${line.description || '(vide)'}
+- Quantité: ${line.qty}
+- Prix unitaire HT: ${line.unitPriceHt}
+Contraintes:
+- Français
+- Ton clair et pro
+- Ne pas inventer des mentions légales
+- Pas de puces si possible
+
+Réponds uniquement par le texte de la description.`
+
+      const res = await fetch('/api/claude', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ prompt }),
+      })
+      const json = await res.json().catch(() => null)
+      if (!res.ok) throw new Error(json?.error || 'Erreur IA')
+      const text = String(json?.text || '').trim()
+      if (!text) return
+
+      updateLine(lineId, { description: text })
+    } catch (e: any) {
+      alert(e?.message || 'Erreur IA')
+    } finally {
+      setAiLineBusyId('')
+    }
   }
 
   const previewClientLabel = useMemo(() => {
@@ -585,7 +848,7 @@ function DevisV4({
             // Refresh list
             const { data: quotesData, error: qSelErr } = await supabase
               .from('quotes')
-              .select('id,number,title,status,total_ttc,created_at')
+              .select('id,number,title,status,total_ttc,created_at,date_issue,validity_until')
               .order('created_at', { ascending: false })
               .limit(30)
             if (qSelErr) {
@@ -995,12 +1258,38 @@ function DevisV4({
                       <tr key={q.id}>
                         <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{q.number}</td>
                         <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{q.title || '—'}</td>
-                        <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{q.status || 'draft'}</td>
+                        <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>
+                          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                            <span>{q.status || 'draft'}</span>
+                            {(() => {
+                              const d = daysUntil(String((q as any).validity_until || ''))
+                              if (d === null) return null
+                              if (d < 0) {
+                                return (
+                                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--red)', background: 'rgba(239, 68, 68, 0.10)', padding: '3px 8px', borderRadius: 999, border: '1px solid rgba(239, 68, 68, 0.18)' }}>
+                                    Expiré
+                                  </span>
+                                )
+                              }
+                              if (d <= 7) {
+                                return (
+                                  <span style={{ fontSize: 12, fontWeight: 700, color: '#b45309', background: 'rgba(250, 204, 21, 0.18)', padding: '3px 8px', borderRadius: 999, border: '1px solid rgba(250, 204, 21, 0.28)' }}>
+                                    Expire dans {d}j
+                                  </span>
+                                )
+                              }
+                              return null
+                            })()}
+                          </div>
+                        </td>
                         <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)', textAlign: 'right', fontWeight: 700 }}>{formatMoney(Number(q.total_ttc || 0))}</td>
                         <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)', textAlign: 'right' }}>
                           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
                             <button className="btn btn-secondary" type="button" onClick={() => openQuote(String(q.id))}>
                               Ouvrir
+                            </button>
+                            <button className="btn btn-secondary" type="button" onClick={() => duplicateQuote(String(q.id))}>
+                              Dupliquer
                             </button>
                             <button
                               className="btn btn-secondary"
@@ -1223,6 +1512,33 @@ function DevisV4({
 
             <div className="form-section">
               <div className="form-section-title">Prestations</div>
+
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
+                <button
+                  className="btn btn-secondary"
+                  type="button"
+                  onClick={async () => {
+                    setShowCatalog(true)
+                    await refreshCatalog()
+                  }}
+                >
+                  + Depuis le catalogue
+                </button>
+                <button
+                  className="btn btn-secondary"
+                  type="button"
+                  onClick={async () => {
+                    setShowTemplates(true)
+                    await refreshTemplates()
+                  }}
+                >
+                  Charger un template
+                </button>
+                <button className="btn btn-secondary" type="button" onClick={saveCurrentAsTemplate}>
+                  Enregistrer comme template
+                </button>
+              </div>
+
               <div className="prestations-list">
                 {lines.map((l, idx) => (
                   <div key={l.id} className="prestation-item">
@@ -1284,7 +1600,19 @@ function DevisV4({
                     </div>
                     <div className="form-row single">
                       <div className="form-group">
-                        <label className="form-label">Description (optionnel)</label>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+                          <label className="form-label">Description (optionnel)</label>
+                          <button
+                            className="btn btn-secondary"
+                            type="button"
+                            disabled={aiLineBusyId === l.id}
+                            onClick={() => aiGenerateLineDescription(l.id)}
+                            style={{ padding: '8px 10px', fontSize: 12 }}
+                            title="Générer une description avec l'IA"
+                          >
+                            {aiLineBusyId === l.id ? 'IA…' : '✨ IA'}
+                          </button>
+                        </div>
                         <textarea
                           className="form-textarea"
                           value={l.description}
@@ -1488,6 +1816,184 @@ function DevisV4({
         </div>
         </>
       )}
+
+      {/* Catalogue modal (Devis) */}
+      {showCatalog ? (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.5)',
+            zIndex: 200,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 16,
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowCatalog(false)
+          }}
+        >
+          <div
+            style={{
+              background: '#fff',
+              borderRadius: 16,
+              width: 'min(920px, 96vw)',
+              maxHeight: '86vh',
+              overflow: 'auto',
+              padding: 18,
+              border: '1px solid var(--gray-200)',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', marginBottom: 12 }}>
+              <div style={{ fontWeight: 800 }}>Catalogue de prestations</div>
+              <button className="btn btn-secondary" type="button" onClick={() => setShowCatalog(false)}>
+                Fermer
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
+              <input
+                className="form-input"
+                value={catalogSearch}
+                onChange={(e) => setCatalogSearch(e.target.value)}
+                placeholder="Rechercher…"
+                style={{ flex: 1, minWidth: 240 }}
+              />
+              <button className="btn btn-secondary" type="button" onClick={refreshCatalog}>
+                Rafraîchir
+              </button>
+            </div>
+
+            {catalogItems.length === 0 ? (
+              <div style={{ color: 'var(--gray-600)', fontSize: 13, lineHeight: 1.6 }}>
+                <b>Aucune prestation trouvée.</b>
+                <div style={{ marginTop: 6 }}>
+                  Si c’est la première fois : exécute le SQL dans <code>spyke-web/docs/supabase-devis-extensions.sql</code> (table{' '}
+                  <code>service_items</code>).
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gap: 8 }}>
+                {catalogItems
+                  .filter((it) => {
+                    const q = catalogSearch.trim().toLowerCase()
+                    if (!q) return true
+                    return String(it?.name || '').toLowerCase().includes(q) || String(it?.description || '').toLowerCase().includes(q)
+                  })
+                  .slice(0, 200)
+                  .map((it) => (
+                    <button
+                      key={it.id}
+                      type="button"
+                      className="btn btn-secondary"
+                      style={{ justifyContent: 'space-between', width: '100%', textAlign: 'left' }}
+                      onClick={() => addLineFromCatalog(it)}
+                    >
+                      <span>
+                        <b>{it.name}</b>
+                        <span style={{ display: 'block', fontSize: 12, color: 'var(--gray-500)', marginTop: 3, whiteSpace: 'normal' }}>
+                          {it.description || '—'}
+                        </span>
+                      </span>
+                      <span style={{ fontSize: 12, color: 'var(--gray-600)' }}>
+                        {formatMoney(Number(it.unit_price_ht || 0))} · TVA {Number(it.vat_rate || 0).toLocaleString('fr-FR', { maximumFractionDigits: 2 })}%
+                      </span>
+                    </button>
+                  ))}
+              </div>
+            )}
+          </div>
+        </div>
+      ) : null}
+
+      {/* Templates modal (Devis) */}
+      {showTemplates ? (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.5)',
+            zIndex: 210,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 16,
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowTemplates(false)
+          }}
+        >
+          <div
+            style={{
+              background: '#fff',
+              borderRadius: 16,
+              width: 'min(920px, 96vw)',
+              maxHeight: '86vh',
+              overflow: 'auto',
+              padding: 18,
+              border: '1px solid var(--gray-200)',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', marginBottom: 12 }}>
+              <div style={{ fontWeight: 800 }}>Templates de devis</div>
+              <button className="btn btn-secondary" type="button" onClick={() => setShowTemplates(false)}>
+                Fermer
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
+              <input
+                className="form-input"
+                value={templateSearch}
+                onChange={(e) => setTemplateSearch(e.target.value)}
+                placeholder="Rechercher…"
+                style={{ flex: 1, minWidth: 240 }}
+              />
+              <button className="btn btn-secondary" type="button" onClick={refreshTemplates}>
+                Rafraîchir
+              </button>
+            </div>
+
+            {templates.length === 0 ? (
+              <div style={{ color: 'var(--gray-600)', fontSize: 13, lineHeight: 1.6 }}>
+                <b>Aucun template.</b>
+                <div style={{ marginTop: 6 }}>
+                  Si c’est la première fois : exécute le SQL dans <code>spyke-web/docs/supabase-devis-extensions.sql</code> (tables{' '}
+                  <code>quote_templates</code> / <code>quote_template_lines</code>).
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gap: 8 }}>
+                {templates
+                  .filter((t) => {
+                    const q = templateSearch.trim().toLowerCase()
+                    if (!q) return true
+                    return String(t?.name || '').toLowerCase().includes(q)
+                  })
+                  .slice(0, 200)
+                  .map((t) => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      className="btn btn-secondary"
+                      style={{ justifyContent: 'space-between', width: '100%', textAlign: 'left' }}
+                      onClick={() => applyTemplate(String(t.id))}
+                    >
+                      <span>
+                        <b>{t.name}</b>
+                        <span style={{ display: 'block', fontSize: 12, color: 'var(--gray-500)', marginTop: 3 }}>
+                          Validité {Number(t.validity_days || 30)}j · Acompte {Number(t.deposit_percent || 0)}% · Paiement {Number(t.payment_delay_days || 30)}j
+                        </span>
+                      </span>
+                      <span style={{ fontSize: 12, color: 'var(--gray-600)' }}>Appliquer</span>
+                    </button>
+                  ))}
+              </div>
+            )}
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }
@@ -3567,7 +4073,7 @@ export default function AppHtmlPage() {
       const endStr = end.toISOString().slice(0, 10)
 
       const [{ data: q }, { data: inv }, { data: ctr }, { data: invMonth }, { count: clientsCount }] = await Promise.all([
-        supabase.from('quotes').select('id,number,title,status,total_ttc,created_at').order('created_at', { ascending: false }).limit(5),
+        supabase.from('quotes').select('id,number,title,status,total_ttc,created_at,date_issue,validity_until').order('created_at', { ascending: false }).limit(5),
         supabase
           .from('invoices')
           .select('id,number,status,paid_at,total_ttc,created_at,due_date,client_id')
