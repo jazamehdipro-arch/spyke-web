@@ -54,6 +54,9 @@ export default function SeoDevisPage() {
   // Gate: 1 free generation for this SEO page
   const storageKey = 'spyke_seo_devis_generated_v1'
 
+  const [used, setUsed] = useState(false)
+  const [showLimitModal, setShowLimitModal] = useState(false)
+
   const [sellerName, setSellerName] = useState('')
   const [sellerSiret, setSellerSiret] = useState('')
   const [sellerAddress, setSellerAddress] = useState('')
@@ -95,6 +98,14 @@ export default function SeoDevisPage() {
     setQuoteNumber(`D${yyyy}${mm}-001`)
   }, [])
 
+  useEffect(() => {
+    try {
+      setUsed(Boolean(window.localStorage.getItem(storageKey)))
+    } catch {
+      setUsed(false)
+    }
+  }, [])
+
   function updateLine(id: string, patch: Partial<DevisLine>) {
     setLines((prev) => prev.map((l) => (l.id === id ? { ...l, ...patch } : l)))
   }
@@ -110,14 +121,16 @@ export default function SeoDevisPage() {
     setLines((prev) => (prev.length <= 1 ? prev : prev.filter((l) => l.id !== id)))
   }
 
-  function requireSignup() {
+  function goSignup() {
     window.location.href = '/connexion.html'
   }
 
   async function generatePdf() {
     try {
-      const already = typeof window !== 'undefined' ? window.localStorage.getItem(storageKey) : null
-      if (already) return requireSignup()
+      if (used) {
+        setShowLimitModal(true)
+        return
+      }
 
       if (!sellerName.trim()) throw new Error('Renseigne ton nom / raison sociale')
       if (!buyerName.trim()) throw new Error('Renseigne le nom du client')
@@ -176,8 +189,10 @@ export default function SeoDevisPage() {
 
       downloadBlob(blob, `Devis-${quoteNumber}.pdf`)
 
-      // mark used
-      window.localStorage.setItem(storageKey, '1')
+      try {
+        window.localStorage.setItem(storageKey, '1')
+      } catch {}
+      setUsed(true)
 
       // show optional email capture
       setShowEmailModal(true)
@@ -235,7 +250,7 @@ export default function SeoDevisPage() {
 
         .seo-hero { background: var(--black); padding: 56px 40px 46px; text-align: center; position: relative; overflow: hidden; }
         .seo-hero::before { content: ''; position: absolute; width: 500px; height: 500px; border-radius: 50%; background: var(--yellow); opacity: 0.06; top: -200px; left: 50%; transform: translateX(-50%); filter: blur(100px); }
-        .seo-hero-badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(250, 204, 21, 0.1); border: 1px solid rgba(250, 204, 21, 0.2); color: var(--yellow); font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.2px; padding: 6px 16px; border-radius: 999px; margin-bottom: 18px; position: relative; z-index: 1; }
+        .seo-hero-badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(250, 204, 21, 0.1); border: 1px solid rgba(250, 204, 21, 0.2); color: var(--yellow); font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: 1.2px; padding: 6px 16px; border-radius: 999px; margin-bottom: 18px; position: relative; z-index: 1; }
         .seo-hero-badge-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--yellow); }
         .seo-hero h1 { font-size: 40px; font-weight: 900; color: var(--white); letter-spacing: -1.4px; line-height: 1.15; max-width: 760px; margin: 0 auto 14px; position: relative; z-index: 1; }
         .seo-hero h1 span { color: var(--yellow); }
@@ -249,13 +264,13 @@ export default function SeoDevisPage() {
         .seo-ai-icon svg { width: 20px; height: 20px; fill: var(--gray-400); }
         .seo-ai-lock { position: absolute; bottom: -3px; right: -3px; width: 16px; height: 16px; background: var(--gray-500); border-radius: 4px; display: flex; align-items: center; justify-content: center; }
         .seo-ai-lock svg { width: 9px; height: 9px; fill: var(--white); }
-        .seo-ai-title { font-size: 14px; font-weight: 800; color: var(--gray-500); }
+        .seo-ai-title { font-size: 14px; font-weight: 900; color: var(--gray-500); }
         .seo-ai-sub { font-size: 12px; color: var(--gray-400); }
-        .seo-ai-btn { padding: 8px 18px; background: var(--black); color: var(--white); border: none; border-radius: 8px; font-size: 12px; font-weight: 800; cursor: pointer; white-space: nowrap; }
+        .seo-ai-btn { padding: 8px 18px; background: var(--black); color: var(--white); border: none; border-radius: 8px; font-size: 12px; font-weight: 900; cursor: pointer; white-space: nowrap; }
 
         .seo-form-wrap { max-width: 900px; margin: 32px auto 0; padding: 0 40px; }
         .seo-card { background: var(--white); border: 1px solid var(--gray-200); border-radius: 16px; padding: 28px 32px; margin-bottom: 18px; }
-        .seo-card-title { font-size: 15px; font-weight: 900; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--gray-100); display: flex; align-items: center; gap: 8px; }
+        .seo-card-title { font-size: 15px; font-weight: 900; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--gray-100); }
         .seo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
         .seo-group { display: flex; flex-direction: column; gap: 6px; }
         .seo-group.full { grid-column: 1 / -1; }
@@ -268,7 +283,7 @@ export default function SeoDevisPage() {
         .seo-table th { text-align: left; font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.8px; color: var(--gray-400); padding: 8px 10px; border-bottom: 1px solid var(--gray-200); }
         .seo-table td { padding: 6px 10px; }
         .seo-table input, .seo-table select { width: 100%; }
-        .seo-btn-add { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; background: none; border: 1.5px dashed var(--gray-300); border-radius: 8px; font-size: 13px; font-weight: 800; color: var(--gray-500); cursor: pointer; margin-top: 12px; }
+        .seo-btn-add { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; background: none; border: 1.5px dashed var(--gray-300); border-radius: 8px; font-size: 13px; font-weight: 900; color: var(--gray-500); cursor: pointer; margin-top: 12px; }
         .seo-btn-remove { width: 28px; height: 28px; border: none; background: rgba(239, 68, 68, 0.08); color: #ef4444; border-radius: 6px; cursor: pointer; font-size: 16px; }
 
         .seo-totals { display: flex; justify-content: flex-end; margin-top: 18px; }
@@ -279,17 +294,17 @@ export default function SeoDevisPage() {
         .seo-total-row.final .v { font-weight: 900; font-size: 22px; color: var(--black); }
 
         .seo-generate { text-align: center; margin-top: 8px; }
-        .seo-btn-generate { padding: 16px 48px; background: var(--black); color: var(--white); border: none; border-radius: 14px; font-size: 16px; font-weight: 900; cursor: pointer; display: inline-flex; align-items: center; gap: 10px; }
+        .seo-btn-generate { padding: 16px 48px; background: var(--black); color: var(--white); border: none; border-radius: 14px; font-size: 16px; font-weight: 900; cursor: pointer; }
         .seo-note { font-size: 12px; color: var(--gray-400); margin-top: 10px; }
 
         .seo-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); z-index: 200; align-items: center; justify-content: center; }
         .seo-modal-overlay.active { display: flex; }
-        .seo-modal { background: var(--white); border-radius: 20px; padding: 32px 34px; max-width: 440px; width: 90%; text-align: center; }
+        .seo-modal { background: var(--white); border-radius: 20px; padding: 32px 34px; max-width: 460px; width: 90%; text-align: center; }
         .seo-modal h3 { font-size: 20px; font-weight: 900; margin: 0 0 6px; }
         .seo-modal p { font-size: 14px; color: var(--gray-500); margin: 0 0 18px; }
         .seo-modal-form { display: flex; gap: 10px; margin-bottom: 12px; }
         .seo-modal-form input { flex: 1; }
-        .seo-modal-form button { padding: 12px 18px; background: var(--black); color: var(--white); border: none; border-radius: 10px; font-weight: 900; cursor: pointer; }
+        .seo-modal-form button { padding: 12px 18px; background: var(--black); color: var(--white); border: none; border-radius: 10px; font-weight: 900; cursor: pointer; white-space: nowrap; }
         .seo-modal-skip { font-size: 13px; color: var(--gray-400); cursor: pointer; background: none; border: none; }
 
         @media (max-width: 768px) {
@@ -321,7 +336,7 @@ export default function SeoDevisPage() {
       <section className="seo-hero">
         <div className="seo-hero-badge"><span className="seo-hero-badge-dot" /> Outil 100% gratuit</div>
         <h1>Créez votre <span>devis freelance</span> en 2 minutes</h1>
-        <p className="seo-hero-sub">Remplissez le formulaire, téléchargez votre devis en PDF professionnel. Gratuit, sans inscription, conforme aux obligations légales.</p>
+        <p className="seo-hero-sub">Remplissez le formulaire, téléchargez votre devis en PDF professionnel. <b>Gratuit, sans inscription</b>, conforme aux obligations légales.</p>
         <div className="seo-hero-trust">
           <span className="seo-hero-trust-item"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>Sans inscription</span>
           <span className="seo-hero-trust-item"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>PDF pro</span>
@@ -340,7 +355,7 @@ export default function SeoDevisPage() {
           <div className="seo-ai-title">Remplissage IA depuis un brief client</div>
           <div className="seo-ai-sub">Importez un PDF ou une image, l'IA pré-remplit votre devis automatiquement</div>
         </div>
-        <button className="seo-ai-btn" type="button" onClick={() => (window.location.href = '/connexion.html')}>Fonctionnalité Spyke Pro</button>
+        <button className="seo-ai-btn" type="button" onClick={goSignup}>Fonctionnalité Spyke Pro</button>
       </div>
 
       <div className="seo-form-wrap">
@@ -503,8 +518,14 @@ export default function SeoDevisPage() {
         </div>
 
         <div className="seo-generate">
-          <button className="seo-btn-generate" type="button" onClick={generatePdf}>Générer mon devis en PDF</button>
-          <p className="seo-note">Gratuit et sans inscription. Puis à la 2e génération, création de compte.</p>
+          <button className="seo-btn-generate" type="button" onClick={generatePdf}>
+            {used ? 'PDF gratuit utilisé — créer un compte' : 'Générer mon devis en PDF'}
+          </button>
+          <p className="seo-note">
+            {used
+              ? "Vous avez déjà généré votre PDF gratuit depuis cette page. Créez un compte pour en générer d'autres."
+              : '1 PDF gratuit sur cette page. Ensuite, création de compte obligatoire.'}
+          </p>
         </div>
       </div>
 
@@ -533,6 +554,25 @@ export default function SeoDevisPage() {
           <button className="seo-modal-skip" type="button" onClick={() => setShowEmailModal(false)}>
             Non merci, c'est tout
           </button>
+        </div>
+      </div>
+
+      <div className={showLimitModal ? 'seo-modal-overlay active' : 'seo-modal-overlay'} onClick={(e) => e.target === e.currentTarget && setShowLimitModal(false)}>
+        <div className="seo-modal">
+          <h3>PDF gratuit déjà utilisé</h3>
+          <p>
+            Vous avez déjà généré <b>1 devis gratuit</b> depuis cette page.
+            <br />
+            Pour en générer d'autres (et sauvegarder vos infos), créez un compte Spyke.
+          </p>
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+            <button type="button" style={{ padding: '12px 18px', borderRadius: 10, border: '1px solid #e4e4e7', background: '#fff', fontWeight: 900, cursor: 'pointer' }} onClick={() => setShowLimitModal(false)}>
+              Fermer
+            </button>
+            <button type="button" style={{ padding: '12px 18px', borderRadius: 10, border: 'none', background: '#0a0a0a', color: '#fff', fontWeight: 900, cursor: 'pointer' }} onClick={goSignup}>
+              Créer un compte
+            </button>
+          </div>
         </div>
       </div>
     </div>

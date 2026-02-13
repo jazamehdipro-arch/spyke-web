@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob)
@@ -13,29 +13,119 @@ function downloadBlob(blob: Blob, filename: string) {
   URL.revokeObjectURL(url)
 }
 
+function buildContractTemplate(params: {
+  title: string
+  date: string
+  sellerName: string
+  sellerSiret: string
+  sellerAddress: string
+  buyerName: string
+  buyerAddress: string
+  missionTitle: string
+  missionDescription: string
+  price: string
+  paymentTerms: string
+}) {
+  const {
+    title,
+    date,
+    sellerName,
+    sellerSiret,
+    sellerAddress,
+    buyerName,
+    buyerAddress,
+    missionTitle,
+    missionDescription,
+    price,
+    paymentTerms,
+  } = params
+
+  return `CONTRAT DE PRESTATION DE SERVICES\n\n${title ? `Titre : ${title}\n` : ''}${date ? `Date : ${date}\n` : ''}\nEntre les soussignés :\n- Prestataire : ${sellerName || '[Nom prestataire]'}${sellerSiret ? ` (SIRET : ${sellerSiret})` : ''}${sellerAddress ? `, ${sellerAddress}` : ''}\n- Client : ${buyerName || '[Nom client]'}${buyerAddress ? `, ${buyerAddress}` : ''}\n\n1. Objet\nLe présent contrat a pour objet la réalisation des prestations décrites ci-dessous.\n\n2. Prestations\nMission : ${missionTitle || '[Titre de la mission]'}\nDescription :\n${missionDescription || '[Décrivez le périmètre, livrables, délais, modalités]'}\n\n3. Prix et paiement\nPrix : ${price || '[Prix / TJM / forfait]'}\nModalités :\n${paymentTerms || "[Ex: 30% à la signature, solde à la livraison, paiement à 30 jours fin de mois]"}\n\n4. Propriété intellectuelle\nPréciser les droits cédés, conditions et périmètre de cession (le cas échéant).\n\n5. Confidentialité\nChaque partie s'engage à garder confidentielles les informations échangées.\n\n6. Résiliation\nPréciser les conditions de résiliation et les conséquences (facturation, restitution, etc.).\n\nFait à [Ville], le [Date].\n\nSignatures :\nPrestataire : ____________________\nClient : ____________________`
+}
+
 export default function SeoContratPage() {
   const today = useMemo(() => new Date().toISOString().slice(0, 10), [])
   const storageKey = 'spyke_seo_contrat_generated_v1'
 
-  const [sellerName, setSellerName] = useState('')
-  const [buyerName, setBuyerName] = useState('')
+  const [used, setUsed] = useState(false)
+  const [showLimitModal, setShowLimitModal] = useState(false)
+
   const [title, setTitle] = useState('Contrat de prestation de services')
   const [date, setDate] = useState(today)
-  const [contractText, setContractText] = useState(
-    `CONTRAT DE PRESTATION DE SERVICES\n\nEntre les soussignés :\n- Prestataire : [Nom] (ci-après « le Prestataire »)\n- Client : [Nom] (ci-après « le Client »)\n\n1. Objet\nLe présent contrat a pour objet la réalisation des prestations décrites ci-dessous.\n\n2. Prestations\nDécrire précisément le périmètre, livrables, délais et modalités.\n\n3. Prix et paiement\nDécrire le prix, l'échéancier, les pénalités de retard, etc.\n\n4. Propriété intellectuelle\nDécrire les droits cédés, conditions, etc.\n\n5. Résiliation\nDécrire les conditions de résiliation.\n\nFait à [Ville], le [Date].\n\nSignatures :\nPrestataire : ____________________\nClient : ____________________`
-  )
+
+  const [sellerName, setSellerName] = useState('')
+  const [sellerSiret, setSellerSiret] = useState('')
+  const [sellerAddress, setSellerAddress] = useState('')
+
+  const [buyerName, setBuyerName] = useState('')
+  const [buyerAddress, setBuyerAddress] = useState('')
+
+  const [missionTitle, setMissionTitle] = useState('')
+  const [missionDescription, setMissionDescription] = useState('')
+  const [price, setPrice] = useState('')
+  const [paymentTerms, setPaymentTerms] = useState('')
+
+  const [contractText, setContractText] = useState('')
 
   const [showEmailModal, setShowEmailModal] = useState(false)
   const [email, setEmail] = useState('')
 
-  function requireSignup() {
+  useEffect(() => {
+    try {
+      setUsed(Boolean(window.localStorage.getItem(storageKey)))
+    } catch {
+      setUsed(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    // initial template
+    setContractText(
+      buildContractTemplate({
+        title,
+        date,
+        sellerName,
+        sellerSiret,
+        sellerAddress,
+        buyerName,
+        buyerAddress,
+        missionTitle,
+        missionDescription,
+        price,
+        paymentTerms,
+      })
+    )
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  function goSignup() {
     window.location.href = '/connexion.html'
+  }
+
+  function regenerateTemplate() {
+    setContractText(
+      buildContractTemplate({
+        title,
+        date,
+        sellerName,
+        sellerSiret,
+        sellerAddress,
+        buyerName,
+        buyerAddress,
+        missionTitle,
+        missionDescription,
+        price,
+        paymentTerms,
+      })
+    )
   }
 
   async function generatePdf() {
     try {
-      const already = window.localStorage.getItem(storageKey)
-      if (already) return requireSignup()
+      if (used) {
+        setShowLimitModal(true)
+        return
+      }
 
       if (!contractText.trim()) throw new Error('Renseigne le texte du contrat')
 
@@ -62,7 +152,12 @@ export default function SeoContratPage() {
       }
 
       downloadBlob(blob, `Contrat.pdf`)
-      window.localStorage.setItem(storageKey, '1')
+
+      try {
+        window.localStorage.setItem(storageKey, '1')
+      } catch {}
+      setUsed(true)
+
       setShowEmailModal(true)
     } catch (e: any) {
       alert(e?.message || 'Erreur PDF')
@@ -86,7 +181,9 @@ export default function SeoContratPage() {
           --gray-800: #27272a;
           --gray-900: #18181b;
           --yellow: #facc15;
+          --yellow-dark: #eab308;
           --yellow-glow: rgba(250, 204, 21, 0.15);
+          --green: #22c55e;
           font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'DM Sans', sans-serif;
           background: var(--gray-50);
           color: var(--gray-900);
@@ -102,29 +199,54 @@ export default function SeoContratPage() {
         .seo-nav-tool:hover { color: var(--white); background: var(--gray-800); }
         .seo-nav-tool.active { color: var(--yellow); background: var(--gray-800); }
         .seo-nav-cta { padding: 9px 20px; background: var(--yellow); color: var(--black); border-radius: 10px; font-size: 13px; font-weight: 800; text-decoration: none; }
-        .seo-hero { background: var(--black); padding: 56px 40px 46px; text-align: center; }
-        .seo-hero h1 { font-size: 40px; font-weight: 900; color: var(--white); letter-spacing: -1.4px; line-height: 1.15; max-width: 760px; margin: 0 auto 14px; }
+
+        .seo-hero { background: var(--black); padding: 56px 40px 46px; text-align: center; position: relative; overflow: hidden; }
+        .seo-hero::before { content: ''; position: absolute; width: 500px; height: 500px; border-radius: 50%; background: var(--yellow); opacity: 0.06; top: -200px; left: 50%; transform: translateX(-50%); filter: blur(100px); }
+        .seo-hero-badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(250, 204, 21, 0.1); border: 1px solid rgba(250, 204, 21, 0.2); color: var(--yellow); font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: 1.2px; padding: 6px 16px; border-radius: 999px; margin-bottom: 18px; position: relative; z-index: 1; }
+        .seo-hero-badge-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--yellow); }
+        .seo-hero h1 { font-size: 40px; font-weight: 900; color: var(--white); letter-spacing: -1.4px; line-height: 1.15; max-width: 760px; margin: 0 auto 14px; position: relative; z-index: 1; }
         .seo-hero h1 span { color: var(--yellow); }
-        .seo-hero-sub { font-size: 16px; color: var(--gray-400); max-width: 620px; margin: 0 auto; line-height: 1.7; }
+        .seo-hero-sub { font-size: 16px; color: var(--gray-400); max-width: 620px; margin: 0 auto; line-height: 1.7; position: relative; z-index: 1; }
+        .seo-hero-trust { display: flex; align-items: center; justify-content: center; gap: 24px; margin-top: 24px; position: relative; z-index: 1; flex-wrap: wrap; }
+        .seo-hero-trust-item { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--gray-500); }
+        .seo-hero-trust-item svg { width: 16px; height: 16px; stroke: var(--green); fill: none; stroke-width: 2.5; }
+
+        .seo-ai-banner { max-width: 900px; margin: -18px auto 0; padding: 18px 28px; background: var(--gray-100); border: 1.5px dashed var(--gray-300); border-radius: 14px; display: flex; align-items: center; gap: 16px; position: relative; z-index: 2; }
+        .seo-ai-icon { width: 42px; height: 42px; background: var(--gray-200); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; position: relative; }
+        .seo-ai-icon svg { width: 20px; height: 20px; fill: var(--gray-400); }
+        .seo-ai-lock { position: absolute; bottom: -3px; right: -3px; width: 16px; height: 16px; background: var(--gray-500); border-radius: 4px; display: flex; align-items: center; justify-content: center; }
+        .seo-ai-lock svg { width: 9px; height: 9px; fill: var(--white); }
+        .seo-ai-title { font-size: 14px; font-weight: 900; color: var(--gray-500); }
+        .seo-ai-sub { font-size: 12px; color: var(--gray-400); }
+        .seo-ai-btn { padding: 8px 18px; background: var(--black); color: var(--white); border: none; border-radius: 8px; font-size: 12px; font-weight: 900; cursor: pointer; white-space: nowrap; }
+
         .wrap { max-width: 900px; margin: 32px auto 0; padding: 0 40px; }
         .card { background: var(--white); border: 1px solid var(--gray-200); border-radius: 16px; padding: 28px 32px; margin-bottom: 18px; }
         .title { font-size: 15px; font-weight: 900; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--gray-100); }
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
         .group { display: flex; flex-direction: column; gap: 6px; }
+        .group.full { grid-column: 1 / -1; }
         .label { font-size: 12px; font-weight: 700; color: var(--gray-600); }
         .input, .textarea { padding: 11px 14px; border: 1.5px solid var(--gray-200); border-radius: 10px; font-size: 14px; color: var(--gray-900); outline: none; background: var(--gray-50); }
         .input:focus, .textarea:focus { border-color: var(--yellow); box-shadow: 0 0 0 3px var(--yellow-glow); background: var(--white); }
-        .textarea { resize: vertical; min-height: 280px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; }
+        .textarea { resize: vertical; min-height: 320px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; }
+        .row-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+        .btn-secondary { padding: 10px 14px; border: 1px solid var(--gray-200); background: var(--white); border-radius: 10px; font-weight: 900; cursor: pointer; }
+
         .generate { text-align: center; margin-top: 8px; }
         .btn { padding: 16px 48px; background: var(--black); color: var(--white); border: none; border-radius: 14px; font-size: 16px; font-weight: 900; cursor: pointer; }
         .note { font-size: 12px; color: var(--gray-400); margin-top: 10px; }
-        .seo-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; align-items: center; justify-content: center; }
+
+        .seo-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); z-index: 200; align-items: center; justify-content: center; }
         .seo-modal-overlay.active { display: flex; }
-        .seo-modal { background: var(--white); border-radius: 20px; padding: 32px 34px; max-width: 440px; width: 90%; text-align: center; }
+        .seo-modal { background: var(--white); border-radius: 20px; padding: 32px 34px; max-width: 460px; width: 90%; text-align: center; }
+        .seo-modal h3 { font-size: 20px; font-weight: 900; margin: 0 0 6px; }
+        .seo-modal p { font-size: 14px; color: var(--gray-500); margin: 0 0 18px; }
         .seo-modal-form { display: flex; gap: 10px; margin-bottom: 12px; }
         .seo-modal-form input { flex: 1; }
-        .seo-modal-form button { padding: 12px 18px; background: var(--black); color: var(--white); border: none; border-radius: 10px; font-weight: 900; cursor: pointer; }
+        .seo-modal-form button { padding: 12px 18px; background: var(--black); color: var(--white); border: none; border-radius: 10px; font-weight: 900; cursor: pointer; white-space: nowrap; }
         .seo-modal-skip { font-size: 13px; color: var(--gray-400); cursor: pointer; background: none; border: none; }
+
         @media (max-width: 768px) {
           .seo-navbar { padding: 12px 20px; }
           .seo-nav-tools { display: none; }
@@ -132,6 +254,7 @@ export default function SeoContratPage() {
           .seo-hero h1 { font-size: 28px; }
           .wrap { padding: 0 20px; }
           .grid { grid-template-columns: 1fr; }
+          .seo-ai-banner { margin: -14px 20px 0; flex-direction: column; text-align: center; }
         }
       `}</style>
 
@@ -149,41 +272,115 @@ export default function SeoContratPage() {
       </nav>
 
       <section className="seo-hero">
-        <h1>Générez un <span>contrat freelance</span> en PDF</h1>
-        <p className="seo-hero-sub">Éditez le texte et téléchargez votre contrat. Gratuit 1 fois, sans inscription.</p>
+        <div className="seo-hero-badge"><span className="seo-hero-badge-dot" /> Outil 100% gratuit</div>
+        <h1>Créez votre <span>contrat freelance</span> en 2 minutes</h1>
+        <p className="seo-hero-sub">Remplissez les informations, générez un PDF. <b>Gratuit, sans inscription</b>.</p>
+        <div className="seo-hero-trust">
+          <span className="seo-hero-trust-item"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>Sans inscription</span>
+          <span className="seo-hero-trust-item"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>PDF pro</span>
+          <span className="seo-hero-trust-item"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>Modifiable</span>
+        </div>
       </section>
+
+      <div className="seo-ai-banner">
+        <div className="seo-ai-icon">
+          <svg viewBox="0 0 24 24"><path d="M13 3L4 14h7l-2 7 9-11h-7l2-7z" /></svg>
+          <div className="seo-ai-lock">
+            <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
+          </div>
+        </div>
+        <div style={{ flex: 1 }}>
+          <div className="seo-ai-title">Remplissage IA depuis un brief client</div>
+          <div className="seo-ai-sub">Importez un PDF ou une image, l'IA pré-remplit votre contrat automatiquement</div>
+        </div>
+        <button className="seo-ai-btn" type="button" onClick={goSignup}>Fonctionnalité Spyke Pro</button>
+      </div>
 
       <div className="wrap">
         <div className="card">
-          <div className="title">Informations</div>
+          <div className="title">Prestataire</div>
           <div className="grid">
             <div className="group">
-              <label className="label">Titre</label>
+              <label className="label">Nom / Raison sociale</label>
+              <input className="input" value={sellerName} onChange={(e) => setSellerName(e.target.value)} placeholder="Ex : Jean Dupont" />
+            </div>
+            <div className="group">
+              <label className="label">SIRET (optionnel)</label>
+              <input className="input" value={sellerSiret} onChange={(e) => setSellerSiret(e.target.value)} placeholder="123 456 789 00012" />
+            </div>
+            <div className="group full">
+              <label className="label">Adresse (optionnel)</label>
+              <input className="input" value={sellerAddress} onChange={(e) => setSellerAddress(e.target.value)} placeholder="Adresse complète" />
+            </div>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="title">Client</div>
+          <div className="grid">
+            <div className="group">
+              <label className="label">Nom du client / Entreprise</label>
+              <input className="input" value={buyerName} onChange={(e) => setBuyerName(e.target.value)} placeholder="Ex : Agence Créative SAS" />
+            </div>
+            <div className="group full">
+              <label className="label">Adresse (optionnel)</label>
+              <input className="input" value={buyerAddress} onChange={(e) => setBuyerAddress(e.target.value)} placeholder="Adresse du client" />
+            </div>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="title">Mission</div>
+          <div className="grid">
+            <div className="group">
+              <label className="label">Titre de la mission</label>
+              <input className="input" value={missionTitle} onChange={(e) => setMissionTitle(e.target.value)} placeholder="Ex : Création site vitrine" />
+            </div>
+            <div className="group">
+              <label className="label">Prix (forfait / TJM)</label>
+              <input className="input" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="Ex : 1500€ HT / TJM 400€" />
+            </div>
+            <div className="group full">
+              <label className="label">Description / périmètre</label>
+              <input className="input" value={missionDescription} onChange={(e) => setMissionDescription(e.target.value)} placeholder="Livrables, délais, modalités…" />
+            </div>
+            <div className="group full">
+              <label className="label">Conditions de paiement</label>
+              <input className="input" value={paymentTerms} onChange={(e) => setPaymentTerms(e.target.value)} placeholder="Ex : 30% à la signature, solde à la livraison" />
+            </div>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="title">Détails + clauses (modifiable)</div>
+          <div className="grid">
+            <div className="group">
+              <label className="label">Titre du contrat</label>
               <input className="input" value={title} onChange={(e) => setTitle(e.target.value)} />
             </div>
             <div className="group">
               <label className="label">Date</label>
               <input type="date" className="input" value={date} onChange={(e) => setDate(e.target.value)} />
             </div>
-            <div className="group">
-              <label className="label">Prestataire (optionnel)</label>
-              <input className="input" value={sellerName} onChange={(e) => setSellerName(e.target.value)} placeholder="Nom du prestataire" />
+            <div className="group full">
+              <label className="label">Texte du contrat</label>
+              <textarea className="textarea" value={contractText} onChange={(e) => setContractText(e.target.value)} />
             </div>
-            <div className="group">
-              <label className="label">Client (optionnel)</label>
-              <input className="input" value={buyerName} onChange={(e) => setBuyerName(e.target.value)} placeholder="Nom du client" />
-            </div>
+          </div>
+          <div className="row-actions">
+            <button className="btn-secondary" type="button" onClick={regenerateTemplate}>Régénérer le modèle</button>
           </div>
         </div>
 
-        <div className="card">
-          <div className="title">Texte du contrat</div>
-          <textarea className="textarea" value={contractText} onChange={(e) => setContractText(e.target.value)} />
-        </div>
-
         <div className="generate">
-          <button className="btn" type="button" onClick={generatePdf}>Générer mon contrat en PDF</button>
-          <p className="note">Gratuit 1 fois. À la 2e génération, création de compte.</p>
+          <button className="btn" type="button" onClick={generatePdf}>
+            {used ? 'PDF gratuit utilisé — créer un compte' : 'Générer mon contrat en PDF'}
+          </button>
+          <p className="note">
+            {used
+              ? "Vous avez déjà généré votre PDF gratuit depuis cette page. Créez un compte pour en générer d'autres."
+              : '1 PDF gratuit sur cette page. Ensuite, création de compte obligatoire.'}
+          </p>
         </div>
       </div>
 
@@ -196,6 +393,25 @@ export default function SeoContratPage() {
             <button type="button" onClick={() => { if (!email.trim()) return; alert('Envoi email : à brancher'); setShowEmailModal(false) }}>Envoyer</button>
           </div>
           <button className="seo-modal-skip" type="button" onClick={() => setShowEmailModal(false)}>Non merci, c'est tout</button>
+        </div>
+      </div>
+
+      <div className={showLimitModal ? 'seo-modal-overlay active' : 'seo-modal-overlay'} onClick={(e) => e.target === e.currentTarget && setShowLimitModal(false)}>
+        <div className="seo-modal">
+          <h3>PDF gratuit déjà utilisé</h3>
+          <p>
+            Vous avez déjà généré <b>1 contrat gratuit</b> depuis cette page.
+            <br />
+            Pour en générer d'autres (et sauvegarder vos infos), créez un compte Spyke.
+          </p>
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+            <button type="button" style={{ padding: '12px 18px', borderRadius: 10, border: '1px solid #e4e4e7', background: '#fff', fontWeight: 900, cursor: 'pointer' }} onClick={() => setShowLimitModal(false)}>
+              Fermer
+            </button>
+            <button type="button" style={{ padding: '12px 18px', borderRadius: 10, border: 'none', background: '#0a0a0a', color: '#fff', fontWeight: 900, cursor: 'pointer' }} onClick={goSignup}>
+              Créer un compte
+            </button>
+          </div>
         </div>
       </div>
     </div>
