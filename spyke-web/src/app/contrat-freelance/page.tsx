@@ -32,7 +32,7 @@ export default function Page() {
         name: "Puis-je générer un contrat gratuitement ?",
         acceptedAnswer: {
           '@type': 'Answer',
-          text: "Oui : vous pouvez générer 1 contrat gratuitement depuis cette page. Pour en générer davantage, créez un compte Spyke.",
+          text: "Oui : vous pouvez générer des contrats gratuitement depuis cette page, sans inscription. Pour sauvegarder et réutiliser vos contrats, créez un compte Spyke.",
         },
       },
     ],

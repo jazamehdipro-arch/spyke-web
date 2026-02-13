@@ -32,7 +32,7 @@ export default function Page() {
         name: "Puis-je faire une facture gratuitement sans inscription ?",
         acceptedAnswer: {
           '@type': 'Answer',
-          text: "Oui : vous pouvez générer 1 facture gratuitement depuis cette page. Pour en générer davantage, créez un compte Spyke.",
+          text: "Oui : vous pouvez générer des factures gratuitement depuis cette page, sans inscription. Pour sauvegarder vos infos et retrouver vos factures, créez un compte Spyke.",
         },
       },
     ],

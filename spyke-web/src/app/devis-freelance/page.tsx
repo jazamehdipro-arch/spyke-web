@@ -56,7 +56,7 @@ export default function Page() {
         name: "Cet outil est-il vraiment gratuit ?",
         acceptedAnswer: {
           '@type': 'Answer',
-          text: "Oui : vous pouvez générer 1 devis gratuitement sans inscription depuis cette page. Pour en générer davantage, créez un compte Spyke.",
+          text: "Oui : vous pouvez générer des devis gratuitement depuis cette page, sans inscription. Si vous souhaitez sauvegarder vos clients et retrouver vos devis plus tard, créez un compte Spyke.",
         },
       },
     ],

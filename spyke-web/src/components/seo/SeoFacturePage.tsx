@@ -26,12 +26,28 @@ function downloadBlob(blob: Blob, filename: string) {
   URL.revokeObjectURL(url)
 }
 
+function readCount(key: string) {
+  try {
+    const v = Number(window.localStorage.getItem(key) || '0')
+    return Number.isFinite(v) && v >= 0 ? v : 0
+  } catch {
+    return 0
+  }
+}
+
+function writeCount(key: string, value: number) {
+  try {
+    window.localStorage.setItem(key, String(Math.max(0, Math.floor(value || 0))))
+  } catch {
+    // ignore
+  }
+}
+
 export default function SeoFacturePage() {
   const today = useMemo(() => new Date().toISOString().slice(0, 10), [])
-  const storageKey = 'spyke_seo_facture_generated_v1'
+  const pdfCountKey = 'spyke_seo_facture_pdf_count_v1'
 
-  const [used, setUsed] = useState(false)
-  const [showLimitModal, setShowLimitModal] = useState(false)
+  const [pdfCount, setPdfCount] = useState(0)
 
   const [sellerName, setSellerName] = useState('')
   const [sellerSiret, setSellerSiret] = useState('')
@@ -63,14 +79,9 @@ export default function SeoFacturePage() {
     const yyyy = d.getFullYear()
     const mm = String(d.getMonth() + 1).padStart(2, '0')
     setInvoiceNumber(`F${yyyy}${mm}-001`)
-  }, [])
 
-  useEffect(() => {
-    try {
-      setUsed(Boolean(window.localStorage.getItem(storageKey)))
-    } catch {
-      setUsed(false)
-    }
+    setPdfCount(readCount(pdfCountKey))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   function updateLine(id: string, patch: Partial<Line>) {
@@ -91,11 +102,6 @@ export default function SeoFacturePage() {
 
   async function generatePdf() {
     try {
-      if (used) {
-        setShowLimitModal(true)
-        return
-      }
-
       if (!sellerName.trim()) throw new Error('Renseigne ton nom / raison sociale')
       if (!buyerName.trim()) throw new Error('Renseigne le nom du client')
       if (!invoiceNumber.trim()) throw new Error('Renseigne un numéro de facture')
@@ -150,16 +156,17 @@ export default function SeoFacturePage() {
 
       downloadBlob(blob, `Facture-${invoiceNumber}.pdf`)
 
-      try {
-        window.localStorage.setItem(storageKey, '1')
-      } catch {}
-      setUsed(true)
+      const nextCount = pdfCount + 1
+      setPdfCount(nextCount)
+      writeCount(pdfCountKey, nextCount)
 
       setShowEmailModal(true)
     } catch (e: any) {
       alert(e?.message || 'Erreur PDF')
     }
   }
+
+  const showSoftSignupNudge = pdfCount >= 2
 
   return (
     <div className="seo-tool">
@@ -219,6 +226,12 @@ export default function SeoFacturePage() {
         .seo-ai-sub { font-size: 12px; color: var(--gray-400); }
         .seo-ai-btn { padding: 8px 18px; background: var(--black); color: var(--white); border: none; border-radius: 8px; font-size: 12px; font-weight: 900; cursor: pointer; white-space: nowrap; }
 
+        .seo-soft-nudge { max-width: 900px; margin: 12px auto 0; padding: 0 40px; }
+        .seo-soft-nudge-card { background: rgba(250, 204, 21, 0.12); border: 1px solid rgba(250, 204, 21, 0.25); border-radius: 14px; padding: 14px 16px; display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+        .seo-soft-nudge-text { color: #111827; font-size: 13px; font-weight: 700; }
+        .seo-soft-nudge-sub { color: #374151; font-size: 12px; margin-top: 2px; }
+        .seo-soft-nudge-btn { padding: 10px 14px; background: var(--black); color: var(--white); border: none; border-radius: 10px; font-weight: 900; cursor: pointer; white-space: nowrap; }
+
         .seo-form-wrap { max-width: 900px; margin: 32px auto 0; padding: 0 40px; }
         .seo-card { background: var(--white); border: 1px solid var(--gray-200); border-radius: 16px; padding: 28px 32px; margin-bottom: 18px; }
         .seo-card-title { font-size: 15px; font-weight: 900; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--gray-100); }
@@ -242,16 +255,15 @@ export default function SeoFacturePage() {
         .seo-generate { text-align: center; margin-top: 8px; }
         .seo-btn-generate { padding: 16px 48px; background: var(--black); color: var(--white); border: none; border-radius: 14px; font-size: 16px; font-weight: 900; cursor: pointer; }
         .seo-note { font-size: 12px; color: var(--gray-400); margin-top: 10px; }
-        .seo-limit-note { max-width: 900px; margin: 10px auto 0; padding: 0 40px; font-size: 12px; color: var(--gray-500); }
 
         .seo-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); z-index: 200; align-items: center; justify-content: center; }
         .seo-modal-overlay.active { display: flex; }
-        .seo-modal { background: var(--white); border-radius: 20px; padding: 32px 34px; max-width: 460px; width: 90%; text-align: center; }
+        .seo-modal { background: var(--white); border-radius: 20px; padding: 32px 34px; max-width: 440px; width: 90%; text-align: center; }
         .seo-modal h3 { font-size: 20px; font-weight: 900; margin: 0 0 6px; }
         .seo-modal p { font-size: 14px; color: var(--gray-500); margin: 0 0 18px; }
         .seo-modal-form { display: flex; gap: 10px; margin-bottom: 12px; }
         .seo-modal-form input { flex: 1; }
-        .seo-modal-form button { padding: 12px 18px; background: var(--black); color: var(--white); border: none; border-radius: 10px; font-weight: 900; cursor: pointer; white-space: nowrap; }
+        .seo-modal-form button { padding: 12px 18px; background: var(--black); color: var(--white); border: none; border-radius: 10px; font-weight: 900; cursor: pointer; }
         .seo-modal-skip { font-size: 13px; color: var(--gray-400); cursor: pointer; background: none; border: none; }
 
         @media (max-width: 768px) {
@@ -262,7 +274,7 @@ export default function SeoFacturePage() {
           .seo-form-wrap { padding: 0 20px; }
           .seo-grid { grid-template-columns: 1fr; }
           .seo-ai-banner { margin: -14px 20px 0; flex-direction: column; text-align: center; }
-          .seo-limit-note { padding: 0 20px; }
+          .seo-soft-nudge { padding: 0 20px; }
         }
       `}</style>
 
@@ -286,7 +298,7 @@ export default function SeoFacturePage() {
         <div className="seo-hero-trust">
           <span className="seo-hero-trust-item"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>Sans inscription</span>
           <span className="seo-hero-trust-item"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>PDF pro</span>
-          <span className="seo-hero-trust-item"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>HT/TVA/TTC</span>
+          <span className="seo-hero-trust-item"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>Clair et pro</span>
         </div>
       </section>
 
@@ -303,6 +315,18 @@ export default function SeoFacturePage() {
         </div>
         <button className="seo-ai-btn" type="button" onClick={goSignup}>Fonctionnalité Spyke Pro</button>
       </div>
+
+      {showSoftSignupNudge ? (
+        <div className="seo-soft-nudge">
+          <div className="seo-soft-nudge-card">
+            <div>
+              <div className="seo-soft-nudge-text">Vous aimez l'outil ?</div>
+              <div className="seo-soft-nudge-sub">Créez un compte gratuit pour sauvegarder vos clients et retrouver vos factures.</div>
+            </div>
+            <button className="seo-soft-nudge-btn" type="button" onClick={goSignup}>Créer un compte</button>
+          </div>
+        </div>
+      ) : null}
 
       <div className="seo-form-wrap">
         <div className="seo-card">
@@ -421,14 +445,8 @@ export default function SeoFacturePage() {
         </div>
 
         <div className="seo-generate">
-          <button className="seo-btn-generate" type="button" onClick={generatePdf}>
-            {used ? 'PDF gratuit utilisé — créer un compte' : 'Générer ma facture en PDF'}
-          </button>
-          <p className="seo-note">
-            {used
-              ? "Vous avez déjà généré votre PDF gratuit depuis cette page. Créez un compte pour en générer d'autres."
-              : '1 PDF gratuit sur cette page. Ensuite, création de compte obligatoire.'}
-          </p>
+          <button className="seo-btn-generate" type="button" onClick={generatePdf}>Générer ma facture en PDF</button>
+          <p className="seo-note">Gratuit, sans inscription.</p>
         </div>
       </div>
 
@@ -441,25 +459,6 @@ export default function SeoFacturePage() {
             <button type="button" onClick={() => { if (!email.trim()) return; alert('Envoi email : à brancher'); setShowEmailModal(false) }}>Envoyer</button>
           </div>
           <button className="seo-modal-skip" type="button" onClick={() => setShowEmailModal(false)}>Non merci, c'est tout</button>
-        </div>
-      </div>
-
-      <div className={showLimitModal ? 'seo-modal-overlay active' : 'seo-modal-overlay'} onClick={(e) => e.target === e.currentTarget && setShowLimitModal(false)}>
-        <div className="seo-modal">
-          <h3>PDF gratuit déjà utilisé</h3>
-          <p>
-            Vous avez déjà généré <b>1 facture gratuite</b> depuis cette page.
-            <br />
-            Pour en générer d'autres (et sauvegarder vos infos), créez un compte Spyke.
-          </p>
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <button type="button" style={{ padding: '12px 18px', borderRadius: 10, border: '1px solid #e4e4e7', background: '#fff', fontWeight: 900, cursor: 'pointer' }} onClick={() => setShowLimitModal(false)}>
-              Fermer
-            </button>
-            <button type="button" style={{ padding: '12px 18px', borderRadius: 10, border: 'none', background: '#0a0a0a', color: '#fff', fontWeight: 900, cursor: 'pointer' }} onClick={goSignup}>
-              Créer un compte
-            </button>
-          </div>
         </div>
       </div>
     </div>
