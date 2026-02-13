@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import SeoFacturePage from '@/components/seo/SeoFacturePage'
+import { ConversionBanner, FaqAccordion, OtherTools } from '@/components/seo/SeoBlocks'
 
 export const metadata: Metadata = {
   title: 'Générateur de Facture Gratuit en Ligne — Spyke',
@@ -15,27 +16,37 @@ export const metadata: Metadata = {
 }
 
 export default function Page() {
+  const faqItems = [
+    {
+      q: 'Quelles sont les mentions obligatoires sur une facture ?',
+      a: "Une facture doit notamment contenir : la date, un numéro unique, l'identité du vendeur/prestataire (nom/raison sociale, adresse, SIRET), l'identité du client, le détail des prestations, les montants HT/TVA/TTC et les conditions de paiement.",
+    },
+    {
+      q: 'Quand faut-il émettre une facture ?',
+      a: "En général, une facture est émise après la réalisation de la prestation (ou selon l'échéancier convenu). Elle formalise la demande de paiement.",
+    },
+    {
+      q: 'Puis-je faire une facture gratuitement sans inscription ?',
+      a: "Oui : vous pouvez générer des factures gratuitement depuis cette page, sans inscription. Pour sauvegarder vos infos et retrouver vos factures, créez un compte Spyke.",
+    },
+    {
+      q: "Quelle différence entre facture HT et TTC ?",
+      a: "HT = hors taxes. TTC = toutes taxes comprises. Si vous appliquez la TVA, la facture indique HT, TVA et TTC. Sinon, la TVA peut être à 0% selon votre statut.",
+    },
+    {
+      q: 'Pourquoi numéroter ses factures ?',
+      a: "La numérotation unique facilite le suivi et la conformité comptable. Elle permet aussi d'éviter les doublons.",
+    },
+  ]
+
   const faqJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
-    mainEntity: [
-      {
-        '@type': 'Question',
-        name: 'Quelles sont les mentions obligatoires sur une facture ?',
-        acceptedAnswer: {
-          '@type': 'Answer',
-          text: "Une facture doit notamment contenir : la date, un numéro unique, l'identité du vendeur/prestataire (nom/raison sociale, adresse, SIRET), l'identité du client, le détail des prestations, les montants HT/TVA/TTC et les conditions de paiement.",
-        },
-      },
-      {
-        '@type': 'Question',
-        name: "Puis-je faire une facture gratuitement sans inscription ?",
-        acceptedAnswer: {
-          '@type': 'Answer',
-          text: "Oui : vous pouvez générer des factures gratuitement depuis cette page, sans inscription. Pour sauvegarder vos infos et retrouver vos factures, créez un compte Spyke.",
-        },
-      },
-    ],
+    mainEntity: faqItems.map((it) => ({
+      '@type': 'Question',
+      name: it.q,
+      acceptedAnswer: { '@type': 'Answer', text: it.a },
+    })),
   }
 
   const appJsonLd = {
@@ -56,17 +67,50 @@ export default function Page() {
 
       <SeoFacturePage />
 
+      <ConversionBanner />
+
       <section style={{ maxWidth: 900, margin: '56px auto 0', padding: '0 40px' }}>
         <div style={{ width: 60, height: 3, background: '#facc15', borderRadius: 2, marginBottom: 20 }} />
-        <h2 style={{ fontSize: 24, fontWeight: 900, letterSpacing: '-0.6px' }}>Comment faire une facture auto-entrepreneur ?</h2>
+        <h2 style={{ fontSize: 24, fontWeight: 900, letterSpacing: '-0.6px' }}>Comment faire une facture auto-entrepreneur ? (guide complet)</h2>
         <p style={{ color: '#52525b', lineHeight: 1.9, marginTop: 14 }}>
-          Une facture propre et numérotée est indispensable pour votre comptabilité. Avec Spyke, vous générez un PDF clair et prêt à envoyer.
+          Une facture claire, numérotée et cohérente est indispensable pour votre suivi, votre comptabilité et la relation client.
+          Dans Spyke, vous pouvez générer une facture PDF en quelques minutes : informations prestataire, informations client, lignes, totaux HT/TVA/TTC.
         </p>
-        <div style={{ marginTop: 26, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <a href="/devis-freelance" style={{ color: '#0a0a0a', textDecoration: 'underline', fontWeight: 700 }}>Créer un devis gratuit</a>
-          <a href="/contrat-freelance" style={{ color: '#0a0a0a', textDecoration: 'underline', fontWeight: 700 }}>Créer un contrat gratuit</a>
-        </div>
+
+        <h3 style={{ fontSize: 18, fontWeight: 800, marginTop: 26 }}>1) Les mentions à inclure sur une facture</h3>
+        <p style={{ color: '#52525b', lineHeight: 1.9, marginTop: 10 }}>
+          Dans la plupart des cas, une facture doit comporter une date, un numéro unique, les identités des parties (prestataire et client),
+          la description des prestations, les quantités/prix unitaires, et les montants (HT, TVA, TTC selon le cas). Il est aussi recommandé d'ajouter des conditions de paiement.
+        </p>
+
+        <h3 style={{ fontSize: 18, fontWeight: 800, marginTop: 26 }}>2) Date d'émission et date d'échéance</h3>
+        <p style={{ color: '#52525b', lineHeight: 1.9, marginTop: 10 }}>
+          La date d'émission correspond au jour où vous émettez la facture. La date d'échéance indique la limite de paiement.
+          Indiquer clairement cette échéance réduit les retards et facilite les relances.
+        </p>
+
+        <h3 style={{ fontSize: 18, fontWeight: 800, marginTop: 26 }}>3) HT / TVA / TTC : quoi afficher ?</h3>
+        <p style={{ color: '#52525b', lineHeight: 1.9, marginTop: 10 }}>
+          Si vous facturez avec TVA, la facture doit afficher le total HT, le montant de TVA et le total TTC.
+          Si vous ne facturez pas la TVA, le total TTC est alors égal au total HT (TVA à 0%).
+        </p>
+
+        <h3 style={{ fontSize: 18, fontWeight: 800, marginTop: 26 }}>4) Bonnes pratiques</h3>
+        <ul style={{ paddingLeft: 20, color: '#52525b', lineHeight: 1.9, marginTop: 10 }}>
+          <li><b>Numérotez vos factures</b> de façon chronologique (ex: F202602-001).</li>
+          <li><b>Détaillez les lignes</b> : c'est plus clair pour le client, et utile en cas de contestation.</li>
+          <li><b>Ajoutez un IBAN/BIC</b> si vous souhaitez simplifier le paiement.</li>
+          <li><b>Fixez une échéance</b> : paiement à réception, 15 jours, 30 jours…</li>
+        </ul>
+
+        <p style={{ color: '#52525b', lineHeight: 1.9, marginTop: 14 }}>
+          Pour aller plus loin : créez un compte Spyke pour sauvegarder vos clients et transformer vos documents (devis → facture, etc.).
+        </p>
       </section>
+
+      <FaqAccordion items={faqItems} />
+
+      <OtherTools />
 
       <div style={{ maxWidth: 900, margin: '56px auto 0', padding: '28px 40px', borderTop: '1px solid #e4e4e7', color: '#a1a1aa', fontSize: 13, display: 'flex', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
         <span>© 2026 Spyke — Tous droits réservés</span>
