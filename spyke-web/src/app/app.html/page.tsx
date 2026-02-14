@@ -1242,82 +1242,143 @@ Réponds uniquement par le texte de la description.`
                 <p>Créez votre premier devis en cliquant sur “Nouveau devis”.</p>
               </div>
             ) : (
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr style={{ textAlign: 'left', fontSize: 12, color: 'var(--gray-500)' }}>
-                      <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>N°</th>
-                      <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Titre</th>
-                      <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Statut</th>
-                      <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)', textAlign: 'right' }}>Total</th>
-                      <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)', textAlign: 'right' }}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {quotes.map((q) => (
-                      <tr key={q.id}>
-                        <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{q.number}</td>
-                        <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{q.title || '—'}</td>
-                        <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>
-                          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                            <span>{q.status || 'draft'}</span>
-                            {(() => {
-                              const d = daysUntil(String((q as any).validity_until || ''))
-                              if (d === null) return null
-                              if (d < 0) {
-                                return (
-                                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--red)', background: 'rgba(239, 68, 68, 0.10)', padding: '3px 8px', borderRadius: 999, border: '1px solid rgba(239, 68, 68, 0.18)' }}>
-                                    Expiré
-                                  </span>
-                                )
-                              }
-                              if (d <= 7) {
-                                return (
-                                  <span style={{ fontSize: 12, fontWeight: 700, color: '#b45309', background: 'rgba(250, 204, 21, 0.18)', padding: '3px 8px', borderRadius: 999, border: '1px solid rgba(250, 204, 21, 0.28)' }}>
-                                    Expire dans {d}j
-                                  </span>
-                                )
-                              }
-                              return null
-                            })()}
-                          </div>
-                        </td>
-                        <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)', textAlign: 'right', fontWeight: 700 }}>{formatMoney(Number(q.total_ttc || 0))}</td>
-                        <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)', textAlign: 'right' }}>
-                          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-                            <button className="btn btn-secondary" type="button" onClick={() => openQuote(String(q.id))}>
-                              Ouvrir
-                            </button>
-                            <button className="btn btn-secondary" type="button" onClick={() => duplicateQuote(String(q.id))}>
-                              Dupliquer
-                            </button>
-                            <button
-                              className="btn btn-secondary"
-                              type="button"
-                              onClick={() => {
-                                try { localStorage.setItem('spyke_contract_from_quote_id', String(q.id)) } catch {}
-                                ;(window as any).__spyke_setTab?.('contrats')
-                              }}
-                            >
-                              Contrat
-                            </button>
-                            <button
-                              className="btn btn-secondary"
-                              type="button"
-                              onClick={() => {
-                                try { localStorage.setItem('spyke_invoice_from_quote_id', String(q.id)) } catch {}
-                                ;(window as any).__spyke_setTab?.('factures')
-                              }}
-                            >
-                              Facture
-                            </button>
-                          </div>
-                        </td>
+              <>
+                {/* Desktop table */}
+                <div className="only-desktop" style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr style={{ textAlign: 'left', fontSize: 12, color: 'var(--gray-500)' }}>
+                        <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>N°</th>
+                        <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Titre</th>
+                        <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Statut</th>
+                        <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)', textAlign: 'right' }}>Total</th>
+                        <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)', textAlign: 'right' }}>Actions</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {quotes.map((q) => (
+                        <tr key={q.id}>
+                          <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{q.number}</td>
+                          <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{q.title || '—'}</td>
+                          <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>
+                            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                              <span>{q.status || 'draft'}</span>
+                              {(() => {
+                                const d = daysUntil(String((q as any).validity_until || ''))
+                                if (d === null) return null
+                                if (d < 0) {
+                                  return (
+                                    <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--red)', background: 'rgba(239, 68, 68, 0.10)', padding: '3px 8px', borderRadius: 999, border: '1px solid rgba(239, 68, 68, 0.18)' }}>
+                                      Expiré
+                                    </span>
+                                  )
+                                }
+                                if (d <= 7) {
+                                  return (
+                                    <span style={{ fontSize: 12, fontWeight: 700, color: '#b45309', background: 'rgba(250, 204, 21, 0.18)', padding: '3px 8px', borderRadius: 999, border: '1px solid rgba(250, 204, 21, 0.28)' }}>
+                                      Expire dans {d}j
+                                    </span>
+                                  )
+                                }
+                                return null
+                              })()}
+                            </div>
+                          </td>
+                          <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)', textAlign: 'right', fontWeight: 700 }}>{formatMoney(Number(q.total_ttc || 0))}</td>
+                          <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)', textAlign: 'right' }}>
+                            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                              <button className="btn btn-secondary" type="button" onClick={() => openQuote(String(q.id))}>
+                                Ouvrir
+                              </button>
+                              <button className="btn btn-secondary" type="button" onClick={() => duplicateQuote(String(q.id))}>
+                                Dupliquer
+                              </button>
+                              <button
+                                className="btn btn-secondary"
+                                type="button"
+                                onClick={() => {
+                                  try { localStorage.setItem('spyke_contract_from_quote_id', String(q.id)) } catch {}
+                                  ;(window as any).__spyke_setTab?.('contrats')
+                                }}
+                              >
+                                Contrat
+                              </button>
+                              <button
+                                className="btn btn-secondary"
+                                type="button"
+                                onClick={() => {
+                                  try { localStorage.setItem('spyke_invoice_from_quote_id', String(q.id)) } catch {}
+                                  ;(window as any).__spyke_setTab?.('factures')
+                                }}
+                              >
+                                Facture
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Mobile cards */}
+                <div className="only-mobile mobile-cards">
+                  {quotes.map((q) => {
+                    const d = daysUntil(String((q as any).validity_until || ''))
+                    const expiryBadge = d == null ? null : d < 0
+                      ? { label: 'Expiré', tone: 'red' as const }
+                      : d <= 7
+                        ? { label: `Expire dans ${d}j`, tone: 'yellow' as const }
+                        : null
+
+                    return (
+                      <div key={q.id} className="mobile-card">
+                        <div className="mobile-card-top">
+                          <div>
+                            <div className="mobile-card-title">{q.number}</div>
+                            <div className="mobile-card-sub">{q.title || '—'}</div>
+                          </div>
+                          <div style={{ textAlign: 'right' }}>
+                            <div className="mobile-card-amount">{formatMoney(Number(q.total_ttc || 0))}</div>
+                            <div className="mobile-badges">
+                              <span className="badge badge-gray">{q.status || 'draft'}</span>
+                              {expiryBadge ? (
+                                <span className={`badge ${expiryBadge.tone === 'red' ? 'badge-red' : 'badge-yellow'}`}>
+                                  {expiryBadge.label}
+                                </span>
+                              ) : null}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="mobile-card-actions">
+                          <button className="btn btn-secondary" type="button" onClick={() => openQuote(String(q.id))}>Ouvrir</button>
+                          <button className="btn btn-secondary" type="button" onClick={() => duplicateQuote(String(q.id))}>Dupliquer</button>
+                          <button
+                            className="btn btn-secondary"
+                            type="button"
+                            onClick={() => {
+                              try { localStorage.setItem('spyke_contract_from_quote_id', String(q.id)) } catch {}
+                              ;(window as any).__spyke_setTab?.('contrats')
+                            }}
+                          >
+                            Contrat
+                          </button>
+                          <button
+                            className="btn btn-secondary"
+                            type="button"
+                            onClick={() => {
+                              try { localStorage.setItem('spyke_invoice_from_quote_id', String(q.id)) } catch {}
+                              ;(window as any).__spyke_setTab?.('factures')
+                            }}
+                          >
+                            Facture
+                          </button>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </>
             )}
           </div>
         </>
@@ -3865,55 +3926,114 @@ function FacturesV1({
                 <p>Créez votre première facture en cliquant sur “Nouvelle facture”.</p>
               </div>
             ) : (
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr style={{ textAlign: 'left', fontSize: 12, color: 'var(--gray-500)' }}>
-                      <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>N°</th>
-                      <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Client</th>
-                      <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Statut</th>
-                      <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Émise le</th>
-                      <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Échéance</th>
-                      <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)', textAlign: 'right' }}>Total</th>
-                      <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)', textAlign: 'right' }}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {invoices.map((inv) => (
-                      <tr key={inv.id}>
-                        <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{inv.number}</td>
-                        <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>
-                          {clients.find((c) => c.id === inv.client_id)?.name || '—'}
-                        </td>
-                        <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>
-                          {(() => {
-                            const paidAt = (inv as any)?.paid_at
-                            const due = String((inv as any)?.due_date || '')
-                            if (paidAt) return 'Payée'
-                            if (due && due < todayStr) return 'En retard'
-                            return 'Non payée'
-                          })()}
-                        </td>
-                        <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{inv.date_issue ? formatDateFr(String(inv.date_issue)) : '—'}</td>
-                        <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{inv.due_date ? formatDateFr(String(inv.due_date)) : '—'}</td>
-                        <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)', textAlign: 'right', fontWeight: 700 }}>{formatMoney(Number(inv.total_ttc || 0))}</td>
-                        <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)', textAlign: 'right' }}>
-                          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-                            <button className="btn btn-secondary" type="button" onClick={() => openInvoice(String(inv.id))}>
-                              Ouvrir
-                            </button>
-                            {!(inv as any)?.paid_at ? (
+              <>
+                {/* Desktop table */}
+                <div className="only-desktop" style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr style={{ textAlign: 'left', fontSize: 12, color: 'var(--gray-500)' }}>
+                        <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>N°</th>
+                        <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Client</th>
+                        <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Statut</th>
+                        <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Émise le</th>
+                        <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Échéance</th>
+                        <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)', textAlign: 'right' }}>Total</th>
+                        <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)', textAlign: 'right' }}>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {invoices.map((inv) => (
+                        <tr key={inv.id}>
+                          <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{inv.number}</td>
+                          <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>
+                            {clients.find((c) => c.id === inv.client_id)?.name || '—'}
+                          </td>
+                          <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>
+                            {(() => {
+                              const paidAt = (inv as any)?.paid_at
+                              const due = String((inv as any)?.due_date || '')
+                              if (paidAt) return 'Payée'
+                              if (due && due < todayStr) return 'En retard'
+                              return 'Non payée'
+                            })()}
+                          </td>
+                          <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{inv.date_issue ? formatDateFr(String(inv.date_issue)) : '—'}</td>
+                          <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{inv.due_date ? formatDateFr(String(inv.due_date)) : '—'}</td>
+                          <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)', textAlign: 'right', fontWeight: 700 }}>{formatMoney(Number(inv.total_ttc || 0))}</td>
+                          <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)', textAlign: 'right' }}>
+                            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                              <button className="btn btn-secondary" type="button" onClick={() => openInvoice(String(inv.id))}>
+                                Ouvrir
+                              </button>
+                              {!(inv as any)?.paid_at ? (
+                                <button
+                                  className="btn btn-secondary"
+                                  type="button"
+                                  onClick={async () => {
+                                    try {
+                                      if (!supabase) return
+                                      const { error } = await supabase
+                                        .from('invoices')
+                                        .update({ paid_at: new Date().toISOString(), status: 'paid' } as any)
+                                        .eq('id', String(inv.id))
+                                      if (error) throw error
+
+                                      const { data: invData } = await supabase
+                                        .from('invoices')
+                                        .select('id,number,status,paid_at,date_issue,due_date,total_ttc,client_id,created_at')
+                                        .order('created_at', { ascending: false })
+                                        .limit(50)
+                                      setInvoices((invData || []) as any[])
+                                    } catch (e: any) {
+                                      alert(e?.message || 'Erreur mise à jour facture')
+                                    }
+                                  }}
+                                >
+                                  Marquer payé
+                                </button>
+                              ) : (
+                                <button
+                                  className="btn btn-secondary"
+                                  type="button"
+                                  onClick={async () => {
+                                    try {
+                                      if (!supabase) return
+                                      const { error } = await supabase
+                                        .from('invoices')
+                                        .update({ paid_at: null, status: 'pending' } as any)
+                                        .eq('id', String(inv.id))
+                                      if (error) throw error
+
+                                      const { data: invData } = await supabase
+                                        .from('invoices')
+                                        .select('id,number,status,paid_at,date_issue,due_date,total_ttc,client_id,created_at')
+                                        .order('created_at', { ascending: false })
+                                        .limit(50)
+                                      setInvoices((invData || []) as any[])
+                                    } catch (e: any) {
+                                      alert(e?.message || 'Erreur mise à jour facture')
+                                    }
+                                  }}
+                                >
+                                  Démarquer payé
+                                </button>
+                              )}
+
                               <button
                                 className="btn btn-secondary"
                                 type="button"
                                 onClick={async () => {
                                   try {
                                     if (!supabase) return
-                                    const { error } = await supabase
-                                      .from('invoices')
-                                      .update({ paid_at: new Date().toISOString(), status: 'paid' } as any)
-                                      .eq('id', String(inv.id))
-                                    if (error) throw error
+                                    const ok = confirm(`Supprimer la facture ${String((inv as any)?.number || '')} ?`)
+                                    if (!ok) return
+
+                                    const id = String(inv.id)
+                                    const { error: delLinesErr } = await supabase.from('invoice_lines').delete().eq('invoice_id', id)
+                                    if (delLinesErr) throw delLinesErr
+
+                                    const { error: delInvErr } = await supabase.from('invoices').delete().eq('id', id)
+                                    if (delInvErr) throw delInvErr
 
                                     const { data: invData } = await supabase
                                       .from('invoices')
@@ -3922,55 +4042,61 @@ function FacturesV1({
                                       .limit(50)
                                     setInvoices((invData || []) as any[])
                                   } catch (e: any) {
-                                    alert(e?.message || 'Erreur mise à jour facture')
+                                    alert(e?.message || 'Erreur suppression facture')
                                   }
                                 }}
                               >
-                                Marquer payé
+                                Supprimer
                               </button>
-                            ) : (
-                              <button
-                                className="btn btn-secondary"
-                                type="button"
-                                onClick={async () => {
-                                  try {
-                                    if (!supabase) return
-                                    const { error } = await supabase
-                                      .from('invoices')
-                                      .update({ paid_at: null, status: 'pending' } as any)
-                                      .eq('id', String(inv.id))
-                                    if (error) throw error
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
 
-                                    const { data: invData } = await supabase
-                                      .from('invoices')
-                                      .select('id,number,status,paid_at,date_issue,due_date,total_ttc,client_id,created_at')
-                                      .order('created_at', { ascending: false })
-                                      .limit(50)
-                                    setInvoices((invData || []) as any[])
-                                  } catch (e: any) {
-                                    alert(e?.message || 'Erreur mise à jour facture')
-                                  }
-                                }}
-                              >
-                                Démarquer payé
-                              </button>
-                            )}
+                {/* Mobile cards */}
+                <div className="only-mobile mobile-cards">
+                  {invoices.map((inv) => {
+                    const clientName = clients.find((c) => c.id === inv.client_id)?.name || '—'
+                    const paidAt = (inv as any)?.paid_at
+                    const due = String((inv as any)?.due_date || '')
+                    const statusLabel = paidAt ? 'Payée' : due && due < todayStr ? 'En retard' : 'Non payée'
+                    const statusTone = paidAt ? 'green' : due && due < todayStr ? 'red' : 'gray'
 
+                    return (
+                      <div key={inv.id} className="mobile-card">
+                        <div className="mobile-card-top">
+                          <div>
+                            <div className="mobile-card-title">{inv.number}</div>
+                            <div className="mobile-card-sub">{clientName}</div>
+                            <div className="mobile-card-meta">
+                              <span>Émise: {inv.date_issue ? formatDateFr(String(inv.date_issue)) : '—'}</span>
+                              <span style={{ marginLeft: 10 }}>Échéance: {inv.due_date ? formatDateFr(String(inv.due_date)) : '—'}</span>
+                            </div>
+                          </div>
+                          <div style={{ textAlign: 'right' }}>
+                            <div className="mobile-card-amount">{formatMoney(Number(inv.total_ttc || 0))}</div>
+                            <div className="mobile-badges">
+                              <span className={`badge ${statusTone === 'green' ? 'badge-green' : statusTone === 'red' ? 'badge-red' : 'badge-gray'}`}>{statusLabel}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="mobile-card-actions">
+                          <button className="btn btn-secondary" type="button" onClick={() => openInvoice(String(inv.id))}>Ouvrir</button>
+                          {!paidAt ? (
                             <button
                               className="btn btn-secondary"
                               type="button"
                               onClick={async () => {
                                 try {
                                   if (!supabase) return
-                                  const ok = confirm(`Supprimer la facture ${String((inv as any)?.number || '')} ?`)
-                                  if (!ok) return
-
-                                  const id = String(inv.id)
-                                  const { error: delLinesErr } = await supabase.from('invoice_lines').delete().eq('invoice_id', id)
-                                  if (delLinesErr) throw delLinesErr
-
-                                  const { error: delInvErr } = await supabase.from('invoices').delete().eq('id', id)
-                                  if (delInvErr) throw delInvErr
+                                  const { error } = await supabase
+                                    .from('invoices')
+                                    .update({ paid_at: new Date().toISOString(), status: 'paid' } as any)
+                                    .eq('id', String(inv.id))
+                                  if (error) throw error
 
                                   const { data: invData } = await supabase
                                     .from('invoices')
@@ -3979,19 +4105,74 @@ function FacturesV1({
                                     .limit(50)
                                   setInvoices((invData || []) as any[])
                                 } catch (e: any) {
-                                  alert(e?.message || 'Erreur suppression facture')
+                                  alert(e?.message || 'Erreur mise à jour facture')
                                 }
                               }}
                             >
-                              Supprimer
+                              Marquer payé
                             </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                          ) : (
+                            <button
+                              className="btn btn-secondary"
+                              type="button"
+                              onClick={async () => {
+                                try {
+                                  if (!supabase) return
+                                  const { error } = await supabase
+                                    .from('invoices')
+                                    .update({ paid_at: null, status: 'pending' } as any)
+                                    .eq('id', String(inv.id))
+                                  if (error) throw error
+
+                                  const { data: invData } = await supabase
+                                    .from('invoices')
+                                    .select('id,number,status,paid_at,date_issue,due_date,total_ttc,client_id,created_at')
+                                    .order('created_at', { ascending: false })
+                                    .limit(50)
+                                  setInvoices((invData || []) as any[])
+                                } catch (e: any) {
+                                  alert(e?.message || 'Erreur mise à jour facture')
+                                }
+                              }}
+                            >
+                              Démarquer payé
+                            </button>
+                          )}
+                          <button
+                            className="btn btn-secondary"
+                            type="button"
+                            onClick={async () => {
+                              try {
+                                if (!supabase) return
+                                const ok = confirm(`Supprimer la facture ${String((inv as any)?.number || '')} ?`)
+                                if (!ok) return
+
+                                const id = String(inv.id)
+                                const { error: delLinesErr } = await supabase.from('invoice_lines').delete().eq('invoice_id', id)
+                                if (delLinesErr) throw delLinesErr
+
+                                const { error: delInvErr } = await supabase.from('invoices').delete().eq('id', id)
+                                if (delInvErr) throw delInvErr
+
+                                const { data: invData } = await supabase
+                                  .from('invoices')
+                                  .select('id,number,status,paid_at,date_issue,due_date,total_ttc,client_id,created_at')
+                                  .order('created_at', { ascending: false })
+                                  .limit(50)
+                                setInvoices((invData || []) as any[])
+                              } catch (e: any) {
+                                alert(e?.message || 'Erreur suppression facture')
+                              }
+                            }}
+                          >
+                            Supprimer
+                          </button>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </>
             )}
           </div>
         </>
@@ -5839,6 +6020,112 @@ CONTEXTE UTILISATEUR :
         .modal-actions .btn {
           flex: 1;
           min-width: 160px;
+        }
+
+        /* ===== MOBILE LISTS (Cards) ===== */
+        .only-mobile { display: none; }
+        .only-desktop { display: block; }
+
+        .mobile-cards {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .mobile-card {
+          background: var(--white);
+          border: 1px solid var(--gray-200);
+          border-radius: 16px;
+          padding: 14px;
+        }
+
+        .mobile-card-top {
+          display: flex;
+          justify-content: space-between;
+          gap: 12px;
+        }
+
+        .mobile-card-title {
+          font-weight: 900;
+          font-size: 14px;
+          color: var(--black);
+        }
+
+        .mobile-card-sub {
+          color: var(--gray-500);
+          font-size: 13px;
+          margin-top: 2px;
+        }
+
+        .mobile-card-meta {
+          margin-top: 8px;
+          font-size: 12px;
+          color: var(--gray-500);
+        }
+
+        .mobile-card-amount {
+          font-weight: 900;
+          color: var(--black);
+          font-size: 14px;
+        }
+
+        .mobile-badges {
+          display: flex;
+          gap: 6px;
+          flex-wrap: wrap;
+          justify-content: flex-end;
+          margin-top: 6px;
+        }
+
+        .badge {
+          font-size: 12px;
+          font-weight: 800;
+          padding: 3px 8px;
+          border-radius: 999px;
+          border: 1px solid var(--gray-200);
+          background: var(--gray-50);
+          color: var(--gray-600);
+        }
+
+        .badge-red {
+          color: var(--red);
+          background: rgba(239, 68, 68, 0.10);
+          border-color: rgba(239, 68, 68, 0.18);
+        }
+
+        .badge-yellow {
+          color: #b45309;
+          background: rgba(250, 204, 21, 0.18);
+          border-color: rgba(250, 204, 21, 0.28);
+        }
+
+        .badge-green {
+          color: #15803d;
+          background: rgba(34, 197, 94, 0.12);
+          border-color: rgba(34, 197, 94, 0.22);
+        }
+
+        .badge-gray {
+          color: var(--gray-600);
+          background: var(--gray-50);
+          border-color: var(--gray-200);
+        }
+
+        .mobile-card-actions {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 10px;
+          margin-top: 12px;
+        }
+
+        @media (max-width: 768px) {
+          .only-mobile { display: block; }
+          .only-desktop { display: none; }
+
+          .mobile-card-actions .btn {
+            width: 100%;
+            justify-content: center;
+          }
         }
 
         /* ===== RESPONSIVE ===== */
