@@ -4344,6 +4344,12 @@ type ClientRow = {
 
 export default function AppHtmlPage() {
   const [tab, setTab] = useState<Tab>('dashboard')
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
+  const goTab = (t: Tab) => {
+    setTab(t)
+    setMobileNavOpen(false)
+  }
+
   const [modal, setModal] = useState<ModalName | null>(null)
   const [tone, setTone] = useState<Tone>('pro')
   const [template, setTemplate] = useState<Template>('Réponse')
@@ -4785,6 +4791,67 @@ CONTEXTE UTILISATEUR :
           position: fixed;
           left: 0;
           top: 0;
+          transition: transform 0.25s ease;
+          z-index: 60;
+        }
+
+        .mobile-topbar {
+          display: none;
+          align-items: center;
+          gap: 12px;
+          margin: -12px -12px 18px;
+          padding: 12px;
+          background: rgba(250, 250, 250, 0.9);
+          border: 1px solid var(--gray-200);
+          border-radius: 16px;
+          position: sticky;
+          top: 12px;
+          backdrop-filter: blur(8px);
+          z-index: 40;
+        }
+
+        .mobile-menu-btn {
+          width: 42px;
+          height: 42px;
+          border-radius: 12px;
+          border: 2px solid var(--gray-200);
+          background: var(--white);
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+        }
+
+        .mobile-menu-btn:hover {
+          background: var(--gray-50);
+          border-color: var(--gray-300);
+        }
+
+        .mobile-menu-btn svg {
+          width: 20px;
+          height: 20px;
+          stroke: var(--gray-800);
+          fill: none;
+          stroke-width: 2;
+        }
+
+        .mobile-topbar-title {
+          font-family: 'Syne', sans-serif;
+          font-weight: 700;
+          letter-spacing: -0.2px;
+          color: var(--black);
+          font-size: 16px;
+        }
+
+        .sidebar-overlay {
+          display: none;
+          position: fixed;
+          left: 0;
+          top: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(10, 10, 10, 0.45);
+          z-index: 55;
         }
 
         .sidebar-logo {
@@ -5802,13 +5869,25 @@ CONTEXTE UTILISATEUR :
         }
 
         @media (max-width: 768px) {
+          .mobile-topbar {
+            display: flex;
+          }
+
           .sidebar {
             transform: translateX(-100%);
           }
 
+          .sidebar.mobile-open {
+            transform: translateX(0);
+          }
+
+          .sidebar-overlay.show {
+            display: block;
+          }
+
           .main-content {
             margin-left: 0;
-            padding: 24px 20px;
+            padding: 18px 16px;
           }
 
           .stats-grid {
@@ -5837,8 +5916,14 @@ CONTEXTE UTILISATEUR :
         }
       `}</style>
 
+      {/* Mobile overlay (click to close) */}
+      <div
+        className={`sidebar-overlay ${mobileNavOpen ? 'show' : ''}`}
+        onClick={() => setMobileNavOpen(false)}
+      />
+
       {/* Sidebar */}
-      <aside className="sidebar">
+      <aside className={`sidebar ${mobileNavOpen ? 'mobile-open' : ''}`}>
         <div className="sidebar-logo">
           <div className="sidebar-logo-icon">
             <svg viewBox="0 0 24 24">
@@ -5849,7 +5934,7 @@ CONTEXTE UTILISATEUR :
         </div>
 
         <nav className="sidebar-nav">
-          <button className={`nav-item ${tab === 'dashboard' ? 'active' : ''}`} onClick={() => setTab('dashboard')}>
+          <button className={`nav-item ${tab === 'dashboard' ? 'active' : ''}`} onClick={() => goTab('dashboard')}>
             <svg viewBox="0 0 24 24">
               <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
               <polyline points="9 22 9 12 15 12 15 22" />
@@ -5857,7 +5942,7 @@ CONTEXTE UTILISATEUR :
             Dashboard
           </button>
 
-          <button className={`nav-item ${tab === 'clients' ? 'active' : ''}`} onClick={() => setTab('clients')}>
+          <button className={`nav-item ${tab === 'clients' ? 'active' : ''}`} onClick={() => goTab('clients')}>
             <svg viewBox="0 0 24 24">
               <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
               <circle cx="9" cy="7" r="4" />
@@ -5869,7 +5954,7 @@ CONTEXTE UTILISATEUR :
 
           {/* Assistant IA (déplacé plus bas) */}
 
-          <button className={`nav-item ${tab === 'devis' ? 'active' : ''}`} onClick={() => setTab('devis')}>
+          <button className={`nav-item ${tab === 'devis' ? 'active' : ''}`} onClick={() => goTab('devis')}>
             <svg viewBox="0 0 24 24">
               <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
               <polyline points="14 2 14 8 20 8" />
@@ -5880,7 +5965,7 @@ CONTEXTE UTILISATEUR :
             Devis
           </button>
 
-          <button className={`nav-item ${tab === 'factures' ? 'active' : ''}`} onClick={() => setTab('factures')}>
+          <button className={`nav-item ${tab === 'factures' ? 'active' : ''}`} onClick={() => goTab('factures')}>
             <svg viewBox="0 0 24 24">
               <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
               <polyline points="14 2 14 8 20 8" />
@@ -5890,7 +5975,7 @@ CONTEXTE UTILISATEUR :
             Factures
           </button>
 
-          <button className={`nav-item ${tab === 'contrats' ? 'active' : ''}`} onClick={() => setTab('contrats')}>
+          <button className={`nav-item ${tab === 'contrats' ? 'active' : ''}`} onClick={() => goTab('contrats')}>
             <svg viewBox="0 0 24 24">
               <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
               <polyline points="14 2 14 8 20 8" />
@@ -5902,7 +5987,7 @@ CONTEXTE UTILISATEUR :
 
           <span className="nav-section-title">Outils</span>
 
-          <button className={`nav-item ${tab === 'analyseur' ? 'active' : ''}`} onClick={() => setTab('analyseur')}>
+          <button className={`nav-item ${tab === 'analyseur' ? 'active' : ''}`} onClick={() => goTab('analyseur')}>
             <svg viewBox="0 0 24 24">
               <circle cx="11" cy="11" r="8" />
               <path d="M21 21l-4.35-4.35" />
@@ -5910,7 +5995,7 @@ CONTEXTE UTILISATEUR :
             Analyseur de projet
           </button>
 
-          <button className={`nav-item ${tab === 'assistant' ? 'active' : ''}`} onClick={() => setTab('assistant')}>
+          <button className={`nav-item ${tab === 'assistant' ? 'active' : ''}`} onClick={() => goTab('assistant')}>
             <svg viewBox="0 0 24 24">
               <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
             </svg>
@@ -5919,7 +6004,7 @@ CONTEXTE UTILISATEUR :
         </nav>
 
         <div className="sidebar-footer">
-          <button className="user-profile" onClick={() => setTab('settings')}>
+          <button className="user-profile" onClick={() => goTab('settings')}>
             <div className="user-avatar">{initials}</div>
             <div className="user-info">
               <h4>{userFullName}</h4>
@@ -5931,6 +6016,16 @@ CONTEXTE UTILISATEUR :
 
       {/* Main Content */}
       <main className="main-content">
+        <div className="mobile-topbar">
+          <button className="mobile-menu-btn" type="button" onClick={() => setMobileNavOpen(true)} aria-label="Ouvrir le menu">
+            <svg viewBox="0 0 24 24">
+              <path d="M4 6h16" />
+              <path d="M4 12h16" />
+              <path d="M4 18h16" />
+            </svg>
+          </button>
+          <div className="mobile-topbar-title">Spyke</div>
+        </div>
         {/* Dashboard */}
         <div id="tab-dashboard" className={`tab-content ${tab === 'dashboard' ? 'active' : ''}`}> 
           <div className="page-header">
@@ -6025,7 +6120,7 @@ CONTEXTE UTILISATEUR :
                 <h3 className="card-title">⚡ Actions rapides</h3>
               </div>
               <div className="quick-actions">
-                <div className="quick-action" onClick={() => setTab('devis')}>
+                <div className="quick-action" onClick={() => goTab('devis')}>
                   <div className="quick-action-icon">📄</div>
                   <div className="quick-action-text">
                     <h4>Nouveau devis</h4>
@@ -6033,7 +6128,7 @@ CONTEXTE UTILISATEUR :
                   </div>
                 </div>
 
-                <div className="quick-action" onClick={() => setTab('factures')}> 
+                <div className="quick-action" onClick={() => goTab('factures')}> 
                   <div className="quick-action-icon">💰</div>
                   <div className="quick-action-text">
                     <h4>Nouvelle facture</h4>
@@ -6041,7 +6136,7 @@ CONTEXTE UTILISATEUR :
                   </div>
                 </div>
 
-                <div className="quick-action" onClick={() => setTab('contrats')}>
+                <div className="quick-action" onClick={() => goTab('contrats')}>
                   <div className="quick-action-icon">📝</div>
                   <div className="quick-action-text">
                     <h4>Nouveau contrat</h4>
@@ -6049,7 +6144,7 @@ CONTEXTE UTILISATEUR :
                   </div>
                 </div>
 
-                <div className="quick-action" onClick={() => setTab('analyseur')}>
+                <div className="quick-action" onClick={() => goTab('analyseur')}>
                   <div className="quick-action-icon">🔍</div>
                   <div className="quick-action-text">
                     <h4>Analyse projet</h4>
@@ -6057,7 +6152,7 @@ CONTEXTE UTILISATEUR :
                   </div>
                 </div>
 
-                <div className="quick-action" onClick={() => setTab('assistant')}>
+                <div className="quick-action" onClick={() => goTab('assistant')}>
                   <div className="quick-action-icon">✉️</div>
                   <div className="quick-action-text">
                     <h4>Assistant IA</h4>
