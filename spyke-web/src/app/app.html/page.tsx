@@ -6478,30 +6478,67 @@ CONTEXTE UTILISATEUR :
                   <p>Aucun devis pour le moment</p>
                 </div>
               ) : (
-                <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead>
-                      <tr style={{ textAlign: 'left', fontSize: 12, color: 'var(--gray-500)' }}>
-                        <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>N°</th>
-                        <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Titre</th>
-                        <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Statut</th>
-                        <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)', textAlign: 'right' }}>Total</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {dashboardQuotes.map((q) => (
-                        <tr key={q.id}>
-                          <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{q.number}</td>
-                          <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{q.title || '—'}</td>
-                          <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{q.status || 'draft'}</td>
-                          <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)', textAlign: 'right', fontWeight: 700 }}>
-                            {formatMoney(Number(q.total_ttc || 0))}
-                          </td>
+                <>
+                  {/* Desktop table */}
+                  <div className="only-desktop" style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                      <thead>
+                        <tr style={{ textAlign: 'left', fontSize: 12, color: 'var(--gray-500)' }}>
+                          <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>N°</th>
+                          <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Titre</th>
+                          <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Statut</th>
+                          <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)', textAlign: 'right' }}>Total</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody>
+                        {dashboardQuotes.map((q) => (
+                          <tr key={q.id}>
+                            <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{q.number}</td>
+                            <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{q.title || '—'}</td>
+                            <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{q.status || 'draft'}</td>
+                            <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)', textAlign: 'right', fontWeight: 700 }}>
+                              {formatMoney(Number(q.total_ttc || 0))}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Mobile cards */}
+                  <div className="only-mobile mobile-cards">
+                    {dashboardQuotes.map((q) => (
+                      <div key={q.id} className="mobile-card">
+                        <div className="mobile-card-top">
+                          <div>
+                            <div className="mobile-card-title">{q.number}</div>
+                            <div className="mobile-card-sub">{q.title || '—'}</div>
+                          </div>
+                          <div style={{ textAlign: 'right' }}>
+                            <div className="mobile-card-amount">{formatMoney(Number(q.total_ttc || 0))}</div>
+                            <div className="mobile-badges">
+                              <span className="badge badge-gray">{q.status || 'draft'}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="mobile-card-actions">
+                          <button
+                            className="btn btn-secondary"
+                            type="button"
+                            onClick={() => {
+                              setTab('devis')
+                            }}
+                          >
+                            Ouvrir
+                          </button>
+                          <button className="btn btn-secondary" type="button" onClick={() => setTab('devis')}>
+                            Tout voir
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
               )}
             </div>
 
@@ -6524,32 +6561,77 @@ CONTEXTE UTILISATEUR :
                   <p>Importez un devis puis générez la facture PDF.</p>
                 </div>
               ) : (
-                <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead>
-                      <tr style={{ textAlign: 'left', fontSize: 12, color: 'var(--gray-500)' }}>
-                        <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>N°</th>
-                        <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Statut</th>
-                        <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Échéance</th>
-                        <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)', textAlign: 'right' }}>Total</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {dashboardInvoices.map((inv) => (
-                        <tr key={inv.id}>
-                          <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{inv.number}</td>
-                          <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{inv.status || 'draft'}</td>
-                          <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>
-                            {inv.due_date ? formatDateFr(String(inv.due_date)) : '—'}
-                          </td>
-                          <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)', textAlign: 'right', fontWeight: 700 }}>
-                            {formatMoney(Number(inv.total_ttc || 0))}
-                          </td>
+                <>
+                  {/* Desktop table */}
+                  <div className="only-desktop" style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                      <thead>
+                        <tr style={{ textAlign: 'left', fontSize: 12, color: 'var(--gray-500)' }}>
+                          <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>N°</th>
+                          <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Statut</th>
+                          <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Échéance</th>
+                          <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)', textAlign: 'right' }}>Total</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody>
+                        {dashboardInvoices.map((inv) => (
+                          <tr key={inv.id}>
+                            <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{inv.number}</td>
+                            <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{inv.status || 'draft'}</td>
+                            <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>
+                              {inv.due_date ? formatDateFr(String(inv.due_date)) : '—'}
+                            </td>
+                            <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)', textAlign: 'right', fontWeight: 700 }}>
+                              {formatMoney(Number(inv.total_ttc || 0))}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Mobile cards */}
+                  <div className="only-mobile mobile-cards">
+                    {dashboardInvoices.map((inv) => {
+                      const paidAt = (inv as any)?.paid_at
+                      const due = String((inv as any)?.due_date || '')
+                      const today = new Date().toISOString().slice(0, 10)
+                      const statusLabel = paidAt ? 'Payée' : due && due < today ? 'En retard' : (inv.status || 'Non payée')
+                      const statusTone = paidAt ? 'green' : due && due < today ? 'red' : 'gray'
+
+                      return (
+                        <div key={inv.id} className="mobile-card">
+                          <div className="mobile-card-top">
+                            <div>
+                              <div className="mobile-card-title">{inv.number}</div>
+                              <div className="mobile-card-sub">Échéance: {inv.due_date ? formatDateFr(String(inv.due_date)) : '—'}</div>
+                            </div>
+                            <div style={{ textAlign: 'right' }}>
+                              <div className="mobile-card-amount">{formatMoney(Number(inv.total_ttc || 0))}</div>
+                              <div className="mobile-badges">
+                                <span className={`badge ${statusTone === 'green' ? 'badge-green' : statusTone === 'red' ? 'badge-red' : 'badge-gray'}`}>{statusLabel}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="mobile-card-actions">
+                            <button
+                              className="btn btn-secondary"
+                              type="button"
+                              onClick={() => {
+                                setTab('factures')
+                              }}
+                            >
+                              Ouvrir
+                            </button>
+                            <button className="btn btn-secondary" type="button" onClick={() => setTab('factures')}>
+                              Voir tout
+                            </button>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </>
               )}
             </div>
 
@@ -6572,28 +6654,59 @@ CONTEXTE UTILISATEUR :
                   <p>Générez un contrat et téléchargez le PDF.</p>
                 </div>
               ) : (
-                <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead>
-                      <tr style={{ textAlign: 'left', fontSize: 12, color: 'var(--gray-500)' }}>
-                        <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Titre</th>
-                        <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Statut</th>
-                        <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)', textAlign: 'right' }}>Montant</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {dashboardContracts.map((c) => (
-                        <tr key={c.id}>
-                          <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{c.title || 'Contrat'}</td>
-                          <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{c.status || 'draft'}</td>
-                          <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)', textAlign: 'right', fontWeight: 700 }}>
-                            {formatMoney(Number(c.amount_ht || 0))}
-                          </td>
+                <>
+                  {/* Desktop table */}
+                  <div className="only-desktop" style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                      <thead>
+                        <tr style={{ textAlign: 'left', fontSize: 12, color: 'var(--gray-500)' }}>
+                          <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Titre</th>
+                          <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Statut</th>
+                          <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)', textAlign: 'right' }}>Montant</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody>
+                        {dashboardContracts.map((c) => (
+                          <tr key={c.id}>
+                            <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{c.title || 'Contrat'}</td>
+                            <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{c.status || 'draft'}</td>
+                            <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)', textAlign: 'right', fontWeight: 700 }}>
+                              {formatMoney(Number(c.amount_ht || 0))}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Mobile cards */}
+                  <div className="only-mobile mobile-cards">
+                    {dashboardContracts.map((c) => (
+                      <div key={c.id} className="mobile-card">
+                        <div className="mobile-card-top">
+                          <div>
+                            <div className="mobile-card-title">{c.title || 'Contrat'}</div>
+                            <div className="mobile-card-sub">Statut: {c.status || 'draft'}</div>
+                          </div>
+                          <div style={{ textAlign: 'right' }}>
+                            <div className="mobile-card-amount">{formatMoney(Number(c.amount_ht || 0))}</div>
+                            <div className="mobile-badges">
+                              <span className="badge badge-gray">{c.status || 'draft'}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="mobile-card-actions">
+                          <button className="btn btn-secondary" type="button" onClick={() => setTab('contrats')}>
+                            Ouvrir
+                          </button>
+                          <button className="btn btn-secondary" type="button" onClick={() => setTab('contrats')}>
+                            Voir tout
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
               )}
             </div>
           </div>
