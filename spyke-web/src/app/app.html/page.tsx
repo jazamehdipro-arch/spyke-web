@@ -1330,9 +1330,9 @@ Réponds uniquement par le texte de la description.`
           <div className="devis-container">
         <div className="form-wrapper">
           <div className="card">
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 12, alignItems: 'center' }}>
+            <div className="import-toolbar">
               <button
-                className="btn btn-secondary"
+                className="btn btn-secondary import-btn"
                 type="button"
                 onClick={() => {
                   try {
@@ -1341,52 +1341,28 @@ Réponds uniquement par le texte de la description.`
                   } catch {}
                 }}
               >
-                Importer depuis un PDF
+                Importer PDF
               </button>
               <span
-                title="Analyse un PDF (avec du texte) pour pré-remplir le devis. Si le PDF est scanné, l'import OCR/photo arrive bientôt."
-                style={{
-                  width: 22,
-                  height: 22,
-                  borderRadius: 999,
-                  border: '1px solid var(--gray-300)',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontWeight: 800,
-                  color: 'var(--gray-600)',
-                  cursor: 'help',
-                  userSelect: 'none',
-                }}
+                className="tooltip"
+                data-tip="Analyse un PDF (avec du texte) pour pré-remplir le devis. Si le PDF est scanné, l'import photo/OCR arrive bientôt."
               >
                 ?
               </span>
 
               <button
-                className="btn btn-secondary"
+                className="btn btn-secondary import-btn import-btn-disabled"
                 type="button"
+                disabled
                 onClick={() => {
                   alert("Importer depuis une photo : bientôt disponible (OCR en cours d'activation).")
                 }}
-                style={{ opacity: 0.55, cursor: 'not-allowed' }}
               >
-                Importer depuis une photo (bientôt)
+                Importer photo (bientôt)
               </button>
               <span
-                title="Import depuis une photo (ou un PDF scanné). Nécessite un OCR : bientôt disponible."
-                style={{
-                  width: 22,
-                  height: 22,
-                  borderRadius: 999,
-                  border: '1px solid var(--gray-300)',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontWeight: 800,
-                  color: 'var(--gray-600)',
-                  cursor: 'help',
-                  userSelect: 'none',
-                }}
+                className="tooltip"
+                data-tip="Import depuis une photo (ou un PDF scanné). Nécessite un OCR : bientôt disponible."
               >
                 ?
               </span>
@@ -2833,9 +2809,9 @@ function ContratsV1({
             ← Retour aux contrats
           </button>
 
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 12, alignItems: 'center' }}>
+          <div className="import-toolbar">
             <button
-              className="btn btn-secondary"
+              className="btn btn-secondary import-btn"
               type="button"
               onClick={() => {
                 try {
@@ -2844,52 +2820,28 @@ function ContratsV1({
                 } catch {}
               }}
             >
-              Importer depuis un PDF
+              Importer PDF
             </button>
             <span
-              title="Analyse un PDF (avec du texte) pour pré-remplir le contrat (client, dates, mission, prix...)."
-              style={{
-                width: 22,
-                height: 22,
-                borderRadius: 999,
-                border: '1px solid var(--gray-300)',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: 800,
-                color: 'var(--gray-600)',
-                cursor: 'help',
-                userSelect: 'none',
-              }}
+              className="tooltip"
+              data-tip="Analyse un PDF (avec du texte) pour pré-remplir le contrat (client, dates, mission, prix...)."
             >
               ?
             </span>
 
             <button
-              className="btn btn-secondary"
+              className="btn btn-secondary import-btn import-btn-disabled"
               type="button"
+              disabled
               onClick={() => {
                 alert("Importer depuis une photo : bientôt disponible (OCR en cours d'activation).")
               }}
-              style={{ opacity: 0.55, cursor: 'not-allowed' }}
             >
-              Importer depuis une photo (bientôt)
+              Importer photo (bientôt)
             </button>
             <span
-              title="Import depuis une photo (ou un PDF scanné). Nécessite un OCR : bientôt disponible."
-              style={{
-                width: 22,
-                height: 22,
-                borderRadius: 999,
-                border: '1px solid var(--gray-300)',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: 800,
-                color: 'var(--gray-600)',
-                cursor: 'help',
-                userSelect: 'none',
-              }}
+              className="tooltip"
+              data-tip="Import depuis une photo (ou un PDF scanné). Nécessite un OCR : bientôt disponible."
             >
               ?
             </span>
@@ -4056,9 +4008,9 @@ function FacturesV1({
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 12, alignItems: 'center' }}>
+          <div className="import-toolbar">
             <button
-              className="btn btn-secondary"
+              className="btn btn-secondary import-btn"
               type="button"
               onClick={() => {
                 try {
@@ -4067,52 +4019,28 @@ function FacturesV1({
                 } catch {}
               }}
             >
-              Importer depuis un PDF
+              Importer PDF
             </button>
             <span
-              title="Analyse un PDF (avec du texte) pour pré-remplir la facture. Si le PDF est scanné, l'import OCR/photo arrive bientôt."
-              style={{
-                width: 22,
-                height: 22,
-                borderRadius: 999,
-                border: '1px solid var(--gray-300)',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: 800,
-                color: 'var(--gray-600)',
-                cursor: 'help',
-                userSelect: 'none',
-              }}
+              className="tooltip"
+              data-tip="Analyse un PDF (avec du texte) pour pré-remplir la facture. Si le PDF est scanné, l'import photo/OCR arrive bientôt."
             >
               ?
             </span>
 
             <button
-              className="btn btn-secondary"
+              className="btn btn-secondary import-btn import-btn-disabled"
               type="button"
+              disabled
               onClick={() => {
                 alert("Importer depuis une photo : bientôt disponible (OCR en cours d'activation).")
               }}
-              style={{ opacity: 0.55, cursor: 'not-allowed' }}
             >
-              Importer depuis une photo (bientôt)
+              Importer photo (bientôt)
             </button>
             <span
-              title="Import depuis une photo (ou un PDF scanné). Nécessite un OCR : bientôt disponible."
-              style={{
-                width: 22,
-                height: 22,
-                borderRadius: 999,
-                border: '1px solid var(--gray-300)',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: 800,
-                color: 'var(--gray-600)',
-                cursor: 'help',
-                userSelect: 'none',
-              }}
+              className="tooltip"
+              data-tip="Import depuis une photo (ou un PDF scanné). Nécessite un OCR : bientôt disponible."
             >
               ?
             </span>
@@ -5078,6 +5006,99 @@ CONTEXTE UTILISATEUR :
         .btn svg {
           width: 18px;
           height: 18px;
+        }
+
+        /* ===== IMPORT TOOLBAR (PDF / PHOTO) ===== */
+        .import-toolbar {
+          display: flex;
+          gap: 10px;
+          flex-wrap: wrap;
+          margin-bottom: 12px;
+          align-items: center;
+        }
+
+        .import-btn {
+          padding: 10px 16px;
+          border-radius: 12px;
+          border: 2px solid var(--gray-200);
+          background: var(--white);
+          color: var(--gray-700);
+          box-shadow: 0 1px 0 rgba(0, 0, 0, 0.02);
+        }
+
+        .import-btn:hover {
+          border-color: var(--gray-300);
+          background: var(--gray-50);
+          transform: translateY(-1px);
+        }
+
+        .import-btn-disabled {
+          opacity: 0.55;
+          cursor: not-allowed;
+        }
+
+        .tooltip {
+          position: relative;
+          width: 22px;
+          height: 22px;
+          border-radius: 999px;
+          border: 1px solid var(--gray-300);
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 900;
+          color: var(--gray-600);
+          background: var(--white);
+          cursor: help;
+          user-select: none;
+        }
+
+        .tooltip::after {
+          content: attr(data-tip);
+          position: absolute;
+          left: 50%;
+          top: calc(100% + 10px);
+          transform: translateX(-50%);
+          min-width: 240px;
+          max-width: 340px;
+          white-space: normal;
+          z-index: 50;
+          opacity: 0;
+          pointer-events: none;
+          transition: opacity 0.15s ease, transform 0.15s ease;
+          padding: 10px 12px;
+          border-radius: 12px;
+          background: rgba(10, 10, 10, 0.92);
+          color: #fff;
+          font-weight: 600;
+          font-size: 12.5px;
+          line-height: 1.35;
+          box-shadow: 0 18px 40px rgba(0, 0, 0, 0.18);
+        }
+
+        .tooltip::before {
+          content: '';
+          position: absolute;
+          left: 50%;
+          top: calc(100% + 4px);
+          transform: translateX(-50%);
+          width: 10px;
+          height: 10px;
+          background: rgba(10, 10, 10, 0.92);
+          rotate: 45deg;
+          opacity: 0;
+          transition: opacity 0.15s ease;
+          pointer-events: none;
+          z-index: 49;
+        }
+
+        .tooltip:hover::after {
+          opacity: 1;
+          transform: translateX(-50%) translateY(0);
+        }
+
+        .tooltip:hover::before {
+          opacity: 1;
         }
 
         /* ===== STATS CARDS ===== */
