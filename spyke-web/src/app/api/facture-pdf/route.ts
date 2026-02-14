@@ -87,139 +87,151 @@ export async function POST(req: Request) {
     const React = (await import('react')).default
     const { Document, Page, Text, View, Image, StyleSheet, pdf } = await import('@react-pdf/renderer')
 
-    const ORANGE = '#ff6b4a'
-    const BLACK = '#111111'
+    // Harmonise Invoice PDF with Spyke Devis style (clean + modern)
+    const BLUE = '#1e3a8a'
+    const BLACK = '#0a0a0a'
     const GRAY = '#6b7280'
-    const LIGHT = '#f3f4f6'
+    const LIGHT = '#eef2ff'
 
     const styles = StyleSheet.create({
       page: {
-        paddingTop: 34,
-        paddingBottom: 30,
-        paddingHorizontal: 40,
+        paddingTop: 42,
+        paddingBottom: 34,
+        paddingHorizontal: 42,
         fontSize: 10,
         fontFamily: 'Helvetica',
         color: BLACK,
       },
-      barLeft: {
-        position: 'absolute',
-        left: 0,
-        top: 0,
-        bottom: 0,
-        width: 22,
-        backgroundColor: ORANGE,
-      },
-      barBottomRight: {
-        position: 'absolute',
-        right: 0,
-        bottom: 0,
-        width: 80,
-        height: 50,
-        backgroundColor: ORANGE,
-      },
       headerRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'flex-start',
-        marginBottom: 10,
+        marginBottom: 18,
       },
-      brandBlock: {
-        width: '55%',
-      },
+      partyBlock: { width: '48%' },
       logo: {
         height: 26,
         marginBottom: 8,
         objectFit: 'contain',
       },
-      brandName: {
-        fontSize: 16,
+      partyName: {
+        fontSize: 12,
         fontWeight: 700,
-        color: ORANGE,
-        letterSpacing: 0.5,
+        color: BLUE,
+        marginBottom: 6,
       },
-      title: {
-        fontSize: 44,
-        fontWeight: 800,
-        color: ORANGE,
-        letterSpacing: 1,
+      partyLine: {
+        fontSize: 9.5,
+        lineHeight: 1.35,
+        color: '#111827',
       },
       metaRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'flex-end',
-        marginTop: 10,
-        paddingBottom: 10,
-        borderBottomWidth: 2,
-        borderBottomColor: BLACK,
+        marginTop: 6,
+        marginBottom: 14,
       },
-      metaLeft: { width: '50%' },
-      metaRight: { width: '50%', alignItems: 'flex-end' },
-      metaText: { fontSize: 12, fontWeight: 700 },
-      metaLabel: { fontSize: 12, fontWeight: 700 },
-      partiesRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginTop: 14,
-        marginBottom: 12,
+      docTitle: {
+        fontSize: 14,
+        fontWeight: 700,
+        color: BLUE,
+        marginBottom: 6,
       },
-      party: { width: '48%' },
-      partyTitle: { fontSize: 12, fontWeight: 800, marginBottom: 6 },
-      partyLine: { fontSize: 10, lineHeight: 1.35 },
-      partyMuted: { fontSize: 10, color: GRAY },
-
+      docSubtitle: {
+        fontSize: 10,
+        color: '#374151',
+      },
+      metaRight: { alignItems: 'flex-end' },
       table: {
+        borderWidth: 1,
+        borderColor: '#e5e7eb',
+        borderRadius: 6,
+        overflow: 'hidden',
         marginTop: 10,
       },
       tableHeader: {
         flexDirection: 'row',
-        borderBottomWidth: 2,
-        borderBottomColor: BLACK,
-        paddingBottom: 6,
-        marginBottom: 6,
-      },
-      th: { fontSize: 11, fontWeight: 800 },
-      row: {
-        flexDirection: 'row',
-        paddingVertical: 12,
+        backgroundColor: LIGHT,
         borderBottomWidth: 1,
-        borderBottomColor: BLACK,
+        borderBottomColor: '#e5e7eb',
       },
-      cell: { fontSize: 12 },
-      colDesc: { width: '52%' },
-      colUnit: { width: '16%', textAlign: 'right' },
-      colQty: { width: '12%', textAlign: 'center' },
-      colTotal: { width: '20%', textAlign: 'right' },
-
+      th: {
+        paddingVertical: 8,
+        paddingHorizontal: 8,
+        fontSize: 9.5,
+        color: '#374151',
+        fontWeight: 700,
+      },
+      tr: {
+        flexDirection: 'row',
+        borderBottomWidth: 1,
+        borderBottomColor: '#f3f4f6',
+      },
+      td: {
+        paddingVertical: 10,
+        paddingHorizontal: 8,
+        fontSize: 10,
+        color: '#111827',
+      },
+      right: { textAlign: 'right' },
+      center: { textAlign: 'center' },
+      colDesc: { width: '46%' },
+      colQty: { width: '14%' },
+      colUnit: { width: '20%' },
+      colTotal: { width: '20%' },
       totalsRow: {
         flexDirection: 'row',
         justifyContent: 'flex-end',
-        marginTop: 12,
+        marginTop: 18,
       },
-      totalsBox: { width: 280 },
+      totalsBox: {
+        width: 240,
+        borderWidth: 1,
+        borderColor: '#e5e7eb',
+        borderRadius: 8,
+        overflow: 'hidden',
+      },
       totalsLine: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        paddingVertical: 6,
+        paddingVertical: 10,
+        paddingHorizontal: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: '#f3f4f6',
       },
-      totalsLabel: { fontSize: 14, fontWeight: 800 },
-      totalsValue: { fontSize: 14, fontWeight: 800 },
-      totalsSmall: { fontSize: 11, color: GRAY, marginTop: 4, textAlign: 'right' },
-
+      totalsLineLast: { borderBottomWidth: 0 },
+      totalsLabel: {
+        fontSize: 10,
+        color: '#111827',
+        fontWeight: 700,
+      },
+      totalsValue: {
+        fontSize: 10,
+        color: '#111827',
+        fontWeight: 700,
+      },
       paymentRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        marginTop: 12,
+        marginTop: 18,
       },
-      paymentBlock: { width: '52%' },
-      paymentTitle: { fontSize: 14, fontWeight: 800, marginBottom: 6 },
-      paymentText: { fontSize: 10, lineHeight: 1.35 },
-
+      paymentBlock: { width: '54%' },
+      paymentTitle: { fontSize: 10, fontWeight: 700, marginBottom: 6, color: '#111827' },
+      paymentText: { fontSize: 9.5, lineHeight: 1.35, color: '#374151' },
       footer: {
-        marginTop: 14,
-        fontSize: 8.8,
+        position: 'absolute',
+        left: 42,
+        right: 42,
+        bottom: 24,
+        fontSize: 8.5,
         color: GRAY,
         lineHeight: 1.35,
       },
+      footerRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginTop: 10,
+      },
+      footerRight: { textAlign: 'right' },
     })
 
     const paddedLines = (() => {
@@ -228,8 +240,9 @@ export async function POST(req: Request) {
         qty: l.qty,
         unitPrice: l.unitPrice,
       }))
-      while (base.length < 5) base.push({ description: '-', qty: 1, unitPrice: 0 })
-      return base.slice(0, 8)
+      // Keep the table visually stable
+      while (base.length < 6) base.push({ description: '', qty: 0, unitPrice: 0 })
+      return base.slice(0, 10)
     })()
 
     const Doc = () =>
@@ -239,19 +252,23 @@ export async function POST(req: Request) {
         React.createElement(
           Page,
           { size: 'A4', style: styles.page },
-          React.createElement(View, { style: styles.barLeft }),
-          React.createElement(View, { style: styles.barBottomRight }),
 
           React.createElement(
             View,
             { style: styles.headerRow },
             React.createElement(
               View,
-              { style: styles.brandBlock },
+              { style: styles.partyBlock },
               body.logoUrl ? React.createElement(Image, { style: styles.logo, src: body.logoUrl }) : null,
-              React.createElement(Text, { style: styles.brandName }, body.seller.name.toUpperCase())
+              React.createElement(Text, { style: styles.partyName }, body.seller.name)
             ),
-            React.createElement(Text, { style: styles.title }, 'FACTURE')
+            React.createElement(
+              View,
+              { style: [styles.partyBlock, { alignItems: 'flex-end' }] },
+              React.createElement(Text, { style: styles.docTitle }, `Facture ${body.invoiceNumber}`),
+              React.createElement(Text, { style: styles.docSubtitle }, `Émise le ${formatDateFr(body.dateIssue)}`),
+              body.dueDate ? React.createElement(Text, { style: [styles.docSubtitle, { marginTop: 4 }] }, `Échéance ${formatDateFr(body.dueDate)}`) : null
+            )
           ),
 
           React.createElement(
@@ -259,33 +276,16 @@ export async function POST(req: Request) {
             { style: styles.metaRow },
             React.createElement(
               View,
-              { style: styles.metaLeft },
-              React.createElement(Text, { style: styles.metaText }, `DATE : ${formatDateFr(body.dateIssue)}`),
-              body.dueDate ? React.createElement(Text, { style: styles.metaText }, `ÉCHÉANCE : ${formatDateFr(body.dueDate)}`) : null
-            ),
-            React.createElement(
-              View,
-              { style: styles.metaRight },
-              React.createElement(Text, { style: styles.metaLabel }, `FACTURE N° : ${body.invoiceNumber}`)
-            )
-          ),
-
-          React.createElement(
-            View,
-            { style: styles.partiesRow },
-            React.createElement(
-              View,
-              { style: styles.party },
-              React.createElement(Text, { style: styles.partyTitle }, 'ÉMETTEUR :'),
-              React.createElement(Text, { style: styles.partyLine }, body.seller.name),
+              { style: styles.partyBlock },
+              React.createElement(Text, { style: [styles.docSubtitle, { fontWeight: 700, color: '#111827' }] }, 'Émetteur'),
               ...(body.seller.addressLines || []).map((l, i) => React.createElement(Text, { key: `sa-${i}`, style: styles.partyLine }, l)),
-              body.seller.siret ? React.createElement(Text, { style: styles.partyLine }, `SIRET : ${body.seller.siret}`) : null
+              body.seller.siret ? React.createElement(Text, { style: [styles.partyLine, { marginTop: 6 }] }, `SIRET : ${body.seller.siret}`) : null
             ),
             React.createElement(
               View,
-              { style: [styles.party, { alignItems: 'flex-end' }] },
-              React.createElement(Text, { style: styles.partyTitle }, 'DESTINATAIRE :'),
-              React.createElement(Text, { style: styles.partyLine }, body.buyer.name),
+              { style: [styles.partyBlock, { alignItems: 'flex-end' }] },
+              React.createElement(Text, { style: [styles.docSubtitle, { fontWeight: 700, color: '#111827' }] }, 'Client'),
+              React.createElement(Text, { style: [styles.partyLine, { textAlign: 'right' }] }, body.buyer.name),
               ...(body.buyer.addressLines || []).map((l, i) =>
                 React.createElement(Text, { key: `ba-${i}`, style: [styles.partyLine, { textAlign: 'right' }] }, l)
               )
@@ -298,20 +298,21 @@ export async function POST(req: Request) {
             React.createElement(
               View,
               { style: styles.tableHeader },
-              React.createElement(Text, { style: [styles.th, styles.colDesc] }, 'Description :'),
-              React.createElement(Text, { style: [styles.th, styles.colUnit] }, 'Prix Unitaire :'),
-              React.createElement(Text, { style: [styles.th, styles.colQty] }, 'Quantité :'),
-              React.createElement(Text, { style: [styles.th, styles.colTotal] }, 'Total :')
+              React.createElement(Text, { style: [styles.th, styles.colDesc] }, 'Description'),
+              React.createElement(Text, { style: [styles.th, styles.colQty, styles.center] }, 'Qté'),
+              React.createElement(Text, { style: [styles.th, styles.colUnit, styles.right] }, 'PU HT'),
+              React.createElement(Text, { style: [styles.th, styles.colTotal, styles.right] }, 'Total')
             ),
             ...paddedLines.map((l, idx) => {
               const lineTotal = (l.qty || 0) * (l.unitPrice || 0)
+              const empty = !l.description
               return React.createElement(
                 View,
-                { key: `r-${idx}`, style: styles.row },
-                React.createElement(Text, { style: [styles.cell, styles.colDesc] }, l.description || '-'),
-                React.createElement(Text, { style: [styles.cell, styles.colUnit] }, l.unitPrice ? formatMoney(l.unitPrice) : '-'),
-                React.createElement(Text, { style: [styles.cell, styles.colQty] }, l.description === '-' ? '-' : String(l.qty || 0)),
-                React.createElement(Text, { style: [styles.cell, styles.colTotal] }, lineTotal ? formatMoney(lineTotal) : '-')
+                { key: `r-${idx}`, style: styles.tr },
+                React.createElement(Text, { style: [styles.td, styles.colDesc] }, empty ? ' ' : l.description),
+                React.createElement(Text, { style: [styles.td, styles.colQty, styles.center] }, empty ? ' ' : String(l.qty || 0)),
+                React.createElement(Text, { style: [styles.td, styles.colUnit, styles.right] }, empty ? ' ' : formatMoney(l.unitPrice || 0)),
+                React.createElement(Text, { style: [styles.td, styles.colTotal, styles.right] }, empty ? ' ' : formatMoney(lineTotal))
               )
             })
           ),
@@ -322,8 +323,8 @@ export async function POST(req: Request) {
             React.createElement(
               View,
               { style: styles.paymentBlock },
-              React.createElement(Text, { style: styles.paymentTitle }, 'RÈGLEMENT :'),
-              React.createElement(Text, { style: styles.paymentText }, 'Par virement bancaire :'),
+              React.createElement(Text, { style: styles.paymentTitle }, 'Règlement'),
+              React.createElement(Text, { style: styles.paymentText }, 'Par virement bancaire.'),
               body.seller.bankName ? React.createElement(Text, { style: styles.paymentText }, `Banque : ${body.seller.bankName}`) : null,
               body.seller.bankAccount ? React.createElement(Text, { style: styles.paymentText }, `Compte : ${body.seller.bankAccount}`) : null,
               body.seller.iban ? React.createElement(Text, { style: styles.paymentText }, `IBAN : ${body.seller.iban}`) : null,
@@ -335,21 +336,19 @@ export async function POST(req: Request) {
               React.createElement(
                 View,
                 { style: styles.totalsLine },
-                React.createElement(Text, { style: styles.totalsLabel }, 'TOTAL HT :'),
+                React.createElement(Text, { style: styles.totalsLabel }, 'Total HT'),
                 React.createElement(Text, { style: styles.totalsValue }, formatMoney(body.totals.totalHt))
               ),
-              body.totals.totalTva > 0
-                ? React.createElement(
-                    View,
-                    { style: styles.totalsLine },
-                    React.createElement(Text, { style: styles.totalsLabel }, 'TVA :'),
-                    React.createElement(Text, { style: styles.totalsValue }, formatMoney(body.totals.totalTva))
-                  )
-                : React.createElement(Text, { style: styles.totalsSmall }, 'TVA non applicable, art. 293 B du CGI'),
               React.createElement(
                 View,
                 { style: styles.totalsLine },
-                React.createElement(Text, { style: styles.totalsLabel }, 'TOTAL TTC :'),
+                React.createElement(Text, { style: styles.totalsLabel }, 'TVA'),
+                React.createElement(Text, { style: styles.totalsValue }, formatMoney(body.totals.totalTva))
+              ),
+              React.createElement(
+                View,
+                { style: [styles.totalsLine, styles.totalsLineLast] },
+                React.createElement(Text, { style: styles.totalsLabel }, 'Total TTC'),
                 React.createElement(Text, { style: styles.totalsValue }, formatMoney(body.totals.totalTtc))
               )
             )
@@ -358,10 +357,23 @@ export async function POST(req: Request) {
           React.createElement(
             Text,
             { style: styles.footer },
-            'Paiement par virement sous 30 jours\n'
-              + "Pénalités de retard : 13,15 % / an (taux BCE au 01/01/2025 = 3,15 % + 10 points), applicables dès le lendemain de l'échéance.\n"
-              + 'Indemnité forfaitaire de recouvrement : 40 € (art. L.441-10 du Code de commerce).\n\n'
-              + 'Conditions générales de vente consultables sur le site : www.spykeapp.fr'
+            "En cas de retard de paiement, seront exigibles, conformément au code de commerce, une indemnité calculée sur la base de trois fois le taux de l'intérêt légal en vigueur ainsi qu'une indemnité forfaitaire pour frais de recouvrement de 40€.\n"
+              + "Pas d'escompte en cas de paiement anticipé.\n"
+          ),
+          React.createElement(
+            View,
+            { style: [styles.footer, { top: undefined, bottom: 24 }] },
+            React.createElement(
+              View,
+              { style: styles.footerRow },
+              React.createElement(
+                View,
+                null,
+                body.seller.iban ? React.createElement(Text, null, `IBAN : ${body.seller.iban}`) : null,
+                body.seller.bic ? React.createElement(Text, null, `BIC : ${body.seller.bic}`) : null
+              ),
+              React.createElement(Text, { style: styles.footerRight }, `Facture ${body.invoiceNumber} | Page 1/1`)
+            )
           )
         )
       )
