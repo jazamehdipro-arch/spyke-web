@@ -1330,7 +1330,7 @@ Réponds uniquement par le texte de la description.`
           <div className="devis-container">
         <div className="form-wrapper">
           <div className="card">
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 12, alignItems: 'center' }}>
               <button
                 className="btn btn-secondary"
                 type="button"
@@ -1343,18 +1343,53 @@ Réponds uniquement par le texte de la description.`
               >
                 Importer depuis un PDF
               </button>
+              <span
+                title="Analyse un PDF (avec du texte) pour pré-remplir le devis. Si le PDF est scanné, l'import OCR/photo arrive bientôt."
+                style={{
+                  width: 22,
+                  height: 22,
+                  borderRadius: 999,
+                  border: '1px solid var(--gray-300)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: 800,
+                  color: 'var(--gray-600)',
+                  cursor: 'help',
+                  userSelect: 'none',
+                }}
+              >
+                ?
+              </span>
+
               <button
                 className="btn btn-secondary"
                 type="button"
                 onClick={() => {
-                  try {
-                    const input = document.getElementById('import-devis-photo') as HTMLInputElement | null
-                    input?.click()
-                  } catch {}
+                  alert("Importer depuis une photo : bientôt disponible (OCR en cours d'activation).")
+                }}
+                style={{ opacity: 0.55, cursor: 'not-allowed' }}
+              >
+                Importer depuis une photo (bientôt)
+              </button>
+              <span
+                title="Import depuis une photo (ou un PDF scanné). Nécessite un OCR : bientôt disponible."
+                style={{
+                  width: 22,
+                  height: 22,
+                  borderRadius: 999,
+                  border: '1px solid var(--gray-300)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: 800,
+                  color: 'var(--gray-600)',
+                  cursor: 'help',
+                  userSelect: 'none',
                 }}
               >
-                Importer depuis une photo
-              </button>
+                ?
+              </span>
               <input
                 id="import-devis-pdf"
                 type="file"
@@ -2798,7 +2833,7 @@ function ContratsV1({
             ← Retour aux contrats
           </button>
 
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 12, alignItems: 'center' }}>
             <button
               className="btn btn-secondary"
               type="button"
@@ -2811,18 +2846,53 @@ function ContratsV1({
             >
               Importer depuis un PDF
             </button>
+            <span
+              title="Analyse un PDF (avec du texte) pour pré-remplir le contrat (client, dates, mission, prix...)."
+              style={{
+                width: 22,
+                height: 22,
+                borderRadius: 999,
+                border: '1px solid var(--gray-300)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 800,
+                color: 'var(--gray-600)',
+                cursor: 'help',
+                userSelect: 'none',
+              }}
+            >
+              ?
+            </span>
+
             <button
               className="btn btn-secondary"
               type="button"
               onClick={() => {
-                try {
-                  const input = document.getElementById('import-contrat-photo') as HTMLInputElement | null
-                  input?.click()
-                } catch {}
+                alert("Importer depuis une photo : bientôt disponible (OCR en cours d'activation).")
+              }}
+              style={{ opacity: 0.55, cursor: 'not-allowed' }}
+            >
+              Importer depuis une photo (bientôt)
+            </button>
+            <span
+              title="Import depuis une photo (ou un PDF scanné). Nécessite un OCR : bientôt disponible."
+              style={{
+                width: 22,
+                height: 22,
+                borderRadius: 999,
+                border: '1px solid var(--gray-300)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 800,
+                color: 'var(--gray-600)',
+                cursor: 'help',
+                userSelect: 'none',
               }}
             >
-              Importer depuis une photo
-            </button>
+              ?
+            </span>
             <input
               id="import-contrat-pdf"
               type="file"
@@ -3986,7 +4056,7 @@ function FacturesV1({
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 12, alignItems: 'center' }}>
             <button
               className="btn btn-secondary"
               type="button"
@@ -3999,18 +4069,53 @@ function FacturesV1({
             >
               Importer depuis un PDF
             </button>
+            <span
+              title="Analyse un PDF (avec du texte) pour pré-remplir la facture. Si le PDF est scanné, l'import OCR/photo arrive bientôt."
+              style={{
+                width: 22,
+                height: 22,
+                borderRadius: 999,
+                border: '1px solid var(--gray-300)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 800,
+                color: 'var(--gray-600)',
+                cursor: 'help',
+                userSelect: 'none',
+              }}
+            >
+              ?
+            </span>
+
             <button
               className="btn btn-secondary"
               type="button"
               onClick={() => {
-                try {
-                  const input = document.getElementById('import-facture-photo') as HTMLInputElement | null
-                  input?.click()
-                } catch {}
+                alert("Importer depuis une photo : bientôt disponible (OCR en cours d'activation).")
+              }}
+              style={{ opacity: 0.55, cursor: 'not-allowed' }}
+            >
+              Importer depuis une photo (bientôt)
+            </button>
+            <span
+              title="Import depuis une photo (ou un PDF scanné). Nécessite un OCR : bientôt disponible."
+              style={{
+                width: 22,
+                height: 22,
+                borderRadius: 999,
+                border: '1px solid var(--gray-300)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 800,
+                color: 'var(--gray-600)',
+                cursor: 'help',
+                userSelect: 'none',
               }}
             >
-              Importer depuis une photo
-            </button>
+              ?
+            </span>
             <input
               id="import-facture-pdf"
               type="file"
