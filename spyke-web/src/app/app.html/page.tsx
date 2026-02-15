@@ -2813,55 +2813,100 @@ function ContratsV1({
               <p>Créez votre premier contrat en cliquant sur “Nouveau contrat”.</p>
             </div>
           ) : (
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ textAlign: 'left', fontSize: 12, color: 'var(--gray-500)' }}>
-                    <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>N°</th>
-                    <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Titre</th>
-                    <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Statut</th>
-                    <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)', textAlign: 'right' }}>Montant</th>
-                    <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)', textAlign: 'right' }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {contracts.map((c) => (
-                    <tr key={c.id}>
-                      <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{(c as any).number || '—'}</td>
-                      <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{c.title || 'Contrat'}</td>
-                      <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{c.status || 'draft'}</td>
-                      <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)', textAlign: 'right', fontWeight: 700 }}>
-                        {formatMoney(Number(c.amount_ht || 0))}
-                      </td>
-                      <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)', textAlign: 'right' }}>
-                        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-                          <button
-                            className="btn btn-secondary"
-                            type="button"
-                            onClick={() => {
-                              openContract(String(c.id))
-                              setMode('create')
-                            }}
-                          >
-                            Ouvrir
-                          </button>
-                          <button
-                            className="btn btn-secondary"
-                            type="button"
-                            onClick={() => {
-                              try { localStorage.setItem('spyke_invoice_from_contract_id', String(c.id)) } catch {}
-                              ;(window as any).__spyke_setTab?.('factures')
-                            }}
-                          >
-                            Facture
-                          </button>
-                        </div>
-                      </td>
+            <>
+              {/* Desktop table */}
+              <div className="only-desktop" style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ textAlign: 'left', fontSize: 12, color: 'var(--gray-500)' }}>
+                      <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>N°</th>
+                      <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Titre</th>
+                      <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Statut</th>
+                      <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)', textAlign: 'right' }}>Montant</th>
+                      <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)', textAlign: 'right' }}>Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {contracts.map((c) => (
+                      <tr key={c.id}>
+                        <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{(c as any).number || '—'}</td>
+                        <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{c.title || 'Contrat'}</td>
+                        <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{c.status || 'draft'}</td>
+                        <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)', textAlign: 'right', fontWeight: 700 }}>
+                          {formatMoney(Number(c.amount_ht || 0))}
+                        </td>
+                        <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)', textAlign: 'right' }}>
+                          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                            <button
+                              className="btn btn-secondary"
+                              type="button"
+                              onClick={() => {
+                                openContract(String(c.id))
+                                setMode('create')
+                              }}
+                            >
+                              Ouvrir
+                            </button>
+                            <button
+                              className="btn btn-secondary"
+                              type="button"
+                              onClick={() => {
+                                try { localStorage.setItem('spyke_invoice_from_contract_id', String(c.id)) } catch {}
+                                ;(window as any).__spyke_setTab?.('factures')
+                              }}
+                            >
+                              Facture
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile cards */}
+              <div className="only-mobile mobile-cards">
+                {contracts.map((c) => (
+                  <div key={c.id} className="mobile-card">
+                    <div className="mobile-card-top">
+                      <div>
+                        <div className="mobile-card-title">{(c as any).number || '—'}</div>
+                        <div className="mobile-card-sub">{c.title || 'Contrat'}</div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div className="mobile-card-amount">{formatMoney(Number(c.amount_ht || 0))}</div>
+                        <div className="mobile-badges">
+                          <span className="badge badge-gray">{c.status || 'draft'}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mobile-card-actions">
+                      <button
+                        className="btn btn-secondary"
+                        type="button"
+                        onClick={() => {
+                          openContract(String(c.id))
+                          setMode('create')
+                        }}
+                      >
+                        Ouvrir
+                      </button>
+                      <button
+                        className="btn btn-secondary"
+                        type="button"
+                        onClick={() => {
+                          try { localStorage.setItem('spyke_invoice_from_contract_id', String(c.id)) } catch {}
+                          ;(window as any).__spyke_setTab?.('factures')
+                        }}
+                      >
+                        Facture
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
           )}
         </div>
       ) : (
@@ -6122,6 +6167,29 @@ CONTEXTE UTILISATEUR :
           .only-mobile { display: block; }
           .only-desktop { display: none; }
 
+          .page-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 12px;
+          }
+
+          .header-actions {
+            width: 100%;
+            justify-content: flex-start;
+            gap: 10px;
+          }
+
+          .header-actions .btn {
+            width: 100%;
+            justify-content: center;
+          }
+
+          .btn-group {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+          }
+
           .mobile-card-actions .btn {
             width: 100%;
             justify-content: center;
@@ -6847,59 +6915,162 @@ CONTEXTE UTILISATEUR :
                 </div>
               </div>
 
-              <div style={{ marginTop: 12, overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr style={{ textAlign: 'left', fontSize: 12, color: 'var(--gray-500)' }}>
-                      <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Client</th>
-                      <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Contact</th>
-                      <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Ville</th>
-                      <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Devis</th>
-                      <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Contrats</th>
-                      <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Factures</th>
-                      <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)', textAlign: 'right' }}>Total facturé</th>
-                      <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Dernier statut</th>
-                      <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)', textAlign: 'right' }}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(clients
-                      .filter((c) => {
-                        const q = clientSearch.trim().toLowerCase()
-                        if (!q) return true
-                        return [c.name, c.email, c.phone, c.city, c.address]
-                          .filter(Boolean)
-                          .some((x) => String(x).toLowerCase().includes(q))
-                      })
-                      .map((c) => {
-                        const s = clientStats[c.id] || { quotes: 0, invoices: 0, contracts: 0, totalInvoiced: 0, lastStatus: '—' }
-                        return (
-                          <tr
-                            key={c.id}
-                            style={{ cursor: 'pointer' }}
-                            onClick={() => {
-                              setViewClientId(c.id)
-                              setClientsView('detail')
-                            }}
-                          >
-                            <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>
-                              <div style={{ fontWeight: 700, color: 'var(--black)' }}>{c.name}</div>
-                              <div style={{ fontSize: 12, color: 'var(--gray-500)' }}>{c.siret || ''}</div>
-                            </td>
-                            <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>
-                              <div style={{ fontSize: 13 }}>{c.email || '—'}</div>
-                              <div style={{ fontSize: 12, color: 'var(--gray-500)' }}>{c.phone || ''}</div>
-                            </td>
-                            <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{c.city || '—'}</td>
-                            <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{s.quotes}</td>
-                            <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{s.contracts}</td>
-                            <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{s.invoices}</td>
-                            <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)', textAlign: 'right', fontWeight: 700 }}>
-                              {formatMoney(Number(s.totalInvoiced || 0))}
-                            </td>
-                            <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{s.lastStatus}</td>
-                            <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)', textAlign: 'right' }}>
-                              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+              {(() => {
+                const q = clientSearch.trim().toLowerCase()
+                const filtered = clients.filter((c) => {
+                  if (!q) return true
+                  return [c.name, c.email, c.phone, c.city, c.address]
+                    .filter(Boolean)
+                    .some((x) => String(x).toLowerCase().includes(q))
+                })
+
+                return (
+                  <>
+                    {/* Desktop table */}
+                    <div className="only-desktop" style={{ marginTop: 12, overflowX: 'auto' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        <thead>
+                          <tr style={{ textAlign: 'left', fontSize: 12, color: 'var(--gray-500)' }}>
+                            <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Client</th>
+                            <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Contact</th>
+                            <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Ville</th>
+                            <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Devis</th>
+                            <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Contrats</th>
+                            <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Factures</th>
+                            <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)', textAlign: 'right' }}>Total facturé</th>
+                            <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Dernier statut</th>
+                            <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)', textAlign: 'right' }}>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filtered.map((c) => {
+                            const s = clientStats[c.id] || { quotes: 0, invoices: 0, contracts: 0, totalInvoiced: 0, lastStatus: '—' }
+                            return (
+                              <tr
+                                key={c.id}
+                                style={{ cursor: 'pointer' }}
+                                onClick={() => {
+                                  setViewClientId(c.id)
+                                  setClientsView('detail')
+                                }}
+                              >
+                                <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>
+                                  <div style={{ fontWeight: 700, color: 'var(--black)' }}>{c.name}</div>
+                                  <div style={{ fontSize: 12, color: 'var(--gray-500)' }}>{c.siret || ''}</div>
+                                </td>
+                                <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>
+                                  <div style={{ fontSize: 13 }}>{c.email || '—'}</div>
+                                  <div style={{ fontSize: 12, color: 'var(--gray-500)' }}>{c.phone || ''}</div>
+                                </td>
+                                <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{c.city || '—'}</td>
+                                <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{s.quotes}</td>
+                                <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{s.contracts}</td>
+                                <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{s.invoices}</td>
+                                <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)', textAlign: 'right', fontWeight: 700 }}>
+                                  {formatMoney(Number(s.totalInvoiced || 0))}
+                                </td>
+                                <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{s.lastStatus}</td>
+                                <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)', textAlign: 'right' }}>
+                                  <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                                    <button
+                                      type="button"
+                                      className="btn btn-secondary"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        setEditingClientId(c.id)
+                                        setModal('editClient')
+                                      }}
+                                    >
+                                      ✏️
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="btn btn-secondary"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        try { localStorage.setItem('spyke_devis_client_id', c.id) } catch {}
+                                        ;(window as any).__spyke_setTab?.('devis')
+                                      }}
+                                    >
+                                      📄
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="btn btn-secondary"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        setSelectedClientId(c.id)
+                                        setTab('assistant')
+                                      }}
+                                    >
+                                      ✉️
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="btn btn-secondary"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        deleteClient(c.id)
+                                      }}
+                                    >
+                                      🗑️
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+
+                      {clients.length === 0 ? (
+                        <div className="empty-state" style={{ padding: 24 }}>
+                          <p>Aucun client</p>
+                        </div>
+                      ) : null}
+                    </div>
+
+                    {/* Mobile cards */}
+                    <div className="only-mobile mobile-cards" style={{ marginTop: 12 }}>
+                      {filtered.length === 0 ? (
+                        <div className="empty-state" style={{ padding: 24 }}>
+                          <p>Aucun client</p>
+                        </div>
+                      ) : (
+                        filtered.map((c) => {
+                          const s = clientStats[c.id] || { quotes: 0, invoices: 0, contracts: 0, totalInvoiced: 0, lastStatus: '—' }
+
+                          return (
+                            <div
+                              key={c.id}
+                              className="mobile-card"
+                              style={{ cursor: 'pointer' }}
+                              onClick={() => {
+                                setViewClientId(c.id)
+                                setClientsView('detail')
+                              }}
+                            >
+                              <div className="mobile-card-top">
+                                <div>
+                                  <div className="mobile-card-title">{c.name}</div>
+                                  <div className="mobile-card-sub">
+                                    {(c.city || '—')}{c.email ? ` • ${c.email}` : ''}
+                                  </div>
+                                  {c.phone ? <div className="mobile-card-meta">{c.phone}</div> : null}
+                                </div>
+                                <div style={{ textAlign: 'right' }}>
+                                  <div className="mobile-card-amount">{formatMoney(Number(s.totalInvoiced || 0))}</div>
+                                  <div className="mobile-badges">
+                                    <span className="badge badge-gray">Devis {s.quotes}</span>
+                                    <span className="badge badge-gray">Factures {s.invoices}</span>
+                                    <span className="badge badge-gray">Contrats {s.contracts}</span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="mobile-card-meta">Dernier statut: {s.lastStatus}</div>
+
+                              <div className="mobile-card-actions">
                                 <button
                                   type="button"
                                   className="btn btn-secondary"
@@ -6909,7 +7080,7 @@ CONTEXTE UTILISATEUR :
                                     setModal('editClient')
                                   }}
                                 >
-                                  ✏️
+                                  Modifier
                                 </button>
                                 <button
                                   type="button"
@@ -6920,7 +7091,7 @@ CONTEXTE UTILISATEUR :
                                     ;(window as any).__spyke_setTab?.('devis')
                                   }}
                                 >
-                                  📄
+                                  Nouveau devis
                                 </button>
                                 <button
                                   type="button"
@@ -6931,7 +7102,7 @@ CONTEXTE UTILISATEUR :
                                     setTab('assistant')
                                   }}
                                 >
-                                  ✉️
+                                  Email
                                 </button>
                                 <button
                                   type="button"
@@ -6941,22 +7112,17 @@ CONTEXTE UTILISATEUR :
                                     deleteClient(c.id)
                                   }}
                                 >
-                                  🗑️
+                                  Supprimer
                                 </button>
                               </div>
-                            </td>
-                          </tr>
-                        )
-                      }))}
-                  </tbody>
-                </table>
-
-                {clients.length === 0 ? (
-                  <div className="empty-state" style={{ padding: 24 }}>
-                    <p>Aucun client</p>
-                  </div>
-                ) : null}
-              </div>
+                            </div>
+                          )
+                        })
+                      )}
+                    </div>
+                  </>
+                )
+              })()}
             </div>
           )}
         </div>
