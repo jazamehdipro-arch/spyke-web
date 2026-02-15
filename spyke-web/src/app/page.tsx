@@ -982,14 +982,14 @@ export default function Home() {
             </div>
 
             <h1>
-              Vos emails et devis.
+              Vos emails et documents.
               <br />
               <span className="highlight">Votre style.</span>
             </h1>
 
             <p className="hero-description">
-              Spyke est votre assistant IA qui rédige des emails professionnels et génère des devis
-              personnalisés selon votre ton et votre vision. Fini le copier-coller.
+              Spyke est votre assistant IA pour gérer tout votre administratif freelance : emails,
+              devis, factures et contrats. Vous gardez votre ton, Spyke vous fait gagner du temps.
             </p>
 
             <a href="#pricing" className="hero-btn">
@@ -1094,10 +1094,10 @@ export default function Home() {
                   <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
               </div>
-              <h3>Devis sur mesure</h3>
+              <h3>Devis, factures & contrats</h3>
               <p>
-                Générez des devis professionnels personnalisés. Templates adaptés à votre activité
-                et vos tarifs.
+                Générez des documents pros en quelques clics : devis, factures et contrats. Le tout
+                cohérent avec votre profil, vos mentions et votre style.
               </p>
             </div>
 
@@ -1109,8 +1109,8 @@ export default function Home() {
               </div>
               <h3>Relances intelligentes</h3>
               <p>
-                Détectez les devis en attente et les retards de paiement. L&apos;IA suggère quand et
-                comment relancer.
+                Détectez les devis sans réponse et les factures en retard. Spyke suggère quand et
+                comment relancer (devis, paiement, suivi projet…).
               </p>
             </div>
 
@@ -1138,10 +1138,10 @@ export default function Home() {
                   <path d="M2 12l10 5 10-5" />
                 </svg>
               </div>
-              <h3>10+ templates emails</h3>
+              <h3>Templates & cas d’usage</h3>
               <p>
-                Réponse client, relance, négociation, envoi de devis, remerciement... Tous les cas
-                sont couverts.
+                Réponse client, relance, négociation, envoi de devis, relance facture, suivi de
+                contrat… tous les cas fréquents sont couverts.
               </p>
             </div>
 
@@ -1153,7 +1153,8 @@ export default function Home() {
               </div>
               <h3>Dashboard clair</h3>
               <p>
-                Visualisez votre activité en un coup d&apos;œil. CA, devis en cours, relances à faire.
+                Visualisez votre activité en un coup d&apos;œil : CA, devis en cours, factures à encaisser,
+                relances à faire.
               </p>
             </div>
           </div>
@@ -1191,7 +1192,8 @@ export default function Home() {
               <div className="step-number">3</div>
               <h3>Générez en 1 clic</h3>
               <p>
-                Emails, devis, relances... L&apos;IA écrit avec votre voix. Vous validez et envoyez.
+                Emails, devis, factures, contrats, relances… l&apos;IA écrit avec votre voix. Vous validez
+                et exportez.
               </p>
             </div>
           </div>
@@ -1286,7 +1288,7 @@ export default function Home() {
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M5 13l4 4L19 7" />
                   </svg>
-                  3 devis par mois
+                  3 documents / mois (devis, factures, contrats)
                 </li>
                 <li>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -1323,7 +1325,7 @@ export default function Home() {
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M5 13l4 4L19 7" />
                   </svg>
-                  Devis illimités
+                  Documents illimités (devis, factures, contrats)
                 </li>
                 <li>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -1362,7 +1364,7 @@ export default function Home() {
       <section className="cta">
         <div className="cta-container">
           <h2>Prêt à écrire plus vite ?</h2>
-          <p>Rejoignez les freelances qui ont adopté l&apos;IA pour leurs emails et devis.</p>
+          <p>Rejoignez les freelances qui ont adopté l&apos;IA pour leurs emails et documents (devis, factures, contrats).</p>
           <a href="#pricing" className="cta-btn">
             Commencer gratuitement →
           </a>
@@ -1387,7 +1389,7 @@ export default function Home() {
             <a href="mentions-legales.html">Mentions légales</a>
             <a href="confidentialite.html">Confidentialité</a>
           </div>
-          <p className="footer-copy">Spyke © 2025 – Votre assistant freelance intelligent</p>
+          <p className="footer-copy">Spyke © 2025 – L’assistant freelance (emails, devis, factures, contrats)</p>
         </div>
       </footer>
     </>

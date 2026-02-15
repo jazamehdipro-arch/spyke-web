@@ -1033,15 +1033,15 @@ export default function CommentCaMarchePage() {
               <div className="step-icon">🚀</div>
               <h3>Laissez l&apos;IA travailler</h3>
               <p>
-                C&apos;est parti ! Générez des devis en 2 minutes, des emails en 30 secondes, analysez
-                vos briefs instantanément. Vous venez de gagner des heures.
+                C&apos;est parti ! Générez des devis, factures et contrats en quelques minutes, des emails
+                en 30 secondes, analysez vos briefs instantanément. Vous venez de gagner des heures.
               </p>
               <div className="step-details">
                 <div className="step-detail">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
-                  <span>Devis professionnels en 2 min</span>
+                  <span>Documents pros (devis, factures, contrats)</span>
                 </div>
                 <div className="step-detail">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -1103,10 +1103,10 @@ export default function CommentCaMarchePage() {
           <div className="comparison-tasks">
             <div className="comparison-task">
               <div className="comparison-task-icon">📄</div>
-              <h4>Créer un devis</h4>
+              <h4>Créer un document (devis / facture / contrat)</h4>
               <div className="comparison-task-times">
                 <span className="before">30 min</span>
-                <span className="after">2 min</span>
+                <span className="after">2-5 min</span>
               </div>
             </div>
 
@@ -1160,7 +1160,7 @@ export default function CommentCaMarchePage() {
                 <div className="faq-answer-content">
                   5 minutes maximum. L&apos;interface est conçue pour être intuitive. Vous créez votre
                   compte, vous renseignez vos infos, et vous pouvez immédiatement créer votre
-                  premier devis ou générer un email.
+                  premier devis/facture/contrat ou générer un email.
                 </div>
               </div>
             </div>
@@ -1220,8 +1220,8 @@ export default function CommentCaMarchePage() {
               </div>
               <div className="faq-answer">
                 <div className="faq-answer-content">
-                  Oui, Spyke est une application web responsive. Vous pouvez créer un devis ou
-                  générer un email depuis votre téléphone, où que vous soyez.
+                  Oui, Spyke est une application web responsive. Vous pouvez créer un devis, une
+                  facture, un contrat ou générer un email depuis votre téléphone, où que vous soyez.
                 </div>
               </div>
             </div>

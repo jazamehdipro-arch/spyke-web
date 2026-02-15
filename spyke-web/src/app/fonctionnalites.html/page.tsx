@@ -694,7 +694,7 @@ export default function FonctionnalitesPage() {
         </div>
       </section>
 
-      {/* Feature 2: Devis */}
+      {/* Feature 2: Documents (Devis / Factures / Contrats) */}
       <section className="feature-section">
         <div className="feature-grid">
           <div className="feature-content">
@@ -703,12 +703,12 @@ export default function FonctionnalitesPage() {
                 <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
                 <path d="M14 2v6h6" />
               </svg>
-              Générateur de devis
+              Documents
             </div>
-            <h2>Des devis professionnels en 2 minutes</h2>
+            <h2>Devis, factures et contrats — au même endroit</h2>
             <p>
-              Créez des devis conformes aux normes françaises avec calculs automatiques. Plus besoin
-              d&apos;Excel ou de templates Word.
+              Créez vos documents conformes et cohérents (profil, mentions, numérotation) sans
+              jongler entre Excel, Word et des modèles copiés-collés.
             </p>
             <div className="feature-list">
               <div className="feature-list-item">
@@ -717,7 +717,7 @@ export default function FonctionnalitesPage() {
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
                 </div>
-                <span>Calculs automatiques : HT, TVA, TTC, acompte</span>
+                <span>Devis : calculs auto (HT/TVA/TTC), acompte, validité, statuts</span>
               </div>
 
               <div className="feature-list-item">
@@ -726,7 +726,7 @@ export default function FonctionnalitesPage() {
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
                 </div>
-                <span>Export PDF professionnel avec vos mentions légales</span>
+                <span>Factures : échéances, suivi “payée/en retard”, relances plus simples</span>
               </div>
 
               <div className="feature-list-item">
@@ -735,15 +735,15 @@ export default function FonctionnalitesPage() {
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
                 </div>
-                <span>Numérotation automatique et suivi des statuts</span>
+                <span>Contrats : génération structurée + export PDF, import depuis un devis</span>
               </div>
             </div>
           </div>
 
           <div className="feature-visual">
             <img
-              src="https://placehold.co/600x450/f4f4f5/a1a1aa?text=G%C3%A9n%C3%A9rateur+Devis"
-              alt="Générateur de devis"
+              src="https://placehold.co/600x450/f4f4f5/a1a1aa?text=Documents+Spyke"
+              alt="Documents Spyke"
               className="feature-image"
             />
             <div className="feature-floating-card card-2">
@@ -751,7 +751,7 @@ export default function FonctionnalitesPage() {
                 <div className="floating-stat-icon">📄</div>
                 <div className="floating-stat-text">
                   <h4>PDF prêt</h4>
-                  <p>en 1 clic</p>
+                  <p>devis, facture, contrat</p>
                 </div>
               </div>
             </div>
@@ -902,21 +902,22 @@ export default function FonctionnalitesPage() {
               <div className="feature-card-icon">🔔</div>
               <h3>Relances automatiques</h3>
               <p>
-                Recevez des suggestions de relance quand un devis reste sans réponse trop longtemps.
+                Recevez des suggestions de relance quand un devis reste sans réponse ou qu’une facture
+                approche de l’échéance / passe en retard.
               </p>
             </div>
 
             <div className="feature-card">
               <div className="feature-card-icon">📊</div>
               <h3>Dashboard intelligent</h3>
-              <p>Visualisez votre CA, vos devis en attente et votre activité en un coup d&apos;œil.</p>
+              <p>Visualisez votre CA, vos devis en attente, vos factures à encaisser et vos relances en un coup d&apos;œil.</p>
             </div>
 
             <div className="feature-card">
               <div className="feature-card-icon">🎨</div>
               <h3>Templates personnalisés</h3>
               <p>
-                Créez vos propres modèles de devis et d&apos;emails pour aller encore plus vite.
+                Créez vos propres modèles (emails, devis) et standardisez votre administratif.
               </p>
             </div>
 
@@ -929,7 +930,7 @@ export default function FonctionnalitesPage() {
             <div className="feature-card">
               <div className="feature-card-icon">📱</div>
               <h3>Accès mobile</h3>
-              <p>Créez un devis depuis votre téléphone, n&apos;importe où, n&apos;importe quand.</p>
+              <p>Créez un devis, une facture ou un contrat depuis votre téléphone, n&apos;importe où, n&apos;importe quand.</p>
             </div>
 
             <div className="feature-card">
@@ -975,7 +976,7 @@ export default function FonctionnalitesPage() {
             <a href="mentions-legales.html">Mentions légales</a>
             <a href="confidentialite.html">Confidentialité</a>
           </div>
-          <p className="footer-copy">Spyke © 2025 – Votre assistant freelance intelligent</p>
+          <p className="footer-copy">Spyke © 2025 – L’assistant freelance (emails, devis, factures, contrats)</p>
         </div>
       </footer>
     </>
