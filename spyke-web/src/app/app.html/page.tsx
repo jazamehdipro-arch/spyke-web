@@ -1203,11 +1203,20 @@ Réponds uniquement par le texte de la description.`
         }
 
         @media (max-width: 768px) {
+          .devis-v4 .card {
+            padding: 18px;
+          }
+          .devis-v4 .prestation-item {
+            padding: 14px;
+          }
           .devis-v4 .prestation-row {
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1fr;
           }
           .devis-v4 .form-row {
             grid-template-columns: 1fr;
+          }
+          .devis-v4 .btn-group {
+            flex-direction: column;
           }
         }
       `}</style>
@@ -5828,11 +5837,15 @@ CONTEXTE UTILISATEUR :
           .factures-v1 .invoice-lines-header {
             display: none;
           }
+          /* Mobile: each line becomes a vertical stack (much easier to edit on phone) */
           .factures-v1 .invoice-line {
-            grid-template-columns: 1fr 1fr;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 12px 4px;
           }
-          .factures-v1 .invoice-line input:nth-child(1) {
-            grid-column: 1 / -1;
+          .factures-v1 .invoice-remove {
+            align-self: flex-end;
           }
         }
 
@@ -6188,6 +6201,32 @@ CONTEXTE UTILISATEUR :
             display: grid;
             grid-template-columns: 1fr;
             gap: 10px;
+          }
+
+          .import-toolbar {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+            align-items: stretch;
+          }
+
+          .import-toolbar .import-btn,
+          .import-toolbar .btn {
+            width: 100%;
+            justify-content: center;
+          }
+
+          /* tooltips are hard to use on mobile (hover). keep them visible but not blocking layout */
+          .tooltip {
+            width: 100%;
+            height: auto;
+            border-radius: 12px;
+            padding: 10px 12px;
+            justify-content: flex-start;
+          }
+          .tooltip::after,
+          .tooltip::before {
+            display: none;
           }
 
           .mobile-card-actions .btn {
