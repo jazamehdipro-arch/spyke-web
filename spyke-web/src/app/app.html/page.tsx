@@ -1574,9 +1574,10 @@ Réponds uniquement par le texte de la description.`
               </p>
             </div>
 
-            <div className="form-section">
-              <div className="form-section-title">Informations du devis</div>
-              <div className="form-row">
+            <details className="mobile-accordion" open>
+              <summary className="mobile-accordion-summary">Informations du devis</summary>
+              <div className="mobile-accordion-body">
+                <div className="form-row">
                 <div className="form-group">
                   <label className="form-label">Titre du devis</label>
                   <input
@@ -1628,11 +1629,13 @@ Réponds uniquement par le texte de la description.`
                   </select>
                 </div>
               </div>
-            </div>
+              </div>
+            </details>
 
-            <div className="form-section">
-              <div className="form-section-title">Client</div>
-              <div className="form-row">
+            <details className="mobile-accordion" open>
+              <summary className="mobile-accordion-summary">Client</summary>
+              <div className="mobile-accordion-body">
+                <div className="form-row">
                 <div className="form-group">
                   <label className="form-label">Sélectionner un client</label>
                   <select
@@ -1742,10 +1745,12 @@ Réponds uniquement par le texte de la description.`
                   </div>
                 </>
               ) : null}
-            </div>
+              </div>
+            </details>
 
-            <div className="form-section">
-              <div className="form-section-title">Prestations</div>
+            <details className="mobile-accordion" open>
+              <summary className="mobile-accordion-summary">Prestations</summary>
+              <div className="mobile-accordion-body">
 
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
                 <button
@@ -1864,11 +1869,13 @@ Réponds uniquement par le texte de la description.`
                 </svg>
                 Ajouter une prestation
               </button>
-            </div>
+              </div>
+            </details>
 
-            <div className="form-section">
-              <div className="form-section-title">Options</div>
-              <div className="form-row">
+            <details className="mobile-accordion" open>
+              <summary className="mobile-accordion-summary">Options</summary>
+              <div className="mobile-accordion-body">
+                <div className="form-row">
                 <div className="form-group">
                   <label className="form-label">Acompte demandé</label>
                   <select
@@ -1907,11 +1914,15 @@ Réponds uniquement par le texte de la description.`
                   />
                 </div>
               </div>
-            </div>
+              </div>
+            </details>
           </div>
         </div>
 
-        <div className="preview-card card">
+        <details className="mobile-preview" open>
+          <summary className="mobile-accordion-summary">Récapitulatif</summary>
+          <div className="mobile-accordion-body">
+            <div className="preview-card card" style={{ marginTop: 0 }}>
           <div className="preview-header">
             <span className="preview-title">Récapitulatif</span>
             <span className="preview-badge">Brouillon</span>
@@ -1956,7 +1967,7 @@ Réponds uniquement par le texte de la description.`
             ) : null}
           </div>
 
-          <div className="btn-group">
+          <div className="btn-group devis-actions">
             <button className="btn btn-secondary" type="button" onClick={() => alert('Email: à connecter')}
             >
               Envoyer par mail
@@ -2048,6 +2059,9 @@ Réponds uniquement par le texte de la description.`
           ) : null}
           </div>
         </div>
+      </details>
+
+      </div>
         </>
       )}
 
@@ -4404,8 +4418,11 @@ function FacturesV1({
             />
           </div>
 
-          <div className="card">
-            <div className="form-row">
+          <div className="card factures-form">
+            <details className="mobile-accordion" open>
+              <summary className="mobile-accordion-summary">Client & références</summary>
+              <div className="mobile-accordion-body">
+                <div className="form-row">
               <div className="form-group">
                 <label className="form-label">Importer depuis un devis</label>
                 <select
@@ -4473,11 +4490,16 @@ function FacturesV1({
                 <input className="form-input" value={buyer?.email || ''} onChange={(e) => setBuyer({ ...buyer, email: e.target.value })} />
               </div>
             </div>
+              </div>
+            </details>
 
-            <div className="form-group" style={{ marginTop: 8 }}>
-              <label className="form-label">Prestations</label>
+            <details className="mobile-accordion" open>
+              <summary className="mobile-accordion-summary">Prestations</summary>
+              <div className="mobile-accordion-body">
+                <div className="form-group">
+                  <label className="form-label">Prestations</label>
 
-              <div className="invoice-lines">
+                  <div className="invoice-lines">
                 <div className="invoice-lines-header">
                   <div>Description</div>
                   <div style={{ textAlign: 'center' }}>Qté</div>
@@ -4536,9 +4558,14 @@ function FacturesV1({
                   Ajouter une ligne
                 </button>
               </div>
-            </div>
+                </div>
+              </div>
+            </details>
 
-            <div className="preview-card" style={{ marginTop: 16 }}>
+            <details className="mobile-accordion" open>
+              <summary className="mobile-accordion-summary">Totaux & PDF</summary>
+              <div className="mobile-accordion-body">
+                <div className="preview-card" style={{ marginTop: 0 }}>
               <div className="preview-section">
                 <div className="preview-section-title">Totaux</div>
                 <div className="preview-row">
@@ -4552,7 +4579,7 @@ function FacturesV1({
               </div>
             </div>
 
-            <div className="btn-group" style={{ marginTop: 18 }}>
+            <div className="btn-group factures-actions" style={{ marginTop: 18 }}>
               <button className="btn btn-secondary" type="button" onClick={() => alert('Brouillon: à connecter')}>
                 Enregistrer brouillon
               </button>
@@ -4560,6 +4587,8 @@ function FacturesV1({
                 Générer PDF
               </button>
             </div>
+              </div>
+            </details>
           </div>
         </>
       )}
@@ -6286,6 +6315,28 @@ CONTEXTE UTILISATEUR :
 
           /* Contracts: keep main actions reachable */
           .contrats-v1 .contrats-actions {
+            position: sticky;
+            bottom: 12px;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--gray-200);
+            border-radius: 16px;
+            z-index: 5;
+          }
+
+          .factures-v1 .factures-actions {
+            position: sticky;
+            bottom: 12px;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--gray-200);
+            border-radius: 16px;
+            z-index: 5;
+          }
+
+          .devis-v4 .devis-actions {
             position: sticky;
             bottom: 12px;
             padding: 12px;
