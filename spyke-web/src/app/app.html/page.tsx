@@ -3080,10 +3080,11 @@ function ContratsV1({
             />
           </div>
 
-          <div className="card">
-        <div className="form-section">
-          <div className="form-section-title">Informations du contrat</div>
-          <div className="form-row">
+          <div className="card contrats-form">
+            <details className="mobile-accordion" open>
+              <summary className="mobile-accordion-summary">Informations du contrat</summary>
+              <div className="mobile-accordion-body">
+                <div className="form-row">
             <div className="form-group">
               <label className="form-label">Numéro du contrat</label>
               <input
@@ -3101,11 +3102,13 @@ function ContratsV1({
               </div>
             </div>
           </div>
-        </div>
+              </div>
+            </details>
 
-        <div className="form-section">
-          <div className="form-section-title">Importer depuis un devis</div>
-          <div className="form-row">
+            <details className="mobile-accordion" open>
+              <summary className="mobile-accordion-summary">Importer depuis un devis</summary>
+              <div className="mobile-accordion-body">
+                <div className="form-row">
             <div className="form-group">
               <label className="form-label">Choisir un devis</label>
               <select className="form-select" value={contractFromQuoteId} onChange={(e) => importFromQuote(e.target.value)}>
@@ -3121,10 +3124,13 @@ function ContratsV1({
               </div>
             </div>
           </div>
-        </div>
+              </div>
+            </details>
 
-        <div className="form-section-title">Prestataire (vous)</div>
-        <div className="form-row">
+            <details className="mobile-accordion" open>
+              <summary className="mobile-accordion-summary">Prestataire (vous)</summary>
+              <div className="mobile-accordion-body">
+                <div className="form-row">
           <div className="form-group">
             <label className="form-label">Nom / Raison sociale</label>
             <input className="form-input" value={prestaName} onChange={(e) => setPrestaName(e.target.value)} />
@@ -3151,9 +3157,13 @@ function ContratsV1({
           </div>
         </div>
 
-        <div className="form-section" style={{ marginTop: 24 }}>
-          <div className="form-section-title">Client</div>
-          <div className="form-row">
+              </div>
+            </details>
+
+            <details className="mobile-accordion" open>
+              <summary className="mobile-accordion-summary">Client</summary>
+              <div className="mobile-accordion-body">
+                <div className="form-row">
             <div className="form-group">
               <label className="form-label">Importer depuis vos clients</label>
               <select className="form-select" value={clientId} onChange={(e) => selectClient(e.target.value)}>
@@ -3192,11 +3202,13 @@ function ContratsV1({
               <input className="form-input" type="email" value={clientEmail} onChange={(e) => setClientEmail(e.target.value)} />
             </div>
           </div>
-        </div>
+              </div>
+            </details>
 
-        <div className="form-section" style={{ marginTop: 24 }}>
-          <div className="form-section-title">Mission</div>
-          <div className="form-row single">
+            <details className="mobile-accordion" open>
+              <summary className="mobile-accordion-summary">Mission</summary>
+              <div className="mobile-accordion-body">
+                <div className="form-row single">
             <div className="form-group">
               <label className="form-label">Description détaillée</label>
               <textarea className="form-textarea" value={missionDescription} onChange={(e) => setMissionDescription(e.target.value)} />
@@ -3238,11 +3250,13 @@ function ContratsV1({
               </select>
             </div>
           </div>
-        </div>
+              </div>
+            </details>
 
-        <div className="form-section" style={{ marginTop: 24 }}>
-          <div className="form-section-title">Conditions financières</div>
-          <div className="form-row">
+            <details className="mobile-accordion" open>
+              <summary className="mobile-accordion-summary">Conditions financières</summary>
+              <div className="mobile-accordion-body">
+                <div className="form-row">
             <div className="form-group">
               <label className="form-label">Type de tarification</label>
               <select className="form-select" value={pricingType} onChange={(e) => setPricingType(e.target.value as any)}>
@@ -3333,9 +3347,10 @@ function ContratsV1({
               </select>
             </div>
           </div>
-        </div>
+              </div>
+            </details>
 
-        <div className="btn-group" style={{ marginTop: 18 }}>
+            <div className="btn-group contrats-actions" style={{ marginTop: 18 }}>
           <button
             className="btn btn-secondary"
             type="button"
@@ -3414,12 +3429,14 @@ function ContratsV1({
         </div>
 
         {contractText ? (
-          <div style={{ marginTop: 18 }}>
-            <div className="form-section-title">Aperçu</div>
-            <div className="output-box" style={{ whiteSpace: 'pre-wrap', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' }}>
-              {contractText}
+          <details className="mobile-preview" open>
+            <summary className="mobile-accordion-summary">Aperçu du contrat</summary>
+            <div className="mobile-accordion-body">
+              <div className="output-box" style={{ whiteSpace: 'pre-wrap', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' }}>
+                {contractText}
+              </div>
             </div>
-          </div>
+          </details>
         ) : null}
       </div>
         </>
@@ -6176,6 +6193,70 @@ CONTEXTE UTILISATEUR :
           margin-top: 12px;
         }
 
+        /* ===== MOBILE ACCORDIONS (Create forms) ===== */
+        .mobile-accordion,
+        .mobile-preview {
+          border: 1px solid var(--gray-200);
+          border-radius: 16px;
+          background: var(--white);
+          overflow: hidden;
+          margin-top: 12px;
+        }
+
+        .mobile-accordion-body {
+          padding: 14px;
+        }
+
+        .mobile-accordion-summary {
+          list-style: none;
+          cursor: pointer;
+          user-select: none;
+          padding: 14px;
+          font-weight: 900;
+          color: var(--black);
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+          border-bottom: 1px solid var(--gray-200);
+          background: var(--gray-50);
+        }
+
+        .mobile-accordion-summary::-webkit-details-marker {
+          display: none;
+        }
+
+        .mobile-accordion-summary::after {
+          content: '▾';
+          font-weight: 900;
+          color: var(--gray-500);
+          display: inline-block;
+          transition: transform 0.15s ease;
+        }
+
+        details[open] > .mobile-accordion-summary::after {
+          transform: rotate(180deg);
+        }
+
+        /* Desktop: keep forms unchanged */
+        @media (min-width: 769px) {
+          .mobile-accordion,
+          .mobile-preview {
+            border: none;
+            border-radius: 0;
+            background: transparent;
+            margin-top: 0;
+          }
+
+          .mobile-accordion-summary {
+            display: none;
+          }
+
+          .mobile-accordion-body {
+            padding: 0;
+          }
+        }
+
         @media (max-width: 768px) {
           .only-mobile { display: block; }
           .only-desktop { display: none; }
@@ -6201,6 +6282,18 @@ CONTEXTE UTILISATEUR :
             display: grid;
             grid-template-columns: 1fr;
             gap: 10px;
+          }
+
+          /* Contracts: keep main actions reachable */
+          .contrats-v1 .contrats-actions {
+            position: sticky;
+            bottom: 12px;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--gray-200);
+            border-radius: 16px;
+            z-index: 5;
           }
 
           .import-toolbar {
