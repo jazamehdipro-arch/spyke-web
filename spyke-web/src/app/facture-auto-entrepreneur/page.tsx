@@ -104,7 +104,7 @@ export default function Page() {
         </ul>
 
         <p style={{ color: '#52525b', lineHeight: 1.9, marginTop: 14 }}>
-          Pour aller plus loin : créez un compte Spyke pour sauvegarder vos clients et transformer vos documents (devis → facture, etc.).
+          Pour aller plus loin : créez un compte Spyke pour sauvegarder vos clients et enchaîner vos documents (devis → facture, puis contrat si besoin).
         </p>
       </section>
 

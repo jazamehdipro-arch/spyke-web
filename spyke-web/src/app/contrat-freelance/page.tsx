@@ -102,7 +102,7 @@ export default function Page() {
         </p>
 
         <p style={{ color: '#52525b', lineHeight: 1.9, marginTop: 14 }}>
-          Pour gagner du temps : créez un compte Spyke pour retrouver vos contrats, les dupliquer, et enchaîner devis → contrat → facture.
+          Pour gagner du temps : créez un compte Spyke pour retrouver vos contrats, les dupliquer, et enchaîner facilement devis → contrat → facture (avec suivi des échéances et relances).
         </p>
       </section>
 

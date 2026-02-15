@@ -77,7 +77,7 @@ export default function Page() {
         <p style={{ color: '#52525b', lineHeight: 1.9, marginTop: 14 }}>
           Un devis est souvent le premier document que vous envoyez à un client. Il doit être clair, lisible et suffisamment précis pour éviter les malentendus.
           Un bon devis protège les deux parties : il fixe le périmètre, le prix, la TVA, les délais et la durée de validité.
-          Sur cette page, vous pouvez générer un devis en PDF en quelques minutes (HT/TVA/TTC), puis décider ensuite si vous voulez créer un compte pour retrouver vos documents.
+          Sur cette page, vous pouvez générer un devis en PDF en quelques minutes (HT/TVA/TTC), puis décider ensuite si vous voulez créer un compte Spyke pour tout centraliser (clients, devis, factures et contrats).
         </p>
 
         <h3 style={{ fontSize: 18, fontWeight: 800, marginTop: 26 }}>1) Les informations indispensables sur un devis</h3>
@@ -115,7 +115,7 @@ export default function Page() {
         <h3 style={{ fontSize: 18, fontWeight: 800, marginTop: 26 }}>4) Devis signé : quelles conséquences ?</h3>
         <p style={{ color: '#52525b', lineHeight: 1.9, marginTop: 10 }}>
           Un devis signé vaut accord sur les éléments indiqués. Il peut servir de preuve en cas de litige.
-          Pour aller plus loin, il est conseillé de formaliser la relation via un contrat, surtout si la mission est longue ou complexe.
+          Pour aller plus loin, il est conseillé de formaliser la relation via un contrat, surtout si la mission est longue ou complexe. Spyke permet d’enchaîner simplement : devis → contrat → facture.
         </p>
 
         <p style={{ color: '#52525b', lineHeight: 1.9, marginTop: 14 }}>
