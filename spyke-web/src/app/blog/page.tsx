@@ -62,17 +62,6 @@ const posts: BlogPost[] = [
     icon: '📋',
     thumbClass: 'contrat',
   },
-  {
-    href: '/blog/calculer-tjm-freelance',
-    category: 'Gestion',
-    title: 'Calculer son TJM freelance : la méthode pas à pas (avec simulateur)',
-    excerpt:
-      "Trop de freelances sous-estiment leur tarif. Voici la méthode de calcul complète pour fixer un TJM rentable selon votre situation et vos charges.",
-    dateLabel: 'Février 2026',
-    readTime: '5 min',
-    icon: '💰',
-    thumbClass: 'gestion',
-  },
 ]
 
 export default function BlogPage() {

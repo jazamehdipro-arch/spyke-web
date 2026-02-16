@@ -2122,11 +2122,13 @@ function ContratsV1({
   userId,
   userFullName,
   userJob,
+  planCode,
 }: {
   clients: Array<{ id: string; name: string; email: string | null }>
   userId: string | null
   userFullName: string
   userJob: string
+  planCode: 'free' | 'pro'
 }) {
   const supabase = useMemo(() => {
     try {
@@ -3255,10 +3257,12 @@ function FacturesV1({
   clients,
   userId,
   userFullName,
+  planCode,
 }: {
   clients: Array<{ id: string; name: string; email: string | null }>
   userId: string | null
   userFullName: string
+  planCode: 'free' | 'pro'
 }) {
   const supabase = useMemo(() => {
     try {
@@ -7177,12 +7181,12 @@ CONTEXTE UTILISATEUR :
 
         {/* Factures */}
         <div id="tab-factures" className={`tab-content ${tab === 'factures' ? 'active' : ''}`}>
-          <FacturesV1 clients={clients} userId={userId} userFullName={userFullName} />
+          <FacturesV1 clients={clients} userId={userId} userFullName={userFullName} planCode={planCode} />
         </div>
 
         {/* Contrats */}
         <div id="tab-contrats" className={`tab-content ${tab === 'contrats' ? 'active' : ''}`}>
-          <ContratsV1 clients={clients} userId={userId} userFullName={userFullName} userJob={userJob} />
+          <ContratsV1 clients={clients} userId={userId} userFullName={userFullName} userJob={userJob} planCode={planCode} />
         </div>
 
 {/* Analyseur */}
