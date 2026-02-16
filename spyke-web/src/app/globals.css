@@ -24,3 +24,12 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Responsive helpers used across the app */
+.only-mobile { display: none; }
+.only-desktop { display: block; }
+
+@media (max-width: 768px) {
+  .only-mobile { display: block; }
+  .only-desktop { display: none; }
+}
