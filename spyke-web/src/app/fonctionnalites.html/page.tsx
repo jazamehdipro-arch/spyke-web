@@ -608,7 +608,7 @@ export default function FonctionnalitesPage() {
             </a>
           </li>
           <li>
-            <a href="index.html#how">Comment ça marche</a>
+            <a href="/comment-ca-marche.html">Comment ça marche</a>
           </li>
           <li>
             <a href="/#pricing">Tarifs</a>
