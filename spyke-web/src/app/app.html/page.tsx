@@ -6777,28 +6777,7 @@ CONTEXTE UTILISATEUR :
                                     >
                                       ✏️
                                     </button>
-                                    <button
-                                      type="button"
-                                      className="btn btn-secondary"
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        try { localStorage.setItem('spyke_devis_client_id', c.id) } catch {}
-                                        ;(window as any).__spyke_setTab?.('devis')
-                                      }}
-                                    >
-                                      📄
-                                    </button>
-                                    <button
-                                      type="button"
-                                      className="btn btn-secondary"
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        setSelectedClientId(c.id)
-                                        setTab('assistant')
-                                      }}
-                                    >
-                                      ✉️
-                                    </button>
+                                    {/* actions reduced: edit/delete only */}
                                     <button
                                       type="button"
                                       className="btn btn-secondary"
@@ -6876,28 +6855,7 @@ CONTEXTE UTILISATEUR :
                                 >
                                   Modifier
                                 </button>
-                                <button
-                                  type="button"
-                                  className="btn btn-secondary"
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    try { localStorage.setItem('spyke_devis_client_id', c.id) } catch {}
-                                    ;(window as any).__spyke_setTab?.('devis')
-                                  }}
-                                >
-                                  Nouveau devis
-                                </button>
-                                <button
-                                  type="button"
-                                  className="btn btn-secondary"
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    setSelectedClientId(c.id)
-                                    setTab('assistant')
-                                  }}
-                                >
-                                  Email
-                                </button>
+                                {/* actions reduced: edit/delete only */}
                                 <button
                                   type="button"
                                   className="btn btn-secondary"

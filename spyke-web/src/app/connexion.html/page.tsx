@@ -442,7 +442,7 @@ export default function ConnexionPage() {
 
                 // If profile doesn't exist yet, treat as first login
                 const done = Boolean(profile?.onboarding_completed)
-                window.location.href = done ? 'app.html' : 'onboarding.html'
+                window.location.href = done ? '/app.html' : '/onboarding.html'
               } catch (err: any) {
                 alert(err?.message || 'Erreur de connexion')
               } finally {
@@ -487,7 +487,27 @@ export default function ConnexionPage() {
               <span>ou</span>
             </div>
 
-            <button type="button" className="btn btn-google">
+            <button type="button" className="btn btn-google"
+              onClick={async () => {
+                if (!supabase) {
+                  alert('Supabase non configuré (env manquantes)')
+                  return
+                }
+                try {
+                  setLoading(true)
+                  const origin = window.location.origin
+                  const { data, error } = await supabase.auth.signInWithOAuth({
+                    provider: 'google',
+                    options: { redirectTo: `${origin}/app.html` },
+                  })
+                  if (error) throw error
+                  if (data?.url) window.location.href = data.url
+                } catch (err: any) {
+                  alert(err?.message || 'Erreur Google')
+                } finally {
+                  setLoading(false)
+                }
+              }}> 
               <svg viewBox="0 0 24 24">
                 <path
                   fill="#4285F4"
@@ -542,7 +562,7 @@ export default function ConnexionPage() {
                   await supabase.from('profiles').upsert({ id: signUpData.user.id }, { onConflict: 'id' })
                 }
 
-                window.location.href = 'onboarding.html'
+                window.location.href = '/onboarding.html'
               } catch (err: any) {
                 alert(err?.message || 'Erreur inscription')
               } finally {
@@ -587,7 +607,27 @@ export default function ConnexionPage() {
               <span>ou</span>
             </div>
 
-            <button type="button" className="btn btn-google">
+            <button type="button" className="btn btn-google"
+              onClick={async () => {
+                if (!supabase) {
+                  alert('Supabase non configuré (env manquantes)')
+                  return
+                }
+                try {
+                  setLoading(true)
+                  const origin = window.location.origin
+                  const { data, error } = await supabase.auth.signInWithOAuth({
+                    provider: 'google',
+                    options: { redirectTo: `${origin}/app.html` },
+                  })
+                  if (error) throw error
+                  if (data?.url) window.location.href = data.url
+                } catch (err: any) {
+                  alert(err?.message || 'Erreur Google')
+                } finally {
+                  setLoading(false)
+                }
+              }}> 
               <svg viewBox="0 0 24 24">
                 <path
                   fill="#4285F4"
