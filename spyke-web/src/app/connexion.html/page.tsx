@@ -335,7 +335,7 @@ export default function ConnexionPage() {
 
       <header>
         <div className="header-content">
-          <a href="index.html" className="logo">
+          <a href="/" className="logo">
             <div className="logo-icon">
               <svg viewBox="0 0 24 24">
                 <path d="M13 3L4 14h7l-2 7 9-11h-7l2-7z" />
@@ -573,8 +573,8 @@ export default function ConnexionPage() {
             <div className="form-group">
               <label className="form-checkbox">
                 <input type="checkbox" required />
-                J&apos;accepte les <a href="mentions-legales.html" target="_blank">CGU</a> et la{' '}
-                <a href="confidentialite.html" target="_blank">
+                J&apos;accepte les <a href="/mentions-legales.html" target="_blank">CGU</a> et la{' '}
+                <a href="/confidentialite.html" target="_blank">
                   politique de confidentialité
                 </a>
               </label>
@@ -610,8 +610,8 @@ export default function ConnexionPage() {
             </button>
 
             <p className="terms">
-              En créant un compte, vous acceptez nos <a href="mentions-legales.html">CGU</a> et notre{' '}
-              <a href="confidentialite.html">politique de confidentialité</a>.
+              En créant un compte, vous acceptez nos <a href="/mentions-legales.html">CGU</a> et notre{' '}
+              <a href="/confidentialite.html">politique de confidentialité</a>.
             </p>
           </form>
         </div>
@@ -619,10 +619,10 @@ export default function ConnexionPage() {
 
       <footer>
         <div className="footer-content">
-          <a href="index.html">Accueil</a>
-          <a href="fonctionnalites.html">Fonctionnalités</a>
-          <a href="mentions-legales.html">Mentions légales</a>
-          <a href="confidentialite.html">Confidentialité</a>
+          <a href="/">Accueil</a>
+          <a href="/fonctionnalites.html">Fonctionnalités</a>
+          <a href="/mentions-legales.html">Mentions légales</a>
+          <a href="/confidentialite.html">Confidentialité</a>
         </div>
       </footer>
     </>

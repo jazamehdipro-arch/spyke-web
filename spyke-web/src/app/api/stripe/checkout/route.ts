@@ -62,6 +62,7 @@ export async function POST(req: Request) {
       success_url: `${origin}/app.html?stripe=success`,
       cancel_url: `${origin}/app.html?stripe=cancel`,
       subscription_data: {
+        trial_period_days: 14,
         metadata: {
           supabase_user_id: user.id,
         },

@@ -4968,6 +4968,16 @@ CONTEXTE UTILISATEUR :
           background: var(--yellow-dark);
         }
 
+        .btn-danger {
+          background: #ef4444;
+          color: white;
+        }
+
+        .btn-danger:hover {
+          background: #dc2626;
+          transform: translateY(-2px);
+        }
+
         .btn svg {
           width: 18px;
           height: 18px;
@@ -5157,6 +5167,11 @@ CONTEXTE UTILISATEUR :
           grid-template-columns: repeat(2, 1fr);
           gap: 20px;
           margin-bottom: 32px;
+        }
+
+        /* Avoid empty space when the grid has an odd number of cards */
+        .cards-grid > .card:last-child:nth-child(odd) {
+          grid-column: 1 / -1;
         }
 
         .card {
@@ -7141,7 +7156,7 @@ CONTEXTE UTILISATEUR :
                     }
                   }}
                 >
-                  Passer Pro (19,90€/mois)
+                  Passer Pro (14 jours offerts puis 19,90€/mois)
                 </button>
               ) : (
                 <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -7180,6 +7195,63 @@ CONTEXTE UTILISATEUR :
                 <br />
                 Pro : illimité.
               </div>
+            </div>
+
+            <div className="form-section" style={{ marginTop: 24 }}>
+              <div className="form-section-title">Compte</div>
+
+              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                <button
+                  className="btn btn-secondary"
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      if (!supabase) throw new Error('Supabase non initialisé')
+                      await supabase.auth.signOut()
+                      window.location.href = '/connexion.html'
+                    } catch (e: any) {
+                      alert(e?.message || 'Erreur déconnexion')
+                    }
+                  }}
+                >
+                  Se déconnecter
+                </button>
+
+                {planCode === 'pro' ? (
+                  <button
+                    className="btn btn-danger"
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        if (!supabase) throw new Error('Supabase non initialisé')
+                        const { data: sessionData } = await supabase.auth.getSession()
+                        const token = sessionData?.session?.access_token
+                        if (!token) throw new Error('Non connecté')
+
+                        const res = await fetch('/api/stripe/portal', {
+                          method: 'POST',
+                          headers: { authorization: `Bearer ${token}` },
+                        })
+                        const json = await res.json().catch(() => null)
+                        if (!res.ok) throw new Error(json?.error || 'Erreur portail Stripe')
+                        const url = String(json?.url || '')
+                        if (!url) throw new Error('URL portail Stripe manquante')
+                        window.location.href = url
+                      } catch (e: any) {
+                        alert(e?.message || 'Erreur désabonnement')
+                      }
+                    }}
+                  >
+                    Se désabonner
+                  </button>
+                ) : null}
+              </div>
+
+              {planCode === 'pro' ? (
+                <div style={{ marginTop: 10, fontSize: 13, color: 'var(--gray-500)' }}>
+                  L’abonnement est annulable à tout moment depuis le portail Stripe.
+                </div>
+              ) : null}
             </div>
 
             <div className="form-section" style={{ marginTop: 24 }}>

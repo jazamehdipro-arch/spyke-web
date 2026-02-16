@@ -845,7 +845,7 @@ export default function CommentCaMarchePage() {
 
       {/* Navigation */}
       <nav>
-        <a href="index.html" className="logo">
+        <a href="/" className="logo">
           <div className="logo-icon">
             <svg viewBox="0 0 24 24">
               <path d="M13 3L4 14h7l-2 7 9-11h-7l2-7z" />
@@ -855,10 +855,10 @@ export default function CommentCaMarchePage() {
         </a>
         <ul className="nav-links">
           <li>
-            <a href="fonctionnalites.html">Fonctionnalités</a>
+            <a href="/fonctionnalites.html">Fonctionnalités</a>
           </li>
           <li>
-            <a href="comment-ca-marche.html" className="active">
+            <a href="/comment-ca-marche.html" className="active">
               Comment ça marche
             </a>
           </li>
@@ -866,7 +866,7 @@ export default function CommentCaMarchePage() {
             <a href="index.html#pricing">Tarifs</a>
           </li>
           <li>
-            <a href="connexion.html" className="nav-cta">
+            <a href="/connexion.html" className="nav-cta">
               Commencer
             </a>
           </li>
@@ -1261,11 +1261,11 @@ export default function CommentCaMarchePage() {
             Spyke
           </div>
           <div className="footer-links">
-            <a href="fonctionnalites.html">Fonctionnalités</a>
-            <a href="comment-ca-marche.html">Comment ça marche</a>
+            <a href="/fonctionnalites.html">Fonctionnalités</a>
+            <a href="/comment-ca-marche.html">Comment ça marche</a>
             <a href="index.html#pricing">Tarifs</a>
-            <a href="mentions-legales.html">Mentions légales</a>
-            <a href="confidentialite.html">Confidentialité</a>
+            <a href="/mentions-legales.html">Mentions légales</a>
+            <a href="/confidentialite.html">Confidentialité</a>
           </div>
           <p className="footer-copy">Spyke © 2025 – Votre assistant freelance intelligent</p>
         </div>
