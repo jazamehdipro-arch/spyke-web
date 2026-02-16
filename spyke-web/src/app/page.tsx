@@ -1050,6 +1050,9 @@ export default function Home() {
             <a href="/comment-ca-marche.html" onClick={() => setMobileMenuOpen(false)}>Comment ça marche</a>
           </li>
           <li>
+            <a href="/blog" onClick={() => setMobileMenuOpen(false)}>Blog</a>
+          </li>
+          <li>
             <a
               href="#pricing"
               onClick={() => {
