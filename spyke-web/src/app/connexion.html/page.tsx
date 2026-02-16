@@ -498,7 +498,7 @@ export default function ConnexionPage() {
                   const origin = window.location.origin
                   const { data, error } = await supabase.auth.signInWithOAuth({
                     provider: 'google',
-                    options: { redirectTo: `${origin}/app.html` },
+                    options: { redirectTo: `${origin}/auth/callback.html` },
                   })
                   if (error) throw error
                   if (data?.url) window.location.href = data.url
@@ -632,7 +632,7 @@ export default function ConnexionPage() {
                   const origin = window.location.origin
                   const { data, error } = await supabase.auth.signInWithOAuth({
                     provider: 'google',
-                    options: { redirectTo: `${origin}/app.html` },
+                    options: { redirectTo: `${origin}/auth/callback.html` },
                   })
                   if (error) throw error
                   if (data?.url) window.location.href = data.url
