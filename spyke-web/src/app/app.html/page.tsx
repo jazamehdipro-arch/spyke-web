@@ -5119,6 +5119,8 @@ CONTEXTE UTILISATEUR :
           align-items: center;
           justify-content: center;
           font-weight: 900;
+          font-size: 14px;
+          line-height: 1;
           color: var(--gray-600);
           background: var(--white);
           cursor: help;
@@ -6872,9 +6874,8 @@ CONTEXTE UTILISATEUR :
                                         setModal('editClient')
                                       }}
                                     >
-                                      ✏️
+                                      Modifier
                                     </button>
-                                    {/* actions reduced: edit/delete only */}
                                     <button
                                       type="button"
                                       className="btn btn-secondary"
@@ -6883,7 +6884,7 @@ CONTEXTE UTILISATEUR :
                                         deleteClient(c.id)
                                       }}
                                     >
-                                      🗑️
+                                      Supprimer
                                     </button>
                                   </div>
                                 </td>
