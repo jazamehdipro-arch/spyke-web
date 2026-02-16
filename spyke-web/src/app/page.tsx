@@ -1,6 +1,9 @@
 "use client"
 
+import { useState } from 'react'
+
 export default function Home() {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   return (
     <>
       <style jsx global>{`
@@ -85,6 +88,26 @@ export default function Home() {
           width: 20px;
           height: 20px;
           fill: var(--yellow);
+        }
+
+        .mobile-nav-toggle {
+          display: none;
+          width: 44px;
+          height: 44px;
+          border-radius: 12px;
+          border: 1px solid var(--gray-200);
+          background: var(--white);
+          color: var(--gray-700);
+          align-items: center;
+          justify-content: center;
+        }
+
+        .mobile-nav-toggle svg {
+          width: 22px;
+          height: 22px;
+          stroke: currentColor;
+          fill: none;
+          stroke-width: 2;
         }
 
         .nav-links {
@@ -804,7 +827,10 @@ export default function Home() {
 
         .footer-links {
           display: flex;
-          gap: 32px;
+          gap: 20px;
+          flex-wrap: wrap;
+          justify-content: center;
+          row-gap: 10px;
         }
 
         .footer-links a {
@@ -812,6 +838,13 @@ export default function Home() {
           text-decoration: none;
           font-size: 14px;
           transition: color 0.2s ease;
+          padding: 6px 10px;
+          border-radius: 10px;
+          border: 1px solid transparent;
+        }
+
+        .footer-links a:active {
+          border-color: rgba(255, 255, 255, 0.10);
         }
 
         .footer-links a:hover {
@@ -893,11 +926,50 @@ export default function Home() {
 
         @media (max-width: 768px) {
           nav {
-            padding: 16px 24px;
+            padding: 16px 18px;
+          }
+
+          .mobile-nav-toggle {
+            display: inline-flex;
           }
 
           .nav-links {
+            position: fixed;
+            top: 72px;
+            left: 12px;
+            right: 12px;
+            background: rgba(255, 255, 255, 0.98);
+            border: 1px solid var(--gray-200);
+            border-radius: 16px;
+            padding: 12px;
             display: none;
+            flex-direction: column;
+            gap: 8px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
+          }
+
+          .nav-links.open {
+            display: flex;
+          }
+
+          .nav-links li {
+            width: 100%;
+          }
+
+          .nav-links a {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 14px;
+            border-radius: 12px;
+            background: var(--white);
+            border: 1px solid var(--gray-200);
+          }
+
+          .nav-cta {
+            justify-content: center !important;
+            border: none !important;
           }
 
           .hero {
@@ -947,7 +1019,7 @@ export default function Home() {
 
       {/* Navigation */}
       <nav>
-        <a href="/" className="logo">
+        <a href="/" className="logo" onClick={() => setMobileMenuOpen(false)}>
           <div className="logo-icon">
             <svg viewBox="0 0 24 24">
               <path d="M13 3L4 14h7l-2 7 9-11h-7l2-7z" />
@@ -955,18 +1027,40 @@ export default function Home() {
           </div>
           Spyke
         </a>
-        <ul className="nav-links">
+
+        <button
+          type="button"
+          className="mobile-nav-toggle"
+          aria-label="Ouvrir le menu"
+          aria-expanded={mobileMenuOpen}
+          onClick={() => setMobileMenuOpen((v) => !v)}
+        >
+          <svg viewBox="0 0 24 24">
+            <path d="M4 6h16" />
+            <path d="M4 12h16" />
+            <path d="M4 18h16" />
+          </svg>
+        </button>
+
+        <ul className={`nav-links ${mobileMenuOpen ? 'open' : ''}`}>
           <li>
-            <a href="/fonctionnalites.html">Fonctionnalités</a>
+            <a href="/fonctionnalites.html" onClick={() => setMobileMenuOpen(false)}>Fonctionnalités</a>
           </li>
           <li>
-            <a href="/comment-ca-marche.html">Comment ça marche</a>
+            <a href="/comment-ca-marche.html" onClick={() => setMobileMenuOpen(false)}>Comment ça marche</a>
           </li>
           <li>
-            <a href="#pricing">Tarifs</a>
+            <a
+              href="#pricing"
+              onClick={() => {
+                setMobileMenuOpen(false)
+              }}
+            >
+              Tarifs
+            </a>
           </li>
           <li>
-            <a href="/connexion.html" className="nav-cta">
+            <a href="/connexion.html" className="nav-cta" onClick={() => setMobileMenuOpen(false)}>
               Commencer
             </a>
           </li>
