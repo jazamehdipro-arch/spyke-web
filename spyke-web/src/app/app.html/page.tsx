@@ -615,7 +615,7 @@ Réponds uniquement par le texte de la description.`
     try {
       if (!supabase) throw new Error('Supabase non initialisé')
 
-      // Free quota: 3 documents / month (Devis)
+      // Free quota (per month): 3 devis
       if (planCode !== 'pro' && userId) {
         const now = new Date()
         const start = new Date(now.getFullYear(), now.getMonth(), 1)
@@ -2568,6 +2568,28 @@ function ContratsV1({
   async function generateContractPdf() {
     try {
       if (!supabase) throw new Error('Supabase non initialisé')
+
+      // Free quota (per month): 3 contrats
+      if (planCode !== 'pro' && userId) {
+        const now = new Date()
+        const start = new Date(now.getFullYear(), now.getMonth(), 1)
+        const end = new Date(now.getFullYear(), now.getMonth() + 1, 1)
+        const startStr = start.toISOString()
+        const endStr = end.toISOString()
+
+        const { count, error } = await supabase
+          .from('contracts')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', userId)
+          .gte('created_at', startStr)
+          .lt('created_at', endStr)
+        if (error) throw error
+        if (Number(count || 0) >= 3) {
+          alert('Limite du plan Free atteinte : 3 contrats / mois. Passe Pro pour illimité.')
+          return
+        }
+      }
+
       const { data: sessionData } = await supabase.auth.getSession()
       const token = sessionData?.session?.access_token
       if (!token) throw new Error('Non connecté')
@@ -3519,6 +3541,28 @@ function FacturesV1({
   async function generateInvoicePdf() {
     try {
       if (!supabase) throw new Error('Supabase non initialisé')
+
+      // Free quota (per month): 3 factures
+      if (planCode !== 'pro' && userId) {
+        const now = new Date()
+        const start = new Date(now.getFullYear(), now.getMonth(), 1)
+        const end = new Date(now.getFullYear(), now.getMonth() + 1, 1)
+        const startStr = start.toISOString()
+        const endStr = end.toISOString()
+
+        const { count, error } = await supabase
+          .from('invoices')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', userId)
+          .gte('created_at', startStr)
+          .lt('created_at', endStr)
+        if (error) throw error
+        if (Number(count || 0) >= 3) {
+          alert('Limite du plan Free atteinte : 3 factures / mois. Passe Pro pour illimité.')
+          return
+        }
+      }
+
       const { data: sessionData } = await supabase.auth.getSession()
       const token = sessionData?.session?.access_token
       if (!token) throw new Error('Non connecté')
@@ -7265,7 +7309,7 @@ CONTEXTE UTILISATEUR :
               )}
 
               <div style={{ marginTop: 14, fontSize: 13, color: 'var(--gray-500)' }}>
-                Free : 10 emails IA / mois, 3 devis / mois, 3 clients max.
+                Free : 10 emails IA / mois, 3 devis / mois, 3 factures / mois, 3 contrats / mois, 3 clients max.
                 <br />
                 Pro : illimité.
               </div>
