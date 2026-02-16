@@ -5150,16 +5150,17 @@ CONTEXTE UTILISATEUR :
         .import-btn {
           padding: 10px 16px;
           border-radius: 12px;
-          border: 2px solid var(--gray-200);
-          background: var(--white);
-          color: var(--gray-700);
-          box-shadow: 0 1px 0 rgba(0, 0, 0, 0.02);
+          border: 2px solid rgba(0, 0, 0, 0.12);
+          background: var(--yellow);
+          color: var(--black);
+          font-weight: 700;
+          box-shadow: 0 2px 0 rgba(0, 0, 0, 0.06);
         }
 
         .import-btn:hover {
-          border-color: var(--gray-300);
-          background: var(--gray-50);
+          background: var(--yellow-dark);
           transform: translateY(-1px);
+          border-color: rgba(0, 0, 0, 0.18);
         }
 
         .import-btn-disabled {
