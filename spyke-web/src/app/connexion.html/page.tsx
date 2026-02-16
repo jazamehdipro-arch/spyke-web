@@ -548,6 +548,10 @@ export default function ConnexionPage() {
                 const fd = new FormData(form)
                 const email = String(fd.get('email') || '')
                 const password = String(fd.get('password') || '')
+                const passwordConfirm = String(fd.get('passwordConfirm') || '')
+
+                if (!password || password.length < 8) throw new Error('Mot de passe trop court (8 caractères minimum)')
+                if (password !== passwordConfirm) throw new Error('Les mots de passe ne correspondent pas')
 
                 const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
                   email,
@@ -587,6 +591,16 @@ export default function ConnexionPage() {
                 type="password"
                 className="form-input"
                 placeholder="8 caractères minimum"
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Confirmer le mot de passe</label>
+              <input
+                name="passwordConfirm"
+                type="password"
+                className="form-input"
+                placeholder="Répétez le mot de passe"
                 required
               />
             </div>

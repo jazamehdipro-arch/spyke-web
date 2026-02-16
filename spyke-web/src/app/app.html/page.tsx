@@ -2386,6 +2386,40 @@ function ContratsV1({
     setShowContracts(false)
   }
 
+  async function duplicateContract(id: string) {
+    try {
+      if (!supabase || !id) return
+      await openContract(id)
+      // Reset identity for a new contract
+      setSelectedContractId('')
+      setContractNumberDirty(false)
+      setContractNumber(genContractNumber(today, 1))
+      setMode('create')
+    } catch {
+      // ignore
+    }
+  }
+
+  async function deleteContract(id: string) {
+    try {
+      if (!supabase || !id) return
+      const ok = confirm('Supprimer ce contrat ?')
+      if (!ok) return
+      const { error } = await supabase.from('contracts').delete().eq('id', id)
+      if (error) throw error
+
+      const { data: cData } = await supabase
+        .from('contracts')
+        .select('id,number,title,status,amount_ht,created_at,client_id,quote_id')
+        .order('created_at', { ascending: false })
+        .limit(50)
+      setContracts((cData || []) as any[])
+    } catch (e: any) {
+      alert(e?.message || 'Erreur suppression contrat')
+    }
+  }
+
+
   async function selectClient(id: string) {
     setClientId(id)
     if (!supabase || !id) return
@@ -2721,7 +2755,12 @@ function ContratsV1({
                             >
                               Ouvrir
                             </button>
-                            {/* facture shortcut removed */}
+                            <button className="btn btn-secondary" type="button" onClick={() => duplicateContract(String(c.id))}>
+                              Dupliquer
+                            </button>
+                            <button className="btn btn-secondary" type="button" onClick={() => deleteContract(String(c.id))}>
+                              Supprimer
+                            </button>
                           </div>
                         </td>
                       </tr>
@@ -2757,7 +2796,12 @@ function ContratsV1({
                       >
                         Ouvrir
                       </button>
-                      {/* facture shortcut removed */}
+                      <button className="btn btn-secondary" type="button" onClick={() => duplicateContract(String(c.id))}>
+                        Dupliquer
+                      </button>
+                      <button className="btn btn-secondary" type="button" onClick={() => deleteContract(String(c.id))}>
+                        Supprimer
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -3207,6 +3251,7 @@ function FacturesV1({
   const [paymentDelayDays, setPaymentDelayDays] = useState(30)
   const [dueDate, setDueDate] = useState(() => addDays(today, 30))
   const [invoiceNumber, setInvoiceNumber] = useState(() => genInvoiceNumber(today, 1))
+  const [invoiceNumberDirty, setInvoiceNumberDirty] = useState(false)
 
   const [buyer, setBuyer] = useState<any>({ name: '', email: '', addressLines: [] })
   const [clientId, setClientId] = useState('')
@@ -3248,8 +3293,41 @@ function FacturesV1({
 
   useEffect(() => {
     setDueDate(addDays(invoiceDate, paymentDelayDays || 0))
-    setInvoiceNumber(genInvoiceNumber(invoiceDate, 1))
-  }, [invoiceDate, paymentDelayDays])
+
+    ;(async () => {
+      try {
+        if (!supabase) return
+        if (invoiceNumberDirty) return
+        // Auto-number: YYYY-001 (per user, per year)
+        const d = new Date(String(invoiceDate || '').slice(0, 10) + 'T00:00:00')
+        const year = !Number.isNaN(d.getTime()) ? d.getFullYear() : new Date().getFullYear()
+        const prefix = `${year}-`
+
+        const { data } = await supabase
+          .from('invoices')
+          .select('number')
+          .like('number', `${prefix}%`)
+          .order('created_at', { ascending: false })
+          .limit(200)
+
+        let max = 0
+        for (const r of (data || []) as any[]) {
+          const n = String((r as any).number || '')
+          if (!n.startsWith(prefix)) continue
+          const tail = n.slice(prefix.length)
+          const seq = Number(tail)
+          if (!Number.isNaN(seq)) max = Math.max(max, seq)
+        }
+
+        setInvoiceNumber(genInvoiceNumber(String(invoiceDate || ''), max + 1))
+      } catch {
+        // fallback
+        try {
+          if (!invoiceNumberDirty) setInvoiceNumber(genInvoiceNumber(invoiceDate, 1))
+        } catch {}
+      }
+    })()
+  }, [invoiceDate, paymentDelayDays, supabase, invoiceNumberDirty])
 
   useEffect(() => {
     ;(async () => {
@@ -3363,6 +3441,7 @@ function FacturesV1({
     if (!inv) return
 
     setInvoiceNumber(String((inv as any).number || ''))
+    setInvoiceNumberDirty(true)
     if ((inv as any).date_issue) setInvoiceDate(String((inv as any).date_issue))
     if ((inv as any).due_date) setDueDate(String((inv as any).due_date))
     if ((inv as any).payment_terms_days != null) setPaymentDelayDays(Number((inv as any).payment_terms_days) || 0)
@@ -3394,6 +3473,20 @@ function FacturesV1({
 
     setMode('create')
   }
+
+  async function duplicateInvoice(id: string) {
+    try {
+      if (!supabase || !id) return
+      await openInvoice(id)
+      setSelectedInvoiceId('')
+      setInvoiceNumberDirty(false)
+      setInvoiceDate(today)
+      setMode('create')
+    } catch {
+      // ignore
+    }
+  }
+
 
   function updateLine(id: string, patch: Partial<InvoiceLine>) {
     setLines((prev) => prev.map((l) => (l.id === id ? { ...l, ...patch } : l)))
@@ -3728,6 +3821,9 @@ function FacturesV1({
                               <button className="btn btn-secondary" type="button" onClick={() => openInvoice(String(inv.id))}>
                                 Ouvrir
                               </button>
+                              <button className="btn btn-secondary" type="button" onClick={() => duplicateInvoice(String(inv.id))}>
+                                Dupliquer
+                              </button>
                               {!(inv as any)?.paid_at ? (
                                 <button
                                   className="btn btn-secondary"
@@ -3848,6 +3944,7 @@ function FacturesV1({
                         </div>
                         <div className="mobile-card-actions">
                           <button className="btn btn-secondary" type="button" onClick={() => openInvoice(String(inv.id))}>Ouvrir</button>
+                          <button className="btn btn-secondary" type="button" onClick={() => duplicateInvoice(String(inv.id))}>Dupliquer</button>
                           {!paidAt ? (
                             <button
                               className="btn btn-secondary"
@@ -4071,7 +4168,7 @@ function FacturesV1({
               </div>
               <div className="form-group">
                 <label className="form-label">N° de facture</label>
-                <input className="form-input" value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} />
+                <input className="form-input" value={invoiceNumber} onChange={(e) => { setInvoiceNumber(e.target.value); setInvoiceNumberDirty(true) }} />
               </div>
             </div>
 
