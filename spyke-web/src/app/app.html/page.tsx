@@ -5847,6 +5847,10 @@ CONTEXTE UTILISATEUR :
           border-color: var(--gray-200);
         }
 
+        /* Default (desktop): hide mobile-only blocks */
+        .only-mobile { display: none; }
+        .only-desktop { display: block; }
+
         .mobile-card-actions {
           display: grid;
           grid-template-columns: 1fr 1fr;
