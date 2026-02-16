@@ -1397,6 +1397,13 @@ Réponds uniquement par le texte de la description.`
             ← Retour aux devis
           </button>
 
+          <div className="page-header">
+            <div>
+              <h1 className="page-title">Nouveau devis</h1>
+              <p className="page-subtitle">Créez un devis — la sauvegarde viendra ensuite</p>
+            </div>
+          </div>
+
           <div className="devis-container">
         <div className="form-wrapper">
           <div className="card">
@@ -2814,6 +2821,13 @@ function ContratsV1({
           <button className="btn btn-secondary" type="button" onClick={() => setMode('list')} style={{ marginBottom: 16 }}>
             ← Retour aux contrats
           </button>
+
+          <div className="page-header">
+            <div>
+              <h1 className="page-title">Nouveau contrat</h1>
+              <p className="page-subtitle">Créez un contrat (UI) — la sauvegarde viendra ensuite</p>
+            </div>
+          </div>
 
           <div className="import-toolbar">
             <button
@@ -5111,18 +5125,18 @@ CONTEXTE UTILISATEUR :
 
         .tooltip {
           position: relative;
-          width: 22px;
-          height: 22px;
+          width: 24px;
+          height: 24px;
           border-radius: 999px;
-          border: 1px solid var(--gray-300);
+          border: 2px solid var(--gray-300);
           display: inline-flex;
           align-items: center;
           justify-content: center;
           font-weight: 900;
           font-size: 14px;
           line-height: 1;
-          color: var(--gray-600);
-          background: var(--white);
+          color: var(--gray-800);
+          background: var(--gray-100);
           cursor: help;
           user-select: none;
         }
