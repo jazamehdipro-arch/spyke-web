@@ -4265,7 +4265,7 @@ export default function AppHtmlPage() {
 
   const [userFullName, setUserFullName] = useState<string>('')
   const [planCode, setPlanCode] = useState<'free' | 'pro'>('free')
-  const [userPlan, setUserPlan] = useState<string>('Plan Free')
+  const [userPlan, setUserPlan] = useState<string>('Compte gratuit')
   const [userJob, setUserJob] = useState<string>('')
   const [userDefaultTone, setUserDefaultTone] = useState<string>('')
 
@@ -4369,7 +4369,7 @@ export default function AppHtmlPage() {
 
         const plan = String((profile as any)?.plan || 'free') === 'pro' ? 'pro' : 'free'
         setPlanCode(plan)
-        setUserPlan(plan === 'pro' ? 'Plan Pro' : 'Plan Free')
+        setUserPlan(plan === 'pro' ? 'Compte Pro' : 'Compte gratuit')
 
         const { data: clientsData, error: clientsError } = await supabase
           .from('clients')
