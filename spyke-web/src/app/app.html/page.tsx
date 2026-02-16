@@ -1413,29 +1413,20 @@ Réponds uniquement par le texte de la description.`
               >
                 Importer PDF
               </button>
+
+              {/* Desktop tooltip */}
               <span
-                className="tooltip"
-                data-tip="Analyse un PDF (avec du texte) pour pré-remplir le devis. Si le PDF est scanné, l'import photo/OCR arrive bientôt."
+                className="tooltip only-desktop"
+                data-tip="Analyse un PDF (avec du texte) pour pré-remplir le devis. Si le PDF est scanné, l'import OCR arrive bientôt."
               >
                 ?
               </span>
 
-              <button
-                className="btn btn-secondary import-btn import-btn-disabled"
-                type="button"
-                disabled
-                onClick={() => {
-                  alert("Importer depuis une photo : bientôt disponible (OCR en cours d'activation).")
-                }}
-              >
-                Importer photo (bientôt)
-              </button>
-              <span
-                className="tooltip"
-                data-tip="Import depuis une photo (ou un PDF scanné). Nécessite un OCR : bientôt disponible."
-              >
-                ?
+              {/* Mobile help text */}
+              <span className="import-help-text only-mobile">
+                Analyse un PDF pour pré-remplir le devis
               </span>
+
               <input
                 id="import-devis-pdf"
                 type="file"
@@ -1499,69 +1490,7 @@ Réponds uniquement par le texte de la description.`
                   }
                 }}
               />
-              <input
-                id="import-devis-photo"
-                type="file"
-                accept="image/*"
-                style={{ display: 'none' }}
-                onChange={async (e) => {
-                  const f = e.target.files?.[0]
-                  e.target.value = ''
-                  if (!f) return
-                  try {
-                    if (!supabase) throw new Error('Supabase non initialisé')
-                    const { data: s } = await supabase.auth.getSession()
-                    const token = s.session?.access_token
-                    if (!token) throw new Error('Non connecté')
-
-                    const fd = new FormData()
-                    fd.set('type', 'devis')
-                    fd.set('file', f)
-
-                    const res = await fetch('/api/import-document', {
-                      method: 'POST',
-                      headers: { authorization: `Bearer ${token}` },
-                      body: fd,
-                    })
-                    const json = await res.json()
-                    if (!res.ok) throw new Error(json?.error || 'Import échoué')
-                    const d = json?.data || {}
-
-                    if (d.title) setTitle(String(d.title))
-                    if (d.dateIssue) setDateIssue(String(d.dateIssue))
-                    if (typeof d.validityDays === 'number') setValidityDays(Number(d.validityDays))
-                    if (d.client?.name) {
-                      setClientChoice({
-                        mode: 'new',
-                        name: String(d.client.name || ''),
-                        siret: String(d.client.siret || ''),
-                        address: String(d.client.address || ''),
-                        postalCode: String(d.client.postalCode || ''),
-                        city: String(d.client.city || ''),
-                      })
-                    }
-                    if (Array.isArray(d.lines) && d.lines.length) {
-                      setLines(
-                        d.lines.map((l: any, idx: number) => ({
-                          id: String(idx),
-                          label: String(l.label || ''),
-                          description: String(l.description || ''),
-                          qty: Number(l.qty ?? 1),
-                          unitPriceHt: Number(l.unitPriceHt ?? 0),
-                          vatRate: Number(l.vatRate ?? 0),
-                        }))
-                      )
-                    }
-                    if (typeof d.notes === 'string') setNotes(d.notes)
-
-                    if (Array.isArray(d.warnings) && d.warnings.length) {
-                      alert('Import terminé. Points à vérifier:\n- ' + d.warnings.join('\n- '))
-                    }
-                  } catch (err: any) {
-                    alert(err?.message || 'Import échoué')
-                  }
-                }}
-              />
+              {/* import photo removed */}
             </div>
 
             <div className="info-box">
@@ -1968,95 +1897,17 @@ Réponds uniquement par le texte de la description.`
           </div>
 
           <div className="btn-group devis-actions">
-            <button className="btn btn-secondary" type="button" onClick={() => alert('Email: à connecter')}
-            >
+            <button className="btn btn-secondary" type="button" onClick={() => alert('Email: à connecter')}>
               Envoyer par mail
-            </button>
-            <button
-              className="btn btn-secondary"
-              type="button"
-              onClick={() => {
-                try {
-                  localStorage.setItem('spyke_contract_from_quote_number', quoteNumber)
-                } catch {}
-                ;(window as any).__spyke_setTab?.('contrats')
-                try {
-                  const key = 'spyke_contract_from_quote_id'
-                  // Prefer DB id if available (saved after PDF)
-                  // Fallback: contracts page can search by number later
-                } catch {}
-              }}
-            >
-              Générer un contrat
             </button>
             <button className="btn btn-primary" type="button" onClick={generatePdf}>
               Générer PDF
             </button>
           </div>
 
-          <div style={{ marginTop: 16, fontSize: 12, color: 'var(--gray-500)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-            <span>
-              Généré pour {userFullName || 'Utilisateur'} {userJob ? `· ${userJob}` : ''}
-            </span>
-            <button className="btn btn-secondary" type="button" onClick={() => setShowQuotes((s) => !s)}>
-              {showQuotes ? 'Masquer' : 'Voir'} mes devis
-            </button>
+          <div style={{ marginTop: 16, fontSize: 12, color: 'var(--gray-500)' }}>
+            Généré pour {userFullName || 'Utilisateur'} {userJob ? `· ${userJob}` : ''}
           </div>
-
-          {showQuotes ? (
-            <div className="card" style={{ marginTop: 16 }}>
-              <div className="card-header">
-                <h3 className="card-title">📄 Mes devis récents</h3>
-              </div>
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr style={{ textAlign: 'left', fontSize: 12, color: 'var(--gray-500)' }}>
-                      <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>N°</th>
-                      <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Titre</th>
-                      <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Statut</th>
-                      <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)', textAlign: 'right' }}>Total</th>
-                      <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)', textAlign: 'right' }}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {quotes.map((q) => (
-                      <tr key={q.id}>
-                        <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{q.number}</td>
-                        <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{q.title || '—'}</td>
-                        <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{q.status || 'draft'}</td>
-                        <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)', textAlign: 'right', fontWeight: 700 }}>{formatMoney(Number(q.total_ttc || 0))}</td>
-                        <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)', textAlign: 'right' }}>
-                          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-                            <button
-                              className="btn btn-secondary"
-                              type="button"
-                              onClick={() => {
-                                try { localStorage.setItem('spyke_contract_from_quote_id', String(q.id)) } catch {}
-                                ;(window as any).__spyke_setTab?.('contrats')
-                              }}
-                            >
-                              Contrat
-                            </button>
-                            <button
-                              className="btn btn-secondary"
-                              type="button"
-                              onClick={() => {
-                                try { localStorage.setItem('spyke_invoice_from_quote_id', String(q.id)) } catch {}
-                                ;(window as any).__spyke_setTab?.('factures')
-                              }}
-                            >
-                              Facture
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          ) : null}
           </div>
         </div>
       </details>
@@ -2870,16 +2721,7 @@ function ContratsV1({
                             >
                               Ouvrir
                             </button>
-                            <button
-                              className="btn btn-secondary"
-                              type="button"
-                              onClick={() => {
-                                try { localStorage.setItem('spyke_invoice_from_contract_id', String(c.id)) } catch {}
-                                ;(window as any).__spyke_setTab?.('factures')
-                              }}
-                            >
-                              Facture
-                            </button>
+                            {/* facture shortcut removed */}
                           </div>
                         </td>
                       </tr>
@@ -2915,16 +2757,7 @@ function ContratsV1({
                       >
                         Ouvrir
                       </button>
-                      <button
-                        className="btn btn-secondary"
-                        type="button"
-                        onClick={() => {
-                          try { localStorage.setItem('spyke_invoice_from_contract_id', String(c.id)) } catch {}
-                          ;(window as any).__spyke_setTab?.('factures')
-                        }}
-                      >
-                        Facture
-                      </button>
+                      {/* facture shortcut removed */}
                     </div>
                   </div>
                 ))}
@@ -2951,29 +2784,20 @@ function ContratsV1({
             >
               Importer PDF
             </button>
+
+            {/* Desktop tooltip */}
             <span
-              className="tooltip"
+              className="tooltip only-desktop"
               data-tip="Analyse un PDF (avec du texte) pour pré-remplir le contrat (client, dates, mission, prix...)."
             >
               ?
             </span>
 
-            <button
-              className="btn btn-secondary import-btn import-btn-disabled"
-              type="button"
-              disabled
-              onClick={() => {
-                alert("Importer depuis une photo : bientôt disponible (OCR en cours d'activation).")
-              }}
-            >
-              Importer photo (bientôt)
-            </button>
-            <span
-              className="tooltip"
-              data-tip="Import depuis une photo (ou un PDF scanné). Nécessite un OCR : bientôt disponible."
-            >
-              ?
+            {/* Mobile help text */}
+            <span className="import-help-text only-mobile">
+              Analyse un PDF pour pré-remplir le contrat
             </span>
+
             <input
               id="import-contrat-pdf"
               type="file"
@@ -3038,60 +2862,7 @@ function ContratsV1({
                 }
               }}
             />
-            <input
-              id="import-contrat-photo"
-              type="file"
-              accept="image/*"
-              style={{ display: 'none' }}
-              onChange={async (e) => {
-                const f = e.target.files?.[0]
-                e.target.value = ''
-                if (!f) return
-                try {
-                  if (!supabase) throw new Error('Supabase non initialisé')
-                  const { data: s } = await supabase.auth.getSession()
-                  const token = s.session?.access_token
-                  if (!token) throw new Error('Non connecté')
-
-                  const fd = new FormData()
-                  fd.set('type', 'contrat')
-                  fd.set('file', f)
-
-                  const res = await fetch('/api/import-document', {
-                    method: 'POST',
-                    headers: { authorization: `Bearer ${token}` },
-                    body: fd,
-                  })
-                  const json = await res.json()
-                  if (!res.ok) throw new Error(json?.error || 'Import échoué')
-                  const d = json?.data || {}
-
-                  if (d.title) setMissionDescription((prev) => (prev ? prev : String(d.title)))
-                  if (d.startDate) setMissionStart(String(d.startDate))
-                  if (d.endDate) setMissionEnd(String(d.endDate))
-                  if (d.client?.name) setClientName(String(d.client.name || ''))
-                  if (d.client?.siret) setClientSiret(String(d.client.siret || ''))
-                  if (d.client?.address || d.client?.postalCode || d.client?.city) {
-                    const addr = [d.client.address, [d.client.postalCode, d.client.city].filter(Boolean).join(' ')].filter(Boolean).join(', ')
-                    setClientAddress(String(addr))
-                  }
-                  if (d.scope) setMissionDescription(String(d.scope))
-                  if (d.price?.mode) {
-                    if (d.price.mode === 'tjm') setPricingType('tjm')
-                    else if (d.price.mode === 'horaire') setPricingType('horaire')
-                    else setPricingType('forfait')
-                  }
-                  if (typeof d.price?.amount === 'number') setPricingAmount(Number(d.price.amount || 0))
-                  if (d.notes) setContractText((prev) => prev || String(d.notes))
-
-                  if (Array.isArray(d.warnings) && d.warnings.length) {
-                    alert('Import terminé. Points à vérifier:\n- ' + d.warnings.join('\n- '))
-                  }
-                } catch (err: any) {
-                  alert(err?.message || 'Import échoué')
-                }
-              }}
-            />
+            {/* import photo removed */}
           </div>
 
           <div className="card contrats-form">
@@ -3376,66 +3147,7 @@ function ContratsV1({
             Générer l'aperçu
           </button>
 
-          <button
-            className="btn btn-secondary"
-            type="button"
-            onClick={async () => {
-              try {
-                // Persist contract then jump to Factures with link
-                if (!supabase || !userId) throw new Error('Session manquante')
-
-                const txt = contractText || buildContractText()
-                const amount_ht =
-                  pricingType === 'forfait'
-                    ? Number(pricingAmount || 0)
-                    : Number(pricingAmount || 0) * Number(pricingDays || 0)
-
-                const row = {
-                  user_id: userId,
-                  client_id: clientId || null,
-                  quote_id: contractFromQuoteId || null,
-                  title: 'Contrat de prestation de service',
-                  status: 'draft',
-                  contract_text: txt,
-                  mission_start: missionStart || null,
-                  mission_end: missionEnd || null,
-                  amount_ht,
-                  tva_regime: tvaRegime,
-                  buyer_snapshot: {
-                    name: clientName,
-                    email: clientEmail,
-                    siret: clientSiret,
-                    addressLines: clientAddress ? String(clientAddress).split(',').map((x) => x.trim()).filter(Boolean) : [],
-                    representant: clientRepresentant,
-                  },
-                  seller_snapshot: {
-                    name: prestaName,
-                    email: prestaEmail,
-                    siret: prestaSiret,
-                    addressLines: prestaAddress ? String(prestaAddress).split(',').map((x) => x.trim()).filter(Boolean) : [],
-                    activity: prestaActivity,
-                  },
-                } as any
-
-                const { data: inserted, error } = await supabase
-                  .from('contracts')
-                  .insert(row)
-                  .select('id')
-                  .single()
-
-                if (error) throw error
-
-                if (inserted?.id) {
-                  localStorage.setItem('spyke_invoice_from_contract_id', String(inserted.id))
-                  ;(window as any).__spyke_setTab?.('factures')
-                }
-              } catch (e: any) {
-                alert(e?.message || 'Erreur')
-              }
-            }}
-          >
-            Générer une facture
-          </button>
+          {/* generate invoice removed */}
 
           <button className="btn btn-primary" type="button" onClick={generateContractPdf}>
             Télécharger PDF
@@ -3695,41 +3407,7 @@ function FacturesV1({
     setLines((prev) => (prev.length <= 1 ? prev : prev.filter((l) => l.id !== id)))
   }
 
-  useEffect(() => {
-    ;(async () => {
-      try {
-        if (!supabase) return
-        const key = 'spyke_invoice_from_contract_id'
-        const contractId = String(localStorage.getItem(key) || '')
-        if (!contractId) return
-        localStorage.removeItem(key)
-
-        const { data: c } = await supabase
-          .from('contracts')
-          .select('id,quote_id,client_id,buyer_snapshot,amount_ht,mission_start,mission_end')
-          .eq('id', contractId)
-          .maybeSingle()
-        if (!c) return
-
-        if ((c as any).client_id) {
-          await selectClient(String((c as any).client_id))
-        } else {
-          const buyerSnap: any = (c as any).buyer_snapshot || null
-          if (buyerSnap) setBuyer({ name: String(buyerSnap.name || ''), email: String(buyerSnap.email || ''), addressLines: buyerSnap.addressLines || [] })
-        }
-
-        // If linked to a quote, import it for lines
-        if ((c as any).quote_id) {
-          await importQuote(String((c as any).quote_id))
-        } else {
-          const amt = Number((c as any).amount_ht || 0)
-          setLines([{ id: String(Date.now()), description: 'Prestation', qty: 1, unitPrice: amt }])
-        }
-      } catch {
-        // ignore
-      }
-    })()
-  }, [supabase])
+  // invoice-from-contract shortcut removed
 
   async function generateInvoicePdf() {
     try {
@@ -4287,29 +3965,20 @@ function FacturesV1({
             >
               Importer PDF
             </button>
+
+            {/* Desktop tooltip */}
             <span
-              className="tooltip"
-              data-tip="Analyse un PDF (avec du texte) pour pré-remplir la facture. Si le PDF est scanné, l'import photo/OCR arrive bientôt."
+              className="tooltip only-desktop"
+              data-tip="Analyse un PDF (avec du texte) pour pré-remplir la facture."
             >
               ?
             </span>
 
-            <button
-              className="btn btn-secondary import-btn import-btn-disabled"
-              type="button"
-              disabled
-              onClick={() => {
-                alert("Importer depuis une photo : bientôt disponible (OCR en cours d'activation).")
-              }}
-            >
-              Importer photo (bientôt)
-            </button>
-            <span
-              className="tooltip"
-              data-tip="Import depuis une photo (ou un PDF scanné). Nécessite un OCR : bientôt disponible."
-            >
-              ?
+            {/* Mobile help text */}
+            <span className="import-help-text only-mobile">
+              Analyse un PDF pour pré-remplir la facture
             </span>
+
             <input
               id="import-facture-pdf"
               type="file"
@@ -4363,59 +4032,7 @@ function FacturesV1({
                 }
               }}
             />
-            <input
-              id="import-facture-photo"
-              type="file"
-              accept="image/*"
-              style={{ display: 'none' }}
-              onChange={async (e) => {
-                const f = e.target.files?.[0]
-                e.target.value = ''
-                if (!f) return
-                try {
-                  if (!supabase) throw new Error('Supabase non initialisé')
-                  const { data: s } = await supabase.auth.getSession()
-                  const token = s.session?.access_token
-                  if (!token) throw new Error('Non connecté')
-
-                  const fd = new FormData()
-                  fd.set('type', 'facture')
-                  fd.set('file', f)
-
-                  const res = await fetch('/api/import-document', {
-                    method: 'POST',
-                    headers: { authorization: `Bearer ${token}` },
-                    body: fd,
-                  })
-                  const json = await res.json()
-                  if (!res.ok) throw new Error(json?.error || 'Import échoué')
-                  const d = json?.data || {}
-
-                  if (d.invoiceNumber) setInvoiceNumber(String(d.invoiceNumber))
-                  if (d.dateIssue) setInvoiceDate(String(d.dateIssue))
-                  if (d.client?.name) {
-                    const addr = [d.client.address, [d.client.postalCode, d.client.city].filter(Boolean).join(' ')].filter(Boolean).join(', ')
-                    setBuyer({ ...buyer, name: String(d.client.name || ''), addressLines: addr ? String(addr).split(',').map((x) => x.trim()).filter(Boolean) : [] })
-                  }
-                  if (Array.isArray(d.lines) && d.lines.length) {
-                    setLines(
-                      d.lines.map((l: any, idx: number) => ({
-                        id: String(idx),
-                        description: String(l.description || ''),
-                        qty: Number(l.qty ?? 1),
-                        unitPrice: Number(l.unitPrice ?? 0),
-                      }))
-                    )
-                  }
-
-                  if (Array.isArray(d.warnings) && d.warnings.length) {
-                    alert('Import terminé. Points à vérifier:\n- ' + d.warnings.join('\n- '))
-                  }
-                } catch (err: any) {
-                  alert(err?.message || 'Import échoué')
-                }
-              }}
-            />
+            {/* import photo removed */}
           </div>
 
           <div className="card factures-form">
@@ -6571,23 +6188,7 @@ CONTEXTE UTILISATEUR :
               <h1 className="page-title">Dashboard</h1>
               <p className="page-subtitle">Bienvenue, {userFullName.split(' ')[0] || userFullName} 👋</p>
             </div>
-            <div className="header-actions">
-              <button className="btn btn-secondary" type="button">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
-                  <polyline points="7 10 12 15 17 10" />
-                  <line x1="12" y1="15" x2="12" y2="3" />
-                </svg>
-                Exporter
-              </button>
-              <button className="btn btn-primary" type="button" onClick={() => setModal('newDevis')}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <line x1="12" y1="5" x2="12" y2="19" />
-                  <line x1="5" y1="12" x2="19" y2="12" />
-                </svg>
-                Nouveau devis
-              </button>
-            </div>
+            {/* header actions removed */}
           </div>
 
           <div className="stats-grid">
@@ -6644,15 +6245,6 @@ CONTEXTE UTILISATEUR :
           </div>
 
           <div className="cards-grid">
-            <div className="card">
-              <div className="card-header">
-                <h3 className="card-title">🔔 Relances suggérées</h3>
-              </div>
-              <div className="empty-state" style={{ padding: 24 }}>
-                <p>Aucune relance nécessaire 👍</p>
-              </div>
-            </div>
-
             <div className="card">
               <div className="card-header">
                 <h3 className="card-title">⚡ Actions rapides</h3>
