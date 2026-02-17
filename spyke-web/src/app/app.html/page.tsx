@@ -611,6 +611,83 @@ Réponds uniquement par le texte de la description.`
     return 'Aucun client sélectionné'
   }, [clientChoice, clients])
 
+  async function generateDevisPdfBlob() {
+    if (!supabase) throw new Error('Supabase non initialisé')
+
+    const { data: sessionData } = await supabase.auth.getSession()
+    const token = sessionData?.session?.access_token
+    if (!token) throw new Error('Non connecté')
+
+    const payload: any = {
+      quoteNumber,
+      title,
+      dateIssue,
+      validityDays,
+      depositPercent,
+      paymentDelayDays,
+      lines,
+      notes,
+    }
+
+    const res = await fetch('/api/devis-pdf', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        authorization: 'Bearer ' + token,
+      },
+      body: JSON.stringify(payload),
+    })
+    const blob = await res.blob()
+    if (!res.ok) throw new Error((await blob.text()) || 'Erreur PDF')
+    return { blob, token }
+  }
+
+  async function sendDevisByEmail() {
+    try {
+      const { blob, token } = await generateDevisPdfBlob()
+
+      const fd = new FormData()
+      fd.set('type', 'devis')
+      fd.set('file', new File([blob], 'Devis-' + String(quoteNumber || 'Spyke') + '.pdf', { type: 'application/pdf' }))
+
+      const up = await fetch('/api/share-upload', {
+        method: 'POST',
+        headers: { authorization: 'Bearer ' + token },
+        body: fd,
+      })
+      const json = await up.json().catch(() => null)
+      if (!up.ok) throw new Error((json as any)?.error || 'Upload échoué')
+      const url = String((json as any)?.url || '')
+      if (!url) throw new Error('Lien de partage vide')
+
+      try {
+        await navigator.clipboard.writeText(url)
+      } catch {}
+
+      let to = ''
+      try {
+        if (clientChoice.mode === 'existing') {
+          const c: any = clients.find((x) => x.id === clientChoice.id)
+          to = String(c?.email || '')
+        } else if (clientChoice.mode === 'new') {
+          to = String((clientChoice as any)?.email || '')
+        }
+      } catch {}
+
+      const mailto = 'mailto:' + encodeURIComponent(to) + '?body=' + encodeURIComponent(url)
+      window.location.href = mailto
+
+      // fallback: open Gmail composer too (if no default mail app configured)
+      const gmail =
+        'https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(to) + '&body=' + encodeURIComponent(url)
+      try {
+        window.open(gmail, '_blank', 'noopener,noreferrer')
+      } catch {}
+    } catch (e: any) {
+      alert(e?.message || 'Erreur envoi mail')
+    }
+  }
+
   async function generatePdf() {
     try {
       if (!supabase) throw new Error('Supabase non initialisé')
@@ -1905,7 +1982,7 @@ Réponds uniquement par le texte de la description.`
           </div>
 
           <div className="btn-group devis-actions">
-            <button className="btn btn-secondary" type="button" onClick={() => alert('Email: à connecter')}>
+            <button className="btn btn-secondary" type="button" onClick={sendDevisByEmail}>
               Envoyer par mail
             </button>
             <button className="btn btn-primary" type="button" onClick={generatePdf}>
@@ -2582,6 +2659,128 @@ function ContratsV1({
     lines.push('Signature : ____________________')
 
     return lines.join('\n')
+  }
+
+  async function generateContractPdfBlob() {
+    if (!supabase) throw new Error('Supabase non initialisé')
+
+    const { data: sessionData } = await supabase.auth.getSession()
+    const token = sessionData?.session?.access_token
+    if (!token) throw new Error('Non connecté')
+
+    // best-effort logo
+    let logoUrl = ''
+    if (userId) {
+      try {
+        const { data: profile } = await supabase.from('profiles').select('logo_path').eq('id', userId).maybeSingle()
+        const logoPath = String((profile as any)?.logo_path || '')
+        if (logoPath) {
+          const pub = supabase.storage.from('logos').getPublicUrl(logoPath)
+          logoUrl = String(pub?.data?.publicUrl || '')
+        }
+      } catch {}
+    }
+
+    const payload: any = {
+      title: 'Contrat de prestation de service',
+      date: today,
+      logoUrl,
+      contractText: contractText || buildContractText(),
+      parties: { sellerName: prestaName, buyerName: clientName },
+
+      contractNumber,
+      seller: {
+        name: prestaName,
+        siret: prestaSiret,
+        address: prestaAddress,
+        activity: prestaActivity,
+        email: prestaEmail,
+      },
+      buyer: {
+        name: clientName,
+        siret: clientSiret,
+        representant: clientRepresentant,
+        address: clientAddress,
+        email: clientEmail,
+      },
+      mission: {
+        startDate: formatDateFr(missionStart) || missionStart || '',
+        endDate: formatDateFr(missionEnd) || missionEnd || '',
+        location: missionLieu === 'distance' ? 'À DISTANCE' : missionLieu === 'client' ? 'SUR SITE' : 'MIXTE',
+        revisions: missionRevisions === 'illimite' ? 'ILLIMITÉES' : String(missionRevisions || ''),
+        description: missionDescription,
+        deliverables: missionLivrables,
+      },
+      pricing: {
+        type: pricingType === 'forfait' ? 'FORFAIT' : pricingType === 'tjm' ? 'TJM' : 'TAUX HORAIRE',
+        amount: (() => {
+          const amount = Number(pricingAmount || 0)
+          if (pricingType === 'forfait') return amount.toFixed(2) + ' € HT'
+          if (pricingType === 'tjm') return amount.toFixed(2) + ' € HT / jour'
+          return amount.toFixed(2) + ' € HT / heure'
+        })(),
+      },
+      vatRegime: tvaRegime === 'franchise' ? 'FRANCHISE EN BASE' : 'ASSUJETTI',
+      paymentSchedule:
+        paymentSchedule === '30' ? '30/70' : paymentSchedule === '50' ? '50/50' : paymentSchedule === 'fin' ? '100% FIN' : 'PERSONNALISÉ',
+      paymentDelay: (() => {
+        const d = String(paymentDelay || '')
+        if (d === '30') return '30 JOURS'
+        if (d === '45') return '45 JOURS'
+        if (d === '60') return '60 JOURS'
+        if (d === '15') return '15 JOURS'
+        if (d === 'reception') return 'À RÉCEPTION'
+        return ''
+      })(),
+      ipClause: ipClause === 'cession' ? 'CESSION APRÈS PAIEMENT' : ipClause === 'licence' ? "LICENCE D'UTILISATION" : 'CESSION TOTALE',
+      confidentiality: confidentialityClause === 'oui' ? 'OUI' : 'NON',
+      termination: terminationClause === '15' ? 'PRÉAVIS 15 JOURS' : terminationClause === '30' ? 'PRÉAVIS 30 JOURS' : 'SANS PRÉAVIS',
+    }
+
+    const res = await fetch('/api/contrat-pdf', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        authorization: 'Bearer ' + token,
+      },
+      body: JSON.stringify(payload),
+    })
+    const blob = await res.blob()
+    if (!res.ok) throw new Error((await blob.text()) || 'Erreur PDF')
+
+    return { blob, token }
+  }
+
+  async function sendContractByEmail() {
+    try {
+      const { blob, token } = await generateContractPdfBlob()
+
+      const fd = new FormData()
+      fd.set('type', 'contrat')
+      fd.set('file', new File([blob], 'Contrat-' + String(contractNumber || 'Spyke') + '.pdf', { type: 'application/pdf' }))
+
+      const up = await fetch('/api/share-upload', {
+        method: 'POST',
+        headers: { authorization: 'Bearer ' + token },
+        body: fd,
+      })
+      const json = await up.json().catch(() => null)
+      if (!up.ok) throw new Error((json as any)?.error || 'Upload échoué')
+      const url = String((json as any)?.url || '')
+      if (!url) throw new Error('Lien de partage vide')
+
+      try { await navigator.clipboard.writeText(url) } catch {}
+
+      const to = String(clientEmail || '')
+      const mailto = 'mailto:' + encodeURIComponent(to) + '?body=' + encodeURIComponent(url)
+      window.location.href = mailto
+
+      const gmail =
+        'https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(to) + '&body=' + encodeURIComponent(url)
+      try { window.open(gmail, '_blank', 'noopener,noreferrer') } catch {}
+    } catch (e: any) {
+      alert(e?.message || 'Erreur envoi mail')
+    }
   }
 
   async function generateContractPdf() {
@@ -3304,7 +3503,9 @@ function ContratsV1({
             Générer l'aperçu
           </button>
 
-          {/* generate invoice removed */}
+          <button className="btn btn-secondary" type="button" onClick={sendContractByEmail}>
+            Envoyer par mail
+          </button>
 
           <button className="btn btn-primary" type="button" onClick={generateContractPdf}>
             Télécharger PDF
@@ -3616,6 +3817,119 @@ function FacturesV1({
   }
 
   // invoice-from-contract shortcut removed
+
+  async function generateInvoicePdfBlob() {
+    if (!supabase) throw new Error('Supabase non initialisé')
+
+    const { data: sessionData } = await supabase.auth.getSession()
+    const token = sessionData?.session?.access_token
+    if (!token) throw new Error('Non connecté')
+
+    // Seller info from profile (best-effort) — same as generateInvoicePdf
+    let seller: any = {
+      name: userFullName || 'Votre entreprise',
+      addressLines: [],
+      siret: '',
+      iban: '',
+      bic: '',
+      bankName: '',
+      bankAccount: '',
+      logoUrl: '',
+    }
+
+    if (userId) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name,company_name,logo_path,address,postal_code,city,country,siret,iban,bic,bank_name,bank_account')
+        .eq('id', userId)
+        .maybeSingle()
+
+      const companyName = (profile as any)?.company_name || (profile as any)?.full_name || userFullName
+      const addressLines: string[] = []
+      const addr = (profile as any)?.address
+      const pc = (profile as any)?.postal_code
+      const city = (profile as any)?.city
+      const country = (profile as any)?.country
+      if (addr) addressLines.push(String(addr))
+      const cityLine = [pc, city].filter(Boolean).join(' ')
+      if (cityLine) addressLines.push(cityLine)
+      if (country) addressLines.push(String(country))
+
+      const logoPath = String((profile as any)?.logo_path || '')
+      let logoUrl = ''
+      if (logoPath) {
+        const pub = supabase.storage.from('logos').getPublicUrl(logoPath)
+        logoUrl = String(pub?.data?.publicUrl || '')
+      }
+
+      seller = {
+        ...seller,
+        name: companyName || seller.name,
+        addressLines,
+        siret: String((profile as any)?.siret || ''),
+        iban: String((profile as any)?.iban || ''),
+        bic: String((profile as any)?.bic || ''),
+        bankName: String((profile as any)?.bank_name || ''),
+        bankAccount: String((profile as any)?.bank_account || ''),
+        logoUrl,
+      }
+    }
+
+    const payload: any = {
+      invoiceNumber,
+      dateIssue: invoiceDate,
+      dueDate,
+      seller,
+      buyer,
+      lines,
+      notes: '',
+    }
+
+    const res = await fetch('/api/facture-pdf', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        authorization: 'Bearer ' + token,
+      },
+      body: JSON.stringify(payload),
+    })
+
+    const blob = await res.blob()
+    if (!res.ok) throw new Error((await blob.text()) || 'Erreur PDF')
+    return { blob, token }
+  }
+
+  async function sendInvoiceByEmail() {
+    try {
+      const { blob, token } = await generateInvoicePdfBlob()
+
+      const fd = new FormData()
+      fd.set('type', 'facture')
+      fd.set('file', new File([blob], 'Facture-' + String(invoiceNumber || 'Spyke') + '.pdf', { type: 'application/pdf' }))
+
+      const up = await fetch('/api/share-upload', {
+        method: 'POST',
+        headers: { authorization: 'Bearer ' + token },
+        body: fd,
+      })
+      const json = await up.json().catch(() => null)
+      if (!up.ok) throw new Error((json as any)?.error || 'Upload échoué')
+      const url = String((json as any)?.url || '')
+      if (!url) throw new Error('Lien de partage vide')
+
+      try { await navigator.clipboard.writeText(url) } catch {}
+
+      const to = String((buyer as any)?.email || '')
+      const mailto = 'mailto:' + encodeURIComponent(to) + '?body=' + encodeURIComponent(url)
+      window.location.href = mailto
+
+      const gmail =
+        'https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(to) + '&body=' + encodeURIComponent(url)
+      try { window.open(gmail, '_blank', 'noopener,noreferrer') } catch {}
+    } catch (e: any) {
+      alert(e?.message || 'Erreur envoi mail')
+    }
+  }
 
   async function generateInvoicePdf() {
     try {
@@ -4433,6 +4747,9 @@ function FacturesV1({
             <div className="btn-group factures-actions" style={{ marginTop: 18 }}>
               <button className="btn btn-secondary" type="button" onClick={() => alert('Brouillon: à connecter')}>
                 Enregistrer brouillon
+              </button>
+              <button className="btn btn-secondary" type="button" onClick={sendInvoiceByEmail}>
+                Envoyer par mail
               </button>
               <button className="btn btn-primary" type="button" onClick={generateInvoicePdf}>
                 Générer PDF
