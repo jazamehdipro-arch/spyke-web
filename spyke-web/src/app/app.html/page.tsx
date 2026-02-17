@@ -1167,30 +1167,37 @@ Réponds uniquement par le texte de la description.`
           margin-top: 24px;
         }
 
-        .devis-v4 .btn {
+        /* Only style the main action buttons in the Devis editor (avoid overriding list/table buttons) */
+        .devis-v4 .btn-group .btn {
           flex: 1;
           padding: 14px 20px;
-          border-radius: 10px;
+          border-radius: 12px;
           font-size: 14px;
           font-weight: 600;
           font-family: inherit;
           cursor: pointer;
-          transition: all 0.2s;
+          transition: all 0.2s ease;
           display: flex;
           align-items: center;
           justify-content: center;
           gap: 8px;
+        }
+
+        .devis-v4 .btn-group .btn-primary {
+          background: var(--black);
+          color: var(--white);
           border: none;
         }
 
-        .devis-v4 .btn-primary {
-          background: var(--black);
-          color: var(--white);
+        .devis-v4 .btn-group .btn-secondary {
+          background: var(--white);
+          color: var(--gray-700);
+          border: 2px solid var(--gray-200);
         }
 
-        .devis-v4 .btn-secondary {
-          background: var(--gray-100);
-          color: var(--gray-700);
+        .devis-v4 .btn-group .btn-secondary:hover {
+          border-color: var(--gray-300);
+          background: var(--gray-50);
         }
 
         @media (max-width: 1200px) {
