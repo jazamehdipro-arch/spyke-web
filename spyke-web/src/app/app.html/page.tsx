@@ -1404,12 +1404,6 @@ Réponds uniquement par le texte de la description.`
             ← Retour aux devis
           </button>
 
-          <div className="page-header">
-            <div>
-              <h1 className="page-title">Nouveau devis</h1>
-              <p className="page-subtitle">Créez un devis — la sauvegarde viendra ensuite</p>
-            </div>
-          </div>
 
           <div className="devis-container">
         <div className="form-wrapper">
@@ -5264,7 +5258,7 @@ CONTEXTE UTILISATEUR :
           justify-content: center;
           font-weight: 900;
           font-size: 14px;
-          line-height: 1;
+          line-height: 0;
           color: var(--gray-800);
           background: var(--gray-100);
           cursor: help;
