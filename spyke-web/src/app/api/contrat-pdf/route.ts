@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@supabase/supabase-js'
+import { readFile } from 'node:fs/promises'
+import { join } from 'node:path'
 
 export const runtime = 'nodejs'
 
@@ -51,6 +53,21 @@ export async function POST(req: Request) {
     const json = await req.json()
     const body = BodySchema.parse(json)
 
+    // NOTE: Using a fixed PDF template provided by the user.
+    // If later we want to inject dynamic fields (names, dates, clauses), we can switch to a template+overlay approach.
+    const templatePath = join(process.cwd(), 'public', 'templates', 'contrat-template.pdf')
+    const buffer = await readFile(templatePath)
+
+    return new NextResponse(buffer as any, {
+      status: 200,
+      headers: {
+        'content-type': 'application/pdf',
+        'content-disposition': `attachment; filename="Contrat-${new Date().toISOString().slice(0, 10)}.pdf"`,
+        'cache-control': 'no-store',
+      },
+    })
+
+    /*
     const React = (await import('react')).default
     const { Document, Page, Text, View, Image, StyleSheet, pdf } = await import('@react-pdf/renderer')
 
@@ -202,6 +219,7 @@ export async function POST(req: Request) {
         'cache-control': 'no-store',
       },
     })
+    */
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || 'Error' }, { status: 400 })
   }

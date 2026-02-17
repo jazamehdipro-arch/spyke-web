@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
+import { readFile } from 'node:fs/promises'
+import { join } from 'node:path'
 
 export const runtime = 'nodejs'
 
@@ -22,6 +24,20 @@ export async function POST(req: Request) {
     const json = await req.json()
     const body = BodySchema.parse(json)
 
+    // Fixed PDF template provided by the user.
+    const templatePath = join(process.cwd(), 'public', 'templates', 'contrat-template.pdf')
+    const buffer = await readFile(templatePath)
+
+    return new NextResponse(buffer as any, {
+      status: 200,
+      headers: {
+        'content-type': 'application/pdf',
+        'content-disposition': `attachment; filename="Contrat.pdf"`,
+        'cache-control': 'no-store',
+      },
+    })
+
+    /*
     const React = (await import('react')).default
     const { Document, Page, Text, View, Image, StyleSheet, pdf } = await import('@react-pdf/renderer')
 
@@ -114,6 +130,7 @@ export async function POST(req: Request) {
         'cache-control': 'no-store',
       },
     })
+    */
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || 'Error' }, { status: 400 })
   }
