@@ -1410,7 +1410,7 @@ Réponds uniquement par le texte de la description.`
           <div className="card">
             <div className="import-toolbar">
               <button
-                className="btn btn-secondary import-btn"
+                className="btn import-btn"
                 type="button"
                 onClick={() => {
                   try {
@@ -2930,7 +2930,7 @@ function ContratsV1({
 
           <div className="import-toolbar">
             <button
-              className="btn btn-secondary import-btn"
+              className="btn import-btn"
               type="button"
               onClick={() => {
                 try {
@@ -4188,7 +4188,7 @@ function FacturesV1({
 
           <div className="import-toolbar">
             <button
-              className="btn btn-secondary import-btn"
+              className="btn import-btn"
               type="button"
               onClick={() => {
                 try {
@@ -7244,13 +7244,6 @@ CONTEXTE UTILISATEUR :
 
         {/* Devis */}
         <div id="tab-devis" className={`tab-content ${tab === 'devis' ? 'active' : ''}`}>
-          <div className="page-header">
-            <div>
-              <h1 className="page-title">Créer un devis</h1>
-              <p className="page-subtitle">Remplissez les informations pour générer votre devis professionnel</p>
-            </div>
-          </div>
-
           <DevisV4 userFullName={userFullName} userJob={userJob} userId={userId} planCode={planCode} />
         </div>
 
