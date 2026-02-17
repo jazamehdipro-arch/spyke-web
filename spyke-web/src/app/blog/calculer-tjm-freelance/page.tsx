@@ -551,6 +551,7 @@ export default function BlogTjmPage() {
       />
 
       <script
+        defer
         dangerouslySetInnerHTML={{
           __html: `
             function calculateTJM() {
@@ -582,7 +583,7 @@ export default function BlogTjmPage() {
               }
             }
 
-            document.addEventListener('DOMContentLoaded', function () {
+            function initTjmSimulator() {
               var salaryEl = document.getElementById('salary');
               var statusEl = document.getElementById('status');
               var fraisEl = document.getElementById('frais');
@@ -594,7 +595,13 @@ export default function BlogTjmPage() {
               if (joursEl) joursEl.addEventListener('input', calculateTJM);
 
               calculateTJM();
-            });
+            }
+
+            if (document.readyState === 'loading') {
+              document.addEventListener('DOMContentLoaded', initTjmSimulator);
+            } else {
+              initTjmSimulator();
+            }
           `,
         }}
       />
