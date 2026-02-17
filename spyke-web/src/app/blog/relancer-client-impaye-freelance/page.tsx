@@ -434,6 +434,76 @@ export default function BlogRelanceImpayePage() {
         .footer-links a:hover { color: var(--white); text-decoration: none; }
         .footer-copy { font-size: 0.8rem; color: var(--gray-600); }
 
+
+        /* Sticky TOC layout */
+        .with-sidebar {
+          max-width: 1100px;
+          margin: 0 auto;
+          padding: 0 24px 60px;
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) 280px;
+          gap: 32px;
+          align-items: start;
+        }
+        .with-sidebar .main-col { min-width: 0; }
+        .with-sidebar .toc { max-width: none; margin: 0 0 24px; padding: 0; }
+        .with-sidebar .article-content { max-width: none; margin: 0; padding: 0; }
+
+        .toc-sidebar { position: sticky; top: 88px; align-self: start; }
+        .toc-sidebar .toc-box { padding: 22px 20px; }
+        .toc-sidebar .toc-title { font-size: 0.9rem; }
+        .toc-sidebar .toc-list li a { font-size: 0.88rem; }
+
+        /* Mobile drawer */
+        .toc-fab {
+          position: fixed;
+          right: 16px;
+          bottom: 16px;
+          z-index: 200;
+          background: rgba(24,24,27,0.92);
+          border: 1px solid rgba(250,204,21,0.25);
+          color: var(--white);
+          padding: 10px 14px;
+          border-radius: 999px;
+          font-weight: 700;
+          font-size: 0.9rem;
+          display: none;
+          gap: 8px;
+          align-items: center;
+        }
+        .toc-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0,0,0,0.6);
+          z-index: 300;
+          display: none;
+        }
+        .toc-drawer {
+          position: fixed;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          z-index: 400;
+          background: var(--gray-900);
+          border-top: 1px solid rgba(255,255,255,0.08);
+          border-radius: 18px 18px 0 0;
+          padding: 18px 18px 24px;
+          max-height: 72vh;
+          overflow: auto;
+          transform: translateY(110%);
+          transition: transform 0.25s ease;
+        }
+        .toc-drawer.open { transform: translateY(0); }
+        .toc-drawer-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+        .toc-drawer-title { font-family: var(--font-display); font-weight: 800; color: var(--white); }
+        .toc-drawer-close { background: transparent; border: 1px solid rgba(255,255,255,0.14); color: var(--gray-300); border-radius: 10px; padding: 8px 10px; }
+
+        @media (max-width: 980px) {
+          .with-sidebar { grid-template-columns: 1fr; }
+          .toc-sidebar { display: none; }
+          .toc-fab { display: inline-flex; }
+        }
+
         @keyframes fadeUp {
           from { opacity: 0; transform: translateY(24px); }
           to { opacity: 1; transform: translateY(0); }
@@ -480,20 +550,22 @@ export default function BlogRelanceImpayePage() {
         </div>
       </header>
 
-      <section className="toc">
-        <div className="toc-box">
-          <div className="toc-title">📑 Sommaire</div>
-          <ol className="toc-list">
-            <li><a href="#avant">Avant de relancer : vérifications rapides</a></li>
-            <li><a href="#timing">Le bon timing (J+1, J+7, J+15)</a></li>
-            <li><a href="#templates">3 templates de relance (copier-coller)</a></li>
-            <li><a href="#mise-en-demeure">Quand envoyer une mise en demeure</a></li>
-            <li><a href="#prevention">Prévenir les impayés (contrat + acompte)</a></li>
-          </ol>
-        </div>
-      </section>
+      <div className="with-sidebar">
+        <div className="main-col">
+          <section className="toc">
+            <div className="toc-box">
+              <div className="toc-title">📑 Sommaire</div>
+              <ol className="toc-list">
+                <li><a href="#avant">Avant de relancer : vérifications rapides</a></li>
+                <li><a href="#timing">Le bon timing (J+1, J+7, J+15)</a></li>
+                <li><a href="#templates">3 templates de relance (copier-coller)</a></li>
+                <li><a href="#mise-en-demeure">Quand envoyer une mise en demeure</a></li>
+                <li><a href="#prevention">Prévenir les impayés (contrat + acompte)</a></li>
+              </ol>
+            </div>
+          </section>
 
-      <article className="article-content">
+          <article className="article-content">
         <h2 id="avant">Avant de relancer : les 3 vérifications qui évitent un faux pas</h2>
         <p>
           Avant d&apos;envoyer une relance, assurez-vous que la facture est correcte (montant, coordonnées, numéro, date,
@@ -601,6 +673,76 @@ Cordialement,
           <a href="/connexion.html" className="cta-btn">Essayer gratuitement →</a>
         </div>
       </article>
+        </div>
+
+        <aside className="toc-sidebar" aria-label="Sommaire">
+          <div className="toc-box">
+            <div className="toc-title">📑 Sommaire</div>
+            <ol className="toc-list">
+              <li><a href="#avant">Avant de relancer : vérifications rapides</a></li>
+              <li><a href="#timing">Le bon timing (J+1, J+7, J+15)</a></li>
+              <li><a href="#templates">3 templates de relance (copier-coller)</a></li>
+              <li><a href="#mise-en-demeure">Quand envoyer une mise en demeure</a></li>
+              <li><a href="#prevention">Prévenir les impayés (contrat + acompte)</a></li>
+            </ol>
+          </div>
+        </aside>
+      </div>
+
+      <button type="button" className="toc-fab" data-toc-open>
+        📑 Sommaire
+      </button>
+      <div className="toc-overlay" data-toc-overlay />
+      <div className="toc-drawer" data-toc-drawer>
+        <div className="toc-drawer-head">
+          <div className="toc-drawer-title">Sommaire</div>
+          <button type="button" className="toc-drawer-close" data-toc-close>
+            Fermer
+          </button>
+        </div>
+        <ol className="toc-list">
+          <li><a href="#avant">Avant de relancer : vérifications rapides</a></li>
+          <li><a href="#timing">Le bon timing (J+1, J+7, J+15)</a></li>
+          <li><a href="#templates">3 templates de relance (copier-coller)</a></li>
+          <li><a href="#mise-en-demeure">Quand envoyer une mise en demeure</a></li>
+          <li><a href="#prevention">Prévenir les impayés (contrat + acompte)</a></li>
+        </ol>
+      </div>
+
+      <script
+        defer
+        dangerouslySetInnerHTML={{
+          __html: `
+            (function(){
+              function qs(sel){return document.querySelector(sel)}
+              var openBtn = qs('[data-toc-open]');
+              var overlay = qs('[data-toc-overlay]');
+              var drawer = qs('[data-toc-drawer]');
+              var closeBtn = qs('[data-toc-close]');
+              if (!openBtn || !overlay || !drawer || !closeBtn) return;
+
+              function open(){
+                overlay.style.display = 'block';
+                drawer.classList.add('open');
+                document.documentElement.style.overflow = 'hidden';
+              }
+              function close(){
+                overlay.style.display = 'none';
+                drawer.classList.remove('open');
+                document.documentElement.style.overflow = '';
+              }
+
+              openBtn.addEventListener('click', open);
+              closeBtn.addEventListener('click', close);
+              overlay.addEventListener('click', close);
+              drawer.addEventListener('click', function(e){
+                var a = e.target && e.target.closest ? e.target.closest('a[href^="#"]') : null;
+                if (a) close();
+              });
+            })();
+          `,
+        }}
+      />
 
       <section className="related">
         <h2>Articles similaires</h2>
