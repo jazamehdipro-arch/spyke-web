@@ -2205,11 +2205,18 @@ function ContratsV1({
       if (!supabase || !userId) return
       const { data: profile } = await supabase
         .from('profiles')
-        .select('full_name,company_name,address,postal_code,city,country,siret,email')
+        .select('first_name,last_name,full_name,company_name,job,address,postal_code,city,country,siret,email')
         .eq('id', userId)
         .maybeSingle()
 
-      const companyName = (profile as any)?.company_name || (profile as any)?.full_name || userFullName
+      const fullName = [
+        String((profile as any)?.first_name || ''),
+        String((profile as any)?.last_name || ''),
+      ]
+        .join(' ')
+        .trim()
+
+      const companyName = (profile as any)?.company_name || (profile as any)?.full_name || fullName || userFullName
       const addr = (profile as any)?.address
       const pc = (profile as any)?.postal_code
       const city = (profile as any)?.city
@@ -2222,9 +2229,18 @@ function ContratsV1({
       if (country) addressLines.push(String(country))
 
       setPrestaName(String(companyName || ''))
+      setPrestaActivity(String((profile as any)?.job || userJob || ''))
       setPrestaSiret(String((profile as any)?.siret || ''))
       setPrestaAddress(addressLines.join(', '))
-      setPrestaEmail(String((profile as any)?.email || ''))
+
+      // profiles.email may not exist depending on DB schema; fall back to auth email
+      const profileEmail = String((profile as any)?.email || '')
+      let authEmail = ''
+      try {
+        const { data: u } = await supabase.auth.getUser()
+        authEmail = String(u?.user?.email || '')
+      } catch {}
+      setPrestaEmail(profileEmail || authEmail)
     })()
   }, [supabase, userId, userFullName])
 

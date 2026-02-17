@@ -30,10 +30,11 @@ export async function fillContractTemplatePdf(opts: { templateBytes: Uint8Array;
 
   // Lazy-load pdfjs (ESM) in Node runtime.
   const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs')
-  // Disable worker in Node.
-  ;(pdfjs as any).GlobalWorkerOptions.workerSrc = undefined
 
-  const loadingTask = (pdfjs as any).getDocument({ data: opts.templateBytes })
+  const loadingTask = (pdfjs as any).getDocument({
+    data: opts.templateBytes,
+    disableWorker: true,
+  })
   const pdf = await loadingTask.promise
 
   const pageCount = pdf.numPages
