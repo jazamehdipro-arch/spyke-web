@@ -1,9 +1,7 @@
-"use client"
-
 export default function BlogDevisGuidePage() {
   return (
     <>
-      <style jsx global>{`
+      <style>{`
         *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root {
@@ -756,17 +754,17 @@ export default function BlogDevisGuidePage() {
 
       {/* RELATED */}
       <section className="related">
-        <h2>Articles similaires</h2>
+        <h2>Pour aller plus loin</h2>
         <div className="related-grid">
-          <a href="/blog/mentions-obligatoires-facture-auto-entrepreneur" className="related-card">
+          <a href="/facture-auto-entrepreneur" className="related-card">
             <div className="related-card-tag">Factures</div>
-            <h3>Facture auto-entrepreneur : les 7 mentions obligatoires en 2026</h3>
-            <p>6 min de lecture</p>
+            <h3>Générer une facture conforme (gratuit)</h3>
+            <p>Facture auto-entrepreneur en PDF, mentions obligatoires incluses.</p>
           </a>
-          <a href="/blog/contrat-prestation-freelance-clauses-essentielles" className="related-card">
+          <a href="/contrat-freelance" className="related-card">
             <div className="related-card-tag">Contrats</div>
-            <h3>Contrat de prestation freelance : les 10 clauses indispensables</h3>
-            <p>9 min de lecture</p>
+            <h3>Générer un contrat freelance (gratuit)</h3>
+            <p>Clauses essentielles pré-remplies + export PDF.</p>
           </a>
         </div>
       </section>

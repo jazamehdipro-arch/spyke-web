@@ -1,9 +1,7 @@
-"use client"
-
 export default function BlogContratClausesPage() {
   return (
     <>
-      <style jsx global>{`
+      <style>{`
         *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
         :root {
           --black: #0a0a0a; --white: #ffffff; --yellow: #facc15; --yellow-dark: #eab308;
@@ -514,17 +512,17 @@ export default function BlogContratClausesPage() {
 
       {/* RELATED */}
       <section className="related">
-        <h2>Articles similaires</h2>
+        <h2>Pour aller plus loin</h2>
         <div className="related-grid">
-          <a href="/blog/comment-faire-devis-freelance" className="related-card">
+          <a href="/devis-freelance" className="related-card">
             <div className="related-card-tag">Devis</div>
-            <h3>Comment faire un devis freelance professionnel en 2026</h3>
-            <p>8 min de lecture</p>
+            <h3>Générer un devis freelance (gratuit)</h3>
+            <p>Mentions obligatoires + PDF pro en 2 minutes.</p>
           </a>
-          <a href="/blog/relancer-client-impaye-freelance" className="related-card">
-            <div className="related-card-tag">Relances</div>
-            <h3>Comment relancer un client qui ne paye pas (sans ruiner la relation)</h3>
-            <p>7 min de lecture</p>
+          <a href="/facture-auto-entrepreneur" className="related-card">
+            <div className="related-card-tag">Factures</div>
+            <h3>Générer une facture conforme (gratuit)</h3>
+            <p>Facture auto-entrepreneur en PDF, mentions obligatoires incluses.</p>
           </a>
         </div>
       </section>

@@ -1,7 +1,3 @@
-"use client"
-
-import { useMemo, useState } from 'react'
-
 type Category = 'Tous' | 'Devis' | 'Factures' | 'Contrats' | 'Relances' | 'Gestion'
 
 type BlogPost = {
@@ -62,22 +58,51 @@ const posts: BlogPost[] = [
     icon: '📋',
     thumbClass: 'contrat',
   },
+  {
+    href: '/blog/calculer-tjm-freelance',
+    category: 'Gestion',
+    title: 'Calculer son TJM freelance : la méthode pas à pas (avec simulateur)',
+    excerpt:
+      "Trop de freelances sous-estiment leur tarif. Voici la méthode de calcul complète pour fixer un TJM rentable selon votre situation et vos charges.",
+    dateLabel: 'Février 2026',
+    readTime: '5 min',
+    icon: '💰',
+    thumbClass: 'gestion',
+  },
 ]
 
-export default function BlogPage() {
-  const [active, setActive] = useState<Category>('Tous')
+export default async function BlogPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>
+}) {
+  const sp = (await searchParams) || {}
+  const raw = sp.cat
+  const cat = Array.isArray(raw) ? raw[0] : raw
 
-  const featured = useMemo(() => posts.find((p) => p.featured), [])
+  const active: Category = (
+    cat === 'Devis' ||
+    cat === 'Factures' ||
+    cat === 'Contrats' ||
+    cat === 'Relances' ||
+    cat === 'Gestion'
+      ? cat
+      : 'Tous'
+  )
 
-  const others = useMemo(() => {
+  const featured = posts.find((p) => p.featured)
+
+  const others = (() => {
     const list = posts.filter((p) => !p.featured)
     if (active === 'Tous') return list
     return list.filter((p) => p.category === active)
-  }, [active])
+  })()
+
+  const cats: Category[] = ['Tous', 'Devis', 'Factures', 'Contrats', 'Relances', 'Gestion']
 
   return (
     <>
-      <style jsx global>{`
+      <style>{`
         *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root {
@@ -235,6 +260,9 @@ export default function BlogPage() {
           color: var(--gray-400);
           cursor: pointer;
           transition: all 0.25s;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
         }
         .cat-btn:hover, .cat-btn.active {
           background: var(--yellow);
@@ -463,83 +491,6 @@ export default function BlogPage() {
           .articles-grid { grid-template-columns: 1fr; }
         }
 
-        .newsletter {
-          max-width: 700px;
-          margin: 0 auto 80px;
-          padding: 0 24px;
-          text-align: center;
-        }
-        .newsletter-box {
-          background: var(--gray-900);
-          border: 1px solid rgba(255,255,255,0.06);
-          border-radius: 20px;
-          padding: 48px 40px;
-          position: relative;
-          overflow: hidden;
-        }
-        .newsletter-box::before {
-          content: '';
-          position: absolute;
-          width: 300px;
-          height: 300px;
-          background: radial-gradient(circle, rgba(250,204,21,0.06), transparent 70%);
-          top: -100px;
-          right: -100px;
-        }
-        .newsletter-box h2 {
-          font-family: var(--font-display);
-          font-size: 1.6rem;
-          font-weight: 700;
-          margin-bottom: 10px;
-          position: relative;
-        }
-        .newsletter-box p {
-          color: var(--gray-400);
-          font-size: 0.95rem;
-          margin-bottom: 28px;
-          position: relative;
-        }
-        .newsletter-form {
-          display: flex;
-          gap: 10px;
-          max-width: 440px;
-          margin: 0 auto;
-          position: relative;
-        }
-        .newsletter-form input {
-          flex: 1;
-          padding: 12px 18px;
-          border-radius: 10px;
-          border: 1px solid var(--gray-700);
-          background: var(--gray-800);
-          color: var(--white);
-          font-family: var(--font-body);
-          font-size: 0.92rem;
-          outline: none;
-          transition: border-color 0.2s;
-        }
-        .newsletter-form input:focus { border-color: var(--yellow); }
-        .newsletter-form input::placeholder { color: var(--gray-500); }
-        .newsletter-form button {
-          padding: 12px 24px;
-          border-radius: 10px;
-          background: var(--yellow);
-          color: var(--black);
-          font-family: var(--font-body);
-          font-weight: 700;
-          font-size: 0.9rem;
-          border: none;
-          cursor: pointer;
-          transition: background 0.2s;
-          white-space: nowrap;
-        }
-        .newsletter-form button:hover { background: var(--yellow-dark); }
-
-        @media (max-width: 500px) {
-          .newsletter-form { flex-direction: column; }
-          .newsletter-box { padding: 32px 24px; }
-        }
-
         .cta-banner {
           max-width: 1200px;
           margin: 0 auto 80px;
@@ -616,7 +567,6 @@ export default function BlogPage() {
         .footer-copy { font-size: 0.8rem; color: var(--gray-600); }
       `}</style>
 
-      {/* NAV */}
       <nav>
         <div className="nav-inner">
           <a href="/" className="nav-logo">
@@ -644,33 +594,29 @@ export default function BlogPage() {
         </div>
       </nav>
 
-      {/* HERO */}
       <section className="hero">
         <div className="hero-badge">📝 Blog Spyke</div>
         <h1>
           Conseils & guides pour <span>freelances</span>
         </h1>
         <p>
-          Tout ce qu&apos;il faut savoir pour gérer votre administratif freelance : devis, factures,
-          contrats, relances et bonnes pratiques.
+          Tout ce qu&apos;il faut savoir pour gérer votre administratif freelance : devis, factures, contrats,
+          relances et bonnes pratiques.
         </p>
       </section>
 
-      {/* CATEGORIES */}
       <div className="categories">
-        {(['Tous', 'Devis', 'Factures', 'Contrats', 'Relances', 'Gestion'] as Category[]).map((c) => (
-          <button
+        {cats.map((c) => (
+          <a
             key={c}
-            type="button"
             className={`cat-btn ${active === c ? 'active' : ''}`}
-            onClick={() => setActive(c)}
+            href={c === 'Tous' ? '/blog' : `/blog?cat=${encodeURIComponent(c)}`}
           >
             {c}
-          </button>
+          </a>
         ))}
       </div>
 
-      {/* FEATURED */}
       {featured ? (
         <section className="featured">
           <a href={featured.href} className="featured-card">
@@ -692,7 +638,6 @@ export default function BlogPage() {
         </section>
       ) : null}
 
-      {/* GRID */}
       <section className="articles-section">
         <h2>Derniers articles</h2>
         <div className="articles-grid">
@@ -717,25 +662,6 @@ export default function BlogPage() {
         </div>
       </section>
 
-      {/* NEWSLETTER */}
-      <section className="newsletter">
-        <div className="newsletter-box">
-          <h2>Restez informé</h2>
-          <p>Un email par semaine avec les meilleurs conseils pour les freelances. Pas de spam, promis.</p>
-          <form
-            className="newsletter-form"
-            onSubmit={(e) => {
-              e.preventDefault()
-              alert('Newsletter: à connecter')
-            }}
-          >
-            <input type="email" placeholder="votre@email.com" aria-label="Adresse email" required />
-            <button type="submit">S&apos;abonner</button>
-          </form>
-        </div>
-      </section>
-
-      {/* CTA */}
       <section className="cta-banner">
         <div className="cta-inner">
           <h2>Devis → Contrat → Facture → Relance en 1 clic</h2>
@@ -746,7 +672,6 @@ export default function BlogPage() {
         </div>
       </section>
 
-      {/* FOOTER */}
       <footer>
         <div className="footer-inner">
           <div className="footer-links">
@@ -764,7 +689,6 @@ export default function BlogPage() {
         </div>
       </footer>
 
-      {/* JSON-LD */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{

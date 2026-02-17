@@ -1,9 +1,7 @@
-"use client"
-
 export default function BlogRelanceImpayePage() {
   return (
     <>
-      <style jsx global>{`
+      <style>{`
         *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root {
