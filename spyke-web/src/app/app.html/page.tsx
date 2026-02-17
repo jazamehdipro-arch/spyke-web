@@ -2687,6 +2687,13 @@ function ContratsV1({
         alert(`PDF généré, mais sauvegarde du contrat en base impossible: ${e?.message || 'Erreur Supabase'}`)
       }
 
+      const pricingAmountLabel = (() => {
+        const amount = Number(pricingAmount || 0)
+        if (pricingType === 'forfait') return `${amount.toFixed(2)} € HT`
+        if (pricingType === 'tjm') return `${amount.toFixed(2)} € HT / jour`
+        return `${amount.toFixed(2)} € HT / heure`
+      })()
+
       const payload = {
         title: 'Contrat de prestation de service',
         date: today,
@@ -2696,6 +2703,57 @@ function ContratsV1({
           sellerName: prestaName,
           buyerName: clientName,
         },
+
+        contractNumber,
+        seller: {
+          name: prestaName,
+          siret: prestaSiret,
+          address: prestaAddress,
+          activity: prestaActivity,
+          email: prestaEmail,
+        },
+        buyer: {
+          name: clientName,
+          siret: clientSiret,
+          representant: clientRepresentant,
+          address: clientAddress,
+          email: clientEmail,
+        },
+        mission: {
+          startDate: formatDateFr(missionStart) || missionStart || '',
+          endDate: formatDateFr(missionEnd) || missionEnd || '',
+          location: missionLieu === 'distance' ? 'À DISTANCE' : missionLieu === 'client' ? 'SUR SITE' : 'MIXTE',
+          revisions: missionRevisions === 'illimite' ? 'ILLIMITÉES' : String(missionRevisions || ''),
+          description: missionDescription,
+          deliverables: missionLivrables,
+        },
+        pricing: {
+          type: pricingType === 'forfait' ? 'FORFAIT' : pricingType === 'tjm' ? 'TJM' : 'TAUX HORAIRE',
+          amount: pricingAmountLabel,
+        },
+        vatRegime: tvaRegime === 'franchise' ? 'FRANCHISE EN BASE' : 'ASSUJETTI',
+        paymentSchedule:
+          paymentSchedule === '30'
+            ? '30/70'
+            : paymentSchedule === '50'
+              ? '50/50'
+              : paymentSchedule === 'fin'
+                ? '100% FIN'
+                : 'PERSONNALISÉ',
+        paymentDelay: (() => {
+          const d = String(paymentDelay || '')
+          if (d === '30') return '30 JOURS'
+          if (d === '45') return '45 JOURS'
+          if (d === '60') return '60 JOURS'
+          // existing UI options
+          if (d === '15') return '15 JOURS'
+          if (d === 'reception') return 'À RÉCEPTION'
+          return ''
+        })(),
+        ipClause: ipClause === 'cession' ? 'CESSION APRÈS PAIEMENT' : ipClause === 'licence' ? "LICENCE D'UTILISATION" : 'CESSION TOTALE',
+        confidentiality: confidentialityClause === 'oui' ? 'OUI' : 'NON',
+        termination:
+          terminationClause === '15' ? 'PRÉAVIS 15 JOURS' : terminationClause === '30' ? 'PRÉAVIS 30 JOURS' : 'SANS PRÉAVIS',
       }
 
       const res = await fetch('/api/contrat-pdf', {
