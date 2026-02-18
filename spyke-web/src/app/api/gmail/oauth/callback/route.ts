@@ -84,6 +84,7 @@ export async function GET(req: Request) {
     const expiresAt = tokens.expiry_date ? new Date(tokens.expiry_date).toISOString() : null
 
     // Best-effort: retrieve the Gmail account email for display.
+    // Prefer userinfo endpoint, fallback to id_token payload (if present).
     let gmailEmail: string | null = null
     try {
       const at = String(tokens.access_token || '')
@@ -96,6 +97,19 @@ export async function GET(req: Request) {
       }
     } catch {
       // ignore
+    }
+
+    if (!gmailEmail) {
+      try {
+        const idToken = String(tokens.id_token || '')
+        const parts = idToken.split('.')
+        if (parts.length === 3) {
+          const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8'))
+          if (payload?.email) gmailEmail = String(payload.email)
+        }
+      } catch {
+        // ignore
+      }
     }
 
     const { error: upsertError } = await supabaseAdmin

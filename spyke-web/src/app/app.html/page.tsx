@@ -7837,6 +7837,38 @@ CONTEXTE UTILISATEUR :
                   <div style={{ fontSize: 14, color: 'var(--gray-700)' }}>
                     Connecté{gmailEmail ? ` : ${gmailEmail}` : ''}
                   </div>
+
+                  {!gmailEmail ? (
+                    <button
+                      className="btn btn-secondary"
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          if (!supabase) throw new Error('Supabase non initialisé')
+                          const { data } = await supabase.auth.getSession()
+                          const token = data.session?.access_token
+                          if (!token) throw new Error('Non connecté')
+
+                          const returnTo = window.location.pathname + window.location.search + window.location.hash
+                          const res = await fetch('/api/gmail/oauth-url', {
+                            method: 'POST',
+                            headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+                            body: JSON.stringify({ returnTo }),
+                          })
+                          const json = await res.json().catch(() => null)
+                          if (!res.ok) throw new Error(json?.error || 'Erreur connexion Gmail')
+                          const url = String(json?.url || '')
+                          if (!url) throw new Error('URL Google manquante')
+                          window.location.href = url
+                        } catch (e: any) {
+                          alert(e?.message || 'Erreur connexion Gmail')
+                        }
+                      }}
+                    >
+                      Afficher mon email
+                    </button>
+                  ) : null}
+
                   <button
                     className="btn btn-danger"
                     type="button"
