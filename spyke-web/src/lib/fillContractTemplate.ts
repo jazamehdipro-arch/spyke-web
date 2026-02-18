@@ -82,6 +82,16 @@ export async function fillContractTemplatePdf(opts: { templateBytes: Uint8Array;
   // Lazy-load pdfjs (ESM) in Node runtime.
   const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs')
 
+  // In Next/Vercel, pdfjs needs an explicit worker URL.
+  // Using `?url` forces Next to emit the worker asset and gives us a resolvable URL.
+  try {
+    const workerUrl = (await import('pdfjs-dist/legacy/build/pdf.worker.mjs?url')).default
+    ;(pdfjs as any).GlobalWorkerOptions = (pdfjs as any).GlobalWorkerOptions || {}
+    ;(pdfjs as any).GlobalWorkerOptions.workerSrc = workerUrl
+  } catch {
+    // Best-effort: if this fails, pdfjs may still work in some environments.
+  }
+
   const loadingTask = (pdfjs as any).getDocument({
     data: opts.templateBytes,
     disableWorker: true,
