@@ -5917,6 +5917,12 @@ CONTEXTE UTILISATEUR :
           background: var(--gray-100);
           cursor: help;
           user-select: none;
+
+          /* Fix baseline/line-box oddities that can visually shift the badge */
+          vertical-align: middle;
+          flex: 0 0 auto;
+          margin: 0;
+          padding: 0;
         }
 
         .tooltip::after {
