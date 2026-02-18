@@ -7706,6 +7706,39 @@ CONTEXTE UTILISATEUR :
             </div>
 
             <div className="form-section" style={{ marginTop: 24 }}>
+              <div className="form-section-title">Connexion Gmail</div>
+              <p style={{ marginBottom: 12, color: 'var(--gray-600)' }}>
+                Connectez votre boîte Gmail pour pouvoir envoyer des devis/factures/contrats directement depuis Spyke.
+              </p>
+              <button
+                className="btn btn-primary"
+                type="button"
+                onClick={async () => {
+                  try {
+                    if (!supabase) throw new Error('Supabase non initialisé')
+                    const { data } = await supabase.auth.getSession()
+                    const token = data.session?.access_token
+                    if (!token) throw new Error('Non connecté')
+
+                    const res = await fetch('/api/gmail/oauth-url', {
+                      method: 'POST',
+                      headers: { authorization: `Bearer ${token}` },
+                    })
+                    const json = await res.json().catch(() => null)
+                    if (!res.ok) throw new Error(json?.error || 'Erreur connexion Gmail')
+                    const url = String(json?.url || '')
+                    if (!url) throw new Error('URL Google manquante')
+                    window.location.href = url
+                  } catch (e: any) {
+                    alert(e?.message || 'Erreur connexion Gmail')
+                  }
+                }}
+              >
+                Connecter Gmail
+              </button>
+            </div>
+
+            <div className="form-section" style={{ marginTop: 24 }}>
               <div className="form-section-title">Compte</div>
 
               <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
