@@ -226,8 +226,8 @@ function usePdfMailModals() {
         }
       >
         {mailCompose ? (
-          <div style={{ display: 'grid', gridTemplateColumns: '420px 1fr', gap: 12, height: '100%', padding: 12 }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div className="mail-compose-grid">
+            <div className="mail-compose-form">
               <label style={{ fontSize: 12, color: 'rgba(0,0,0,0.7)' }}>
                 À
                 <input
@@ -257,15 +257,9 @@ function usePdfMailModals() {
               </div>
             </div>
 
-            <div style={{ background: '#fff', borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(0,0,0,0.08)' }}>
-              <div style={{ padding: 10, fontSize: 12, borderBottom: '1px solid rgba(0,0,0,0.08)', background: '#f8fafc' }}>
-                Aperçu du PDF
-              </div>
-              <iframe
-                title="pdf-attachment-preview"
-                src={mailCompose.previewUrl || mailCompose.attachmentUrl}
-                style={{ width: '100%', height: 'calc(100% - 42px)', border: 0 }}
-              />
+            <div className="mail-compose-preview">
+              <div className="mail-compose-preview-title">Aperçu du PDF</div>
+              <iframe title="pdf-attachment-preview" src={mailCompose.previewUrl || mailCompose.attachmentUrl} className="mail-compose-preview-iframe" />
             </div>
           </div>
         ) : null}
@@ -1212,8 +1206,8 @@ Réponds uniquement par le texte de la description.`
       // Persist quote in DB for chain devis → facture/contrat
       try {
         if (userId) {
-          // Find client_id when possible
-          const client_id = clientChoice.mode === 'existing' ? clientChoice.id : null
+          // Find client_id when possible (avoid empty-string which breaks uuid casting)
+          const client_id = clientChoice.mode === 'existing' && clientChoice.id ? clientChoice.id : null
 
           // Enforce unique quote number per user (no duplicates)
           const { data: existing, error: existingErr } = await supabase
@@ -5869,6 +5863,58 @@ CONTEXTE UTILISATEUR :
         .btn svg {
           width: 18px;
           height: 18px;
+        }
+
+        /* ===== MAIL COMPOSE MODAL (responsive) ===== */
+        .mail-compose-grid {
+          display: grid;
+          grid-template-columns: 420px 1fr;
+          gap: 12px;
+          height: 100%;
+          padding: 12px;
+        }
+
+        .mail-compose-form {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+          min-width: 0;
+        }
+
+        .mail-compose-preview {
+          background: #fff;
+          border-radius: 12px;
+          overflow: hidden;
+          border: 1px solid rgba(0, 0, 0, 0.08);
+          min-width: 0;
+        }
+
+        .mail-compose-preview-title {
+          padding: 10px;
+          font-size: 12px;
+          border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+          background: #f8fafc;
+        }
+
+        .mail-compose-preview-iframe {
+          width: 100%;
+          height: calc(100% - 42px);
+          border: 0;
+        }
+
+        @media (max-width: 768px) {
+          .mail-compose-grid {
+            grid-template-columns: 1fr;
+            padding: 10px;
+          }
+
+          .mail-compose-preview {
+            height: 38vh;
+          }
+
+          .mail-compose-preview-iframe {
+            height: calc(38vh - 42px);
+          }
         }
 
         /* ===== IMPORT TOOLBAR (PDF / PHOTO) ===== */
