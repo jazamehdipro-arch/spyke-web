@@ -1004,9 +1004,11 @@ export default function OnboardingPage() {
                         window.location.href = 'connexion.html'
                         return
                       }
+                      const returnTo = window.location.pathname + window.location.search + window.location.hash
                       const res = await fetch('/api/gmail/oauth-url', {
                         method: 'POST',
-                        headers: { Authorization: `Bearer ${accessToken}` },
+                        headers: { Authorization: `Bearer ${accessToken}`, 'content-type': 'application/json' },
+                        body: JSON.stringify({ returnTo }),
                       })
                       const json = await res.json().catch(() => null)
                       if (!res.ok) {

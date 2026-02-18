@@ -7814,9 +7814,11 @@ CONTEXTE UTILISATEUR :
                     const token = data.session?.access_token
                     if (!token) throw new Error('Non connecté')
 
+                    const returnTo = window.location.pathname + window.location.search + window.location.hash
                     const res = await fetch('/api/gmail/oauth-url', {
                       method: 'POST',
-                      headers: { authorization: `Bearer ${token}` },
+                      headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+                      body: JSON.stringify({ returnTo }),
                     })
                     const json = await res.json().catch(() => null)
                     if (!res.ok) throw new Error(json?.error || 'Erreur connexion Gmail')
