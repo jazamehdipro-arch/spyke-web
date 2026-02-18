@@ -4900,6 +4900,7 @@ export default function AppHtmlPage() {
   const [loading, setLoading] = useState(false)
   const [userId, setUserId] = useState<string | null>(null)
   const [gmailConnected, setGmailConnected] = useState<boolean>(false)
+  const [gmailEmail, setGmailEmail] = useState<string>('')
 
   const supabase = useMemo(() => {
     try {
@@ -4970,17 +4971,20 @@ export default function AppHtmlPage() {
       }
       const { data, error } = await supabase
         .from('google_gmail_tokens')
-        .select('user_id')
+        .select('user_id,gmail_email')
         .eq('user_id', userId)
         .maybeSingle()
 
       if (error) {
         // Don't block the app if schema isn't ready; just consider Gmail not connected.
         setGmailConnected(false)
+        setGmailEmail('')
         return
       }
 
-      setGmailConnected(Boolean((data as any)?.user_id))
+      const connected = Boolean((data as any)?.user_id)
+      setGmailConnected(connected)
+      setGmailEmail(connected ? String((data as any)?.gmail_email || '') : '')
     })()
   }, [supabase, userId])
 
@@ -7829,9 +7833,40 @@ CONTEXTE UTILISATEUR :
                 Connectez votre boîte Gmail pour pouvoir envoyer des devis/factures/contrats directement depuis Spyke.
               </p>
               {gmailConnected ? (
-                <button className="btn btn-secondary" type="button" disabled>
-                  Gmail connecté
-                </button>
+                <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <div style={{ fontSize: 14, color: 'var(--gray-700)' }}>
+                    Connecté{gmailEmail ? ` : ${gmailEmail}` : ''}
+                  </div>
+                  <button
+                    className="btn btn-danger"
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        if (!supabase) throw new Error('Supabase non initialisé')
+                        const { data } = await supabase.auth.getSession()
+                        const token = data.session?.access_token
+                        if (!token) throw new Error('Non connecté')
+
+                        const ok = confirm('Déconnecter Gmail ? Vous ne pourrez plus envoyer depuis Spyke tant que ce n\'est pas reconnecté.')
+                        if (!ok) return
+
+                        const res = await fetch('/api/gmail/disconnect', {
+                          method: 'POST',
+                          headers: { authorization: `Bearer ${token}` },
+                        })
+                        const json = await res.json().catch(() => null)
+                        if (!res.ok) throw new Error(json?.error || 'Erreur déconnexion Gmail')
+
+                        setGmailConnected(false)
+                        setGmailEmail('')
+                      } catch (e: any) {
+                        alert(e?.message || 'Erreur déconnexion Gmail')
+                      }
+                    }}
+                  >
+                    Déconnecter
+                  </button>
+                </div>
               ) : (
                 <button
                   className="btn btn-primary"

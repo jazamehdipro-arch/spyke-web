@@ -98,7 +98,8 @@ export async function POST(req: Request) {
     const url = oauth2.generateAuthUrl({
       access_type: 'offline',
       prompt: 'consent',
-      scope: ['https://www.googleapis.com/auth/gmail.send'],
+      // Ask for Gmail send + the user's email address (for display in UI)
+      scope: ['https://www.googleapis.com/auth/gmail.send', 'openid', 'email'],
       state,
       include_granted_scopes: true,
     })

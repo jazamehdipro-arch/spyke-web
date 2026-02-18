@@ -83,6 +83,21 @@ export async function GET(req: Request) {
 
     const expiresAt = tokens.expiry_date ? new Date(tokens.expiry_date).toISOString() : null
 
+    // Best-effort: retrieve the Gmail account email for display.
+    let gmailEmail: string | null = null
+    try {
+      const at = String(tokens.access_token || '')
+      if (at) {
+        const r = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+          headers: { Authorization: `Bearer ${at}` },
+        })
+        const j: any = await r.json().catch(() => null)
+        if (r.ok && j?.email) gmailEmail = String(j.email)
+      }
+    } catch {
+      // ignore
+    }
+
     const { error: upsertError } = await supabaseAdmin
       .from('google_gmail_tokens')
       .upsert(
@@ -91,6 +106,7 @@ export async function GET(req: Request) {
           refresh_token: refreshToken,
           access_token: tokens.access_token || null,
           expires_at: expiresAt,
+          gmail_email: gmailEmail,
           updated_at: new Date().toISOString(),
         },
         { onConflict: 'user_id' }

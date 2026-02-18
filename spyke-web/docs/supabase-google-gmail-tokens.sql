@@ -6,8 +6,13 @@ create table if not exists public.google_gmail_tokens (
   refresh_token text not null,
   access_token text,
   expires_at timestamptz,
+  gmail_email text,
   updated_at timestamptz not null default now()
 );
+
+-- If the table already exists, ensure the email column exists too.
+alter table public.google_gmail_tokens
+  add column if not exists gmail_email text;
 
 alter table public.google_gmail_tokens enable row level security;
 
