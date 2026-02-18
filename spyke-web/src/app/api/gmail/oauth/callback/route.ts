@@ -25,8 +25,9 @@ function verifyState(state: string, secret: string): any {
 }
 
 export async function GET(req: Request) {
+  let url: URL | null = null
   try {
-    const url = new URL(req.url)
+    url = new URL(req.url)
     const code = url.searchParams.get('code')
     const state = url.searchParams.get('state')
     const error = url.searchParams.get('error')
@@ -39,8 +40,13 @@ export async function GET(req: Request) {
       return NextResponse.redirect(new URL(`/onboarding.html?gmail=error&reason=missing_params`, url.origin))
     }
 
-    const stateSecret = requireEnv('GMAIL_OAUTH_STATE_SECRET')
-    const st = verifyState(state, stateSecret)
+    let st: any
+    try {
+      const stateSecret = requireEnv('GMAIL_OAUTH_STATE_SECRET')
+      st = verifyState(state, stateSecret)
+    } catch {
+      return NextResponse.redirect(new URL(`/onboarding.html?gmail=error&reason=invalid_state`, url.origin))
+    }
 
     const googleClientId = requireEnv('GOOGLE_CLIENT_ID')
     const googleClientSecret = requireEnv('GOOGLE_CLIENT_SECRET')
@@ -52,7 +58,14 @@ export async function GET(req: Request) {
       redirectUri: gmailRedirectUri,
     })
 
-    const { tokens } = await oauth2.getToken(code)
+    let tokens: any
+    try {
+      const r = await oauth2.getToken(code)
+      tokens = r.tokens
+    } catch {
+      return NextResponse.redirect(new URL(`/onboarding.html?gmail=error&reason=token_exchange_failed`, url.origin))
+    }
+
     const refreshToken = tokens.refresh_token
 
     // If the user already consented before, Google may omit refresh_token.
@@ -83,7 +96,9 @@ export async function GET(req: Request) {
         { onConflict: 'user_id' }
       )
 
-    if (upsertError) throw upsertError
+    if (upsertError) {
+      return NextResponse.redirect(new URL(`/onboarding.html?gmail=error&reason=supabase_upsert_failed`, url.origin))
+    }
 
     // If user already completed onboarding, don't send them back to onboarding.
     const { data: profile } = await supabaseAdmin
@@ -102,11 +117,18 @@ export async function GET(req: Request) {
     const redirectTo = returnTo ? `${returnTo}${returnTo.includes('?') ? '&' : '?'}gmail=connected` : fallback
 
     return NextResponse.redirect(new URL(redirectTo, url.origin))
-  } catch {
-    // Do not leak sensitive info
+  } catch (e: any) {
+    // server-side log for Vercel (no secrets)
+    try {
+      console.error('gmail oauth callback failed', {
+        message: String(e?.message || e || ''),
+        name: String(e?.name || ''),
+      })
+    } catch {}
+
     const origin = (() => {
       try {
-        return new URL(req.url).origin
+        return (url || new URL(req.url)).origin
       } catch {
         return 'https://www.spykeapp.fr'
       }
