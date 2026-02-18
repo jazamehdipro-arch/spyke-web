@@ -3,6 +3,283 @@
 import { useEffect, useMemo, useState } from 'react'
 import { getSupabase } from '@/lib/supabaseClient'
 
+function ModalShell({
+  open,
+  title,
+  onClose,
+  children,
+  footer,
+}: {
+  open: boolean
+  title: string
+  onClose: () => void
+  children: any
+  footer?: any
+}) {
+  useEffect(() => {
+    if (!open) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [open, onClose])
+
+  if (!open) return null
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(0,0,0,0.55)',
+        zIndex: 500,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 16,
+      }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose()
+      }}
+    >
+      <div
+        style={{
+          background: '#fff',
+          borderRadius: 16,
+          width: 'min(1100px, 96vw)',
+          height: 'min(86vh, 900px)',
+          overflow: 'hidden',
+          boxShadow: '0 30px 90px rgba(0,0,0,0.35)',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
+        <div
+          style={{
+            padding: '12px 14px',
+            borderBottom: '1px solid rgba(0,0,0,0.08)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 12,
+          }}
+        >
+          <div style={{ fontSize: 14, fontWeight: 700, color: 'rgba(0,0,0,0.85)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {title}
+          </div>
+          <button className="btn btn-secondary" type="button" onClick={onClose}>
+            Fermer
+          </button>
+        </div>
+
+        <div style={{ flex: 1, background: '#f8fafc' }}>{children}</div>
+
+        {footer ? (
+          <div style={{ padding: 12, borderTop: '1px solid rgba(0,0,0,0.08)', background: '#fff' }}>{footer}</div>
+        ) : null}
+      </div>
+    </div>
+  )
+}
+
+function usePdfMailModals() {
+  const [pdfPreview, setPdfPreview] = useState<null | { url: string; filename: string }>(null)
+  const [mailCompose, setMailCompose] = useState<null | {
+    to: string
+    subject: string
+    text: string
+    attachmentUrl: string
+    attachmentFilename: string
+    token: string
+    previewUrl?: string
+  }>(null)
+  const [mailSending, setMailSending] = useState(false)
+
+  useEffect(() => {
+    return () => {
+      if (pdfPreview?.url?.startsWith('blob:')) {
+        try {
+          URL.revokeObjectURL(pdfPreview.url)
+        } catch {}
+      }
+    }
+  }, [pdfPreview])
+
+  function openPdfPreviewFromBlob(blob: Blob, filename: string) {
+    const url = URL.createObjectURL(blob)
+    setPdfPreview({ url, filename })
+  }
+
+  async function openMailComposeWithAttachment(opts: {
+    kind: 'devis' | 'contrat' | 'facture'
+    to: string
+    subject: string
+    text: string
+    getBlob: () => Promise<{ blob: Blob; token: string }>
+    filename: string
+  }) {
+    const { blob, token } = await opts.getBlob()
+
+    const fd = new FormData()
+    fd.set('type', opts.kind)
+    fd.set('file', new File([blob], opts.filename, { type: 'application/pdf' }))
+
+    const up = await fetch('/api/share-upload', {
+      method: 'POST',
+      headers: { authorization: 'Bearer ' + token },
+      body: fd,
+    })
+    const json = await up.json().catch(() => null)
+    if (!up.ok) throw new Error((json as any)?.error || 'Upload échoué')
+    const url = String((json as any)?.url || '')
+    if (!url) throw new Error('Lien de partage vide')
+
+    setMailCompose({
+      to: opts.to,
+      subject: opts.subject,
+      text: opts.text,
+      attachmentUrl: url,
+      attachmentFilename: opts.filename,
+      token,
+      previewUrl: url,
+    })
+  }
+
+  async function sendMailNow() {
+    if (!mailCompose) return
+    try {
+      setMailSending(true)
+      const res = await fetch('/api/gmail/send', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          authorization: 'Bearer ' + mailCompose.token,
+        },
+        body: JSON.stringify({
+          to: mailCompose.to,
+          subject: mailCompose.subject,
+          text: mailCompose.text,
+          attachmentUrl: mailCompose.attachmentUrl,
+          attachmentFilename: mailCompose.attachmentFilename,
+        }),
+      })
+      const json = await res.json().catch(() => null)
+      if (!res.ok) throw new Error((json as any)?.error || 'Envoi Gmail échoué')
+      alert('Email envoyé')
+      setMailCompose(null)
+    } catch (e: any) {
+      alert(e?.message || 'Erreur envoi Gmail')
+    } finally {
+      setMailSending(false)
+    }
+  }
+
+  const modals = (
+    <>
+      <ModalShell
+        open={!!pdfPreview}
+        title={pdfPreview?.filename || 'Aperçu PDF'}
+        onClose={() =>
+          setPdfPreview((prev) => {
+            if (prev?.url?.startsWith('blob:')) {
+              try {
+                URL.revokeObjectURL(prev.url)
+              } catch {}
+            }
+            return null
+          })
+        }
+        footer={
+          pdfPreview ? (
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+              <a className="btn btn-secondary" href={pdfPreview.url} download={pdfPreview.filename}>
+                Télécharger
+              </a>
+              <button className="btn btn-primary" type="button" onClick={() => setPdfPreview(null)}>
+                OK
+              </button>
+            </div>
+          ) : null
+        }
+      >
+        {pdfPreview ? (
+          <iframe title="pdf-preview" src={pdfPreview.url} style={{ width: '100%', height: '100%', border: 0 }} />
+        ) : null}
+      </ModalShell>
+
+      <ModalShell
+        open={!!mailCompose}
+        title={mailCompose ? `Envoyer par email` : 'Envoyer par email'}
+        onClose={() => setMailCompose(null)}
+        footer={
+          mailCompose ? (
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+              <button className="btn btn-secondary" type="button" onClick={() => setMailCompose(null)} disabled={mailSending}>
+                Annuler
+              </button>
+              <button className="btn btn-primary" type="button" onClick={sendMailNow} disabled={mailSending}>
+                {mailSending ? 'Envoi…' : 'Envoyer'}
+              </button>
+            </div>
+          ) : null
+        }
+      >
+        {mailCompose ? (
+          <div style={{ display: 'grid', gridTemplateColumns: '420px 1fr', gap: 12, height: '100%', padding: 12 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <label style={{ fontSize: 12, color: 'rgba(0,0,0,0.7)' }}>
+                À
+                <input
+                  value={mailCompose.to}
+                  onChange={(e) => setMailCompose({ ...mailCompose, to: e.target.value })}
+                  style={{ width: '100%', marginTop: 6, padding: '10px 12px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.12)' }}
+                />
+              </label>
+              <label style={{ fontSize: 12, color: 'rgba(0,0,0,0.7)' }}>
+                Objet
+                <input
+                  value={mailCompose.subject}
+                  onChange={(e) => setMailCompose({ ...mailCompose, subject: e.target.value })}
+                  style={{ width: '100%', marginTop: 6, padding: '10px 12px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.12)' }}
+                />
+              </label>
+              <label style={{ fontSize: 12, color: 'rgba(0,0,0,0.7)', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                Message
+                <textarea
+                  value={mailCompose.text}
+                  onChange={(e) => setMailCompose({ ...mailCompose, text: e.target.value })}
+                  style={{ width: '100%', marginTop: 6, padding: '10px 12px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.12)', resize: 'none', flex: 1 }}
+                />
+              </label>
+              <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.6)' }}>
+                Pièce jointe : <b>{mailCompose.attachmentFilename}</b>
+              </div>
+            </div>
+
+            <div style={{ background: '#fff', borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(0,0,0,0.08)' }}>
+              <div style={{ padding: 10, fontSize: 12, borderBottom: '1px solid rgba(0,0,0,0.08)', background: '#f8fafc' }}>
+                Aperçu du PDF
+              </div>
+              <iframe
+                title="pdf-attachment-preview"
+                src={mailCompose.previewUrl || mailCompose.attachmentUrl}
+                style={{ width: '100%', height: 'calc(100% - 42px)', border: 0 }}
+              />
+            </div>
+          </div>
+        ) : null}
+      </ModalShell>
+    </>
+  )
+
+  return {
+    openPdfPreviewFromBlob,
+    openMailComposeWithAttachment,
+    modals,
+  }
+}
+
 type DevisClientChoice =
   | { mode: 'existing'; id: string }
   | { mode: 'new'; name: string; siret?: string; address?: string; postalCode?: string; city?: string }
@@ -92,6 +369,8 @@ function DevisV4({
       return null
     }
   }, [])
+
+  const { openPdfPreviewFromBlob, openMailComposeWithAttachment, modals } = usePdfMailModals()
 
   const today = useMemo(() => {
     const d = new Date()
@@ -755,26 +1034,6 @@ Réponds uniquement par le texte de la description.`
 
   async function sendDevisByEmail() {
     try {
-      const { blob, token } = await generateDevisPdfBlob()
-
-      const fd = new FormData()
-      fd.set('type', 'devis')
-      fd.set('file', new File([blob], 'Devis-' + String(quoteNumber || 'Spyke') + '.pdf', { type: 'application/pdf' }))
-
-      const up = await fetch('/api/share-upload', {
-        method: 'POST',
-        headers: { authorization: 'Bearer ' + token },
-        body: fd,
-      })
-      const json = await up.json().catch(() => null)
-      if (!up.ok) throw new Error((json as any)?.error || 'Upload échoué')
-      const url = String((json as any)?.url || '')
-      if (!url) throw new Error('Lien de partage vide')
-
-      try {
-        await navigator.clipboard.writeText(url)
-      } catch {}
-
       let to = ''
       try {
         if (clientChoice.mode === 'existing') {
@@ -785,15 +1044,14 @@ Réponds uniquement par le texte de la description.`
         }
       } catch {}
 
-      const mailto = 'mailto:' + encodeURIComponent(to) + '?body=' + encodeURIComponent(url)
-      window.location.href = mailto
-
-      // fallback: open Gmail composer too (if no default mail app configured)
-      const gmail =
-        'https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(to) + '&body=' + encodeURIComponent(url)
-      try {
-        window.open(gmail, '_blank', 'noopener,noreferrer')
-      } catch {}
+      await openMailComposeWithAttachment({
+        kind: 'devis',
+        to,
+        subject: `Devis ${String(quoteNumber || '').trim() || 'Spyke'}`,
+        text: `Bonjour,\n\nVeuillez trouver ci-joint votre devis.\n\nCordialement,\n${userFullName || ''}`.trim(),
+        getBlob: generateDevisPdfBlob,
+        filename: 'Devis-' + String(quoteNumber || 'Spyke') + '.pdf',
+      })
     } catch (e: any) {
       alert(e?.message || 'Erreur envoi mail')
     }
@@ -1057,14 +1315,7 @@ Réponds uniquement par le texte de la description.`
         alert(`PDF généré, mais sauvegarde en base impossible: ${e?.message || 'Erreur Supabase'}`)
       }
 
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `Devis-${quoteNumber}.pdf`
-      document.body.appendChild(a)
-      a.click()
-      a.remove()
-      URL.revokeObjectURL(url)
+      openPdfPreviewFromBlob(blob, `Devis-${quoteNumber}.pdf`)
     } catch (e: any) {
       alert(e?.message || 'Erreur PDF')
     }
@@ -2289,6 +2540,7 @@ Réponds uniquement par le texte de la description.`
           </div>
         </div>
       ) : null}
+    {modals}
     </div>
   )
 }
@@ -2326,6 +2578,8 @@ function ContratsV1({
       return null
     }
   }, [])
+
+  const { openPdfPreviewFromBlob, openMailComposeWithAttachment, modals } = usePdfMailModals()
 
   const today = useMemo(() => {
     const d = new Date()
@@ -2864,31 +3118,15 @@ function ContratsV1({
 
   async function sendContractByEmail() {
     try {
-      const { blob, token } = await generateContractPdfBlob()
-
-      const fd = new FormData()
-      fd.set('type', 'contrat')
-      fd.set('file', new File([blob], 'Contrat-' + String(contractNumber || 'Spyke') + '.pdf', { type: 'application/pdf' }))
-
-      const up = await fetch('/api/share-upload', {
-        method: 'POST',
-        headers: { authorization: 'Bearer ' + token },
-        body: fd,
-      })
-      const json = await up.json().catch(() => null)
-      if (!up.ok) throw new Error((json as any)?.error || 'Upload échoué')
-      const url = String((json as any)?.url || '')
-      if (!url) throw new Error('Lien de partage vide')
-
-      try { await navigator.clipboard.writeText(url) } catch {}
-
       const to = String(clientEmail || '')
-      const mailto = 'mailto:' + encodeURIComponent(to) + '?body=' + encodeURIComponent(url)
-      window.location.href = mailto
-
-      const gmail =
-        'https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(to) + '&body=' + encodeURIComponent(url)
-      try { window.open(gmail, '_blank', 'noopener,noreferrer') } catch {}
+      await openMailComposeWithAttachment({
+        kind: 'contrat',
+        to,
+        subject: `Contrat ${String(contractNumber || '').trim() || 'Spyke'}`,
+        text: `Bonjour,\n\nVeuillez trouver ci-joint le contrat.\n\nCordialement,\n${userFullName || ''}`.trim(),
+        getBlob: generateContractPdfBlob,
+        filename: 'Contrat-' + String(contractNumber || 'Spyke') + '.pdf',
+      })
     } catch (e: any) {
       alert(e?.message || 'Erreur envoi mail')
     }
@@ -3094,14 +3332,7 @@ function ContratsV1({
       const blob = await res.blob()
       if (!res.ok) throw new Error((await blob.text()) || 'Erreur PDF')
 
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `Contrat-${new Date().toISOString().slice(0, 10)}.pdf`
-      document.body.appendChild(a)
-      a.click()
-      a.remove()
-      URL.revokeObjectURL(url)
+      openPdfPreviewFromBlob(blob, `Contrat-${new Date().toISOString().slice(0, 10)}.pdf`)
     } catch (e: any) {
       alert(e?.message || 'Erreur PDF')
     }
@@ -3611,6 +3842,7 @@ function ContratsV1({
       </div>
         </>
       )}
+    {modals}
     </div>
   )
 }
@@ -3633,6 +3865,8 @@ function FacturesV1({
       return null
     }
   }, [])
+
+  const { openPdfPreviewFromBlob, openMailComposeWithAttachment, modals } = usePdfMailModals()
 
   const today = useMemo(() => {
     const d = new Date()
@@ -3990,31 +4224,15 @@ function FacturesV1({
 
   async function sendInvoiceByEmail() {
     try {
-      const { blob, token } = await generateInvoicePdfBlob()
-
-      const fd = new FormData()
-      fd.set('type', 'facture')
-      fd.set('file', new File([blob], 'Facture-' + String(invoiceNumber || 'Spyke') + '.pdf', { type: 'application/pdf' }))
-
-      const up = await fetch('/api/share-upload', {
-        method: 'POST',
-        headers: { authorization: 'Bearer ' + token },
-        body: fd,
-      })
-      const json = await up.json().catch(() => null)
-      if (!up.ok) throw new Error((json as any)?.error || 'Upload échoué')
-      const url = String((json as any)?.url || '')
-      if (!url) throw new Error('Lien de partage vide')
-
-      try { await navigator.clipboard.writeText(url) } catch {}
-
       const to = String((buyer as any)?.email || '')
-      const mailto = 'mailto:' + encodeURIComponent(to) + '?body=' + encodeURIComponent(url)
-      window.location.href = mailto
-
-      const gmail =
-        'https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(to) + '&body=' + encodeURIComponent(url)
-      try { window.open(gmail, '_blank', 'noopener,noreferrer') } catch {}
+      await openMailComposeWithAttachment({
+        kind: 'facture',
+        to,
+        subject: `Facture ${String(invoiceNumber || '').trim() || 'Spyke'}`,
+        text: `Bonjour,\n\nVeuillez trouver ci-joint votre facture.\n\nCordialement,\n${userFullName || ''}`.trim(),
+        getBlob: generateInvoicePdfBlob,
+        filename: 'Facture-' + String(invoiceNumber || 'Spyke') + '.pdf',
+      })
     } catch (e: any) {
       alert(e?.message || 'Erreur envoi mail')
     }
@@ -4222,14 +4440,7 @@ function FacturesV1({
         alert(`PDF généré, mais sauvegarde de la facture en base impossible: ${e?.message || 'Erreur Supabase'}`)
       }
 
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `Facture-${invoiceNumber}.pdf`
-      document.body.appendChild(a)
-      a.click()
-      a.remove()
-      URL.revokeObjectURL(url)
+      openPdfPreviewFromBlob(blob, `Facture-${invoiceNumber}.pdf`)
     } catch (e: any) {
       alert(e?.message || 'Erreur PDF')
     }
@@ -4857,6 +5068,7 @@ function FacturesV1({
           </div>
         </>
       )}
+    {modals}
     </div>
   )
 }
@@ -8381,6 +8593,7 @@ CONTEXTE UTILISATEUR :
           </div>
         </div>
       </div>
+
     </>
   )
 }
