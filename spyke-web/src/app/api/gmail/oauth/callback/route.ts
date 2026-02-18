@@ -97,7 +97,21 @@ export async function GET(req: Request) {
       )
 
     if (upsertError) {
-      return NextResponse.redirect(new URL(`/onboarding.html?gmail=error&reason=supabase_upsert_failed`, url.origin))
+      // Log error details server-side (no secrets)
+      try {
+        console.error('gmail token upsert failed', {
+          code: (upsertError as any)?.code,
+          message: (upsertError as any)?.message,
+          details: (upsertError as any)?.details,
+          hint: (upsertError as any)?.hint,
+        })
+      } catch {}
+
+      const code = encodeURIComponent(String((upsertError as any)?.code || ''))
+      const msg = encodeURIComponent(String((upsertError as any)?.message || ''))
+      return NextResponse.redirect(
+        new URL(`/onboarding.html?gmail=error&reason=supabase_upsert_failed&code=${code}&msg=${msg}`, url.origin)
+      )
     }
 
     // If user already completed onboarding, don't send them back to onboarding.
