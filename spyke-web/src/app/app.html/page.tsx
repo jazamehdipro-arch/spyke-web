@@ -5157,6 +5157,13 @@ export default function AppHtmlPage() {
   const [assistantOutput, setAssistantOutput] = useState<string>('')
   const [assistantSending, setAssistantSending] = useState<boolean>(false)
 
+  // Help chat widget (persistent)
+  const [helpOpen, setHelpOpen] = useState<boolean>(false)
+  const [helpMessages, setHelpMessages] = useState<Array<{ id: string; role: 'user' | 'assistant'; content: string; created_at: string }>>([])
+  const [helpInput, setHelpInput] = useState<string>('')
+  const [helpLoading, setHelpLoading] = useState<boolean>(false)
+  const [helpError, setHelpError] = useState<string>('')
+
   // Dashboard data
   const [dashboardQuotes, setDashboardQuotes] = useState<any[]>([])
   const [dashboardInvoices, setDashboardInvoices] = useState<any[]>([])
@@ -5201,6 +5208,13 @@ export default function AppHtmlPage() {
     })()
   }, [supabase, userId])
 
+  // Help chat: load history when opened
+  useEffect(() => {
+    if (!helpOpen) return
+    loadHelpHistory()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [helpOpen])
+
   // Ensure authenticated session for the app
   useEffect(() => {
     ;(async () => {
@@ -5213,6 +5227,59 @@ export default function AppHtmlPage() {
       setUserId(data.session.user.id)
     })()
   }, [supabase])
+
+  async function loadHelpHistory() {
+    try {
+      setHelpError('')
+      if (!supabase) return
+      const { data: s } = await supabase.auth.getSession()
+      const token = s.session?.access_token
+      if (!token) return
+
+      const res = await fetch('/api/help-chat', {
+        method: 'GET',
+        headers: { authorization: `Bearer ${token}` },
+      })
+      const json = await res.json().catch(() => null)
+      if (!res.ok) throw new Error(json?.error || `Erreur historique (${res.status})`)
+      setHelpMessages((json?.messages || []) as any[])
+    } catch (e: any) {
+      setHelpError(e?.message || 'Erreur historique')
+    }
+  }
+
+  async function sendHelpMessage() {
+    try {
+      const content = helpInput.trim()
+      if (!content) return
+      setHelpInput('')
+      setHelpError('')
+      setHelpLoading(true)
+
+      if (!supabase) throw new Error('Supabase non initialisé')
+      const { data: s } = await supabase.auth.getSession()
+      const token = s.session?.access_token
+      if (!token) throw new Error('Non connecté')
+
+      // optimistic append
+      const tmpId = `tmp_${Date.now()}`
+      const nowIso = new Date().toISOString()
+      setHelpMessages((prev) => [...prev, { id: tmpId, role: 'user', content, created_at: nowIso } as any])
+
+      const res = await fetch('/api/help-chat', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+        body: JSON.stringify({ message: content }),
+      })
+      const json = await res.json().catch(() => null)
+      if (!res.ok) throw new Error(json?.error || `Erreur chat (${res.status})`)
+      setHelpMessages((json?.messages || []) as any[])
+    } catch (e: any) {
+      setHelpError(e?.message || 'Erreur chat')
+    } finally {
+      setHelpLoading(false)
+    }
+  }
 
   // Load profile + clients
   useEffect(() => {
@@ -5977,6 +6044,136 @@ CONTEXTE UTILISATEUR :
 
           .mail-compose-preview-iframe {
             height: calc(38vh - 42px);
+          }
+        }
+
+        /* ===== HELP CHAT WIDGET ===== */
+        .help-fab {
+          position: fixed;
+          left: 18px;
+          bottom: 18px;
+          z-index: 200;
+          width: 46px;
+          height: 46px;
+          border-radius: 999px;
+          border: 2px solid rgba(0, 0, 0, 0.12);
+          background: var(--yellow);
+          color: var(--black);
+          font-weight: 900;
+          font-size: 18px;
+          box-shadow: 0 12px 26px rgba(0, 0, 0, 0.18);
+        }
+
+        .help-drawer {
+          position: fixed;
+          left: 18px;
+          bottom: 74px;
+          z-index: 201;
+          width: 360px;
+          max-width: calc(100vw - 36px);
+          height: 520px;
+          max-height: calc(100vh - 120px);
+          background: #fff;
+          border: 1px solid rgba(0, 0, 0, 0.12);
+          border-radius: 16px;
+          box-shadow: 0 24px 60px rgba(0, 0, 0, 0.25);
+          overflow: hidden;
+          display: none;
+        }
+
+        .help-drawer.open {
+          display: flex;
+          flex-direction: column;
+        }
+
+        .help-drawer-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 12px 12px;
+          border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+          background: #fff;
+          gap: 10px;
+        }
+
+        .help-drawer-title {
+          font-weight: 800;
+        }
+
+        .help-drawer-subtitle {
+          font-size: 12px;
+          color: rgba(0, 0, 0, 0.55);
+          margin-top: 2px;
+        }
+
+        .help-drawer-body {
+          flex: 1;
+          padding: 12px;
+          overflow: auto;
+          background: #fafafa;
+        }
+
+        .help-drawer-footer {
+          display: flex;
+          gap: 10px;
+          padding: 12px;
+          border-top: 1px solid rgba(0, 0, 0, 0.08);
+          background: #fff;
+        }
+
+        .help-msg {
+          display: flex;
+          margin-bottom: 10px;
+        }
+
+        .help-msg.user {
+          justify-content: flex-end;
+        }
+
+        .help-bubble {
+          max-width: 92%;
+          padding: 10px 12px;
+          border-radius: 14px;
+          border: 1px solid rgba(0, 0, 0, 0.08);
+          background: #fff;
+          white-space: pre-wrap;
+          font-size: 14px;
+          line-height: 1.35;
+        }
+
+        .help-msg.user .help-bubble {
+          background: rgba(250, 204, 21, 0.25);
+          border-color: rgba(250, 204, 21, 0.4);
+        }
+
+        .help-empty {
+          color: rgba(0, 0, 0, 0.55);
+          font-size: 13px;
+          padding: 8px;
+        }
+
+        .help-error {
+          color: #b91c1c;
+          background: #fee2e2;
+          border: 1px solid #fecaca;
+          padding: 10px 12px;
+          border-radius: 12px;
+          font-size: 13px;
+          margin-bottom: 12px;
+        }
+
+        @media (max-width: 768px) {
+          .help-drawer {
+            left: 0;
+            bottom: 0;
+            width: 100vw;
+            height: 100vh;
+            max-height: 100vh;
+            border-radius: 0;
+          }
+          .help-fab {
+            left: 14px;
+            bottom: 14px;
           }
         }
 
@@ -7181,6 +7378,21 @@ CONTEXTE UTILISATEUR :
             </svg>
             Assistant IA
           </button>
+
+          <button
+            className="nav-item"
+            onClick={() => {
+              setHelpOpen(true)
+              setMobileNavOpen(false)
+            }}
+          >
+            <svg viewBox="0 0 24 24">
+              <path d="M21 15a2 2 0 01-2 2H8l-5 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+              <path d="M12 7a3 3 0 013 3c0 2-3 2-3 4" />
+              <path d="M12 17h.01" />
+            </svg>
+            Aide (chat)
+          </button>
         </nav>
 
         <div className="sidebar-footer">
@@ -7193,6 +7405,67 @@ CONTEXTE UTILISATEUR :
           </button>
         </div>
       </aside>
+
+      {/* Help chat floating button */}
+      <button
+        className="help-fab"
+        type="button"
+        onClick={() => setHelpOpen(true)}
+        aria-label="Ouvrir l'aide"
+      >
+        ?
+      </button>
+
+      {/* Help chat drawer */}
+      <div className={`help-drawer ${helpOpen ? 'open' : ''}`}>
+        <div className="help-drawer-header">
+          <div>
+            <div className="help-drawer-title">Aide Spyke</div>
+            <div className="help-drawer-subtitle">Pose une question sur l’outil (réponses générales)</div>
+          </div>
+          <button className="btn btn-secondary" type="button" onClick={() => setHelpOpen(false)}>
+            Fermer
+          </button>
+        </div>
+
+        <div className="help-drawer-body" id="help-drawer-body">
+          {helpError ? <div className="help-error">{helpError}</div> : null}
+
+          {helpMessages.length === 0 ? (
+            <div className="help-empty">Ex: “Comment envoyer un devis ?”, “Quelles mentions sur une facture ?”</div>
+          ) : (
+            helpMessages.map((m) => (
+              <div key={m.id} className={`help-msg ${m.role === 'user' ? 'user' : 'assistant'}`}>
+                <div className="help-bubble">{m.content}</div>
+              </div>
+            ))
+          )}
+
+          {helpLoading ? (
+            <div className="help-msg assistant">
+              <div className="help-bubble">…</div>
+            </div>
+          ) : null}
+        </div>
+
+        <form
+          className="help-drawer-footer"
+          onSubmit={(e) => {
+            e.preventDefault()
+            sendHelpMessage()
+          }}
+        >
+          <input
+            className="form-input"
+            placeholder="Écris ta question…"
+            value={helpInput}
+            onChange={(e) => setHelpInput(e.target.value)}
+          />
+          <button className="btn btn-primary" type="submit" disabled={helpLoading || !helpInput.trim()}>
+            Envoyer
+          </button>
+        </form>
+      </div>
 
       {/* Main Content */}
       <main className="main-content">
