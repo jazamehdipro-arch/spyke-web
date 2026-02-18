@@ -972,6 +972,56 @@ export default function OnboardingPage() {
               </div>
 
               <div className="form-group">
+                <label className="form-label">Connexion email</label>
+                <div style={{
+                  display: 'flex',
+                  gap: 12,
+                  alignItems: 'center',
+                  padding: 16,
+                  border: '2px solid var(--gray-200)',
+                  borderRadius: 12,
+                  background: 'var(--gray-50)',
+                  marginBottom: 20,
+                }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 700, marginBottom: 4 }}>Connecter Gmail</div>
+                    <div style={{ fontSize: 13, color: 'var(--gray-500)' }}>
+                      Autorise Spyke à envoyer des devis/factures/contrats depuis votre adresse Gmail (envoi uniquement).
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    style={{ flex: '0 0 auto', padding: '12px 16px', fontSize: 14 }}
+                    onClick={async () => {
+                      if (!supabase) {
+                        alert('Supabase non configuré (env manquantes)')
+                        return
+                      }
+                      const { data } = await supabase.auth.getSession()
+                      const accessToken = data.session?.access_token
+                      if (!accessToken) {
+                        window.location.href = 'connexion.html'
+                        return
+                      }
+                      const res = await fetch('/api/gmail/oauth-url', {
+                        method: 'POST',
+                        headers: { Authorization: `Bearer ${accessToken}` },
+                      })
+                      const json = await res.json().catch(() => null)
+                      if (!res.ok) {
+                        alert(json?.error || `Erreur Gmail (${res.status})`)
+                        return
+                      }
+                      if (json?.url) window.location.href = String(json.url)
+                    }}
+                  >
+                    Connecter
+                  </button>
+                </div>
+              </div>
+
+              <div className="form-group">
                 <label className="form-label">Ton préféré pour les emails</label>
                 <div className="tone-options">
                   <div
