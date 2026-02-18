@@ -618,15 +618,126 @@ Réponds uniquement par le texte de la description.`
     const token = sessionData?.session?.access_token
     if (!token) throw new Error('Non connecté')
 
+    // Seller info from profile (best-effort)
+    let seller: any = {
+      name: userFullName || 'Votre entreprise',
+      addressLines: [],
+      siret: '',
+      vatNumber: '',
+      iban: '',
+      bic: '',
+    }
+
+    if (userId) {
+      try {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('first_name,last_name,job,address,postal_code,city,country,siret,vat_number,iban,bic,logo_path')
+          .eq('id', userId)
+          .maybeSingle()
+
+        const fullName = [String((profile as any)?.first_name || ''), String((profile as any)?.last_name || '')]
+          .filter(Boolean)
+          .join(' ')
+        const companyName = fullName || userFullName || seller.name
+
+        const addressLines: string[] = []
+        const addr = (profile as any)?.address
+        const pc = (profile as any)?.postal_code
+        const city = (profile as any)?.city
+        const country = (profile as any)?.country
+        if (addr) addressLines.push(String(addr))
+        const cityLine = [pc, city].filter(Boolean).join(' ')
+        if (cityLine) addressLines.push(cityLine)
+        if (country) addressLines.push(String(country))
+
+        seller = {
+          ...seller,
+          name: companyName,
+          addressLines,
+          siret: String((profile as any)?.siret || ''),
+          vatNumber: String((profile as any)?.vat_number || ''),
+          iban: String((profile as any)?.iban || ''),
+          bic: String((profile as any)?.bic || ''),
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    // Buyer info from selected client
+    const buyerName = (() => {
+      if (clientChoice.mode === 'existing') {
+        const c: any = clients.find((x) => x.id === clientChoice.id)
+        return String(c?.name || '')
+      }
+      if (clientChoice.mode === 'new') return String((clientChoice as any)?.name || '')
+      return ''
+    })()
+
+    if (!buyerName) throw new Error('Sélectionnez un client')
+
+    const buyer: any = (() => {
+      if (clientChoice.mode === 'existing') {
+        const c: any = clients.find((x) => x.id === clientChoice.id)
+        const addressLines: string[] = []
+        const addr = c?.address
+        const pc = c?.postal_code
+        const city = c?.city
+        const country = c?.country
+        if (addr) addressLines.push(String(addr))
+        const cityLine = [pc, city].filter(Boolean).join(' ')
+        if (cityLine) addressLines.push(cityLine)
+        if (country) addressLines.push(String(country))
+        return {
+          name: String(c?.name || buyerName),
+          addressLines,
+          siret: String(c?.siret || ''),
+        }
+      }
+
+      // new client (best effort)
+      const cc: any = clientChoice as any
+      const addressLines: string[] = []
+      if (cc?.address) addressLines.push(String(cc.address))
+      const cityLine = [cc?.postalCode, cc?.city].filter(Boolean).join(' ')
+      if (cityLine) addressLines.push(cityLine)
+      if (cc?.country) addressLines.push(String(cc.country))
+      return {
+        name: buyerName,
+        addressLines,
+        siret: String(cc?.siret || ''),
+      }
+    })()
+
+    // best-effort logo
+    let logoUrl = ''
+    if (userId) {
+      try {
+        const { data: profile } = await supabase.from('profiles').select('logo_path').eq('id', userId).maybeSingle()
+        const logoPath = String((profile as any)?.logo_path || '')
+        if (logoPath) {
+          const pub = supabase.storage.from('logos').getPublicUrl(logoPath)
+          logoUrl = String(pub?.data?.publicUrl || '')
+        }
+      } catch {}
+    }
+
     const payload: any = {
-      quoteNumber,
-      title,
-      dateIssue,
-      validityDays,
-      depositPercent,
-      paymentDelayDays,
+      quoteNumber: String(quoteNumber || ''),
+      title: String(title || ''),
+      dateIssue: String(dateIssue || ''),
+      validityUntil: String(validityUntil || ''),
+      logoUrl,
+      seller,
+      buyer,
       lines,
       notes,
+      totals: {
+        totalHt: Number(totals.totalHt || 0),
+        totalTva: Number(totals.totalTva || 0),
+        totalTtc: Number(totals.totalTtc || 0),
+      },
     }
 
     const res = await fetch('/api/devis-pdf', {
