@@ -1176,7 +1176,7 @@ Réponds uniquement par le texte de la description.`
           min-height: 80px;
         }
 
-        .devis-v4 .info-box {
+        .info-box {
           background: var(--blue-light);
           border-radius: 10px;
           padding: 14px 16px;
@@ -1186,7 +1186,7 @@ Réponds uniquement par le texte de la description.`
           margin-bottom: 20px;
         }
 
-        .devis-v4 .info-box svg {
+        .info-box svg {
           width: 20px;
           height: 20px;
           stroke: var(--blue);
@@ -1194,7 +1194,7 @@ Réponds uniquement par le texte de la description.`
           margin-top: 2px;
         }
 
-        .devis-v4 .info-box p {
+        .info-box p {
           font-size: 13px;
           color: var(--blue);
           line-height: 1.5;
@@ -3379,38 +3379,13 @@ function ContratsV1({
               </div>
             </details>
 
-            <details className="mobile-accordion" open>
-              <summary className="mobile-accordion-summary">Prestataire (vous)</summary>
-              <div className="mobile-accordion-body">
-                <div className="form-row">
-          <div className="form-group">
-            <label className="form-label">Nom / Raison sociale</label>
-            <input className="form-input" value={prestaName} onChange={(e) => setPrestaName(e.target.value)} />
-          </div>
-          <div className="form-group">
-            <label className="form-label">SIRET</label>
-            <input className="form-input" value={prestaSiret} onChange={(e) => setPrestaSiret(e.target.value)} />
-          </div>
-        </div>
-        <div className="form-row single">
-          <div className="form-group">
-            <label className="form-label">Adresse</label>
-            <input className="form-input" value={prestaAddress} onChange={(e) => setPrestaAddress(e.target.value)} />
-          </div>
-        </div>
-        <div className="form-row">
-          <div className="form-group">
-            <label className="form-label">Activité / Métier</label>
-            <input className="form-input" value={prestaActivity} onChange={(e) => setPrestaActivity(e.target.value)} />
-          </div>
-          <div className="form-group">
-            <label className="form-label">Email</label>
-            <input className="form-input" type="email" value={prestaEmail} onChange={(e) => setPrestaEmail(e.target.value)} />
-          </div>
-        </div>
-
-              </div>
-            </details>
+            <div className="info-box">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 16v-4M12 8h.01" />
+              </svg>
+              <p>Vos informations (nom, adresse, SIRET) sont automatiquement récupérées depuis votre profil.</p>
+            </div>
 
             <details className="mobile-accordion" open>
               <summary className="mobile-accordion-summary">Client</summary>
@@ -4692,6 +4667,14 @@ function FacturesV1({
               }}
             />
             {/* import photo removed */}
+          </div>
+
+          <div className="info-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M12 16v-4M12 8h.01" />
+            </svg>
+            <p>Vos informations (nom, adresse, SIRET) sont automatiquement récupérées depuis votre profil.</p>
           </div>
 
           <div className="card factures-form">
