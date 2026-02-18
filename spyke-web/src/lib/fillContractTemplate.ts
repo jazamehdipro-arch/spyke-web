@@ -83,11 +83,16 @@ export async function fillContractTemplatePdf(opts: { templateBytes: Uint8Array;
   const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs')
 
   // In Next/Vercel, pdfjs needs an explicit worker URL.
-  // Using `?url` forces Next to emit the worker asset and gives us a resolvable URL.
+  // Point it to the worker file inside node_modules via a file:// URL.
+  // This avoids pdfjs trying to import a non-existent bundled chunk path.
   try {
-    const workerUrl = (await import('pdfjs-dist/legacy/build/pdf.worker.mjs?url')).default
+    const { createRequire } = await import('node:module')
+    const { pathToFileURL } = await import('node:url')
+    const require = createRequire(import.meta.url)
+
+    const workerPath = require.resolve('pdfjs-dist/legacy/build/pdf.worker.mjs')
     ;(pdfjs as any).GlobalWorkerOptions = (pdfjs as any).GlobalWorkerOptions || {}
-    ;(pdfjs as any).GlobalWorkerOptions.workerSrc = workerUrl
+    ;(pdfjs as any).GlobalWorkerOptions.workerSrc = pathToFileURL(workerPath).toString()
   } catch {
     // Best-effort: if this fails, pdfjs may still work in some environments.
   }
