@@ -85,8 +85,18 @@ export async function GET(req: Request) {
 
     if (upsertError) throw upsertError
 
-    return NextResponse.redirect(new URL('/onboarding.html?gmail=connected', url.origin))
-  } catch (e: any) {
+    // If user already completed onboarding, don't send them back to onboarding.
+    const { data: profile } = await supabaseAdmin
+      .from('profiles')
+      .select('onboarding_completed')
+      .eq('id', st.userId)
+      .maybeSingle()
+
+    const onboardingDone = Boolean((profile as any)?.onboarding_completed)
+    const redirectTo = onboardingDone ? '/app.html?gmail=connected' : '/onboarding.html?gmail=connected'
+
+    return NextResponse.redirect(new URL(redirectTo, url.origin))
+  } catch {
     // Do not leak sensitive info
     const origin = (() => {
       try {
