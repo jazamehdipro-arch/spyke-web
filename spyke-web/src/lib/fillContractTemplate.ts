@@ -28,6 +28,17 @@ export async function fillContractTemplatePdf(opts: { templateBytes: Uint8Array;
   const pdfDoc = await PDFDocument.load(opts.templateBytes)
   const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica)
 
+  // pdfjs-dist expects DOMMatrix in some Node environments.
+  // Provide a lightweight polyfill when missing.
+  if (typeof (globalThis as any).DOMMatrix === 'undefined') {
+    try {
+      const { DOMMatrix } = await import('dommatrix')
+      ;(globalThis as any).DOMMatrix = DOMMatrix as any
+    } catch {
+      // If polyfill fails, pdfjs may throw "DOMMatrix is not defined".
+    }
+  }
+
   // Lazy-load pdfjs (ESM) in Node runtime.
   const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs')
 
