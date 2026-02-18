@@ -97,44 +97,83 @@ export async function fillContractTemplatePdf(opts: { templateBytes: Uint8Array;
 
     const outPage = pdfDoc.getPage(pageIndex)
 
-    for (const it of items) {
-      const raw = String(it.str || '')
-      const key = norm(raw)
-      if (!key) continue
-      const repl = replacementsNorm[key]
-      if (repl == null) continue
+    // Some placeholders in the template can be split across multiple text items
+    // (e.g. "[NOM" + "PRESTATAIRE]"). We therefore try to match replacements
+    // using 1..N consecutive items.
+    for (let i = 0; i < items.length; i++) {
+      const it0 = items[i]
+      const s0 = String(it0?.str || '')
+      if (!norm(s0)) continue
 
-      const tr = (it.transform || []) as number[]
-      const x = Number(tr[4] ?? NaN)
-      const y = Number(tr[5] ?? NaN)
-      if (!Number.isFinite(x) || !Number.isFinite(y)) continue
+      // Try to match from longest to shortest to avoid partial matches.
+      const maxJoin = 4
+      let matchedLen = 0
+      let matchedValue: string | undefined
 
-      const w = Number(it.width ?? 0)
-      const h = Math.max(Number(it.height ?? 0), 10)
+      for (let len = Math.min(maxJoin, items.length - i); len >= 1; len--) {
+        const parts = [] as string[]
+        for (let j = 0; j < len; j++) {
+          const s = String(items[i + j]?.str || '')
+          if (norm(s)) parts.push(s)
+        }
+        if (!parts.length) continue
 
-      // cover old placeholder
-      outPage.drawRectangle({
-        x,
-        y: y - 2,
-        width: Math.max(w, 10),
-        height: h + 4,
-        color: rgb(1, 1, 1),
-        opacity: 1,
-      })
+        const key = norm(parts.join(' '))
+        const repl = replacementsNorm[key]
+        if (repl != null) {
+          matchedLen = len
+          matchedValue = String(repl)
+          break
+        }
+      }
 
-      // best-effort font size from transform
-      const fontSize = Math.max(9, Math.min(12, Math.abs(Number(tr[0] ?? 10)) || 10))
+      if (!matchedLen || matchedValue == null) continue
 
-      // Draw replacement (truncate if absurdly long)
-      const textValue = String(repl)
-      outPage.drawText(textValue, {
-        x,
-        y,
+      const segs = items.slice(i, i + matchedLen)
+        .map((seg) => {
+          const tr = (seg.transform || []) as number[]
+          const x = Number(tr[4] ?? NaN)
+          const y = Number(tr[5] ?? NaN)
+          const w = Number(seg.width ?? 0)
+          const h = Math.max(Number(seg.height ?? 0), 10)
+          const fontSize = Math.max(9, Math.min(12, Math.abs(Number(tr[0] ?? 10)) || 10))
+          return { tr, x, y, w, h, fontSize }
+        })
+        .filter((s) => Number.isFinite(s.x) && Number.isFinite(s.y))
+
+      if (!segs.length) {
+        i += matchedLen - 1
+        continue
+      }
+
+      const xMin = Math.min(...segs.map((s) => s.x))
+      const yMax = Math.max(...segs.map((s) => s.y))
+      const xMax = Math.max(...segs.map((s) => s.x + Math.max(s.w, 10)))
+      const hMax = Math.max(...segs.map((s) => s.h))
+      const fontSize = segs[0].fontSize
+
+      // Cover each original segment (placeholders), then draw replacement once.
+      for (const s of segs) {
+        outPage.drawRectangle({
+          x: s.x,
+          y: s.y - 2,
+          width: Math.max(s.w, 10),
+          height: s.h + 4,
+          color: rgb(1, 1, 1),
+          opacity: 1,
+        })
+      }
+
+      outPage.drawText(matchedValue, {
+        x: xMin,
+        y: yMax,
         size: fontSize,
         font: helvetica,
         color: rgb(0.1, 0.1, 0.1),
-        maxWidth: Math.max(w, 200),
+        maxWidth: Math.max(xMax - xMin, 200),
       })
+
+      i += matchedLen - 1
     }
   }
 
