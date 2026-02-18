@@ -3558,8 +3558,6 @@ function ContratsV1({
           </div>
 
           <div className="card contrats-form">
-            <div className="doc-create-layout">
-              <div className="doc-create-left">
             <details className="mobile-accordion" open>
               <summary className="mobile-accordion-summary">Informations du contrat</summary>
               <div className="mobile-accordion-body">
@@ -3804,8 +3802,6 @@ function ContratsV1({
               </div>
             </details>
 
-              </div>
-              <div className="doc-create-right">
             <div className="btn-group contrats-actions" style={{ marginTop: 18 }}>
           <button
             className="btn btn-secondary"
@@ -3837,9 +3833,7 @@ function ContratsV1({
             </div>
           </details>
         ) : null}
-              </div>
-            </div>
-          </div>
+      </div>
         </>
       )}
     {modals}
@@ -4892,8 +4886,6 @@ function FacturesV1({
           </div>
 
           <div className="card factures-form">
-            <div className="doc-create-layout">
-              <div className="doc-create-left">
             <details className="mobile-accordion" open>
               <summary className="mobile-accordion-summary">Client & références</summary>
               <div className="mobile-accordion-body">
@@ -5037,8 +5029,6 @@ function FacturesV1({
               </div>
             </details>
 
-              </div>
-              <div className="doc-create-right">
             <details className="mobile-accordion" open>
               <summary className="mobile-accordion-summary">Totaux & PDF</summary>
               <div className="mobile-accordion-body">
@@ -5069,8 +5059,6 @@ function FacturesV1({
             </div>
               </div>
             </details>
-              </div>
-            </div>
           </div>
         </>
       )}
@@ -5989,25 +5977,6 @@ CONTEXTE UTILISATEUR :
 
           .mail-compose-preview-iframe {
             height: calc(38vh - 42px);
-          }
-        }
-
-        /* ===== DOC CREATE LAYOUT (desktop 2 columns) ===== */
-        .doc-create-layout {
-          display: block;
-        }
-
-        @media (min-width: 1024px) {
-          .doc-create-layout {
-            display: grid;
-            grid-template-columns: 1fr 420px;
-            gap: 22px;
-            align-items: start;
-          }
-
-          .doc-create-right {
-            position: sticky;
-            top: 16px;
           }
         }
 
