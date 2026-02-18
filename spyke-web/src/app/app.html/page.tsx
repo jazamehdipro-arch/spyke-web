@@ -5575,7 +5575,7 @@ CONTEXTE UTILISATEUR :
           justify-content: center;
           font-weight: 900;
           font-size: 14px;
-          line-height: 0;
+          line-height: 1;
           color: var(--gray-800);
           background: var(--gray-100);
           cursor: help;
