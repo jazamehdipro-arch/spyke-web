@@ -4899,6 +4899,7 @@ export default function AppHtmlPage() {
 
   const [loading, setLoading] = useState(false)
   const [userId, setUserId] = useState<string | null>(null)
+  const [gmailConnected, setGmailConnected] = useState<boolean>(false)
 
   const supabase = useMemo(() => {
     try {
@@ -4959,6 +4960,29 @@ export default function AppHtmlPage() {
       } catch {}
     }
   }, [])
+
+  // Gmail connection status
+  useEffect(() => {
+    ;(async () => {
+      if (!supabase || !userId) {
+        setGmailConnected(false)
+        return
+      }
+      const { data, error } = await supabase
+        .from('google_gmail_tokens')
+        .select('user_id')
+        .eq('user_id', userId)
+        .maybeSingle()
+
+      if (error) {
+        // Don't block the app if schema isn't ready; just consider Gmail not connected.
+        setGmailConnected(false)
+        return
+      }
+
+      setGmailConnected(Boolean((data as any)?.user_id))
+    })()
+  }, [supabase, userId])
 
   // Ensure authenticated session for the app
   useEffect(() => {
@@ -7804,34 +7828,40 @@ CONTEXTE UTILISATEUR :
               <p style={{ marginBottom: 12, color: 'var(--gray-600)' }}>
                 Connectez votre boîte Gmail pour pouvoir envoyer des devis/factures/contrats directement depuis Spyke.
               </p>
-              <button
-                className="btn btn-primary"
-                type="button"
-                onClick={async () => {
-                  try {
-                    if (!supabase) throw new Error('Supabase non initialisé')
-                    const { data } = await supabase.auth.getSession()
-                    const token = data.session?.access_token
-                    if (!token) throw new Error('Non connecté')
+              {gmailConnected ? (
+                <button className="btn btn-secondary" type="button" disabled>
+                  Gmail connecté
+                </button>
+              ) : (
+                <button
+                  className="btn btn-primary"
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      if (!supabase) throw new Error('Supabase non initialisé')
+                      const { data } = await supabase.auth.getSession()
+                      const token = data.session?.access_token
+                      if (!token) throw new Error('Non connecté')
 
-                    const returnTo = window.location.pathname + window.location.search + window.location.hash
-                    const res = await fetch('/api/gmail/oauth-url', {
-                      method: 'POST',
-                      headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
-                      body: JSON.stringify({ returnTo }),
-                    })
-                    const json = await res.json().catch(() => null)
-                    if (!res.ok) throw new Error(json?.error || 'Erreur connexion Gmail')
-                    const url = String(json?.url || '')
-                    if (!url) throw new Error('URL Google manquante')
-                    window.location.href = url
-                  } catch (e: any) {
-                    alert(e?.message || 'Erreur connexion Gmail')
-                  }
-                }}
-              >
-                Connecter Gmail
-              </button>
+                      const returnTo = window.location.pathname + window.location.search + window.location.hash
+                      const res = await fetch('/api/gmail/oauth-url', {
+                        method: 'POST',
+                        headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+                        body: JSON.stringify({ returnTo }),
+                      })
+                      const json = await res.json().catch(() => null)
+                      if (!res.ok) throw new Error(json?.error || 'Erreur connexion Gmail')
+                      const url = String(json?.url || '')
+                      if (!url) throw new Error('URL Google manquante')
+                      window.location.href = url
+                    } catch (e: any) {
+                      alert(e?.message || 'Erreur connexion Gmail')
+                    }
+                  }}
+                >
+                  Connecter Gmail
+                </button>
+              )}
             </div>
 
             <div className="form-section" style={{ marginTop: 24 }}>
