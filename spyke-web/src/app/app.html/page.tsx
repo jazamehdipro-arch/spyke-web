@@ -3961,6 +3961,8 @@ function FacturesV1({
       }
     }
 
+    const totals = computeInvoiceTotals(lines)
+
     const payload: any = {
       invoiceNumber,
       dateIssue: invoiceDate,
@@ -3968,6 +3970,7 @@ function FacturesV1({
       seller,
       buyer,
       lines,
+      totals,
       notes: '',
     }
 
