@@ -93,7 +93,13 @@ export async function GET(req: Request) {
       .maybeSingle()
 
     const onboardingDone = Boolean((profile as any)?.onboarding_completed)
-    const redirectTo = onboardingDone ? '/app.html?gmail=connected' : '/onboarding.html?gmail=connected'
+
+    // Prefer returning user to the page they started the OAuth from (if provided)
+    let returnTo = String((st as any)?.returnTo || '')
+    if (!returnTo.startsWith('/')) returnTo = ''
+
+    const fallback = onboardingDone ? '/app.html?gmail=connected' : '/onboarding.html?gmail=connected'
+    const redirectTo = returnTo ? `${returnTo}${returnTo.includes('?') ? '&' : '?'}gmail=connected` : fallback
 
     return NextResponse.redirect(new URL(redirectTo, url.origin))
   } catch {

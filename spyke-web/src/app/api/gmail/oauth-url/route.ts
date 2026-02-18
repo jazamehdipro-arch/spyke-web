@@ -10,6 +10,13 @@ const HeaderSchema = z.object({
   authorization: z.string().min(1),
 })
 
+const BodySchema = z
+  .object({
+    // optional relative path to redirect back to after OAuth
+    returnTo: z.string().optional().default(''),
+  })
+  .optional()
+
 function requireEnv(name: string): string {
   const v = process.env[name]
   if (!v) throw new Error(`Missing env: ${name}`)
@@ -49,6 +56,25 @@ export async function POST(req: Request) {
     const gmailRedirectUri = requireEnv('GMAIL_REDIRECT_URI')
     const stateSecret = requireEnv('GMAIL_OAUTH_STATE_SECRET')
 
+    const bodyRaw = await req.json().catch(() => null)
+    const body = BodySchema.parse(bodyRaw || undefined) || { returnTo: '' }
+
+    // Best-effort returnTo:
+    // - Prefer explicit body.returnTo (relative path)
+    // - Fallback to Referer header (same-origin)
+    let returnTo = String(body.returnTo || '')
+    if (!returnTo) {
+      const ref = String(req.headers.get('referer') || '')
+      try {
+        if (ref) {
+          const u = new URL(ref)
+          returnTo = u.pathname + u.search + u.hash
+        }
+      } catch {}
+    }
+    // Only allow relative in-app paths
+    if (!returnTo.startsWith('/')) returnTo = ''
+
     const oauth2 = new OAuth2Client({
       clientId: googleClientId,
       clientSecret: googleClientSecret,
@@ -64,6 +90,7 @@ export async function POST(req: Request) {
         iat: now,
         // 10 minutes TTL
         exp: now + 600,
+        returnTo,
       },
       stateSecret
     )
