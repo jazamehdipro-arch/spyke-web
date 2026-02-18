@@ -5151,6 +5151,8 @@ export default function AppHtmlPage() {
   >({})
 
   const [assistantContext, setAssistantContext] = useState<string>('')
+  const [assistantSubject, setAssistantSubject] = useState<string>('')
+  const [assistantSubjectDirty, setAssistantSubjectDirty] = useState<boolean>(false)
   const [assistantOutput, setAssistantOutput] = useState<string>('')
   const [assistantSending, setAssistantSending] = useState<boolean>(false)
 
@@ -5420,6 +5422,10 @@ export default function AppHtmlPage() {
         alert('Générez un email avant de l\'envoyer')
         return
       }
+      if (!assistantSubject.trim()) {
+        alert("Objet obligatoire")
+        return
+      }
       if (!supabase) {
         alert('Supabase non initialisé')
         return
@@ -5433,8 +5439,7 @@ export default function AppHtmlPage() {
         return
       }
 
-      const subjectClient = client?.name ? ` - ${client.name}` : ''
-      const subject = `${template}${subjectClient}`
+      const subject = assistantSubject.trim()
 
       setAssistantSending(true)
 
@@ -5548,6 +5553,12 @@ CONTEXTE UTILISATEUR :
 
       const out = String(json?.text || '').trim()
       setAssistantOutput(out)
+
+      // Default subject (editable). Only set if user hasn't edited it.
+      if (!assistantSubjectDirty) {
+        const clientName = client?.name ? ` - ${client.name}` : ''
+        setAssistantSubject(`${template}${clientName}`)
+      }
 
       // Track usage (best-effort)
       try {
@@ -7919,6 +7930,19 @@ CONTEXTE UTILISATEUR :
                       </div>
                     </div>
                   </div>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Objet</label>
+                  <input
+                    className="form-input"
+                    placeholder="Objet de l'email (obligatoire)"
+                    value={assistantSubject}
+                    onChange={(e) => {
+                      setAssistantSubjectDirty(true)
+                      setAssistantSubject(e.target.value)
+                    }}
+                  />
                 </div>
 
                 <div className="form-group">
