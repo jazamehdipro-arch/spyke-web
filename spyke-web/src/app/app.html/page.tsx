@@ -5152,6 +5152,7 @@ export default function AppHtmlPage() {
 
   const [assistantContext, setAssistantContext] = useState<string>('')
   const [assistantOutput, setAssistantOutput] = useState<string>('')
+  const [assistantSending, setAssistantSending] = useState<boolean>(false)
 
   // Dashboard data
   const [dashboardQuotes, setDashboardQuotes] = useState<any[]>([])
@@ -5412,6 +5413,57 @@ export default function AppHtmlPage() {
   }
 
   // (duplication removed: replaced by "Nouveau devis")
+
+  async function sendAssistantEmailNow() {
+    try {
+      if (!assistantOutput) {
+        alert('Générez un email avant de l\'envoyer')
+        return
+      }
+      if (!supabase) {
+        alert('Supabase non initialisé')
+        return
+      }
+
+      const client = clients.find((c) => c.id === selectedClientId)
+      const toDefault = String(client?.email || '')
+      const to = toDefault || String(prompt('Email du destinataire :', toDefault) || '').trim()
+      if (!to) {
+        alert('Email destinataire manquant')
+        return
+      }
+
+      const subjectClient = client?.name ? ` - ${client.name}` : ''
+      const subject = `${template}${subjectClient}`
+
+      setAssistantSending(true)
+
+      const { data: s } = await supabase.auth.getSession()
+      const token = s.session?.access_token
+      if (!token) throw new Error('Non connecté')
+
+      const res = await fetch('/api/gmail/send', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          to,
+          subject,
+          text: assistantOutput,
+        }),
+      })
+      const json = await res.json().catch(() => null)
+      if (!res.ok) throw new Error(json?.error || `Erreur envoi (${res.status})`)
+
+      alert('Email envoyé ✅')
+    } catch (e: any) {
+      alert(e?.message || 'Erreur envoi')
+    } finally {
+      setAssistantSending(false)
+    }
+  }
 
   async function generateAssistantEmail() {
     try {
@@ -7940,6 +7992,15 @@ CONTEXTE UTILISATEUR :
                         <path d="M3.51 15a9 9 0 102.13-9.36L1 10" />
                       </svg>
                       Régénérer
+                    </button>
+
+                    <button type="button" className="btn btn-primary" onClick={sendAssistantEmailNow} disabled={assistantSending || !assistantOutput}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
+                        <path d="M4 4h16v16H4z" opacity="0" />
+                        <path d="M4 4h16v16H4z" />
+                        <path d="M22 6l-10 7L2 6" />
+                      </svg>
+                      {assistantSending ? 'Envoi…' : 'Envoyer par mail'}
                     </button>
                   </div>
                 </div>
