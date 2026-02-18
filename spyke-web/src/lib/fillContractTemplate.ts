@@ -29,13 +29,53 @@ export async function fillContractTemplatePdf(opts: { templateBytes: Uint8Array;
   const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica)
 
   // pdfjs-dist expects DOMMatrix in some Node environments.
-  // Provide a lightweight polyfill when missing.
+  // Provide a tiny 2D DOMMatrix polyfill when missing.
   if (typeof (globalThis as any).DOMMatrix === 'undefined') {
-    try {
-      const { DOMMatrix } = await import('dommatrix')
-      ;(globalThis as any).DOMMatrix = DOMMatrix as any
-    } catch {
-      // If polyfill fails, pdfjs may throw "DOMMatrix is not defined".
+    ;(globalThis as any).DOMMatrix = class DOMMatrixPolyfill {
+      a: number
+      b: number
+      c: number
+      d: number
+      e: number
+      f: number
+
+      constructor(init?: any) {
+        // Support: [a,b,c,d,e,f]
+        const arr = Array.isArray(init) ? init : null
+        this.a = Number(arr?.[0] ?? 1)
+        this.b = Number(arr?.[1] ?? 0)
+        this.c = Number(arr?.[2] ?? 0)
+        this.d = Number(arr?.[3] ?? 1)
+        this.e = Number(arr?.[4] ?? 0)
+        this.f = Number(arr?.[5] ?? 0)
+      }
+
+      multiply(other: any) {
+        const o = other instanceof (globalThis as any).DOMMatrix ? other : new (globalThis as any).DOMMatrix(other)
+        const a = this.a * o.a + this.c * o.b
+        const b = this.b * o.a + this.d * o.b
+        const c = this.a * o.c + this.c * o.d
+        const d = this.b * o.c + this.d * o.d
+        const e = this.a * o.e + this.c * o.f + this.e
+        const f = this.b * o.e + this.d * o.f + this.f
+        return new (globalThis as any).DOMMatrix([a, b, c, d, e, f])
+      }
+
+      inverse() {
+        const det = this.a * this.d - this.b * this.c
+        if (!det) return new (globalThis as any).DOMMatrix([1, 0, 0, 1, 0, 0])
+        const a = this.d / det
+        const b = -this.b / det
+        const c = -this.c / det
+        const d = this.a / det
+        const e = (this.c * this.f - this.d * this.e) / det
+        const f = (this.b * this.e - this.a * this.f) / det
+        return new (globalThis as any).DOMMatrix([a, b, c, d, e, f])
+      }
+
+      toFloat64Array() {
+        return Float64Array.from([this.a, this.b, this.c, this.d, this.e, this.f])
+      }
     }
   }
 
