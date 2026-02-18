@@ -5151,6 +5151,7 @@ export default function AppHtmlPage() {
   >({})
 
   const [assistantContext, setAssistantContext] = useState<string>('')
+  const [assistantTo, setAssistantTo] = useState<string>('')
   const [assistantSubject, setAssistantSubject] = useState<string>('')
   const [assistantSubjectDirty, setAssistantSubjectDirty] = useState<boolean>(false)
   const [assistantOutput, setAssistantOutput] = useState<string>('')
@@ -5432,8 +5433,7 @@ export default function AppHtmlPage() {
       }
 
       const client = clients.find((c) => c.id === selectedClientId)
-      const toDefault = String(client?.email || '')
-      const to = toDefault || String(prompt('Email du destinataire :', toDefault) || '').trim()
+      const to = String(assistantTo || client?.email || '').trim()
       if (!to) {
         alert('Email destinataire manquant')
         return
@@ -7902,7 +7902,15 @@ CONTEXTE UTILISATEUR :
                     <select
                       className="form-select"
                       value={selectedClientId}
-                      onChange={(e) => setSelectedClientId(e.target.value)}
+                      onChange={(e) => {
+                        const id = e.target.value
+                        setSelectedClientId(id)
+                        // Prefill recipient email from client when available
+                        try {
+                          const client = clients.find((c) => c.id === id)
+                          setAssistantTo(String(client?.email || ''))
+                        } catch {}
+                      }}
                     >
                       <option value="">Sélectionner un client</option>
                       {clients.map((c) => (
@@ -7911,6 +7919,16 @@ CONTEXTE UTILISATEUR :
                         </option>
                       ))}
                     </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Email</label>
+                    <input
+                      className="form-input"
+                      placeholder="Email du destinataire"
+                      value={assistantTo}
+                      onChange={(e) => setAssistantTo(e.target.value)}
+                    />
                   </div>
 
                   <div className="form-group">
@@ -7930,19 +7948,6 @@ CONTEXTE UTILISATEUR :
                       </div>
                     </div>
                   </div>
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Objet</label>
-                  <input
-                    className="form-input"
-                    placeholder="Objet de l'email (obligatoire)"
-                    value={assistantSubject}
-                    onChange={(e) => {
-                      setAssistantSubjectDirty(true)
-                      setAssistantSubject(e.target.value)
-                    }}
-                  />
                 </div>
 
                 <div className="form-group">
@@ -7991,6 +7996,19 @@ CONTEXTE UTILISATEUR :
                   </svg>
                   Générer avec l&apos;IA
                 </button>
+
+                <div className="form-group">
+                  <label className="form-label">Objet</label>
+                  <input
+                    className="form-input"
+                    placeholder="Objet de l'email (obligatoire)"
+                    value={assistantSubject}
+                    onChange={(e) => {
+                      setAssistantSubjectDirty(true)
+                      setAssistantSubject(e.target.value)
+                    }}
+                  />
+                </div>
 
                 <div className="form-group">
                   <label className="form-label">Résultat</label>
