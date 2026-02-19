@@ -6050,23 +6050,32 @@ CONTEXTE UTILISATEUR :
         /* ===== HELP CHAT WIDGET ===== */
         .help-fab {
           position: fixed;
-          left: 18px;
+          right: 18px;
           bottom: 18px;
           z-index: 200;
-          width: 46px;
           height: 46px;
+          padding: 0 14px;
           border-radius: 999px;
           border: 2px solid rgba(0, 0, 0, 0.12);
           background: var(--yellow);
           color: var(--black);
           font-weight: 900;
-          font-size: 18px;
+          font-size: 14px;
           box-shadow: 0 12px 26px rgba(0, 0, 0, 0.18);
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          cursor: pointer;
+        }
+
+        .help-fab-label {
+          font-weight: 900;
+          letter-spacing: 0.2px;
         }
 
         .help-drawer {
           position: fixed;
-          left: 18px;
+          right: 18px;
           bottom: 74px;
           z-index: 201;
           width: 360px;
@@ -6165,6 +6174,7 @@ CONTEXTE UTILISATEUR :
         @media (max-width: 768px) {
           .help-drawer {
             left: 0;
+            right: 0;
             bottom: 0;
             width: 100vw;
             height: 100vh;
@@ -6172,8 +6182,11 @@ CONTEXTE UTILISATEUR :
             border-radius: 0;
           }
           .help-fab {
-            left: 14px;
+            right: 14px;
             bottom: 14px;
+          }
+          .help-fab-label {
+            display: none;
           }
         }
 
@@ -7411,9 +7424,15 @@ CONTEXTE UTILISATEUR :
         className="help-fab"
         type="button"
         onClick={() => setHelpOpen(true)}
-        aria-label="Ouvrir l'aide"
+        aria-label="Ouvrir le chat d'aide"
+        title="Aide (chat)"
       >
-        ?
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20" aria-hidden="true">
+          <path d="M21 15a2 2 0 01-2 2H8l-5 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+          <path d="M8 9h8" />
+          <path d="M8 13h6" />
+        </svg>
+        <span className="help-fab-label">Aide</span>
       </button>
 
       {/* Help chat drawer */}
