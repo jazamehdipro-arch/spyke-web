@@ -15,13 +15,16 @@ create index if not exists help_chat_messages_user_created_idx
 alter table public.help_chat_messages enable row level security;
 
 -- Users can read their own messages
-create policy if not exists "help_chat_messages_select_own"
+-- Note: Postgres doesn't support "create policy if not exists" in some versions.
+drop policy if exists "help_chat_messages_select_own" on public.help_chat_messages;
+create policy "help_chat_messages_select_own"
   on public.help_chat_messages
   for select
   using (auth.uid() = user_id);
 
 -- Users can insert their own messages
-create policy if not exists "help_chat_messages_insert_own"
+drop policy if exists "help_chat_messages_insert_own" on public.help_chat_messages;
+create policy "help_chat_messages_insert_own"
   on public.help_chat_messages
   for insert
   with check (auth.uid() = user_id);
