@@ -5067,7 +5067,7 @@ function FacturesV1({
   )
 }
 
-type Tab = 'dashboard' | 'clients' | 'assistant' | 'devis' | 'factures' | 'contrats' | 'analyseur' | 'settings'
+type Tab = 'dashboard' | 'clients' | 'assistant' | 'devis' | 'factures' | 'contrats' | 'analyseur' | 'juriste' | 'settings'
 
 type ModalName = 'newClient' | 'editClient' | 'newDevis'
 
@@ -5164,6 +5164,12 @@ export default function AppHtmlPage() {
   const [helpLoading, setHelpLoading] = useState<boolean>(false)
   const [helpError, setHelpError] = useState<string>('')
 
+  // Question juriste (Pro-only + paiement 5€)
+  const [legalQuestion, setLegalQuestion] = useState<string>('')
+  const [legalBusy, setLegalBusy] = useState<boolean>(false)
+  const [legalError, setLegalError] = useState<string>('')
+  const [legalItems, setLegalItems] = useState<any[]>([])
+
   // Dashboard data
   const [dashboardQuotes, setDashboardQuotes] = useState<any[]>([])
   const [dashboardInvoices, setDashboardInvoices] = useState<any[]>([])
@@ -5179,6 +5185,18 @@ export default function AppHtmlPage() {
       try {
         delete (window as any).__spyke_setTab
       } catch {}
+    }
+  }, [])
+
+  // Read tab from query string (best-effort)
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search || '')
+      const t = String(params.get('tab') || '') as Tab
+      const allowed: Tab[] = ['dashboard', 'clients', 'assistant', 'devis', 'factures', 'contrats', 'analyseur', 'juriste', 'settings']
+      if (allowed.includes(t)) setTab(t)
+    } catch {
+      // ignore
     }
   }, [])
 
@@ -5214,6 +5232,13 @@ export default function AppHtmlPage() {
     loadHelpHistory()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [helpOpen])
+
+  // Question juriste: load history when tab is opened
+  useEffect(() => {
+    if (tab !== 'juriste') return
+    refreshLegalQuestions()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab])
 
   // Ensure authenticated session for the app
   useEffect(() => {
@@ -5278,6 +5303,60 @@ export default function AppHtmlPage() {
       setHelpError(e?.message || 'Erreur chat')
     } finally {
       setHelpLoading(false)
+    }
+  }
+
+  async function refreshLegalQuestions() {
+    try {
+      setLegalError('')
+      if (!supabase) return
+      const { data: s } = await supabase.auth.getSession()
+      const token = s.session?.access_token
+      if (!token) return
+
+      const res = await fetch('/api/legal-question/list', {
+        method: 'GET',
+        headers: { authorization: `Bearer ${token}` },
+      })
+      const json = await res.json().catch(() => null)
+      if (!res.ok) throw new Error(json?.error || `Erreur questions (${res.status})`)
+      setLegalItems((json?.items || []) as any[])
+    } catch (e: any) {
+      setLegalError(e?.message || 'Erreur questions')
+    }
+  }
+
+  async function submitLegalQuestion() {
+    try {
+      const q = legalQuestion.trim()
+      if (!q) return
+      setLegalError('')
+      setLegalBusy(true)
+
+      if (!supabase) throw new Error('Supabase non initialisé')
+      const { data: s } = await supabase.auth.getSession()
+      const token = s.session?.access_token
+      if (!token) throw new Error('Non connecté')
+
+      const res = await fetch('/api/legal-question/checkout', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+        body: JSON.stringify({ question: q }),
+      })
+      const json = await res.json().catch(() => null)
+      if (!res.ok) throw new Error(json?.error || `Erreur paiement (${res.status})`)
+
+      const url = String(json?.url || '')
+      if (!url) throw new Error('URL Stripe manquante')
+
+      // optimistic: refresh list (draft)
+      refreshLegalQuestions()
+
+      window.location.href = url
+    } catch (e: any) {
+      setLegalError(e?.message || 'Erreur paiement')
+    } finally {
+      setLegalBusy(false)
     }
   }
 
@@ -7393,6 +7472,25 @@ CONTEXTE UTILISATEUR :
           </button>
 
           <button
+            className={`nav-item ${tab === 'juriste' ? 'active' : ''}`}
+            onClick={() => {
+              if (planCode !== 'pro') {
+                alert('Question juriste : réservé au plan Pro.')
+                goTab('settings')
+                return
+              }
+              goTab('juriste')
+            }}
+          >
+            <svg viewBox="0 0 24 24">
+              <path d="M9 11l3 3L22 4" />
+              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+            </svg>
+            Question juriste
+            {planCode !== 'pro' ? <span className="badge badge-yellow" style={{ marginLeft: 'auto' }}>Pro</span> : null}
+          </button>
+
+          <button
             className="nav-item"
             onClick={() => {
               setHelpOpen(true)
@@ -8406,6 +8504,81 @@ CONTEXTE UTILISATEUR :
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Question juriste */}
+        <div id="tab-juriste" className={`tab-content ${tab === 'juriste' ? 'active' : ''}`}>
+          <div className="page-header">
+            <div>
+              <h1 className="page-title">Question juriste</h1>
+              <p className="page-subtitle">Posez une question (5€) et elle sera transmise à un juriste.</p>
+            </div>
+          </div>
+
+          {planCode !== 'pro' ? (
+            <div className="card">
+              <p style={{ color: 'var(--gray-700)' }}>
+                Cette fonctionnalité est réservée au <b>plan Pro</b>.
+              </p>
+              <p style={{ color: 'var(--gray-600)', marginTop: 8 }}>
+                Passez Pro dans l’onglet Paramètres pour débloquer la question juriste.
+              </p>
+              <button className="btn btn-primary" type="button" onClick={() => goTab('settings')}>
+                Voir les plans
+              </button>
+            </div>
+          ) : (
+            <div className="card">
+              <div className="form-group">
+                <label className="form-label">Votre question</label>
+                <textarea
+                  className="form-textarea"
+                  style={{ minHeight: 160 }}
+                  placeholder="Décrivez votre situation et votre question (sans données ultra sensibles)."
+                  value={legalQuestion}
+                  onChange={(e) => setLegalQuestion(e.target.value)}
+                />
+              </div>
+
+              {legalError ? (
+                <div style={{ marginTop: 10, color: '#b91c1c', fontSize: 13 }}>{legalError}</div>
+              ) : null}
+
+              <div style={{ display: 'flex', gap: 12, marginTop: 14, flexWrap: 'wrap' }}>
+                <button className="btn btn-primary" type="button" onClick={submitLegalQuestion} disabled={legalBusy || legalQuestion.trim().length < 10}>
+                  {legalBusy ? 'Ouverture du paiement…' : 'Payer 5€ et envoyer'}
+                </button>
+                <button className="btn btn-secondary" type="button" onClick={refreshLegalQuestions} disabled={legalBusy}>
+                  Rafraîchir
+                </button>
+              </div>
+
+              <div style={{ marginTop: 18, fontSize: 13, color: 'var(--gray-600)' }}>
+                Après paiement, la question est envoyée automatiquement aux juristes configurés.
+              </div>
+
+              <div style={{ marginTop: 22 }}>
+                <div className="form-section-title">Historique</div>
+                {legalItems.length === 0 ? (
+                  <div className="empty-state" style={{ padding: 18 }}>
+                    <p>Aucune question envoyée pour le moment</p>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {legalItems.map((it: any) => (
+                      <div key={it.id} style={{ border: '1px solid var(--gray-200)', borderRadius: 12, padding: 12, background: '#fff' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+                          <div style={{ fontSize: 12, color: 'var(--gray-500)' }}>{new Date(String(it.created_at || '')).toLocaleString('fr-FR')}</div>
+                          <div style={{ fontSize: 12, fontWeight: 700 }}>{String(it.status || 'draft')}</div>
+                        </div>
+                        <div style={{ marginTop: 8, whiteSpace: 'pre-wrap', color: 'var(--gray-800)' }}>{String(it.question || '').trim()}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Settings */}
