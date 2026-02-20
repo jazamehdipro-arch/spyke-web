@@ -184,19 +184,28 @@ export async function POST(req: Request) {
           body: JSON.stringify(payload),
         })
       } catch (e: any) {
-        // Some accounts might not support signing order params; retry without if necessary.
+        // Some Yousign workspaces/accounts don't support signer ordering params.
+        // Retry without any ordering fields.
         const msg = String(e?.message || '')
-        if (msg.includes('invalid') || msg.includes('parameters_not_valid')) {
-          const cloned = JSON.parse(JSON.stringify(payload))
-          delete cloned?.signing_order
-          delete cloned?.order
-          delete cloned?.rank
-          return await yousignJson<any>(`signature_requests/${signatureRequestId}/signers`, {
-            method: 'POST',
-            body: JSON.stringify(cloned),
-          })
-        }
-        throw e
+        const shouldRetryWithoutOrder =
+          msg.includes('extra_arguments_not_allowed') ||
+          msg.includes('Extra attributes are not allowed') ||
+          msg.toLowerCase().includes('unknown') ||
+          msg.includes('parameters_not_valid') ||
+          msg.includes('invalid')
+
+        if (!shouldRetryWithoutOrder) throw e
+
+        const cloned = JSON.parse(JSON.stringify(payload))
+        delete cloned?.signing_order
+        delete cloned?.signingOrder
+        delete cloned?.order
+        delete cloned?.rank
+
+        return await yousignJson<any>(`signature_requests/${signatureRequestId}/signers`, {
+          method: 'POST',
+          body: JSON.stringify(cloned),
+        })
       }
     }
 
