@@ -2575,6 +2575,20 @@ function ContratsV1({
 
   const { openPdfPreviewFromBlob, openMailComposeWithAttachment, modals } = usePdfMailModals()
 
+  const [signatureMissing, setSignatureMissing] = useState(false)
+  useEffect(() => {
+    ;(async () => {
+      try {
+        if (!supabase || !userId) return
+        const { data: profile } = await supabase.from('profiles').select('signature_path').eq('id', userId).maybeSingle()
+        const sp = String((profile as any)?.signature_path || '')
+        setSignatureMissing(!sp)
+      } catch {
+        setSignatureMissing(false)
+      }
+    })()
+  }, [supabase, userId])
+
   const today = useMemo(() => {
     const d = new Date()
     const yyyy = d.getFullYear()
@@ -3491,6 +3505,18 @@ function ContratsV1({
             </div>
           </div>
 
+          {signatureMissing ? (
+            <div className="info-box" style={{ marginTop: 12 }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 16v-4M12 8h.01" />
+              </svg>
+              <p>
+                Signature non enregistrée : vos contrats seront générés <b>sans signature</b>. Allez dans <b>Paramètres → Signature</b> pour l’ajouter.
+              </p>
+            </div>
+          ) : null}
+
           <div className="import-toolbar">
             <button
               className="btn import-btn"
@@ -3889,6 +3915,20 @@ function FacturesV1({
   }, [])
 
   const { openPdfPreviewFromBlob, openMailComposeWithAttachment, modals } = usePdfMailModals()
+
+  const [signatureMissing, setSignatureMissing] = useState(false)
+  useEffect(() => {
+    ;(async () => {
+      try {
+        if (!supabase || !userId) return
+        const { data: profile } = await supabase.from('profiles').select('signature_path').eq('id', userId).maybeSingle()
+        const sp = String((profile as any)?.signature_path || '')
+        setSignatureMissing(!sp)
+      } catch {
+        setSignatureMissing(false)
+      }
+    })()
+  }, [supabase, userId])
 
   const today = useMemo(() => {
     const d = new Date()
@@ -4846,6 +4886,18 @@ function FacturesV1({
               <p className="page-subtitle">Créez une facture (UI) — la sauvegarde viendra ensuite</p>
             </div>
           </div>
+
+          {signatureMissing ? (
+            <div className="info-box" style={{ marginTop: 12 }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 16v-4M12 8h.01" />
+              </svg>
+              <p>
+                Signature non enregistrée : vos factures seront générées <b>sans signature</b>. Allez dans <b>Paramètres → Signature</b> pour l’ajouter.
+              </p>
+            </div>
+          ) : null}
 
           <div className="import-toolbar">
             <button
