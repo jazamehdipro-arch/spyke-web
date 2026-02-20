@@ -2895,6 +2895,43 @@ function ContratsV1({
     }
   }
 
+  async function sendContractForSignature(contractId: string) {
+    try {
+      if (!supabase || !contractId) return
+
+      const ok = confirm('Envoyer ce contrat pour signature électronique via Yousign ?')
+      if (!ok) return
+
+      const { data: sessionData } = await supabase.auth.getSession()
+      const token = sessionData?.session?.access_token
+      if (!token) throw new Error('Non connecté')
+
+      const res = await fetch('/api/signature-requests/create', {
+        method: 'POST',
+        headers: {
+          authorization: `Bearer ${token}`,
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({ contractId: contractId }),
+      })
+
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(String((json as any)?.error || 'Erreur envoi signature'))
+
+      const signingUrl = String((json as any)?.signingUrl || '')
+
+      if (signingUrl) {
+        try {
+          window.open(signingUrl, '_blank', 'noopener,noreferrer')
+        } catch {}
+        alert('Contrat envoyé pour signature. Le lien de signature a été ouvert dans un nouvel onglet.')
+      } else {
+        alert('Contrat envoyé pour signature. (Lien de signature indisponible dans la réponse)')
+      }
+    } catch (e: any) {
+      alert(e?.message || 'Erreur envoi pour signature')
+    }
+  }
 
   async function selectClient(id: string) {
     setClientId(id)
@@ -3441,6 +3478,9 @@ function ContratsV1({
                             <button className="btn btn-secondary" type="button" onClick={() => duplicateContract(String(c.id))}>
                               Dupliquer
                             </button>
+                            <button className="btn btn-secondary" type="button" onClick={() => sendContractForSignature(String(c.id))}>
+                              Envoyer pour signature
+                            </button>
                             <button className="btn btn-secondary" type="button" onClick={() => deleteContract(String(c.id))}>
                               Supprimer
                             </button>
@@ -3481,6 +3521,9 @@ function ContratsV1({
                       </button>
                       <button className="btn btn-secondary" type="button" onClick={() => duplicateContract(String(c.id))}>
                         Dupliquer
+                      </button>
+                      <button className="btn btn-secondary" type="button" onClick={() => sendContractForSignature(String(c.id))}>
+                        Envoyer pour signature
                       </button>
                       <button className="btn btn-secondary" type="button" onClick={() => deleteContract(String(c.id))}>
                         Supprimer
