@@ -5699,12 +5699,82 @@ export default function AppHtmlPage() {
 
       setSignatureSaving(true)
 
-      // export PNG
-      const dataUrl = canvas.toDataURL('image/png')
-      const bin = atob(dataUrl.split(',')[1] || '')
-      const bytes = new Uint8Array(bin.length)
-      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
-      const blob = new Blob([bytes], { type: 'image/png' })
+      // Export PNG + auto-crop (remove white margins)
+      const ctx = canvas.getContext('2d')
+      if (!ctx) throw new Error('Contexte canvas indisponible')
+
+      const w = canvas.width
+      const h = canvas.height
+      const img = ctx.getImageData(0, 0, w, h)
+      const data = img.data
+
+      // Detect bounds of non-white pixels
+      let minX = w
+      let minY = h
+      let maxX = 0
+      let maxY = 0
+      let found = false
+
+      // threshold: consider pixel "ink" if not near white
+      const thr = 245
+
+      for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+          const i = (y * w + x) * 4
+          const r = data[i]
+          const g = data[i + 1]
+          const b = data[i + 2]
+          const a = data[i + 3]
+          if (a < 10) continue
+          if (r > thr && g > thr && b > thr) continue
+          found = true
+          if (x < minX) minX = x
+          if (y < minY) minY = y
+          if (x > maxX) maxX = x
+          if (y > maxY) maxY = y
+        }
+      }
+
+      if (!found) {
+        setSignatureError('Signature vide. Réessaie.')
+        return
+      }
+
+      // Add margin and clamp
+      const margin = Math.round(Math.min(w, h) * 0.04) // ~4%
+      minX = Math.max(0, minX - margin)
+      minY = Math.max(0, minY - margin)
+      maxX = Math.min(w - 1, maxX + margin)
+      maxY = Math.min(h - 1, maxY + margin)
+
+      const cropW = Math.max(1, maxX - minX + 1)
+      const cropH = Math.max(1, maxY - minY + 1)
+
+      // Create cropped canvas (limit final size for consistent rendering)
+      const outMaxW = 900
+      const scale = cropW > outMaxW ? outMaxW / cropW : 1
+      const outW = Math.max(1, Math.round(cropW * scale))
+      const outH = Math.max(1, Math.round(cropH * scale))
+
+      const out = document.createElement('canvas')
+      out.width = outW
+      out.height = outH
+      const octx = out.getContext('2d')
+      if (!octx) throw new Error('Contexte canvas (crop) indisponible')
+      octx.fillStyle = '#ffffff'
+      octx.fillRect(0, 0, outW, outH)
+      octx.drawImage(canvas, minX, minY, cropW, cropH, 0, 0, outW, outH)
+
+      const blob: Blob = await new Promise((resolve, reject) => {
+        out.toBlob(
+          (b) => {
+            if (!b) reject(new Error('Export image échoué'))
+            else resolve(b)
+          },
+          'image/png',
+          1
+        )
+      })
 
       const fd = new FormData()
       fd.set('file', new File([blob], 'signature.png', { type: 'image/png' }))
