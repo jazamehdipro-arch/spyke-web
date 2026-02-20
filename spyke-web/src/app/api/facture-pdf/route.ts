@@ -221,8 +221,8 @@ export async function POST(req: Request) {
       signatureBlock: { width: '42%', alignItems: 'flex-end' },
       signatureTitle: { fontSize: 10, fontWeight: 700, marginBottom: 6, color: '#111827' },
       signatureBox: {
-        width: 220,
-        height: 80,
+        width: 300,
+        height: 110,
         borderWidth: 1,
         borderColor: '#e5e7eb',
         borderRadius: 8,

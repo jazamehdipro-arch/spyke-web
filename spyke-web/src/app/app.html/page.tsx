@@ -5255,6 +5255,7 @@ export default function AppHtmlPage() {
   const [signaturePath, setSignaturePath] = useState<string>('')
   const [signaturePreviewUrl, setSignaturePreviewUrl] = useState<string>('')
   const [signatureEditOpen, setSignatureEditOpen] = useState(false)
+  const [signaturePreviewBuster, setSignaturePreviewBuster] = useState<number>(0)
 
   const [clients, setClients] = useState<ClientRow[]>([])
   const [selectedClientId, setSelectedClientId] = useState<string>('')
@@ -5563,7 +5564,9 @@ export default function AppHtmlPage() {
         try {
           if (sp) {
             const pub = supabase.storage.from('signatures').getPublicUrl(sp)
-            setSignaturePreviewUrl(String(pub?.data?.publicUrl || ''))
+            const base = String(pub?.data?.publicUrl || '')
+            setSignaturePreviewUrl(base ? `${base}${base.includes('?') ? '&' : '?'}v=${Date.now()}` : '')
+            setSignaturePreviewBuster(Date.now())
           } else {
             setSignaturePreviewUrl('')
           }
@@ -5719,7 +5722,9 @@ export default function AppHtmlPage() {
       try {
         if (path) {
           const pub = supabase.storage.from('signatures').getPublicUrl(path)
-          setSignaturePreviewUrl(String(pub?.data?.publicUrl || ''))
+          const base = String(pub?.data?.publicUrl || '')
+          setSignaturePreviewUrl(base ? `${base}${base.includes('?') ? '&' : '?'}v=${Date.now()}` : '')
+          setSignaturePreviewBuster(Date.now())
         }
       } catch {}
 
@@ -9154,22 +9159,19 @@ CONTEXTE UTILISATEUR :
                   {signaturePreviewUrl ? (
                     <>
                       <div style={{ fontSize: 12, color: 'var(--gray-500)', marginBottom: 6 }}>Signature enregistrée</div>
-                      <div style={{ border: '1px solid var(--gray-200)', borderRadius: 12, padding: 8, background: '#fff', display: 'inline-block' }}>
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={signaturePreviewUrl} alt="Signature" style={{ height: 42, width: 200, objectFit: 'contain', display: 'block' }} />
+                      <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                        <div style={{ border: '1px solid var(--gray-200)', borderRadius: 12, padding: 8, background: '#fff', display: 'inline-block' }}>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={signaturePreviewUrl} alt="Signature" style={{ height: 42, width: 220, objectFit: 'contain', display: 'block' }} />
+                        </div>
+                        <button className="btn btn-secondary" type="button" onClick={() => setSignatureEditOpen(true)}>
+                          Modifier
+                        </button>
                       </div>
                     </>
                   ) : (
                     <div style={{ marginBottom: 12, fontSize: 13, color: 'var(--gray-600)' }}>Aucune signature enregistrée pour le moment.</div>
                   )}
-                </div>
-
-                <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                  {signaturePreviewUrl ? (
-                    <button className="btn btn-secondary" type="button" onClick={() => setSignatureEditOpen(true)}>
-                      Modifier
-                    </button>
-                  ) : null}
                 </div>
               </div>
 

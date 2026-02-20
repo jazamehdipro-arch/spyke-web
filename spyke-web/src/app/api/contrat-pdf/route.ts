@@ -176,8 +176,8 @@ export async function POST(req: Request) {
             if (dateLine) page.drawText(dateLine, { x: 50, y: 730, size: 12, font: helvetica, color: rgb(0.1, 0.1, 0.1) })
 
             // Signature box
-            page.drawRectangle({ x: 50, y: 600, width: 420, height: 140, borderWidth: 1, borderColor: rgb(0.9, 0.9, 0.92) })
-            page.drawImage(png, { x: 60, y: 610, width: 400, height: 120 })
+            page.drawRectangle({ x: 50, y: 560, width: 495, height: 200, borderWidth: 1, borderColor: rgb(0.9, 0.9, 0.92) })
+            page.drawImage(png, { x: 60, y: 570, width: 475, height: 180 })
 
             filled = new Uint8Array((await baseDoc.save()) as any)
           }
@@ -210,7 +210,7 @@ export async function POST(req: Request) {
         paragraph: { marginBottom: 8 },
         h2: { fontSize: 12, fontWeight: 700, color: '#1e3a8a', marginTop: 10, marginBottom: 6 },
         signatureTitle: { fontSize: 12, fontWeight: 700, color: '#1e3a8a', marginTop: 16, marginBottom: 8 },
-        signatureBox: { borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 10, padding: 10, height: 110 },
+        signatureBox: { borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 10, padding: 10, height: 160 },
         signatureImg: { width: '100%', height: '100%', objectFit: 'contain' },
       })
 
