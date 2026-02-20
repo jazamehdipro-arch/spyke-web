@@ -107,91 +107,164 @@ export async function POST(req: Request) {
     const json = await req.json()
     const body = BodySchema.parse(json)
 
-    // Fill the user-provided PDF template (only placeholder zones are replaced).
-    const templatePath = join(process.cwd(), 'public', 'templates', 'contrat-template.pdf')
-    const templateBytes = await readFile(templatePath)
-
     const sellerName = body.seller?.name || body.parties?.sellerName || ''
     const buyerName = body.buyer?.name || body.parties?.buyerName || ''
 
-    const replacements: Record<string, string> = {
-      '[NUMÉRO DU CONTRAT]': body.contractNumber || '',
-      '[DATE]': body.date || '',
-      '[NOM PRESTATAIRE]': sellerName,
-      '[NOM\nPRESTATAIRE]': sellerName,
-      '[SIRET PRESTATAIRE]': body.seller?.siret || '',
-      '[ADRESSE PRESTATAIRE]': body.seller?.address || '',
-      '[ACTIVITÉ]': body.seller?.activity || '',
-      '[EMAIL PRESTATAIRE]': body.seller?.email || '',
+    // Prefer filling the PDF template, but fall back to a generated PDF if pdfjs worker setup fails in production.
+    try {
+      // Fill the user-provided PDF template (only placeholder zones are replaced).
+      const templatePath = join(process.cwd(), 'public', 'templates', 'contrat-template.pdf')
+      const templateBytes = await readFile(templatePath)
 
-      '[NOM CLIENT]': buyerName,
-      '[SIRET CLIENT]': body.buyer?.siret || '',
-      '[REPRÉSENTANT]': body.buyer?.representant || '',
-      '[ADRESSE CLIENT]': body.buyer?.address || '',
-      '[EMAIL CLIENT]': body.buyer?.email || '',
+      const replacements: Record<string, string> = {
+        '[NUMÉRO DU CONTRAT]': body.contractNumber || '',
+        '[DATE]': body.date || '',
+        '[NOM PRESTATAIRE]': sellerName,
+        '[NOM\nPRESTATAIRE]': sellerName,
+        '[SIRET PRESTATAIRE]': body.seller?.siret || '',
+        '[ADRESSE PRESTATAIRE]': body.seller?.address || '',
+        '[ACTIVITÉ]': body.seller?.activity || '',
+        '[EMAIL PRESTATAIRE]': body.seller?.email || '',
 
-      'DESCRIPTION DÉTAILLÉE DE LA MISSION': body.mission?.description || '',
-      'LIVRABLES ATTENDUS': body.mission?.deliverables || '',
+        '[NOM CLIENT]': buyerName,
+        '[SIRET CLIENT]': body.buyer?.siret || '',
+        '[REPRÉSENTANT]': body.buyer?.representant || '',
+        '[ADRESSE CLIENT]': body.buyer?.address || '',
+        '[EMAIL CLIENT]': body.buyer?.email || '',
 
-      '[DATE DÉBUT]': body.mission?.startDate || '',
-      '[DATE FIN]': body.mission?.endDate || '',
-      '[À DISTANCE / SUR SITE / MIXTE]': body.mission?.location || '',
-      '[NOMBRE  DE  RÉVISIONS]': body.mission?.revisions || '',
+        'DESCRIPTION DÉTAILLÉE DE LA MISSION': body.mission?.description || '',
+        'LIVRABLES ATTENDUS': body.mission?.deliverables || '',
 
-      '[FORFAIT / TJM / TAUX HORAIRE]': body.pricing?.type || '',
-      '[MONTANT]': body.pricing?.amount || '',
-      '[FRANCHISE EN BASE / ASSUJETTI]': body.vatRegime || '',
-      '[30/70 / 50/50 / 100% FIN / PERSONNALISÉ]': body.paymentSchedule || '',
-      '[30 JOURS / 45 JOURS / 60 JOURS]': body.paymentDelay || '',
-      "[CESSION APRÈS PAIEMENT / LICENCE D'UTILISATION / CESSION TOTALE]": body.ipClause || '',
-      '[OUI / NON]': body.confidentiality || '',
-      '[PRÉAVIS 15 JOURS / 30 JOURS / SANS PRÉAVIS]': body.termination || '',
-    }
+        '[DATE DÉBUT]': body.mission?.startDate || '',
+        '[DATE FIN]': body.mission?.endDate || '',
+        '[À DISTANCE / SUR SITE / MIXTE]': body.mission?.location || '',
+        '[NOMBRE  DE  RÉVISIONS]': body.mission?.revisions || '',
 
-    let filled = await fillContractTemplatePdf({
-      templateBytes: new Uint8Array(templateBytes),
-      replacements,
-    })
-
-    // Optional: append a signature page (freelance signature) at the end.
-    if (body.signatureUrl) {
-      try {
-        const { PDFDocument, StandardFonts, rgb } = await import('pdf-lib')
-        const baseDoc = await PDFDocument.load(filled)
-        const helvetica = await baseDoc.embedFont(StandardFonts.Helvetica)
-
-        const imgRes = await fetch(body.signatureUrl)
-        if (imgRes.ok) {
-          const imgBytes = new Uint8Array(await imgRes.arrayBuffer())
-          const png = await baseDoc.embedPng(imgBytes)
-
-          const page = baseDoc.addPage([595.28, 841.89]) // A4
-          page.drawText('Signature du prestataire', { x: 50, y: 780, size: 18, font: helvetica, color: rgb(0.12, 0.23, 0.54) })
-
-          const sellerLine = sellerName ? `Prestataire : ${sellerName}` : ''
-          const dateLine = body.date ? `Date : ${body.date}` : ''
-          if (sellerLine) page.drawText(sellerLine, { x: 50, y: 748, size: 12, font: helvetica, color: rgb(0.1, 0.1, 0.1) })
-          if (dateLine) page.drawText(dateLine, { x: 50, y: 730, size: 12, font: helvetica, color: rgb(0.1, 0.1, 0.1) })
-
-          // Signature box
-          page.drawRectangle({ x: 50, y: 600, width: 420, height: 140, borderWidth: 1, borderColor: rgb(0.9, 0.9, 0.92) })
-          page.drawImage(png, { x: 60, y: 610, width: 400, height: 120 })
-
-          filled = new Uint8Array((await baseDoc.save()) as any)
-        }
-      } catch {
-        // ignore
+        '[FORFAIT / TJM / TAUX HORAIRE]': body.pricing?.type || '',
+        '[MONTANT]': body.pricing?.amount || '',
+        '[FRANCHISE EN BASE / ASSUJETTI]': body.vatRegime || '',
+        '[30/70 / 50/50 / 100% FIN / PERSONNALISÉ]': body.paymentSchedule || '',
+        '[30 JOURS / 45 JOURS / 60 JOURS]': body.paymentDelay || '',
+        "[CESSION APRÈS PAIEMENT / LICENCE D'UTILISATION / CESSION TOTALE]": body.ipClause || '',
+        '[OUI / NON]': body.confidentiality || '',
+        '[PRÉAVIS 15 JOURS / 30 JOURS / SANS PRÉAVIS]': body.termination || '',
       }
-    }
 
-    return new NextResponse(filled as any, {
-      status: 200,
-      headers: {
-        'content-type': 'application/pdf',
-        'content-disposition': `attachment; filename="Contrat-${new Date().toISOString().slice(0, 10)}.pdf"`,
-        'cache-control': 'no-store',
-      },
-    })
+      let filled = await fillContractTemplatePdf({
+        templateBytes: new Uint8Array(templateBytes),
+        replacements,
+      })
+
+      // Optional: append a signature page (freelance signature) at the end.
+      if (body.signatureUrl) {
+        try {
+          const { PDFDocument, StandardFonts, rgb } = await import('pdf-lib')
+          const baseDoc = await PDFDocument.load(filled)
+          const helvetica = await baseDoc.embedFont(StandardFonts.Helvetica)
+
+          const imgRes = await fetch(body.signatureUrl)
+          if (imgRes.ok) {
+            const imgBytes = new Uint8Array(await imgRes.arrayBuffer())
+            const png = await baseDoc.embedPng(imgBytes)
+
+            const page = baseDoc.addPage([595.28, 841.89]) // A4
+            page.drawText('Signature du prestataire', { x: 50, y: 780, size: 18, font: helvetica, color: rgb(0.12, 0.23, 0.54) })
+
+            const sellerLine = sellerName ? `Prestataire : ${sellerName}` : ''
+            const dateLine = body.date ? `Date : ${body.date}` : ''
+            if (sellerLine) page.drawText(sellerLine, { x: 50, y: 748, size: 12, font: helvetica, color: rgb(0.1, 0.1, 0.1) })
+            if (dateLine) page.drawText(dateLine, { x: 50, y: 730, size: 12, font: helvetica, color: rgb(0.1, 0.1, 0.1) })
+
+            // Signature box
+            page.drawRectangle({ x: 50, y: 600, width: 420, height: 140, borderWidth: 1, borderColor: rgb(0.9, 0.9, 0.92) })
+            page.drawImage(png, { x: 60, y: 610, width: 400, height: 120 })
+
+            filled = new Uint8Array((await baseDoc.save()) as any)
+          }
+        } catch {
+          // ignore
+        }
+      }
+
+      return new NextResponse(filled as any, {
+        status: 200,
+        headers: {
+          'content-type': 'application/pdf',
+          'content-disposition': `attachment; filename="Contrat-${new Date().toISOString().slice(0, 10)}.pdf"`,
+          'cache-control': 'no-store',
+        },
+      })
+    } catch (err: any) {
+      // Fallback: generate a simple PDF without pdfjs.
+      const React = (await import('react')).default
+      const { Document, Page, Text, View, Image, StyleSheet, pdf } = await import('@react-pdf/renderer')
+
+      const styles = StyleSheet.create({
+        page: { paddingTop: 40, paddingBottom: 36, paddingHorizontal: 44, fontSize: 10.5, fontFamily: 'Helvetica', color: '#111827', lineHeight: 1.45 },
+        header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 },
+        logo: { height: 24, objectFit: 'contain' },
+        title: { fontSize: 16, fontWeight: 700, marginBottom: 4, color: '#1e3a8a' },
+        subtitle: { fontSize: 10, color: '#6b7280' },
+        box: { borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 10, padding: 14, backgroundColor: '#ffffff' },
+        bodyText: { fontSize: 10.5, lineHeight: 1.55, color: '#111827' },
+        paragraph: { marginBottom: 8 },
+        h2: { fontSize: 12, fontWeight: 700, color: '#1e3a8a', marginTop: 10, marginBottom: 6 },
+        signatureTitle: { fontSize: 12, fontWeight: 700, color: '#1e3a8a', marginTop: 16, marginBottom: 8 },
+        signatureBox: { borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 10, padding: 10, height: 110 },
+        signatureImg: { width: '100%', height: '100%', objectFit: 'contain' },
+      })
+
+      const bodyText = String(body.contractText || '').trim() || 'Contrat'
+
+      const Doc = () =>
+        React.createElement(
+          Document,
+          null,
+          React.createElement(
+            Page,
+            { size: 'A4', style: styles.page },
+            React.createElement(
+              View,
+              { style: styles.header },
+              body.logoUrl ? React.createElement(Image, { style: styles.logo, src: body.logoUrl }) : React.createElement(View, null),
+              React.createElement(
+                View,
+                { style: { alignItems: 'flex-end' } },
+                React.createElement(Text, { style: styles.title }, body.title || 'Contrat'),
+                body.date ? React.createElement(Text, { style: styles.subtitle }, `Date : ${body.date}`) : React.createElement(Text, { style: styles.subtitle }, ' ')
+              )
+            ),
+            React.createElement(
+              View,
+              { style: styles.box },
+              React.createElement(Text, { style: [styles.bodyText, styles.paragraph] }, `Prestataire : ${sellerName || ''}`),
+              React.createElement(Text, { style: [styles.bodyText, styles.paragraph] }, `Client : ${buyerName || ''}`),
+              body.contractNumber ? React.createElement(Text, { style: [styles.bodyText, styles.paragraph] }, `N° : ${body.contractNumber}`) : null,
+              React.createElement(Text, { style: styles.h2 }, 'Contenu'),
+              React.createElement(Text, { style: styles.bodyText }, bodyText)
+            ),
+            body.signatureUrl
+              ? React.createElement(
+                  View,
+                  null,
+                  React.createElement(Text, { style: styles.signatureTitle }, 'Signature (prestataire)'),
+                  React.createElement(View, { style: styles.signatureBox }, React.createElement(Image, { style: styles.signatureImg, src: body.signatureUrl }))
+                )
+              : null
+          )
+        )
+
+      const buf = await pdf(React.createElement(Doc)).toBuffer()
+      return new NextResponse(buf as any, {
+        status: 200,
+        headers: {
+          'content-type': 'application/pdf',
+          'content-disposition': `attachment; filename="Contrat-${new Date().toISOString().slice(0, 10)}.pdf"`,
+          'cache-control': 'no-store',
+          'x-spyke-contract-fallback': '1',
+        },
+      })
+    }
 
     /*
     const React = (await import('react')).default
