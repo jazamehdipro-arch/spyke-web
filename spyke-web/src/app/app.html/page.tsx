@@ -3498,8 +3498,33 @@ function ContratsV1({
                             <button className="btn btn-secondary" type="button" onClick={() => duplicateContract(String(c.id))}>
                               Dupliquer
                             </button>
-                            <button className="btn btn-secondary" type="button" onClick={() => sendContractForSignature(String(c.id))}>
-                              Envoyer pour signature
+                            <button
+                              className="btn btn-secondary"
+                              type="button"
+                              disabled
+                              title="Bientôt disponible"
+                              style={{ opacity: 0.55, cursor: 'not-allowed' }}
+                            >
+                              Signature électronique (bientôt)
+                            </button>
+                            <button
+                              className="btn btn-secondary"
+                              type="button"
+                              onClick={async () => {
+                                try {
+                                  // Manual signature is already embedded in the generated PDF (profile signature).
+                                  await openContract(String(c.id))
+                                  setMode('create')
+                                  // give React a tick to apply loaded state
+                                  await new Promise((r) => setTimeout(r, 400))
+                                  await generateContractPdf()
+                                } catch (e: any) {
+                                  alert(e?.message || 'Erreur génération PDF')
+                                }
+                              }}
+                              title="Génère le PDF avec la signature (à la main) déjà enregistrée"
+                            >
+                              Signature (PDF)
                             </button>
                             <button className="btn btn-secondary" type="button" onClick={() => deleteContract(String(c.id))}>
                               Supprimer
@@ -3542,8 +3567,31 @@ function ContratsV1({
                       <button className="btn btn-secondary" type="button" onClick={() => duplicateContract(String(c.id))}>
                         Dupliquer
                       </button>
-                      <button className="btn btn-secondary" type="button" onClick={() => sendContractForSignature(String(c.id))}>
-                        Envoyer pour signature
+                      <button
+                        className="btn btn-secondary"
+                        type="button"
+                        disabled
+                        title="Bientôt disponible"
+                        style={{ opacity: 0.55, cursor: 'not-allowed' }}
+                      >
+                        Signature électronique (bientôt)
+                      </button>
+                      <button
+                        className="btn btn-secondary"
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            await openContract(String(c.id))
+                            setMode('create')
+                            await new Promise((r) => setTimeout(r, 400))
+                            await generateContractPdf()
+                          } catch (e: any) {
+                            alert(e?.message || 'Erreur génération PDF')
+                          }
+                        }}
+                        title="Génère le PDF avec la signature (à la main) déjà enregistrée"
+                      >
+                        Signature (PDF)
                       </button>
                       <button className="btn btn-secondary" type="button" onClick={() => deleteContract(String(c.id))}>
                         Supprimer
