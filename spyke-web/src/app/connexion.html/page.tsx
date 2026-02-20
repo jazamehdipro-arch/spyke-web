@@ -498,7 +498,21 @@ export default function ConnexionPage() {
                   const origin = window.location.origin
                   const { data, error } = await supabase.auth.signInWithOAuth({
                     provider: 'google',
-                    options: { redirectTo: `${origin}/auth/callback.html` },
+                    options: {
+                      redirectTo: `${origin}/auth/callback.html`,
+                      queryParams: {
+                        // Ask once for offline access + Gmail send scope.
+                        // This enables direct Gmail sending without a separate "Connect Gmail" step.
+                        access_type: 'offline',
+                        prompt: 'consent',
+                        scope: [
+                          'openid',
+                          'email',
+                          'profile',
+                          'https://www.googleapis.com/auth/gmail.send',
+                        ].join(' '),
+                      },
+                    },
                   })
                   if (error) throw error
                   if (data?.url) window.location.href = data.url
@@ -632,7 +646,21 @@ export default function ConnexionPage() {
                   const origin = window.location.origin
                   const { data, error } = await supabase.auth.signInWithOAuth({
                     provider: 'google',
-                    options: { redirectTo: `${origin}/auth/callback.html` },
+                    options: {
+                      redirectTo: `${origin}/auth/callback.html`,
+                      queryParams: {
+                        // Ask once for offline access + Gmail send scope.
+                        // This enables direct Gmail sending without a separate "Connect Gmail" step.
+                        access_type: 'offline',
+                        prompt: 'consent',
+                        scope: [
+                          'openid',
+                          'email',
+                          'profile',
+                          'https://www.googleapis.com/auth/gmail.send',
+                        ].join(' '),
+                      },
+                    },
                   })
                   if (error) throw error
                   if (data?.url) window.location.href = data.url

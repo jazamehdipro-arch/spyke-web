@@ -36,8 +36,26 @@ export default function AuthCallbackPage() {
           return
         }
 
-        // Ensure profile exists, then check onboarding.
+        // Ensure profile exists
         await supabase.from('profiles').upsert({ id: user.id }, { onConflict: 'id' })
+
+        // If Google OAuth provided a refresh token, auto-connect Gmail for sending.
+        try {
+          const refreshToken = String((session as any)?.provider_refresh_token || '')
+          const provider = String((user as any)?.app_metadata?.provider || '')
+          if (provider === 'google' && refreshToken) {
+            await fetch('/api/gmail/auto-connect', {
+              method: 'POST',
+              headers: {
+                'content-type': 'application/json',
+                authorization: `Bearer ${session?.access_token}`,
+              },
+              body: JSON.stringify({ refresh_token: refreshToken, gmail_email: user.email || undefined }),
+            })
+          }
+        } catch {
+          // ignore
+        }
 
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
