@@ -146,16 +146,22 @@ export async function POST(req: Request) {
     // 4) Add signer + signature field
     const { first_name, last_name } = nameToFirstLast(buyerName || 'Client')
 
+    const buyerPhone = String(buyer?.phone_number || buyer?.phone || '').trim()
+
+    const info: any = {
+      first_name,
+      last_name,
+      email: buyerEmail,
+      locale: 'fr',
+    }
+
+    // Yousign rejects empty strings for optional fields (e.g. phone_number)
+    if (buyerPhone) info.phone_number = buyerPhone
+
     const signer = await yousignJson<any>(`signature_requests/${signatureRequestId}/signers`, {
       method: 'POST',
       body: JSON.stringify({
-        info: {
-          first_name,
-          last_name,
-          email: buyerEmail,
-          phone_number: String(buyer?.phone_number || ''),
-          locale: 'fr',
-        },
+        info,
         signature_level: 'electronic_signature',
         signature_authentication_mode: 'no_otp',
         fields: [
