@@ -15,6 +15,7 @@ const BodySchema = z.object({
   title: z.string().default('Contrat'),
   date: z.string().default(''),
   logoUrl: z.string().optional().default(''),
+  signatureUrl: z.string().optional().default(''),
   contractText: z.string().optional().default(''),
   parties: z
     .object({
@@ -147,10 +148,41 @@ export async function POST(req: Request) {
       '[PRÉAVIS 15 JOURS / 30 JOURS / SANS PRÉAVIS]': body.termination || '',
     }
 
-    const filled = await fillContractTemplatePdf({
+    let filled = await fillContractTemplatePdf({
       templateBytes: new Uint8Array(templateBytes),
       replacements,
     })
+
+    // Optional: append a signature page (freelance signature) at the end.
+    if (body.signatureUrl) {
+      try {
+        const { PDFDocument, StandardFonts, rgb } = await import('pdf-lib')
+        const baseDoc = await PDFDocument.load(filled)
+        const helvetica = await baseDoc.embedFont(StandardFonts.Helvetica)
+
+        const imgRes = await fetch(body.signatureUrl)
+        if (imgRes.ok) {
+          const imgBytes = new Uint8Array(await imgRes.arrayBuffer())
+          const png = await baseDoc.embedPng(imgBytes)
+
+          const page = baseDoc.addPage([595.28, 841.89]) // A4
+          page.drawText('Signature du prestataire', { x: 50, y: 780, size: 18, font: helvetica, color: rgb(0.12, 0.23, 0.54) })
+
+          const sellerLine = sellerName ? `Prestataire : ${sellerName}` : ''
+          const dateLine = body.date ? `Date : ${body.date}` : ''
+          if (sellerLine) page.drawText(sellerLine, { x: 50, y: 748, size: 12, font: helvetica, color: rgb(0.1, 0.1, 0.1) })
+          if (dateLine) page.drawText(dateLine, { x: 50, y: 730, size: 12, font: helvetica, color: rgb(0.1, 0.1, 0.1) })
+
+          // Signature box
+          page.drawRectangle({ x: 50, y: 600, width: 420, height: 140, borderWidth: 1, borderColor: rgb(0.9, 0.9, 0.92) })
+          page.drawImage(png, { x: 60, y: 610, width: 400, height: 120 })
+
+          filled = new Uint8Array((await baseDoc.save()) as any)
+        }
+      } catch {
+        // ignore
+      }
+    }
 
     return new NextResponse(filled as any, {
       status: 200,

@@ -19,6 +19,7 @@ const BodySchema = z.object({
   dateIssue: z.string().min(1),
   dueDate: z.string().optional().default(''),
   logoUrl: z.string().optional().default(''),
+  signatureUrl: z.string().optional().default(''),
 
   seller: z.object({
     name: z.string().min(1),
@@ -217,6 +218,20 @@ export async function POST(req: Request) {
       paymentBlock: { width: '54%' },
       paymentTitle: { fontSize: 10, fontWeight: 700, marginBottom: 6, color: '#111827' },
       paymentText: { fontSize: 9.5, lineHeight: 1.35, color: '#374151' },
+      signatureBlock: { width: '42%', alignItems: 'flex-end' },
+      signatureTitle: { fontSize: 10, fontWeight: 700, marginBottom: 6, color: '#111827' },
+      signatureBox: {
+        width: 220,
+        height: 80,
+        borderWidth: 1,
+        borderColor: '#e5e7eb',
+        borderRadius: 8,
+        padding: 8,
+        backgroundColor: '#fff',
+        justifyContent: 'center',
+      },
+      signatureImg: { width: '100%', height: '100%', objectFit: 'contain' },
+      signatureMeta: { fontSize: 8.5, color: '#6b7280', marginTop: 6 },
       footer: {
         position: 'absolute',
         left: 42,
@@ -353,6 +368,20 @@ export async function POST(req: Request) {
               )
             )
           ),
+
+          body.signatureUrl
+            ? React.createElement(
+                View,
+                { style: { marginTop: 14, alignItems: 'flex-end' } },
+                React.createElement(Text, { style: styles.signatureTitle }, 'Signature (prestataire)'),
+                React.createElement(
+                  View,
+                  { style: styles.signatureBox },
+                  React.createElement(Image, { style: styles.signatureImg, src: body.signatureUrl })
+                ),
+                React.createElement(Text, { style: styles.signatureMeta }, `Signé le ${formatDateFr(body.dateIssue)}`)
+              )
+            : null,
 
           React.createElement(
             Text,

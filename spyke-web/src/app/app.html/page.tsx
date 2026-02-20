@@ -3040,10 +3040,24 @@ function ContratsV1({
       } catch {}
     }
 
+    // best-effort signature
+    let signatureUrl = ''
+    try {
+      if (userId) {
+        const { data: profile } = await supabase.from('profiles').select('signature_path').eq('id', userId).maybeSingle()
+        const signaturePath = String((profile as any)?.signature_path || '')
+        if (signaturePath) {
+          const pub = supabase.storage.from('signatures').getPublicUrl(signaturePath)
+          signatureUrl = String(pub?.data?.publicUrl || '')
+        }
+      }
+    } catch {}
+
     const payload: any = {
       title: 'Contrat de prestation de service',
       date: today,
       logoUrl,
+      signatureUrl,
       contractText: contractText || buildContractText(),
       parties: { sellerName: prestaName, buyerName: clientName },
 
@@ -3253,10 +3267,24 @@ function ContratsV1({
         return `${amount.toFixed(2)} € HT / heure`
       })()
 
+      // best-effort signature
+      let signatureUrl = ''
+      try {
+        if (userId) {
+          const { data: profile } = await supabase.from('profiles').select('signature_path').eq('id', userId).maybeSingle()
+          const signaturePath = String((profile as any)?.signature_path || '')
+          if (signaturePath) {
+            const pub = supabase.storage.from('signatures').getPublicUrl(signaturePath)
+            signatureUrl = String(pub?.data?.publicUrl || '')
+          }
+        }
+      } catch {}
+
       const payload = {
         title: 'Contrat de prestation de service',
         date: today,
         logoUrl,
+        signatureUrl,
         contractText: finalText,
         parties: {
           sellerName: prestaName,
@@ -4154,7 +4182,7 @@ function FacturesV1({
     if (userId) {
       const { data: profile } = await supabase
         .from('profiles')
-        .select('full_name,company_name,logo_path,address,postal_code,city,country,siret,iban,bic,bank_name,bank_account')
+        .select('full_name,company_name,logo_path,signature_path,address,postal_code,city,country,siret,iban,bic,bank_name,bank_account')
         .eq('id', userId)
         .maybeSingle()
 
@@ -4191,6 +4219,19 @@ function FacturesV1({
 
     const totals = computeInvoiceTotals(lines)
 
+    // best-effort signature
+    let signatureUrl = ''
+    try {
+      if (userId) {
+        const { data: profile } = await supabase.from('profiles').select('signature_path').eq('id', userId).maybeSingle()
+        const signaturePath = String((profile as any)?.signature_path || '')
+        if (signaturePath) {
+          const pub = supabase.storage.from('signatures').getPublicUrl(signaturePath)
+          signatureUrl = String(pub?.data?.publicUrl || '')
+        }
+      }
+    } catch {}
+
     const payload: any = {
       invoiceNumber,
       dateIssue: invoiceDate,
@@ -4200,6 +4241,7 @@ function FacturesV1({
       lines,
       totals,
       notes: '',
+      signatureUrl,
     }
 
     const res = await fetch('/api/facture-pdf', {
@@ -4272,10 +4314,12 @@ function FacturesV1({
         logoUrl: '',
       }
 
+      let signatureUrl = ''
+
       if (userId) {
         const { data: profile } = await supabase
           .from('profiles')
-          .select('full_name,company_name,logo_path,address,postal_code,city,country,siret,iban,bic,bank_name,bank_account')
+          .select('full_name,company_name,logo_path,signature_path,address,postal_code,city,country,siret,iban,bic,bank_name,bank_account')
           .eq('id', userId)
           .maybeSingle()
 
@@ -4297,6 +4341,14 @@ function FacturesV1({
           logoUrl = String(pub?.data?.publicUrl || '')
         }
 
+        try {
+          const signaturePath = String((profile as any)?.signature_path || '')
+          if (signaturePath) {
+            const pub = supabase.storage.from('signatures').getPublicUrl(signaturePath)
+            signatureUrl = String(pub?.data?.publicUrl || '')
+          }
+        } catch {}
+
         seller = {
           ...seller,
           name: companyName || seller.name,
@@ -4315,6 +4367,7 @@ function FacturesV1({
         dateIssue: invoiceDate,
         dueDate,
         logoUrl: String((seller as any)?.logoUrl || ''),
+        signatureUrl,
         seller: {
           name: seller.name,
           addressLines: seller.addressLines,
