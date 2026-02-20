@@ -5310,6 +5310,8 @@ type Template =
   | 'Négociation'
   | 'Refus poli'
   | 'Facture'
+  | 'Remerciement'
+  | 'Présentation / Prospection'
 
 type ClientRow = {
   id: string
@@ -5398,6 +5400,116 @@ export default function AppHtmlPage() {
   const [assistantSubjectDirty, setAssistantSubjectDirty] = useState<boolean>(false)
   const [assistantOutput, setAssistantOutput] = useState<string>('')
   const [assistantSending, setAssistantSending] = useState<boolean>(false)
+  const [assistantSendPreviewOpen, setAssistantSendPreviewOpen] = useState<boolean>(false)
+
+  const [assistantHistory, setAssistantHistory] = useState<
+    Array<{ id: string; createdAt: string; template: Template; tone: Tone; clientId: string; to: string; subject: string; text: string }>
+  >([])
+
+  const [assistantClientInsights, setAssistantClientInsights] = useState<
+    null | {
+      clientName: string
+      unpaidInvoices: Array<{ number: string; total_ttc: number; due_date?: string | null; created_at?: string | null }>
+      pendingQuotes: Array<{ number: string; total_ttc: number; created_at?: string | null }>
+      activeContracts: Array<{ number: string; title: string; created_at?: string | null }>
+    }
+  >(null)
+
+  // Assistant IA: history + client insights
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('spyke_assistant_history_v1')
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        if (Array.isArray(parsed)) setAssistantHistory(parsed.slice(0, 30))
+      }
+    } catch {
+      // ignore
+    }
+  }, [])
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('spyke_assistant_history_v1', JSON.stringify(assistantHistory.slice(0, 30)))
+    } catch {
+      // ignore
+    }
+  }, [assistantHistory])
+
+  useEffect(() => {
+    ;(async () => {
+      try {
+        if (!supabase || !userId || !selectedClientId) {
+          setAssistantClientInsights(null)
+          return
+        }
+        const client = clients.find((c) => c.id === selectedClientId)
+        const clientName = String(client?.name || '').trim()
+
+        const [{ data: invData }, { data: quoteData }, { data: contractData }] = await Promise.all([
+          supabase
+            .from('invoices')
+            .select('number,total_ttc,due_date,created_at,status')
+            .eq('user_id', userId)
+            .eq('client_id', selectedClientId)
+            .order('created_at', { ascending: false })
+            .limit(10),
+          supabase
+            .from('quotes')
+            .select('number,total_ttc,created_at,status')
+            .eq('user_id', userId)
+            .eq('client_id', selectedClientId)
+            .order('created_at', { ascending: false })
+            .limit(10),
+          supabase
+            .from('contracts')
+            .select('number,title,created_at,status')
+            .eq('user_id', userId)
+            .eq('client_id', selectedClientId)
+            .order('created_at', { ascending: false })
+            .limit(10),
+        ])
+
+        const unpaidInvoices = (invData || [])
+          .filter((x: any) => {
+            const s = String(x.status || '').toLowerCase()
+            return s && !['paid', 'payee', 'payé', 'paye'].includes(s)
+          })
+          .map((x: any) => ({
+            number: String(x.number || ''),
+            total_ttc: Number(x.total_ttc || 0),
+            due_date: x.due_date || null,
+            created_at: x.created_at || null,
+          }))
+
+        const pendingQuotes = (quoteData || [])
+          .filter((x: any) => {
+            const s = String(x.status || '').toLowerCase()
+            return s && ['sent', 'envoye', 'envoyé', 'pending', 'attente', 'awaiting'].some((k) => s.includes(k))
+          })
+          .map((x: any) => ({
+            number: String(x.number || ''),
+            total_ttc: Number(x.total_ttc || 0),
+            created_at: x.created_at || null,
+          }))
+
+        const activeContracts = (contractData || [])
+          .filter((x: any) => {
+            const s = String(x.status || '').toLowerCase()
+            return !s || ['draft', 'sent', 'active', 'ongoing'].some((k) => s.includes(k))
+          })
+          .map((x: any) => ({
+            number: String(x.number || ''),
+            title: String(x.title || 'Contrat'),
+            created_at: x.created_at || null,
+          }))
+
+        setAssistantClientInsights({ clientName, unpaidInvoices, pendingQuotes, activeContracts })
+      } catch {
+        setAssistantClientInsights(null)
+      }
+    })()
+  }, [supabase, userId, selectedClientId, clients])
 
   // Help chat widget (persistent)
   const [helpOpen, setHelpOpen] = useState<boolean>(false)
@@ -6130,6 +6242,11 @@ export default function AppHtmlPage() {
       if (!res.ok) throw new Error(json?.error || `Erreur envoi (${res.status})`)
 
       alert('Email envoyé ✅')
+
+      // Close preview modal if open
+      try {
+        setAssistantSendPreviewOpen(false)
+      } catch {}
     } catch (e: any) {
       alert(e?.message || 'Erreur envoi')
     } finally {
@@ -6199,13 +6316,37 @@ CONTEXTE UTILISATEUR :
 - Métier : ${metier}
 - Ton préféré par défaut : ${tonPrefere}`
 
+      const autoContext = (() => {
+        if (assistantContext && assistantContext.trim()) return assistantContext.trim()
+        if (!assistantClientInsights) return ''
+
+        const ins = assistantClientInsights
+        const inv = ins.unpaidInvoices?.[0]
+        const quote = ins.pendingQuotes?.[0]
+        const c = ins.activeContracts?.[0]
+
+        if (template === 'Relance' && inv) {
+          return `Je souhaite relancer ${ins.clientName || 'le client'} pour une facture impayée (n° ${inv.number || '—'}, montant ${formatMoney(Number(inv.total_ttc || 0))}${inv.due_date ? `, échéance ${formatDateFr(String(inv.due_date).slice(0, 10))}` : ''}).`
+        }
+        if (template === 'Facture' && inv) {
+          return `Je veux envoyer une relance de paiement concernant la facture n° ${inv.number || '—'} (${formatMoney(Number(inv.total_ttc || 0))}).`
+        }
+        if (template === 'Relance devis' && quote) {
+          return `Je souhaite relancer ${ins.clientName || 'le client'} suite à l'envoi du devis n° ${quote.number || '—'} (${formatMoney(Number(quote.total_ttc || 0))}).`
+        }
+        if (template === 'Réponse' && c) {
+          return `Répondre au client au sujet du contrat ${c.number || ''} (${c.title || 'Contrat'}).`
+        }
+        return ''
+      })()
+
       const prompt = [
         `Type d'email: ${template}`,
         `Ton: ${toneLabel}`,
         client ? `Client: ${client.name}${client.email ? ` (${client.email})` : ''}` : '',
-        `Contexte: ${assistantContext || '(vide)'}`,
+        `Contexte: ${autoContext || '(vide)'}`,
         '',
-        'Rédige l\'email final.',
+        "Rédige l'email final.",
       ]
         .filter(Boolean)
         .join('\n')
@@ -6221,10 +6362,42 @@ CONTEXTE UTILISATEUR :
       const out = String(json?.text || '').trim()
       setAssistantOutput(out)
 
+      // Save in local history (best-effort)
+      try {
+        const id = `asst_${Date.now()}_${Math.random().toString(16).slice(2)}`
+        const clientId = String(selectedClientId || '')
+        const to = String(assistantTo || client?.email || '').trim()
+        const subject = assistantSubjectDirty ? assistantSubject.trim() : ''
+        setAssistantHistory((prev) => [
+          { id, createdAt: new Date().toISOString(), template, tone, clientId, to, subject, text: out },
+          ...(prev || []),
+        ].slice(0, 30))
+      } catch {
+        // ignore
+      }
+
       // Default subject (editable). Only set if user hasn't edited it.
       if (!assistantSubjectDirty) {
         const clientName = client?.name ? ` - ${client.name}` : ''
         setAssistantSubject(`${template}${clientName}`)
+      }
+
+      // If user hasn't edited subject yet, update latest history subject in-place
+      // (so history shows something usable)
+      try {
+        if (!assistantSubjectDirty) {
+          const clientName = client?.name ? ` - ${client.name}` : ''
+          const subj = `${template}${clientName}`
+          setAssistantHistory((prev) => {
+            const first = prev?.[0]
+            if (!first) return prev
+            if (first.subject) return prev
+            const updated = [{ ...first, subject: subj }, ...(prev.slice(1) || [])]
+            return updated
+          })
+        }
+      } catch {
+        // ignore
       }
 
       // Track usage (best-effort)
@@ -7117,46 +7290,189 @@ CONTEXTE UTILISATEUR :
           display: block;
         }
 
-        .template-list {
+        .assistant-hero-icon {
+          width: 44px;
+          height: 44px;
+          border-radius: 14px;
+          background: linear-gradient(135deg, var(--yellow-light), #fff);
+          border: 1px solid rgba(250, 204, 21, 0.45);
           display: flex;
-          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .assistant-hero-bolt {
+          font-size: 20px;
+          display: inline-block;
+          animation: assistantPulse 1.6s ease-in-out infinite;
+        }
+
+        @keyframes assistantPulse {
+          0% {
+            transform: scale(1);
+            opacity: 1;
+          }
+          50% {
+            transform: scale(1.12);
+            opacity: 0.85;
+          }
+          100% {
+            transform: scale(1);
+            opacity: 1;
+          }
+        }
+
+        .template-chips {
+          display: flex;
+          flex-wrap: wrap;
           gap: 8px;
         }
 
-        .template-item {
-          display: flex;
+        .template-chip {
+          display: inline-flex;
           align-items: center;
-          gap: 12px;
-          padding: 12px 14px;
-          border-radius: 10px;
+          gap: 8px;
+          padding: 10px 12px;
+          border-radius: 999px;
+          border: 2px solid var(--gray-200);
+          background: var(--white);
+          font-size: 14px;
+          font-weight: 600;
+          color: var(--gray-700);
           cursor: pointer;
-          transition: all 0.2s ease;
-          border: 1px solid transparent;
-          background: transparent;
+          transition: all 0.15s ease;
+          user-select: none;
         }
 
-        .template-item:hover {
+        .template-chip:hover {
+          border-color: var(--gray-300);
           background: var(--gray-50);
         }
 
-        .template-item.active {
+        .template-chip.active {
           background: var(--yellow-light);
           border-color: var(--yellow);
+          color: var(--black);
         }
 
-        .template-item-icon {
-          font-size: 18px;
+        .template-chip-icon {
+          font-size: 16px;
         }
 
-        .template-item-text {
-          font-size: 14px;
-          font-weight: 500;
+        .assistant-examples {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          margin-top: 8px;
+        }
+
+        .assistant-example-chip {
+          border: 1px solid var(--gray-200);
+          background: var(--gray-50);
+          color: var(--gray-700);
+          font-size: 13px;
+          padding: 8px 10px;
+          border-radius: 999px;
+          cursor: pointer;
+          transition: all 0.15s ease;
+        }
+
+        .assistant-example-chip:hover {
+          background: var(--white);
+          border-color: var(--gray-300);
+        }
+
+        .assistant-empty-output {
+          border: 2px dashed var(--gray-200);
+          border-radius: 14px;
+          padding: 22px;
+          text-align: center;
+          background: linear-gradient(180deg, #ffffff, #fafafa);
+        }
+
+        .assistant-empty-illu {
+          font-size: 28px;
+          margin-bottom: 10px;
+        }
+
+        .assistant-empty-title {
+          font-size: 15px;
+          font-weight: 800;
+          color: var(--gray-800);
+          margin-bottom: 4px;
+        }
+
+        .assistant-empty-sub {
+          font-size: 13px;
+          color: var(--gray-500);
+          margin-bottom: 12px;
+        }
+
+        .assistant-history {
+          border: 1px solid var(--gray-200);
+          background: var(--white);
+          border-radius: 16px;
+          padding: 16px;
+          margin-bottom: 16px;
+        }
+
+        .assistant-history-title {
+          font-size: 13px;
+          font-weight: 800;
+          color: var(--gray-700);
+          margin-bottom: 10px;
+        }
+
+        .assistant-history-list {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 10px;
+        }
+
+        .assistant-history-item {
+          text-align: left;
+          border: 1px solid var(--gray-200);
+          background: var(--gray-50);
+          padding: 12px;
+          border-radius: 12px;
+          cursor: pointer;
+        }
+
+        .assistant-history-item:hover {
+          background: var(--white);
+        }
+
+        .assistant-history-item-top {
+          display: flex;
+          justify-content: space-between;
+          gap: 8px;
+          margin-bottom: 6px;
+        }
+
+        .assistant-history-item-kind {
+          font-size: 12px;
+          font-weight: 800;
           color: var(--gray-700);
         }
 
-        .template-item.active .template-item-text {
-          color: var(--black);
+        .assistant-history-item-date {
+          font-size: 11px;
+          color: var(--gray-400);
+        }
+
+        .assistant-history-item-subject {
+          font-size: 13px;
+          color: var(--gray-700);
           font-weight: 600;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        @media (max-width: 900px) {
+          .assistant-history-list {
+            grid-template-columns: 1fr;
+          }
         }
 
         .assistant-main {
@@ -8797,12 +9113,48 @@ CONTEXTE UTILISATEUR :
 
         {/* Assistant */}
         <div id="tab-assistant" className={`tab-content ${tab === 'assistant' ? 'active' : ''}`}>
-          <div className="page-header">
-            <div>
-              <h1 className="page-title">Assistant IA</h1>
-              <p className="page-subtitle">Générez des emails professionnels en quelques secondes</p>
+          <div className="page-header" style={{ marginBottom: 18 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+              <div className="assistant-hero-icon" aria-hidden>
+                <span className="assistant-hero-bolt">⚡</span>
+              </div>
+              <div>
+                <h1 className="page-title" style={{ marginBottom: 4 }}>Assistant IA</h1>
+                <p className="page-subtitle" style={{ marginTop: 0 }}>Votre copilote pour les emails clients</p>
+              </div>
             </div>
           </div>
+
+          {assistantHistory.length ? (
+            <div className="assistant-history">
+              <div className="assistant-history-title">Derniers emails</div>
+              <div className="assistant-history-list">
+                {assistantHistory.slice(0, 6).map((it) => (
+                  <button
+                    key={it.id}
+                    type="button"
+                    className="assistant-history-item"
+                    onClick={() => {
+                      setSelectedClientId(it.clientId || '')
+                      setAssistantTo(it.to || '')
+                      setTemplate(it.template)
+                      setTone(it.tone)
+                      setAssistantSubjectDirty(true)
+                      setAssistantSubject(it.subject || it.template)
+                      setAssistantOutput(it.text || '')
+                    }}
+                    title="Recharger cet email"
+                  >
+                    <div className="assistant-history-item-top">
+                      <div className="assistant-history-item-kind">{it.template}</div>
+                      <div className="assistant-history-item-date">{new Date(it.createdAt).toLocaleDateString('fr-FR')}</div>
+                    </div>
+                    <div className="assistant-history-item-subject">{it.subject || 'Sans objet'}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
 
           <div className="assistant-container">
             <div className="assistant-main">
@@ -8869,11 +9221,28 @@ CONTEXTE UTILISATEUR :
                     value={assistantContext}
                     onChange={(e) => setAssistantContext(e.target.value)}
                   />
+                  <div className="assistant-examples">
+                    {[
+                      'Le client n\'a pas répondu depuis 2 semaines',
+                      'Je veux augmenter mon tarif de 15%',
+                      'Le client demande du travail hors périmètre',
+                      'Je veux demander un acompte avant de démarrer',
+                    ].map((ex) => (
+                      <button
+                        key={ex}
+                        type="button"
+                        className="assistant-example-chip"
+                        onClick={() => setAssistantContext(ex)}
+                      >
+                        {ex}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 <div className="form-group">
                   <label className="form-label">Type</label>
-                  <div className="template-list">
+                  <div className="template-chips">
                     {([
                       ['💬', 'Réponse'],
                       ['✉️', 'Relance'],
@@ -8881,15 +9250,20 @@ CONTEXTE UTILISATEUR :
                       ['🤝', 'Négociation'],
                       ['🚫', 'Refus poli'],
                       ['🧾', 'Facture'],
+                      ['🙏', 'Remerciement'],
+                      ['🧲', 'Présentation / Prospection'],
                     ] as Array<[string, Template]>).map(([icon, label]) => (
-                      <div
+                      <button
                         key={label}
-                        className={`template-item ${template === label ? 'active' : ''}`}
+                        type="button"
+                        className={`template-chip ${template === label ? 'active' : ''}`}
                         onClick={() => setTemplate(label)}
                       >
-                        <span className="template-item-icon">{icon}</span>
-                        <span className="template-item-text">{label}</span>
-                      </div>
+                        <span className="template-chip-icon" aria-hidden>
+                          {icon}
+                        </span>
+                        {label}
+                      </button>
                     ))}
                   </div>
                 </div>
@@ -8923,7 +9297,29 @@ CONTEXTE UTILISATEUR :
 
                 <div className="form-group">
                   <label className="form-label">Résultat</label>
-                  <div className={`output-box ${assistantOutput ? '' : 'empty'}`}>{assistantOutput || "L'email généré apparaîtra ici..."}</div>
+                  {assistantOutput ? (
+                    <div className="output-box">{assistantOutput}</div>
+                  ) : (
+                    <div className="assistant-empty-output">
+                      <div className="assistant-empty-illu" aria-hidden>
+                        🤖
+                      </div>
+                      <div className="assistant-empty-title">Décrivez votre situation</div>
+                      <div className="assistant-empty-sub">et l’IA rédige votre email en ~5 secondes.</div>
+                      <div className="assistant-examples" style={{ justifyContent: 'center' }}>
+                        {[
+                          'Relance polie après devis envoyé',
+                          'Refus poli d\'un changement de périmètre',
+                          'Négocier une hausse de tarif',
+                        ].map((ex) => (
+                          <button key={ex} type="button" className="assistant-example-chip" onClick={() => setAssistantContext(ex)}>
+                            {ex}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   <div className="output-actions">
                     <button
                       type="button"
@@ -8947,7 +9343,13 @@ CONTEXTE UTILISATEUR :
                       Régénérer
                     </button>
 
-                    <button type="button" className="btn btn-primary" onClick={sendAssistantEmailNow} disabled={assistantSending || !assistantOutput}>
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      onClick={() => setAssistantSendPreviewOpen(true)}
+                      disabled={assistantSending || !assistantOutput}
+                      title={!assistantOutput ? 'Génère un email avant' : 'Aperçu avant envoi'}
+                    >
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
                         <path d="M4 4h16v16H4z" opacity="0" />
                         <path d="M4 4h16v16H4z" />
@@ -8960,6 +9362,44 @@ CONTEXTE UTILISATEUR :
               </form>
             </div>
           </div>
+
+          <ModalShell
+            open={assistantSendPreviewOpen}
+            title={"Aperçu avant envoi"}
+            onClose={() => setAssistantSendPreviewOpen(false)}
+            footer={
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+                <button className="btn btn-secondary" type="button" onClick={() => setAssistantSendPreviewOpen(false)} disabled={assistantSending}>
+                  Annuler
+                </button>
+                <button
+                  className="btn btn-primary"
+                  type="button"
+                  onClick={sendAssistantEmailNow}
+                  disabled={assistantSending || !assistantOutput}
+                >
+                  {assistantSending ? 'Envoi…' : 'Envoyer'}
+                </button>
+              </div>
+            }
+          >
+            <div style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 12, height: '100%' }}>
+              <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.6)' }}>
+                À : <b>{String(assistantTo || (clients.find((c) => c.id === selectedClientId)?.email || '')).trim() || '—'}</b>
+              </div>
+              <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.6)' }}>
+                Objet : <b>{assistantSubject.trim() || '—'}</b>
+              </div>
+              <textarea
+                readOnly
+                value={assistantOutput || ''}
+                style={{ width: '100%', flex: 1, resize: 'none', padding: '12px 14px', borderRadius: 12, border: '1px solid rgba(0,0,0,0.12)', fontFamily: 'inherit' }}
+              />
+              <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.55)' }}>
+                Vérifie le contenu, puis clique sur “Envoyer”.
+              </div>
+            </div>
+          </ModalShell>
         </div>
 
         {/* Devis */}
