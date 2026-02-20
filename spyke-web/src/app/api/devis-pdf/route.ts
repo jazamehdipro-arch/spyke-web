@@ -22,6 +22,7 @@ const BodySchema = z.object({
   dateIssue: z.string().min(1), // YYYY-MM-DD
   validityUntil: z.string().optional().default(''),
   logoUrl: z.string().optional().default(''),
+  signatureUrl: z.string().optional().default(''),
 
   seller: z.object({
     name: z.string().min(1),
@@ -247,6 +248,7 @@ export async function POST(req: Request) {
       signTitle: { fontSize: 10, fontWeight: 700, marginBottom: 6, color: '#111827' },
       signLine: { fontSize: 10, color: '#111827', marginTop: 6 },
       signValue: { fontSize: 10, color: '#111827', marginTop: 2 },
+      signImg: { width: 160, height: 46, objectFit: 'contain', marginTop: 10 },
       underline: { fontSize: 10, color: '#9ca3af' },
       footer: {
         position: 'absolute',
@@ -389,7 +391,8 @@ export async function POST(req: Request) {
               React.createElement(Text, { style: styles.signLine }, 'Signé le :'),
               React.createElement(Text, { style: styles.underline }, '____________________________'),
               React.createElement(Text, { style: styles.signLine }, 'À :'),
-              React.createElement(Text, { style: styles.underline }, '____________________________')
+              React.createElement(Text, { style: styles.underline }, '____________________________'),
+              body.signatureUrl ? React.createElement(Image, { style: styles.signImg, src: body.signatureUrl }) : null
             )
           ),
 

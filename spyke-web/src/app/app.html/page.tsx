@@ -1021,12 +1021,26 @@ Réponds uniquement par le texte de la description.`
       } catch {}
     }
 
+    // best-effort signature
+    let signatureUrl = ''
+    if (userId) {
+      try {
+        const { data: profile } = await supabase.from('profiles').select('signature_path').eq('id', userId).maybeSingle()
+        const signaturePath = String((profile as any)?.signature_path || '')
+        if (signaturePath) {
+          const pub = supabase.storage.from('signatures').getPublicUrl(signaturePath)
+          signatureUrl = String(pub?.data?.publicUrl || '')
+        }
+      } catch {}
+    }
+
     const payload: any = {
       quoteNumber: String(quoteNumber || ''),
       title: String(title || ''),
       dateIssue: String(dateIssue || ''),
       validityUntil: String(validityUntil || ''),
       logoUrl,
+      signatureUrl,
       seller,
       buyer,
       lines,
