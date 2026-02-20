@@ -11,6 +11,8 @@ const HeaderSchema = z.object({
 
 const BodySchema = z.object({
   contractId: z.string().uuid(),
+  // default: send to client only; seller_first creates 2 signers and returns seller signing link
+  mode: z.enum(['buyer_only', 'seller_first']).optional(),
 })
 
 export async function POST(req: Request) {
@@ -31,6 +33,7 @@ export async function POST(req: Request) {
     if (!token) return NextResponse.json({ error: 'Missing bearer token' }, { status: 401 })
 
     const body = BodySchema.parse(await req.json())
+    const mode = body.mode || 'buyer_only'
 
     // Authenticated Supabase client (RLS enforced)
     const supabase = createClient(supabaseUrl, supabaseAnonKey, {
@@ -59,9 +62,30 @@ export async function POST(req: Request) {
     const buyerName = String(buyer?.name || '').trim()
     const buyerEmail = String(buyer?.email || '').trim()
 
+    // Seller email: prefer connected Gmail (if any), else auth email
+    let sellerEmail = String((seller as any)?.email || userData.user.email || '').trim()
+    try {
+      const { data: tokenRow } = await supabase
+        .from('google_gmail_tokens')
+        .select('gmail_email')
+        .eq('user_id', userId)
+        .maybeSingle()
+      const gmailEmail = String((tokenRow as any)?.gmail_email || '').trim()
+      if (gmailEmail) sellerEmail = gmailEmail
+    } catch {
+      // ignore
+    }
+
     if (!buyerEmail) {
       return NextResponse.json(
         { error: "Email du client manquant (champ 'email' dans buyer_snapshot)." },
+        { status: 400 }
+      )
+    }
+
+    if (mode === 'seller_first' && !sellerEmail) {
+      return NextResponse.json(
+        { error: "Email du prestataire introuvable (connecte Gmail ou renseigne l'email dans le profil)." },
         { status: 400 }
       )
     }
@@ -143,51 +167,110 @@ export async function POST(req: Request) {
     const documentId = String((doc as any)?.id || '')
     if (!documentId) throw new Error('Yousign: document.id manquant')
 
-    // 4) Add signer + signature field
-    const { first_name, last_name } = nameToFirstLast(buyerName || 'Client')
+    // 4) Add signer(s) + signature field(s)
+    // Our contract template has a signature block at the bottom of page 2.
+    // These coordinates are MVP defaults for the current PDF layout.
+    const SIG_PAGE = 2
+    const SELLER_SIG = { x: 120, y: 620 }
+    const BUYER_SIG = { x: 120, y: 705 }
 
-    const buyerPhone = String(buyer?.phone_number || buyer?.phone || '').trim()
+    let sellerSigner: any = null
+    let buyerSigner: any = null
 
-    const info: any = {
-      first_name,
-      last_name,
-      email: buyerEmail,
-      locale: 'fr',
+    async function createSigner(payload: any) {
+      try {
+        return await yousignJson<any>(`signature_requests/${signatureRequestId}/signers`, {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        })
+      } catch (e: any) {
+        // Some accounts might not support signing order params; retry without if necessary.
+        const msg = String(e?.message || '')
+        if (msg.includes('invalid') || msg.includes('parameters_not_valid')) {
+          const cloned = JSON.parse(JSON.stringify(payload))
+          delete cloned?.signing_order
+          delete cloned?.order
+          delete cloned?.rank
+          return await yousignJson<any>(`signature_requests/${signatureRequestId}/signers`, {
+            method: 'POST',
+            body: JSON.stringify(cloned),
+          })
+        }
+        throw e
+      }
     }
 
-    // Yousign rejects empty strings for optional fields (e.g. phone_number)
-    if (buyerPhone) info.phone_number = buyerPhone
-
-    const signer = await yousignJson<any>(`signature_requests/${signatureRequestId}/signers`, {
-      method: 'POST',
-      body: JSON.stringify({
-        info,
+    if (mode === 'seller_first') {
+      const sellerName = String(seller?.name || 'Prestataire').trim() || 'Prestataire'
+      const s = nameToFirstLast(sellerName)
+      sellerSigner = await createSigner({
+        // best-effort ordering
+        signing_order: 1,
+        info: {
+          first_name: s.first_name,
+          last_name: s.last_name,
+          email: sellerEmail,
+          locale: 'fr',
+        },
         signature_level: 'electronic_signature',
         signature_authentication_mode: 'no_otp',
         fields: [
           {
             document_id: documentId,
             type: 'signature',
-            page: 1,
-            x: 77,
-            y: 140,
+            page: SIG_PAGE,
+            x: SELLER_SIG.x,
+            y: SELLER_SIG.y,
           },
         ],
-      }),
+      })
+    }
+
+    const buyerNames = nameToFirstLast(buyerName || 'Client')
+    const buyerPhone = String(buyer?.phone_number || buyer?.phone || '').trim()
+    const buyerInfo: any = {
+      first_name: buyerNames.first_name,
+      last_name: buyerNames.last_name,
+      email: buyerEmail,
+      locale: 'fr',
+    }
+    if (buyerPhone) buyerInfo.phone_number = buyerPhone
+
+    buyerSigner = await createSigner({
+      ...(mode === 'seller_first' ? { signing_order: 2 } : {}),
+      info: buyerInfo,
+      signature_level: 'electronic_signature',
+      signature_authentication_mode: 'no_otp',
+      fields: [
+        {
+          document_id: documentId,
+          type: 'signature',
+          page: SIG_PAGE,
+          x: BUYER_SIG.x,
+          y: BUYER_SIG.y,
+        },
+      ],
     })
 
-    const signerId = String(signer?.id || '')
+    const buyerSignerId = String(buyerSigner?.id || '')
 
     // 5) Activate
     await yousignFetch(`signature_requests/${signatureRequestId}/activate`, { method: 'POST' })
 
-    // 6) Best-effort: fetch signing link
+    // 6) Best-effort: fetch signing links
     let signingUrl = ''
+    let sellerSigningUrl = ''
     try {
       const signers = await yousignJson<any>(`signature_requests/${signatureRequestId}/signers`, { method: 'GET' })
-      signingUrl = extractSigningLink(signers) || extractSigningLink(signer)
+      signingUrl = extractSigningLink(signers) || extractSigningLink(buyerSigner)
+      // if we created seller first, prefer its link for the initial UI popup
+      if (mode === 'seller_first') {
+        const maybe = extractSigningLink(signers?.signers?.[0] || signers?.data?.[0] || sellerSigner)
+        sellerSigningUrl = maybe || extractSigningLink(sellerSigner)
+      }
     } catch {
-      signingUrl = extractSigningLink(signer)
+      signingUrl = extractSigningLink(buyerSigner)
+      if (mode === 'seller_first') sellerSigningUrl = extractSigningLink(sellerSigner)
     }
 
     // Persist in DB
@@ -197,9 +280,9 @@ export async function POST(req: Request) {
       provider: 'yousign',
       provider_request_id: signatureRequestId,
       provider_document_id: documentId,
-      provider_signer_id: signerId || null,
+      provider_signer_id: buyerSignerId || null,
       status: String(sr?.status || 'ongoing'),
-      signing_url: signingUrl || null,
+      signing_url: (mode === 'seller_first' ? sellerSigningUrl : signingUrl) || null,
     } as any)
 
     if (insErr) throw insErr
@@ -207,7 +290,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       ok: true,
       signatureRequestId,
-      signingUrl,
+      signingUrl: mode === 'seller_first' ? sellerSigningUrl || signingUrl : signingUrl,
       status: String(sr?.status || 'ongoing'),
     })
   } catch (e: any) {

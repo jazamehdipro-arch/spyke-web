@@ -95,6 +95,7 @@ function usePdfMailModals() {
     previewUrl?: string
   }>(null)
   const [mailSending, setMailSending] = useState(false)
+  const [signatureFrame, setSignatureFrame] = useState<null | { url: string; title?: string }>(null)
 
   useEffect(() => {
     return () => {
@@ -177,6 +178,25 @@ function usePdfMailModals() {
 
   const modals = (
     <>
+      <ModalShell
+        open={!!signatureFrame}
+        title={signatureFrame?.title || 'Signature électronique'}
+        onClose={() => setSignatureFrame(null)}
+        footer={
+          signatureFrame ? (
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+              <button className="btn btn-primary" type="button" onClick={() => setSignatureFrame(null)}>
+                Fermer
+              </button>
+            </div>
+          ) : null
+        }
+      >
+        {signatureFrame ? (
+          <iframe title="yousign-sign" src={signatureFrame.url} style={{ width: '100%', height: '100%', border: 0 }} />
+        ) : null}
+      </ModalShell>
+
       <ModalShell
         open={!!pdfPreview}
         title={pdfPreview?.filename || 'Aperçu PDF'}
@@ -267,9 +287,14 @@ function usePdfMailModals() {
     </>
   )
 
+  function openSignatureFrame(url: string, title?: string) {
+    setSignatureFrame({ url, title })
+  }
+
   return {
     openPdfPreviewFromBlob,
     openMailComposeWithAttachment,
+    openSignatureFrame,
     modals,
   }
 }
@@ -364,7 +389,7 @@ function DevisV4({
     }
   }, [])
 
-  const { openPdfPreviewFromBlob, openMailComposeWithAttachment, modals } = usePdfMailModals()
+  const { openPdfPreviewFromBlob, openMailComposeWithAttachment, openSignatureFrame, modals } = usePdfMailModals()
 
   const today = useMemo(() => {
     const d = new Date()
@@ -2573,7 +2598,7 @@ function ContratsV1({
     }
   }, [])
 
-  const { openPdfPreviewFromBlob, openMailComposeWithAttachment, modals } = usePdfMailModals()
+  const { openPdfPreviewFromBlob, openMailComposeWithAttachment, openSignatureFrame, modals } = usePdfMailModals()
 
   const [signatureMissing, setSignatureMissing] = useState(false)
   useEffect(() => {
@@ -2899,7 +2924,7 @@ function ContratsV1({
     try {
       if (!supabase || !contractId) return
 
-      const ok = confirm('Envoyer ce contrat pour signature électronique via Yousign ?')
+      const ok = confirm('Démarrer la signature électronique ? (1) Vous signez en tant que prestataire (2) puis le client reçoit la demande.')
       if (!ok) return
 
       const { data: sessionData } = await supabase.auth.getSession()
@@ -2912,22 +2937,17 @@ function ContratsV1({
           authorization: `Bearer ${token}`,
           'content-type': 'application/json',
         },
-        body: JSON.stringify({ contractId: contractId }),
+        body: JSON.stringify({ contractId: contractId, mode: 'seller_first' }),
       })
 
       const json = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(String((json as any)?.error || 'Erreur envoi signature'))
+      if (!res.ok) throw new Error(String((json as any)?.error || 'Erreur signature'))
 
       const signingUrl = String((json as any)?.signingUrl || '')
+      if (!signingUrl) throw new Error('Lien de signature indisponible')
 
-      if (signingUrl) {
-        try {
-          window.open(signingUrl, '_blank', 'noopener,noreferrer')
-        } catch {}
-        alert('Contrat envoyé pour signature. Le lien de signature a été ouvert dans un nouvel onglet.')
-      } else {
-        alert('Contrat envoyé pour signature. (Lien de signature indisponible dans la réponse)')
-      }
+      // Open embedded signing flow (like PDF preview)
+      openSignatureFrame(signingUrl, 'Signer le contrat')
     } catch (e: any) {
       alert(e?.message || 'Erreur envoi pour signature')
     }
@@ -3957,7 +3977,7 @@ function FacturesV1({
     }
   }, [])
 
-  const { openPdfPreviewFromBlob, openMailComposeWithAttachment, modals } = usePdfMailModals()
+  const { openPdfPreviewFromBlob, openMailComposeWithAttachment, openSignatureFrame, modals } = usePdfMailModals()
 
   const [signatureMissing, setSignatureMissing] = useState(false)
   useEffect(() => {
