@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { getSupabase } from '@/lib/supabaseClient'
 
 function ModalShell({
@@ -5193,6 +5193,16 @@ export default function AppHtmlPage() {
   const [settingsIban, setSettingsIban] = useState<string>('')
   const [settingsBic, setSettingsBic] = useState<string>('')
 
+  // Signature (freelance)
+  const signatureCanvasRef = useRef<HTMLCanvasElement | null>(null)
+  const signatureDrawingRef = useRef(false)
+  const signatureHasInkRef = useRef(false)
+  const signatureLastPointRef = useRef<{ x: number; y: number } | null>(null)
+  const [signatureSaving, setSignatureSaving] = useState(false)
+  const [signatureError, setSignatureError] = useState('')
+  const [signaturePath, setSignaturePath] = useState<string>('')
+  const [signaturePreviewUrl, setSignaturePreviewUrl] = useState<string>('')
+
   const [clients, setClients] = useState<ClientRow[]>([])
   const [selectedClientId, setSelectedClientId] = useState<string>('')
   const [editingClientId, setEditingClientId] = useState<string>('')
@@ -5463,7 +5473,7 @@ export default function AppHtmlPage() {
 
         const { data: profile } = await supabase
           .from('profiles')
-          .select('first_name,last_name,job,email_tone,plan,company_name,address,postal_code,city,country,siret,vat_number,iban,bic')
+          .select('first_name,last_name,job,email_tone,plan,company_name,address,postal_code,city,country,siret,vat_number,iban,bic,signature_path')
           .eq('id', userId)
           .maybeSingle()
 
@@ -5493,6 +5503,20 @@ export default function AppHtmlPage() {
         setSettingsIban(String((profile as any)?.iban || ''))
         setSettingsBic(String((profile as any)?.bic || ''))
 
+        // Signature
+        const sp = String((profile as any)?.signature_path || '')
+        setSignaturePath(sp)
+        try {
+          if (sp) {
+            const pub = supabase.storage.from('signatures').getPublicUrl(sp)
+            setSignaturePreviewUrl(String(pub?.data?.publicUrl || ''))
+          } else {
+            setSignaturePreviewUrl('')
+          }
+        } catch {
+          setSignaturePreviewUrl('')
+        }
+
         const plan = String((profile as any)?.plan || 'free') === 'pro' ? 'pro' : 'free'
         setPlanCode(plan)
         setUserPlan(plan === 'pro' ? 'Compte Pro' : 'Compte gratuit')
@@ -5518,6 +5542,154 @@ export default function AppHtmlPage() {
     const b = parts[1]?.[0] ?? ''
     return (a + b).toUpperCase()
   }, [userFullName])
+
+  function signatureClear() {
+    setSignatureError('')
+    const canvas = signatureCanvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    ctx.fillStyle = '#ffffff'
+    ctx.fillRect(0, 0, canvas.width, canvas.height)
+    signatureHasInkRef.current = false
+    signatureLastPointRef.current = null
+  }
+
+  function signatureEnsureCanvasSize() {
+    const canvas = signatureCanvasRef.current
+    if (!canvas) return
+
+    const dpr = Math.max(1, window.devicePixelRatio || 1)
+    const rect = canvas.getBoundingClientRect()
+    const w = Math.max(1, Math.round(rect.width * dpr))
+    const h = Math.max(1, Math.round(rect.height * dpr))
+
+    if (canvas.width !== w || canvas.height !== h) {
+      canvas.width = w
+      canvas.height = h
+      const ctx = canvas.getContext('2d')
+      if (ctx) {
+        ctx.setTransform(1, 0, 0, 1, 0, 0)
+        ctx.scale(dpr, dpr)
+        // background white
+        ctx.fillStyle = '#ffffff'
+        ctx.fillRect(0, 0, rect.width, rect.height)
+        // stroke style
+        ctx.lineCap = 'round'
+        ctx.lineJoin = 'round'
+        ctx.strokeStyle = '#0a0a0a'
+        ctx.lineWidth = 2.2
+      }
+    }
+  }
+
+  function signaturePointFromEvent(e: any) {
+    const canvas = signatureCanvasRef.current
+    if (!canvas) return null
+    const rect = canvas.getBoundingClientRect()
+    const clientX = e?.clientX ?? (e?.touches?.[0]?.clientX ?? 0)
+    const clientY = e?.clientY ?? (e?.touches?.[0]?.clientY ?? 0)
+    return { x: clientX - rect.left, y: clientY - rect.top }
+  }
+
+  function signatureStart(e: any) {
+    setSignatureError('')
+    signatureEnsureCanvasSize()
+    signatureDrawingRef.current = true
+    signatureLastPointRef.current = signaturePointFromEvent(e)
+  }
+
+  function signatureMove(e: any) {
+    if (!signatureDrawingRef.current) return
+    const canvas = signatureCanvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
+    const p = signaturePointFromEvent(e)
+    const last = signatureLastPointRef.current
+    if (!p || !last) return
+
+    ctx.beginPath()
+    ctx.moveTo(last.x, last.y)
+    ctx.lineTo(p.x, p.y)
+    ctx.stroke()
+
+    signatureLastPointRef.current = p
+    signatureHasInkRef.current = true
+  }
+
+  function signatureEnd() {
+    signatureDrawingRef.current = false
+    signatureLastPointRef.current = null
+  }
+
+  async function saveSignatureNow() {
+    try {
+      setSignatureError('')
+      if (!signatureHasInkRef.current) {
+        setSignatureError('Signe dans la zone avant d’enregistrer.')
+        return
+      }
+      if (!supabase) throw new Error('Supabase non initialisé')
+      const { data: s } = await supabase.auth.getSession()
+      const token = s.session?.access_token
+      if (!token) throw new Error('Non connecté')
+
+      const canvas = signatureCanvasRef.current
+      if (!canvas) throw new Error('Canvas signature introuvable')
+
+      setSignatureSaving(true)
+
+      // export PNG
+      const dataUrl = canvas.toDataURL('image/png')
+      const bin = atob(dataUrl.split(',')[1] || '')
+      const bytes = new Uint8Array(bin.length)
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
+      const blob = new Blob([bytes], { type: 'image/png' })
+
+      const fd = new FormData()
+      fd.set('file', new File([blob], 'signature.png', { type: 'image/png' }))
+
+      const res = await fetch('/api/upload-signature', {
+        method: 'POST',
+        headers: { authorization: `Bearer ${token}` },
+        body: fd,
+      })
+      const json = await res.json().catch(() => null)
+      if (!res.ok) throw new Error(json?.error || `Upload signature échoué (${res.status})`)
+
+      const path = String(json?.path || '')
+      setSignaturePath(path)
+      try {
+        if (path) {
+          const pub = supabase.storage.from('signatures').getPublicUrl(path)
+          setSignaturePreviewUrl(String(pub?.data?.publicUrl || ''))
+        }
+      } catch {}
+
+      // reset pad after save
+      signatureClear()
+    } catch (e: any) {
+      setSignatureError(e?.message || 'Erreur signature')
+    } finally {
+      setSignatureSaving(false)
+    }
+  }
+
+  // init signature canvas
+  useEffect(() => {
+    try {
+      signatureEnsureCanvasSize()
+      const onResize = () => signatureEnsureCanvasSize()
+      window.addEventListener('resize', onResize)
+      return () => window.removeEventListener('resize', onResize)
+    } catch {
+      return
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab])
 
   async function refreshClients() {
     if (!supabase) return
@@ -8914,6 +9086,60 @@ CONTEXTE UTILISATEUR :
                   Connecter Gmail
                 </button>
               )}
+            </div>
+
+            <div className="form-section" style={{ marginTop: 24 }}>
+              <div className="form-section-title">Signature (prestataire)</div>
+              <p style={{ marginBottom: 12, color: 'var(--gray-600)' }}>
+                Cette signature sera ajoutée automatiquement à vos <b>factures</b> et <b>contrats</b> (pas sur les devis).
+              </p>
+
+              {signaturePreviewUrl ? (
+                <div style={{ marginBottom: 12 }}>
+                  <div style={{ fontSize: 12, color: 'var(--gray-500)', marginBottom: 6 }}>Signature enregistrée</div>
+                  <div style={{ border: '1px solid var(--gray-200)', borderRadius: 12, padding: 10, background: '#fff', display: 'inline-block' }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={signaturePreviewUrl} alt="Signature" style={{ height: 60, width: 240, objectFit: 'contain', display: 'block' }} />
+                  </div>
+                </div>
+              ) : (
+                <div style={{ marginBottom: 12, fontSize: 13, color: 'var(--gray-600)' }}>Aucune signature enregistrée pour le moment.</div>
+              )}
+
+              <div style={{ border: '1px solid var(--gray-200)', borderRadius: 12, background: '#fff', padding: 12 }}>
+                <div style={{ fontSize: 12, color: 'var(--gray-500)', marginBottom: 8 }}>Dessine ta signature</div>
+                <div style={{ width: '100%', height: 140, border: '1px solid rgba(0,0,0,0.10)', borderRadius: 10, overflow: 'hidden' }}>
+                  <canvas
+                    ref={signatureCanvasRef}
+                    style={{ width: '100%', height: '100%', touchAction: 'none', display: 'block', background: '#fff' }}
+                    onPointerDown={(e) => {
+                      try {
+                        ;(e.target as any)?.setPointerCapture?.(e.pointerId)
+                      } catch {}
+                      signatureStart(e)
+                    }}
+                    onPointerMove={(e) => signatureMove(e)}
+                    onPointerUp={() => signatureEnd()}
+                    onPointerCancel={() => signatureEnd()}
+                    onPointerLeave={() => signatureEnd()}
+                  />
+                </div>
+
+                {signatureError ? <div style={{ marginTop: 10, color: '#b91c1c', fontSize: 13 }}>{signatureError}</div> : null}
+
+                <div style={{ display: 'flex', gap: 12, marginTop: 12, flexWrap: 'wrap' }}>
+                  <button className="btn btn-secondary" type="button" onClick={signatureClear} disabled={signatureSaving}>
+                    Effacer
+                  </button>
+                  <button className="btn btn-primary" type="button" onClick={saveSignatureNow} disabled={signatureSaving}>
+                    {signatureSaving ? 'Enregistrement…' : 'Enregistrer la signature'}
+                  </button>
+                </div>
+
+                <div style={{ marginTop: 10, fontSize: 12, color: 'var(--gray-500)' }}>
+                  Astuce : sur mobile, signe avec le doigt. Sur desktop, signe à la souris.
+                </div>
+              </div>
             </div>
 
             <div className="form-section" style={{ marginTop: 24 }}>
