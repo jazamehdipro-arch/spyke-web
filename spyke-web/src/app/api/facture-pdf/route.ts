@@ -15,14 +15,14 @@ const LineSchema = z.object({
 })
 
 const BodySchema = z.object({
-  invoiceNumber: z.string().min(1),
-  dateIssue: z.string().min(1),
+  invoiceNumber: z.string().min(1, 'Numéro de facture manquant'),
+  dateIssue: z.string().min(1, 'Date de facture manquante'),
   dueDate: z.string().optional().default(''),
   logoUrl: z.string().optional().default(''),
   signatureUrl: z.string().optional().default(''),
 
   seller: z.object({
-    name: z.string().min(1),
+    name: z.string().min(1, 'Nom du prestataire manquant'),
     addressLines: z.array(z.string()).default([]),
     siret: z.string().optional().default(''),
     iban: z.string().optional().default(''),
@@ -32,7 +32,7 @@ const BodySchema = z.object({
   }),
 
   buyer: z.object({
-    name: z.string().min(1),
+    name: z.string().min(1, 'Nom du client manquant'),
     addressLines: z.array(z.string()).default([]),
   }),
 
@@ -83,7 +83,13 @@ export async function POST(req: Request) {
     }
 
     const json = await req.json()
-    const body = BodySchema.parse(json)
+    const parsed = BodySchema.safeParse(json)
+    if (!parsed.success) {
+      const first = parsed.error.issues?.[0]
+      const msg = first?.message || 'Paramètres invalides'
+      return NextResponse.json({ error: msg }, { status: 400 })
+    }
+    const body = parsed.data
 
     const React = (await import('react')).default
     const { Document, Page, Text, View, Image, StyleSheet, pdf } = await import('@react-pdf/renderer')
