@@ -68,6 +68,18 @@ export async function POST(req: Request) {
             .eq('id', legalQuestionId)
             .maybeSingle()
 
+          // Ensure jurist token for reply-link
+          let juristToken = ''
+          try {
+            const { data: tokRow } = await supabase.from('legal_questions').select('jurist_token').eq('id', legalQuestionId).maybeSingle()
+            juristToken = String((tokRow as any)?.jurist_token || '')
+          } catch {}
+
+          if (!juristToken) {
+            juristToken = Buffer.from(String(crypto.randomUUID()) + String(Date.now())).toString('base64url')
+            await supabase.from('legal_questions').update({ jurist_token: juristToken } as any).eq('id', legalQuestionId)
+          }
+
           const resendKey = process.env.RESEND_API_KEY
           const resendFrom = process.env.RESEND_FROM_EMAIL
           const recipients = String(process.env.LEGAL_RECIPIENTS || '')
@@ -76,6 +88,9 @@ export async function POST(req: Request) {
             .filter(Boolean)
 
           if (resendKey && resendFrom && recipients.length && (qRow as any)?.question) {
+            const baseUrl = process.env.APP_BASE_URL || 'https://spykeapp.fr'
+            const replyLink = `${baseUrl}/jurist/reply?id=${encodeURIComponent(legalQuestionId)}&token=${encodeURIComponent(juristToken)}`
+
             const subject = `Nouvelle question juriste (Spyke)`
             const text = [
               `Nouvelle question juriste payée (5€).`,
@@ -86,6 +101,9 @@ export async function POST(req: Request) {
               ``,
               `Question:`,
               String((qRow as any)?.question || '').trim(),
+              ``,
+              `Répondre dans Spyke:`,
+              replyLink,
               ``,
               `— Spyke`,
             ].join('\n')

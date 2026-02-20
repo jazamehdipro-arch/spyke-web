@@ -9,6 +9,8 @@ create table if not exists public.legal_questions (
   status text not null default 'draft' check (status in ('draft','paid','sent','failed')),
   stripe_checkout_session_id text,
   stripe_payment_intent_id text,
+  -- token used by jurists to access a dedicated reply page (no login)
+  jurist_token text,
   created_at timestamptz not null default now(),
   paid_at timestamptz,
   sent_at timestamptz

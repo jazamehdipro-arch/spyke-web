@@ -5169,6 +5169,7 @@ export default function AppHtmlPage() {
   const [legalBusy, setLegalBusy] = useState<boolean>(false)
   const [legalError, setLegalError] = useState<string>('')
   const [legalItems, setLegalItems] = useState<any[]>([])
+  const [legalThreads, setLegalThreads] = useState<Record<string, { open: boolean; loading: boolean; error?: string; messages: any[] }>>({})
 
   // Dashboard data
   const [dashboardQuotes, setDashboardQuotes] = useState<any[]>([])
@@ -5324,6 +5325,46 @@ export default function AppHtmlPage() {
     } catch (e: any) {
       setLegalError(e?.message || 'Erreur questions')
     }
+  }
+
+  async function loadLegalThread(id: string) {
+    try {
+      if (!id) return
+      setLegalThreads((prev) => ({
+        ...prev,
+        [id]: { ...(prev[id] || { open: true, loading: true, messages: [] }), open: true, loading: true, error: '' },
+      }))
+
+      if (!supabase) throw new Error('Supabase non initialisé')
+      const { data: s } = await supabase.auth.getSession()
+      const token = s.session?.access_token
+      if (!token) throw new Error('Non connecté')
+
+      const res = await fetch(`/api/legal-question/thread?id=${encodeURIComponent(id)}`, {
+        method: 'GET',
+        headers: { authorization: `Bearer ${token}` },
+      })
+      const json = await res.json().catch(() => null)
+      if (!res.ok) throw new Error(json?.error || `Erreur thread (${res.status})`)
+
+      setLegalThreads((prev) => ({
+        ...prev,
+        [id]: { open: true, loading: false, error: '', messages: (json?.messages || []) as any[] },
+      }))
+    } catch (e: any) {
+      setLegalThreads((prev) => ({
+        ...prev,
+        [id]: { open: true, loading: false, error: e?.message || 'Erreur', messages: [] },
+      }))
+    }
+  }
+
+  function toggleLegalThread(id: string) {
+    setLegalThreads((prev) => {
+      const cur = prev[id]
+      const open = !cur?.open
+      return { ...prev, [id]: { ...(cur || { loading: false, messages: [] }), open } }
+    })
   }
 
   async function submitLegalQuestion() {
@@ -8511,7 +8552,7 @@ CONTEXTE UTILISATEUR :
           <div className="page-header">
             <div>
               <h1 className="page-title">Question juriste</h1>
-              <p className="page-subtitle">Posez une question (5€) et elle sera transmise à un juriste.</p>
+              <p className="page-subtitle">Posez une question et elle sera transmise à un juriste.</p>
             </div>
           </div>
 
@@ -8538,6 +8579,7 @@ CONTEXTE UTILISATEUR :
                   value={legalQuestion}
                   onChange={(e) => setLegalQuestion(e.target.value)}
                 />
+                <div style={{ marginTop: 6, fontSize: 12, color: 'var(--gray-500)' }}>Minimum 10 caractères.</div>
               </div>
 
               {legalError ? (
@@ -8567,11 +8609,66 @@ CONTEXTE UTILISATEUR :
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                     {legalItems.map((it: any) => (
                       <div key={it.id} style={{ border: '1px solid var(--gray-200)', borderRadius: 12, padding: 12, background: '#fff' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
                           <div style={{ fontSize: 12, color: 'var(--gray-500)' }}>{new Date(String(it.created_at || '')).toLocaleString('fr-FR')}</div>
-                          <div style={{ fontSize: 12, fontWeight: 700 }}>{String(it.status || 'draft')}</div>
+                          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                            <div style={{ fontSize: 12, fontWeight: 700 }}>{String(it.status || 'draft')}</div>
+                            <button
+                              className="btn btn-secondary"
+                              type="button"
+                              onClick={() => {
+                                const id = String(it.id)
+                                const cur = legalThreads[id]
+                                if (!cur || (!cur.messages?.length && !cur.loading && !cur.error)) {
+                                  loadLegalThread(id)
+                                } else {
+                                  toggleLegalThread(id)
+                                }
+                              }}
+                            >
+                              {legalThreads[String(it.id)]?.open ? 'Masquer' : 'Voir réponses'}
+                            </button>
+                          </div>
                         </div>
                         <div style={{ marginTop: 8, whiteSpace: 'pre-wrap', color: 'var(--gray-800)' }}>{String(it.question || '').trim()}</div>
+
+                        {legalThreads[String(it.id)]?.open ? (
+                          <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px dashed var(--gray-200)' }}>
+                            {legalThreads[String(it.id)]?.loading ? (
+                              <div style={{ fontSize: 13, color: 'var(--gray-600)' }}>Chargement des réponses…</div>
+                            ) : legalThreads[String(it.id)]?.error ? (
+                              <div style={{ fontSize: 13, color: '#b91c1c' }}>{legalThreads[String(it.id)]?.error}</div>
+                            ) : (legalThreads[String(it.id)]?.messages || []).length === 0 ? (
+                              <div style={{ fontSize: 13, color: 'var(--gray-600)' }}>Pas de réponse pour le moment.</div>
+                            ) : (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                {(legalThreads[String(it.id)]?.messages || []).map((m: any) => (
+                                  <div
+                                    key={m.id}
+                                    style={{
+                                      border: '1px solid var(--gray-200)',
+                                      borderRadius: 12,
+                                      padding: 10,
+                                      background: String(m.role) === 'jurist' ? '#f0f9ff' : '#fff',
+                                    }}
+                                  >
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+                                      <div style={{ fontSize: 12, fontWeight: 700 }}>{String(m.role) === 'jurist' ? 'Juriste' : String(m.role)}</div>
+                                      <div style={{ fontSize: 12, color: 'var(--gray-500)' }}>{new Date(String(m.created_at)).toLocaleString('fr-FR')}</div>
+                                    </div>
+                                    <div style={{ marginTop: 6, whiteSpace: 'pre-wrap', color: 'var(--gray-800)' }}>{String(m.content || '').trim()}</div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            <div style={{ marginTop: 10 }}>
+                              <button className="btn btn-secondary" type="button" onClick={() => loadLegalThread(String(it.id))}>
+                                Rafraîchir réponses
+                              </button>
+                            </div>
+                          </div>
+                        ) : null}
                       </div>
                     ))}
                   </div>
