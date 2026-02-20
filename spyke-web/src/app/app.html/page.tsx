@@ -5254,6 +5254,7 @@ export default function AppHtmlPage() {
   const [signatureError, setSignatureError] = useState('')
   const [signaturePath, setSignaturePath] = useState<string>('')
   const [signaturePreviewUrl, setSignaturePreviewUrl] = useState<string>('')
+  const [signatureEditOpen, setSignatureEditOpen] = useState(false)
 
   const [clients, setClients] = useState<ClientRow[]>([])
   const [selectedClientId, setSelectedClientId] = useState<string>('')
@@ -5558,6 +5559,7 @@ export default function AppHtmlPage() {
         // Signature
         const sp = String((profile as any)?.signature_path || '')
         setSignaturePath(sp)
+        setSignatureEditOpen(!sp)
         try {
           if (sp) {
             const pub = supabase.storage.from('signatures').getPublicUrl(sp)
@@ -5721,8 +5723,9 @@ export default function AppHtmlPage() {
         }
       } catch {}
 
-      // reset pad after save
+      // reset pad after save + close editor
       signatureClear()
+      setSignatureEditOpen(false)
     } catch (e: any) {
       setSignatureError(e?.message || 'Erreur signature')
     } finally {
@@ -9146,52 +9149,71 @@ CONTEXTE UTILISATEUR :
                 Cette signature sera ajoutée automatiquement à vos <b>factures</b> et <b>contrats</b> (pas sur les devis).
               </p>
 
-              {signaturePreviewUrl ? (
-                <div style={{ marginBottom: 12 }}>
-                  <div style={{ fontSize: 12, color: 'var(--gray-500)', marginBottom: 6 }}>Signature enregistrée</div>
-                  <div style={{ border: '1px solid var(--gray-200)', borderRadius: 12, padding: 10, background: '#fff', display: 'inline-block' }}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={signaturePreviewUrl} alt="Signature" style={{ height: 60, width: 240, objectFit: 'contain', display: 'block' }} />
-                  </div>
-                </div>
-              ) : (
-                <div style={{ marginBottom: 12, fontSize: 13, color: 'var(--gray-600)' }}>Aucune signature enregistrée pour le moment.</div>
-              )}
-
-              <div style={{ border: '1px solid var(--gray-200)', borderRadius: 12, background: '#fff', padding: 12 }}>
-                <div style={{ fontSize: 12, color: 'var(--gray-500)', marginBottom: 8 }}>Dessine ta signature</div>
-                <div style={{ width: '100%', height: 140, border: '1px solid rgba(0,0,0,0.10)', borderRadius: 10, overflow: 'hidden' }}>
-                  <canvas
-                    ref={signatureCanvasRef}
-                    style={{ width: '100%', height: '100%', touchAction: 'none', display: 'block', background: '#fff' }}
-                    onPointerDown={(e) => {
-                      try {
-                        ;(e.target as any)?.setPointerCapture?.(e.pointerId)
-                      } catch {}
-                      signatureStart(e)
-                    }}
-                    onPointerMove={(e) => signatureMove(e)}
-                    onPointerUp={() => signatureEnd()}
-                    onPointerCancel={() => signatureEnd()}
-                    onPointerLeave={() => signatureEnd()}
-                  />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
+                <div>
+                  {signaturePreviewUrl ? (
+                    <>
+                      <div style={{ fontSize: 12, color: 'var(--gray-500)', marginBottom: 6 }}>Signature enregistrée</div>
+                      <div style={{ border: '1px solid var(--gray-200)', borderRadius: 12, padding: 8, background: '#fff', display: 'inline-block' }}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={signaturePreviewUrl} alt="Signature" style={{ height: 42, width: 200, objectFit: 'contain', display: 'block' }} />
+                      </div>
+                    </>
+                  ) : (
+                    <div style={{ marginBottom: 12, fontSize: 13, color: 'var(--gray-600)' }}>Aucune signature enregistrée pour le moment.</div>
+                  )}
                 </div>
 
-                {signatureError ? <div style={{ marginTop: 10, color: '#b91c1c', fontSize: 13 }}>{signatureError}</div> : null}
-
-                <div style={{ display: 'flex', gap: 12, marginTop: 12, flexWrap: 'wrap' }}>
-                  <button className="btn btn-secondary" type="button" onClick={signatureClear} disabled={signatureSaving}>
-                    Effacer
-                  </button>
-                  <button className="btn btn-primary" type="button" onClick={saveSignatureNow} disabled={signatureSaving}>
-                    {signatureSaving ? 'Enregistrement…' : 'Enregistrer la signature'}
-                  </button>
-                </div>
-
-                <div style={{ marginTop: 10, fontSize: 12, color: 'var(--gray-500)' }}>
-                  Astuce : sur mobile, signe avec le doigt. Sur desktop, signe à la souris.
+                <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                  {signaturePreviewUrl ? (
+                    <button className="btn btn-secondary" type="button" onClick={() => setSignatureEditOpen(true)}>
+                      Modifier
+                    </button>
+                  ) : null}
                 </div>
               </div>
+
+              {signatureEditOpen ? (
+                <div style={{ marginTop: 12, border: '1px solid var(--gray-200)', borderRadius: 12, background: '#fff', padding: 12 }}>
+                  <div style={{ fontSize: 12, color: 'var(--gray-500)', marginBottom: 8 }}>Dessine ta signature</div>
+                  <div style={{ width: '100%', height: 96, border: '1px solid rgba(0,0,0,0.10)', borderRadius: 10, overflow: 'hidden' }}>
+                    <canvas
+                      ref={signatureCanvasRef}
+                      style={{ width: '100%', height: '100%', touchAction: 'none', display: 'block', background: '#fff' }}
+                      onPointerDown={(e) => {
+                        try {
+                          ;(e.target as any)?.setPointerCapture?.(e.pointerId)
+                        } catch {}
+                        signatureStart(e)
+                      }}
+                      onPointerMove={(e) => signatureMove(e)}
+                      onPointerUp={() => signatureEnd()}
+                      onPointerCancel={() => signatureEnd()}
+                      onPointerLeave={() => signatureEnd()}
+                    />
+                  </div>
+
+                  {signatureError ? <div style={{ marginTop: 10, color: '#b91c1c', fontSize: 13 }}>{signatureError}</div> : null}
+
+                  <div style={{ display: 'flex', gap: 12, marginTop: 12, flexWrap: 'wrap' }}>
+                    <button className="btn btn-secondary" type="button" onClick={signatureClear} disabled={signatureSaving}>
+                      Effacer
+                    </button>
+                    <button className="btn btn-primary" type="button" onClick={saveSignatureNow} disabled={signatureSaving}>
+                      {signatureSaving ? 'Enregistrement…' : 'Enregistrer'}
+                    </button>
+                    {signaturePreviewUrl ? (
+                      <button className="btn btn-secondary" type="button" onClick={() => setSignatureEditOpen(false)} disabled={signatureSaving}>
+                        Annuler
+                      </button>
+                    ) : null}
+                  </div>
+
+                  <div style={{ marginTop: 10, fontSize: 12, color: 'var(--gray-500)' }}>
+                    Astuce : sur mobile, signe avec le doigt. Sur desktop, signe à la souris.
+                  </div>
+                </div>
+              ) : null}
             </div>
 
             <div className="form-section" style={{ marginTop: 24 }}>
