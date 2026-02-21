@@ -24,7 +24,26 @@ export default function AuthCallbackPage() {
       }
 
       try {
-        // When returning from OAuth, Supabase should have stored the session.
+        // When returning from OAuth, we may get either:
+        // - implicit tokens in URL hash (older flow)
+        // - a `code` param that must be exchanged (PKCE flow)
+        try {
+          const url = new URL(window.location.href)
+          const code = url.searchParams.get('code')
+          const errorDesc = url.searchParams.get('error_description') || url.searchParams.get('error')
+          if (errorDesc) {
+            setMessage(`Erreur OAuth: ${errorDesc}`)
+            return
+          }
+          if (code) {
+            setMessage('Finalisation de la connexion…')
+            const { error: exErr } = await supabase.auth.exchangeCodeForSession(code)
+            if (exErr) throw exErr
+          }
+        } catch {
+          // ignore
+        }
+
         const { data, error } = await supabase.auth.getSession()
         if (error) throw error
 
