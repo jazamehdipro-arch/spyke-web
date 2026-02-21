@@ -677,7 +677,7 @@ export default function FonctionnalitesPage() {
 
           <div className="feature-visual">
             <img
-              src="https://placehold.co/600x450/f4f4f5/a1a1aa?text=Assistant+IA"
+              src="/window.svg"
               alt="Assistant IA"
               className="feature-image"
             />
@@ -742,7 +742,7 @@ export default function FonctionnalitesPage() {
 
           <div className="feature-visual">
             <img
-              src="https://placehold.co/600x450/f4f4f5/a1a1aa?text=Documents+Spyke"
+              src="/file.svg"
               alt="Documents Spyke"
               className="feature-image"
             />
@@ -807,7 +807,7 @@ export default function FonctionnalitesPage() {
 
           <div className="feature-visual">
             <img
-              src="https://placehold.co/600x450/f4f4f5/a1a1aa?text=Analyseur+Projet"
+              src="/globe.svg"
               alt="Analyseur de projet"
               className="feature-image"
             />
@@ -872,7 +872,7 @@ export default function FonctionnalitesPage() {
 
           <div className="feature-visual">
             <img
-              src="https://placehold.co/600x450/f4f4f5/a1a1aa?text=Gestion+Clients"
+              src="/next.svg"
               alt="Gestion clients"
               className="feature-image"
             />

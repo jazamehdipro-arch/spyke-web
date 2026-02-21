@@ -1108,7 +1108,7 @@ export default function Home() {
 
           <div className="hero-visual">
             <img
-              src="https://placehold.co/700x500/f4f4f5/a1a1aa?text=Interface+Spyke"
+              src="/window.svg"
               alt="Interface Spyke"
             />
 

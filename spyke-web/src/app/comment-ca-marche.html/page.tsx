@@ -921,7 +921,7 @@ export default function CommentCaMarchePage() {
             </div>
             <div className="step-visual">
               <img
-                src="https://placehold.co/450x320/f4f4f5/a1a1aa?text=Inscription"
+                src="/next.svg"
                 alt="Inscription"
                 className="step-image"
               />
@@ -967,7 +967,7 @@ export default function CommentCaMarchePage() {
             </div>
             <div className="step-visual">
               <img
-                src="https://placehold.co/450x320/f4f4f5/a1a1aa?text=Profil"
+                src="/window.svg"
                 alt="Profil"
                 className="step-image"
               />
@@ -1013,7 +1013,7 @@ export default function CommentCaMarchePage() {
             </div>
             <div className="step-visual">
               <img
-                src="https://placehold.co/450x320/f4f4f5/a1a1aa?text=Clients"
+                src="/globe.svg"
                 alt="Clients"
                 className="step-image"
               />
@@ -1065,7 +1065,7 @@ export default function CommentCaMarchePage() {
             </div>
             <div className="step-visual">
               <img
-                src="https://placehold.co/450x320/f4f4f5/a1a1aa?text=Dashboard"
+                src="/file.svg"
                 alt="Dashboard"
                 className="step-image"
               />
