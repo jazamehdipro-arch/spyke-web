@@ -9,6 +9,8 @@ export default function TarifsPage() {
   const [period, setPeriod] = useState<ProPeriod>('annual')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [profilePlan, setProfilePlan] = useState<'free' | 'pro' | null>(null)
+  const [onboardingDone, setOnboardingDone] = useState<boolean | null>(null)
 
   const supabase = useMemo(() => {
     try {
@@ -19,12 +21,46 @@ export default function TarifsPage() {
   }, [])
 
   useEffect(() => {
-    // If user is logged in and already Pro, we can show a subtle hint, but keep page simple.
-  }, [])
+    ;(async () => {
+      try {
+        if (!supabase) return
+        const { data } = await supabase.auth.getSession()
+        const userId = data.session?.user?.id
+        if (!userId) return
+
+        const { data: profile } = await supabase.from('profiles').select('plan,onboarding_completed').eq('id', userId).maybeSingle()
+        const plan = String((profile as any)?.plan || 'free') === 'pro' ? 'pro' : 'free'
+        setProfilePlan(plan)
+        setOnboardingDone(Boolean((profile as any)?.onboarding_completed))
+      } catch {
+        // ignore
+      }
+    })()
+  }, [supabase])
 
   async function chooseFree() {
-    // Free plan = just go to the app.
-    window.location.href = '/app.html'
+    try {
+      if (!supabase) {
+        window.location.href = '/app.html'
+        return
+      }
+
+      const { data } = await supabase.auth.getSession()
+      const userId = data.session?.user?.id
+      if (!userId) {
+        window.location.href = '/connexion.html'
+        return
+      }
+
+      if (onboardingDone === false) {
+        window.location.href = '/onboarding.html'
+        return
+      }
+
+      window.location.href = '/app.html'
+    } catch {
+      window.location.href = '/app.html'
+    }
   }
 
   async function startProCheckout() {
@@ -462,7 +498,7 @@ export default function TarifsPage() {
               </div>
               <div className="subline">Pas de carte bancaire.</div>
               <button className="btn btn-secondary" type="button" onClick={chooseFree}>
-                Continuer en gratuit
+                {profilePlan === 'pro' ? 'Accéder à mon compte Pro' : 'Continuer en gratuit'}
               </button>
               <ul className="feature-list">
                 <li>

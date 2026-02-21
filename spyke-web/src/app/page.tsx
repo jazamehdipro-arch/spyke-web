@@ -1373,8 +1373,8 @@ export default function Home() {
         <div className="pricing-container">
           <div className="section-header">
             <span className="section-label">Tarifs</span>
-            <h2>Mensuel ou annuel (199€/an)</h2>
-            <p>Un plan gratuit + un plan Pro. Simple.</p>
+            <h2>À partir de 16,58€/mois</h2>
+            <p>Mensuel ou annuel. Un plan gratuit + un plan Pro. Simple.</p>
           </div>
 
           <div className="pricing-grid">
@@ -1391,9 +1391,10 @@ export default function Home() {
               <div className="pricing-name">Pro</div>
               <p className="pricing-desc">Mensuel ou annuel</p>
               <div className="pricing-price">
-                199€<span>/an</span>
+                16,58€<span>/mois</span>
               </div>
               <a href="/tarifs.html" className="pricing-btn">Choisir mon offre</a>
+              <div style={{ marginTop: 10, fontSize: 13, color: 'var(--gray-500)' }}>Facturé 199€ / an — économisez 2 mois</div>
             </div>
           </div>
         </div>
