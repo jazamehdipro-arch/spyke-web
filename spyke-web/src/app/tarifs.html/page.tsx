@@ -61,7 +61,7 @@ export default function TarifsPage() {
     }
   }
 
-  const proPrice = period === 'annual' ? '199€' : '19€'
+  const proPrice = period === 'annual' ? '199€' : '19,90€'
   const proSuffix = period === 'annual' ? '/an' : '/mois'
 
   return (
