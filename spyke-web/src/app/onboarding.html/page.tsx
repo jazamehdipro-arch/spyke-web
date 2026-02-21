@@ -832,7 +832,7 @@ export default function OnboardingPage() {
                     id="skills"
                   />
                   <div style={{ fontSize: 12, color: 'var(--gray-500)', marginTop: 6 }}>
-                    Ces infos aident l’analyseur de brief et l’IA à adapter ses recommandations.
+                    On te demande tes compétences pour que Spyke adapte ses analyses et recommandations à ton profil (estimations, risques, questions à poser).
                   </div>
                 </div>
               </div>
