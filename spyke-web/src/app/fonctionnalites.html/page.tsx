@@ -611,7 +611,7 @@ export default function FonctionnalitesPage() {
             <a href="/comment-ca-marche.html">Comment ça marche</a>
           </li>
           <li>
-            <a href="/#pricing">Tarifs</a>
+            <a href="/tarifs.html">Tarifs</a>
           </li>
           <li>
             <a href="/connexion.html" className="nav-cta">
@@ -952,7 +952,7 @@ export default function FonctionnalitesPage() {
             <a href="/connexion.html" className="btn btn-primary">
               14 jours gratuits — annulable à tout moment
             </a>
-            <a href="/#pricing" className="btn btn-secondary">
+            <a href="/tarifs.html" className="btn btn-secondary">
               Voir les tarifs
             </a>
           </div>
@@ -973,7 +973,7 @@ export default function FonctionnalitesPage() {
           <div className="footer-links">
             <a href="/fonctionnalites.html">Fonctionnalités</a>
             <a href="/comment-ca-marche.html">Comment ça marche</a>
-            <a href="/#pricing">Tarifs</a>
+            <a href="/tarifs.html">Tarifs</a>
             <a href="/mentions-legales.html">Mentions légales</a>
             <a href="/confidentialite.html">Confidentialité</a>
           </div>

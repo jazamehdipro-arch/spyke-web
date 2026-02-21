@@ -863,7 +863,7 @@ export default function CommentCaMarchePage() {
             </a>
           </li>
           <li>
-            <a href="/#pricing">Tarifs</a>
+            <a href="/tarifs.html">Tarifs</a>
           </li>
           <li>
             <a href="/connexion.html" className="nav-cta">
@@ -1269,7 +1269,7 @@ export default function CommentCaMarchePage() {
           <div className="footer-links">
             <a href="/fonctionnalites.html">Fonctionnalités</a>
             <a href="/comment-ca-marche.html">Comment ça marche</a>
-            <a href="/#pricing">Tarifs</a>
+            <a href="/tarifs.html">Tarifs</a>
             <a href="/mentions-legales.html">Mentions légales</a>
             <a href="/confidentialite.html">Confidentialité</a>
           </div>

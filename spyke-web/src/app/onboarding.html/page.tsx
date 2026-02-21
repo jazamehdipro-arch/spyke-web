@@ -148,7 +148,7 @@ export default function OnboardingPage() {
       const { error: upsertError } = await supabase.from('profiles').upsert(payload, { onConflict: 'id' })
       if (upsertError) throw upsertError
 
-      window.location.href = 'app.html'
+      window.location.href = '/tarifs.html'
     } catch (err: any) {
       alert(err?.message || 'Erreur onboarding')
     } finally {

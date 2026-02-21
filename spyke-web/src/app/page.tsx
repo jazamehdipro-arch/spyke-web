@@ -1053,12 +1053,7 @@ export default function Home() {
             <a href="/blog" onClick={() => setMobileMenuOpen(false)}>Blog</a>
           </li>
           <li>
-            <a
-              href="#pricing"
-              onClick={() => {
-                setMobileMenuOpen(false)
-              }}
-            >
+            <a href="/tarifs.html" onClick={() => setMobileMenuOpen(false)}>
               Tarifs
             </a>
           </li>
@@ -1089,8 +1084,8 @@ export default function Home() {
               <strong> question juridique</strong> quand vous bloquez. Vous gardez votre style, Spyke vous fait gagner du temps.
             </p>
 
-            <a href="#pricing" className="hero-btn">
-              Commencer gratuitement →
+            <a href="/connexion.html" className="hero-btn">
+              Créer un compte →
             </a>
 
             <div className="hero-social-proof">
@@ -1373,13 +1368,13 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Pricing */}
+      {/* Pricing teaser */}
       <section className="pricing" id="pricing">
         <div className="pricing-container">
           <div className="section-header">
             <span className="section-label">Tarifs</span>
-            <h2>Un prix simple et transparent</h2>
-            <p>Pas de surprise. Pas d&apos;engagement. Annulez quand vous voulez.</p>
+            <h2>Mensuel ou annuel (199€/an)</h2>
+            <p>Un plan gratuit + un plan Pro. Simple.</p>
           </div>
 
           <div className="pricing-grid">
@@ -1389,102 +1384,16 @@ export default function Home() {
               <div className="pricing-price">
                 0€<span>/mois</span>
               </div>
-              <ul className="pricing-features">
-                <li>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M5 13l4 4L19 7" />
-                  </svg>
-                  10 emails IA par mois
-                </li>
-                <li>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M5 13l4 4L19 7" />
-                  </svg>
-                  3 documents / mois (devis, factures, contrats)
-                </li>
-                <li>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M5 13l4 4L19 7" />
-                  </svg>
-                  3 clients maximum
-                </li>
-                <li>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M5 13l4 4L19 7" />
-                  </svg>
-                  Templates de base
-                </li>
-              </ul>
-              <a href="/connexion.html" className="pricing-btn">
-                Commencer gratuitement
-              </a>
+              <a href="/tarifs.html" className="pricing-btn">Voir les tarifs</a>
             </div>
 
             <div className="pricing-card featured">
               <div className="pricing-name">Pro</div>
-              <p className="pricing-desc">Pour les freelances sérieux</p>
+              <p className="pricing-desc">Mensuel ou annuel</p>
               <div className="pricing-price">
-                19€<span>/mois</span>
+                199€<span>/an</span>
               </div>
-              <ul className="pricing-features">
-                <li>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M5 13l4 4L19 7" />
-                  </svg>
-                  Emails IA illimités
-                </li>
-                <li>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M5 13l4 4L19 7" />
-                  </svg>
-                  Documents illimités (devis, factures, contrats)
-                </li>
-                <li>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M5 13l4 4L19 7" />
-                  </svg>
-                  Clients illimités
-                </li>
-                <li>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M5 13l4 4L19 7" />
-                  </svg>
-                  Tous les templates
-                </li>
-                <li>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M5 13l4 4L19 7" />
-                  </svg>
-                  Relances suggérées
-                </li>
-                <li>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M5 13l4 4L19 7" />
-                  </svg>
-                  Chatbox d&apos;aide intégrée
-                </li>
-                <li>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M5 13l4 4L19 7" />
-                  </svg>
-                  Signature sur PDF + demandes d&apos;e-signature
-                </li>
-                <li>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M5 13l4 4L19 7" />
-                  </svg>
-                  Accès “Question juriste” (5€ / question)
-                </li>
-                <li>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M5 13l4 4L19 7" />
-                  </svg>
-                  Support prioritaire
-                </li>
-              </ul>
-              <a href="/connexion.html" className="pricing-btn">
-                14 jours gratuits — annulable à tout moment
-              </a>
+              <a href="/tarifs.html" className="pricing-btn">Choisir mon offre</a>
             </div>
           </div>
         </div>
@@ -1495,8 +1404,8 @@ export default function Home() {
         <div className="cta-container">
           <h2>Prêt à écrire plus vite ?</h2>
           <p>Rejoignez les freelances qui ont adopté l&apos;IA pour leurs emails et documents (devis, factures, contrats).</p>
-          <a href="#pricing" className="cta-btn">
-            Commencer gratuitement →
+          <a href="/tarifs.html" className="cta-btn">
+            Voir les tarifs →
           </a>
         </div>
       </section>
@@ -1515,7 +1424,7 @@ export default function Home() {
           <div className="footer-links">
             <a href="/fonctionnalites.html">Fonctionnalités</a>
             <a href="/comment-ca-marche.html">Comment ça marche</a>
-            <a href="#pricing">Tarifs</a>
+            <a href="/tarifs.html">Tarifs</a>
             <a href="/mentions-legales.html">Mentions légales</a>
             <a href="/confidentialite.html">Confidentialité</a>
           </div>

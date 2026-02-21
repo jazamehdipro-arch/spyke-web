@@ -9,6 +9,10 @@ const HeaderSchema = z.object({
   authorization: z.string().min(1),
 })
 
+const BodySchema = z.object({
+  period: z.enum(['monthly', 'annual']).optional().default('monthly'),
+})
+
 export async function POST(req: Request) {
   try {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -18,14 +22,18 @@ export async function POST(req: Request) {
     }
 
     const stripeSecret = process.env.STRIPE_SECRET_KEY
-    const stripePriceId = process.env.STRIPE_PRICE_PRO_MONTHLY
-    if (!stripeSecret || !stripePriceId) {
+    const stripePriceMonthly = process.env.STRIPE_PRICE_PRO_MONTHLY
+    const stripePriceAnnual = process.env.STRIPE_PRICE_PRO_YEARLY
+    if (!stripeSecret || !stripePriceMonthly || !stripePriceAnnual) {
       return NextResponse.json({ error: 'Stripe env missing' }, { status: 500 })
     }
 
     const headers = HeaderSchema.parse({
       authorization: req.headers.get('authorization') || '',
     })
+
+    const bodyJson = await req.json().catch(() => ({}))
+    const body = BodySchema.parse(bodyJson)
     const m = headers.authorization.match(/^Bearer\s+(.+)$/i)
     const token = m?.[1]
     if (!token) return NextResponse.json({ error: 'Missing bearer token' }, { status: 401 })
@@ -54,10 +62,12 @@ export async function POST(req: Request) {
 
     const origin = req.headers.get('origin') || 'https://www.spykeapp.fr'
 
+    const priceId = body.period === 'annual' ? stripePriceAnnual : stripePriceMonthly
+
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
       customer: customer.id,
-      line_items: [{ price: stripePriceId, quantity: 1 }],
+      line_items: [{ price: priceId, quantity: 1 }],
       allow_promotion_codes: true,
       success_url: `${origin}/app.html?stripe=success`,
       cancel_url: `${origin}/app.html?stripe=cancel`,
