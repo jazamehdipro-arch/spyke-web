@@ -5363,6 +5363,8 @@ export default function AppHtmlPage() {
   const [settingsJob, setSettingsJob] = useState<string>('')
   const [settingsEmailTone, setSettingsEmailTone] = useState<string>('')
   const [settingsCompanyName, setSettingsCompanyName] = useState<string>('')
+  const [settingsExperienceYears, setSettingsExperienceYears] = useState<string>('')
+  const [settingsSkills, setSettingsSkills] = useState<string>('')
   const [settingsAddress, setSettingsAddress] = useState<string>('')
   const [settingsPostalCode, setSettingsPostalCode] = useState<string>('')
   const [settingsCity, setSettingsCity] = useState<string>('')
@@ -5524,6 +5526,14 @@ export default function AppHtmlPage() {
   const [legalError, setLegalError] = useState<string>('')
   const [legalItems, setLegalItems] = useState<any[]>([])
   const [legalThreads, setLegalThreads] = useState<Record<string, { open: boolean; loading: boolean; error?: string; messages: any[] }>>({})
+
+  // Analyseur de brief
+  const [briefText, setBriefText] = useState<string>('')
+  const [briefBudget, setBriefBudget] = useState<string>('')
+  const [briefDelay, setBriefDelay] = useState<string>('')
+  const [briefOutput, setBriefOutput] = useState<string>('')
+  const [briefLoading, setBriefLoading] = useState<boolean>(false)
+  const [briefError, setBriefError] = useState<string>('')
 
   // Dashboard data
   const [dashboardQuotes, setDashboardQuotes] = useState<any[]>([])
@@ -5721,6 +5731,64 @@ export default function AppHtmlPage() {
     })
   }
 
+  async function analyzeBrief() {
+    try {
+      const brief = briefText.trim()
+      if (!brief) return
+      setBriefError('')
+      setBriefLoading(true)
+
+      if (!supabase) throw new Error('Supabase non initialisé')
+
+      const profileContext = (() => {
+        const fullName = userFullName || 'Freelance'
+        const job = settingsJob || userJob || ''
+        const exp = settingsExperienceYears
+        const skills = settingsSkills
+        const parts = [
+          `Profil freelance: ${fullName}${job ? ` (${job})` : ''}`,
+          exp ? `Expérience: ${exp} années` : '',
+          skills ? `Compétences: ${skills}` : '',
+        ].filter(Boolean)
+        return parts.join('\n')
+      })()
+
+      const userPrompt = [
+        "Tu es un expert freelance (gestion de mission + cadrage + estimation).",
+        "Ta mission: analyser un brief client et donner une recommandation actionnable.",
+        "",
+        profileContext ? profileContext : '',
+        "",
+        `Brief client:\n${brief}`,
+        briefBudget.trim() ? `Budget annoncé: ${briefBudget.trim()}` : '',
+        briefDelay.trim() ? `Délai demandé: ${briefDelay.trim()}` : '',
+        "",
+        "Format attendu (en français):",
+        "1) Résumé (3 lignes)",
+        "2) Faisabilité (OK / Risqué / Non recommandé) + pourquoi",
+        "3) Zones floues / questions à poser (liste)",
+        "4) Estimation réaliste (ordre de grandeur) et hypothèses",
+        "5) Risques + mitigations",
+        "6) Recommandation: accepter / négocier / refuser + message suggéré au client (court)",
+      ]
+        .filter(Boolean)
+        .join('\n')
+
+      const res = await fetch('/api/claude', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ prompt: userPrompt }),
+      })
+      const json = await res.json().catch(() => null)
+      if (!res.ok) throw new Error(json?.error || `Erreur analyse (${res.status})`)
+      setBriefOutput(String(json?.text || '').trim())
+    } catch (e: any) {
+      setBriefError(e?.message || 'Erreur analyse')
+    } finally {
+      setBriefLoading(false)
+    }
+  }
+
   async function submitLegalQuestion() {
     try {
       const q = legalQuestion.trim()
@@ -5764,7 +5832,7 @@ export default function AppHtmlPage() {
 
         const { data: profile } = await supabase
           .from('profiles')
-          .select('first_name,last_name,job,email_tone,plan,company_name,address,postal_code,city,country,siret,vat_number,iban,bic,signature_path')
+          .select('first_name,last_name,job,experience_years,skills,email_tone,plan,company_name,address,postal_code,city,country,siret,vat_number,iban,bic,signature_path')
           .eq('id', userId)
           .maybeSingle()
 
@@ -5785,6 +5853,8 @@ export default function AppHtmlPage() {
         setSettingsJob(job)
         setSettingsEmailTone(emailTone)
         setSettingsCompanyName(String((profile as any)?.company_name || ''))
+        setSettingsExperienceYears(String((profile as any)?.experience_years ?? ''))
+        setSettingsSkills(Array.isArray((profile as any)?.skills) ? ((profile as any).skills as any[]).join(', ') : String((profile as any)?.skills || ''))
         setSettingsAddress(String((profile as any)?.address || ''))
         setSettingsPostalCode(String((profile as any)?.postal_code || ''))
         setSettingsCity(String((profile as any)?.city || ''))
@@ -9434,35 +9504,44 @@ CONTEXTE UTILISATEUR :
                   className="form-textarea"
                   style={{ minHeight: 250 }}
                   placeholder="Collez ici le brief ou la demande de votre client..."
+                  value={briefText}
+                  onChange={(e) => setBriefText(e.target.value)}
                 />
               </div>
 
               <div className="form-row">
                 <div className="form-group">
                   <label className="form-label">Budget annoncé (optionnel)</label>
-                  <input type="text" className="form-input" placeholder="Ex: 3000€" />
+                  <input type="text" className="form-input" placeholder="Ex: 3000€" value={briefBudget} onChange={(e) => setBriefBudget(e.target.value)} />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Délai demandé (optionnel)</label>
-                  <input type="text" className="form-input" placeholder="Ex: 2 semaines" />
+                  <input type="text" className="form-input" placeholder="Ex: 2 semaines" value={briefDelay} onChange={(e) => setBriefDelay(e.target.value)} />
                 </div>
               </div>
 
-              <button type="button" className="btn btn-yellow" style={{ width: '100%' }}>
+              <button type="button" className="btn btn-yellow" style={{ width: '100%' }} onClick={analyzeBrief} disabled={briefLoading || !briefText.trim()}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
                   <circle cx="11" cy="11" r="8" />
                   <path d="M21 21l-4.35-4.35" />
                 </svg>
-                Analyser le projet
+                {briefLoading ? 'Analyse…' : 'Analyser le projet'}
               </button>
             </div>
 
             <div className="devis-preview">
               <h3 className="preview-title">Résultat de l&apos;analyse</h3>
-              <div className="empty-state" style={{ padding: '40px 20px' }}>
-                <div className="empty-state-icon">🔍</div>
-                <p>L&apos;analyse apparaîtra ici</p>
-              </div>
+
+              {briefError ? <div style={{ color: '#b91c1c', fontSize: 13, marginBottom: 10 }}>{briefError}</div> : null}
+
+              {briefOutput ? (
+                <div className="output-box">{briefOutput}</div>
+              ) : (
+                <div className="empty-state" style={{ padding: '40px 20px' }}>
+                  <div className="empty-state-icon">🔍</div>
+                  <p>L&apos;analyse apparaîtra ici</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -9935,6 +10014,17 @@ CONTEXTE UTILISATEUR :
                 </div>
               </div>
 
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label">Expérience (années)</label>
+                  <input className="form-input" value={settingsExperienceYears} onChange={(e) => setSettingsExperienceYears(e.target.value)} placeholder="Ex: 5" />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Compétences</label>
+                  <input className="form-input" value={settingsSkills} onChange={(e) => setSettingsSkills(e.target.value)} placeholder="Ex: React, Next.js, Stripe" />
+                </div>
+              </div>
+
               <div className="form-row single">
                 <div className="form-group">
                   <label className="form-label">Adresse</label>
@@ -10001,6 +10091,17 @@ CONTEXTE UTILISATEUR :
                         job: settingsJob || null,
                         email_tone: settingsEmailTone || null,
                         company_name: settingsCompanyName || null,
+                        experience_years: (() => {
+                          const n = Number(settingsExperienceYears || '')
+                          return Number.isFinite(n) && n >= 0 ? n : null
+                        })(),
+                        skills: (() => {
+                          const arr = String(settingsSkills || '')
+                            .split(',')
+                            .map((s) => s.trim())
+                            .filter(Boolean)
+                          return arr.length ? arr : null
+                        })(),
                         address: settingsAddress || null,
                         postal_code: settingsPostalCode || null,
                         city: settingsCity || null,

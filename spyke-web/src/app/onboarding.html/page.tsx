@@ -117,6 +117,18 @@ export default function OnboardingPage() {
         first_name: getValue('prenom'),
         last_name: getValue('nom'),
         job: getValue('metier'),
+        experience_years: (() => {
+          const v = Number(getValue('experienceYears') || 0)
+          return Number.isFinite(v) && v >= 0 ? v : null
+        })(),
+        skills: (() => {
+          const raw = String(getValue('skills') || '')
+          const arr = raw
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean)
+          return arr.length ? arr : null
+        })(),
         legal_status: getValue('statut'),
         siret: getValue('siret') || null,
         vat_number: getValue('numtva') || null,
@@ -796,6 +808,32 @@ export default function OnboardingPage() {
                     placeholder="Ex: Développeur web, Designer, Consultant..."
                     id="metier"
                   />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Expérience</label>
+                  <select className="form-select" id="experienceYears" defaultValue="">
+                    <option value="">Sélectionner...</option>
+                    <option value="0">Débutant (0–1 an)</option>
+                    <option value="2">1–3 ans</option>
+                    <option value="4">3–5 ans</option>
+                    <option value="6">5–8 ans</option>
+                    <option value="9">8–10 ans</option>
+                    <option value="12">10+ ans</option>
+                  </select>
+                </div>
+
+                <div className="form-group full">
+                  <label className="form-label">Compétences</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="Ex: React, Next.js, Figma, SEO (sépare par des virgules)"
+                    id="skills"
+                  />
+                  <div style={{ fontSize: 12, color: 'var(--gray-500)', marginTop: 6 }}>
+                    Ces infos aident l’analyseur de brief et l’IA à adapter ses recommandations.
+                  </div>
                 </div>
               </div>
 
