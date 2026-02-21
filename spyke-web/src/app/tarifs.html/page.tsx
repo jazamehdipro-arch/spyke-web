@@ -325,7 +325,7 @@ export default function TarifsPage() {
           margin-bottom: 16px;
         }
 
-        ul {
+        .feature-list {
           list-style: none;
           margin: 0;
           padding: 0;
@@ -335,7 +335,7 @@ export default function TarifsPage() {
           margin-top: 18px;
         }
 
-        li {
+        .feature-list li {
           display: flex;
           gap: 10px;
           align-items: flex-start;
@@ -343,7 +343,7 @@ export default function TarifsPage() {
           font-size: 14px;
         }
 
-        li svg {
+        .feature-list li svg {
           width: 18px;
           height: 18px;
           flex: 0 0 auto;
@@ -464,7 +464,7 @@ export default function TarifsPage() {
               <button className="btn btn-secondary" type="button" onClick={chooseFree}>
                 Continuer en gratuit
               </button>
-              <ul>
+              <ul className="feature-list">
                 <li>
                   <svg viewBox="0 0 24 24" fill="none" strokeWidth="2">
                     <path d="M5 13l4 4L19 7" />
@@ -501,7 +501,7 @@ export default function TarifsPage() {
               <button className="btn btn-primary" type="button" onClick={startProCheckout} disabled={loading}>
                 {loading ? 'Redirection…' : 'Passer Pro'}
               </button>
-              <ul>
+              <ul className="feature-list">
                 <li>
                   <svg viewBox="0 0 24 24" fill="none" strokeWidth="2">
                     <path d="M5 13l4 4L19 7" />
