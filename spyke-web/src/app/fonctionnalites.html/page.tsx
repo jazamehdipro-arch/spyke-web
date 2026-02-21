@@ -652,7 +652,7 @@ export default function FonctionnalitesPage() {
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
                 </div>
-                <span>10 types d&apos;emails : réponse, relance, devis, facture, négociation...</span>
+                <span>Types d&apos;emails : réponse, relance, devis, facture, négociation, remerciement, prospection…</span>
               </div>
 
               <div className="feature-list-item">
@@ -670,7 +670,7 @@ export default function FonctionnalitesPage() {
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
                 </div>
-                <span>Personnalisation automatique selon le contexte client</span>
+                <span>Collez un email reçu ou un contexte : Spyke répond avec votre ton</span>
               </div>
             </div>
           </div>
@@ -914,10 +914,11 @@ export default function FonctionnalitesPage() {
             </div>
 
             <div className="feature-card">
-              <div className="feature-card-icon">🎨</div>
-              <h3>Templates personnalisés</h3>
+              <div className="feature-card-icon">💬</div>
+              <h3>Chatbox intégrée</h3>
               <p>
-                Créez vos propres modèles (emails, devis) et standardisez votre administratif.
+                Posez une question à tout moment (email, contrat, impayé, administratif). Vous n&apos;êtes
+                jamais bloqué.
               </p>
             </div>
 
@@ -928,15 +929,15 @@ export default function FonctionnalitesPage() {
             </div>
 
             <div className="feature-card">
-              <div className="feature-card-icon">📱</div>
-              <h3>Accès mobile</h3>
-              <p>Créez un devis, une facture ou un contrat depuis votre téléphone, n&apos;importe où, n&apos;importe quand.</p>
+              <div className="feature-card-icon">✍️</div>
+              <h3>Signature & e-signature</h3>
+              <p>Ajoutez votre signature sur les PDFs et lancez des demandes de signature en ligne pour vos contrats.</p>
             </div>
 
             <div className="feature-card">
-              <div className="feature-card-icon">🇫🇷</div>
-              <h3>100% français</h3>
-              <p>Interface en français, mentions légales françaises, support en français.</p>
+              <div className="feature-card-icon">⚖️</div>
+              <h3>Question juriste</h3>
+              <p>Un bouton dédié pour poser une question et obtenir une réponse claire (service payant à la question).</p>
             </div>
           </div>
         </div>

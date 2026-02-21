@@ -1085,8 +1085,8 @@ export default function Home() {
             </h1>
 
             <p className="hero-description">
-              Spyke est votre assistant IA pour gérer tout votre administratif freelance : emails,
-              devis, factures et contrats. Vous gardez votre ton, Spyke vous fait gagner du temps.
+              Spyke est votre copilote freelance : emails, devis, factures, contrats — et même la
+              <strong> question juridique</strong> quand vous bloquez. Vous gardez votre style, Spyke vous fait gagner du temps.
             </p>
 
             <a href="#pricing" className="hero-btn">
@@ -1178,10 +1178,23 @@ export default function Home() {
                   <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
               </div>
-              <h3>Emails IA personnalisés</h3>
+              <h3>Emails IA (à partir d&apos;un mail reçu)</h3>
               <p>
-                Répondez à vos clients avec votre ton et votre style. L&apos;IA s&apos;adapte à votre façon
-                de communiquer.
+                Collez le message de votre client (ou le contexte) et Spyke rédige une réponse
+                prête à envoyer, avec votre ton.
+              </p>
+            </div>
+
+            <div className="feature-card">
+              <div className="feature-icon">
+                <svg viewBox="0 0 24 24">
+                  <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+                </svg>
+              </div>
+              <h3>Chatbox d&apos;aide</h3>
+              <p>
+                Une chatbox intégrée pour poser vos questions (emails, docs, administratif) sans
+                quitter l&apos;app.
               </p>
             </div>
 
@@ -1230,28 +1243,30 @@ export default function Home() {
             <div className="feature-card">
               <div className="feature-icon">
                 <svg viewBox="0 0 24 24">
-                  <path d="M12 2L2 7l10 5 10-5-10-5z" />
-                  <path d="M2 17l10 5 10-5" />
-                  <path d="M2 12l10 5 10-5" />
+                  <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+                  <path d="M14 2v6h6" />
+                  <path d="M9 13h6" />
+                  <path d="M9 17h6" />
                 </svg>
               </div>
-              <h3>Templates & cas d’usage</h3>
+              <h3>Question juridique (Pro)</h3>
               <p>
-                Réponse client, relance, négociation, envoi de devis, relance facture, suivi de
-                contrat… tous les cas fréquents sont couverts.
+                Un bouton “Question juriste” quand tu as un doute (contrat, impayé, clause…). Réponse
+                structurée et exploitable.
               </p>
             </div>
 
             <div className="feature-card">
               <div className="feature-icon">
                 <svg viewBox="0 0 24 24">
-                  <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  <path d="M12 20h9" />
+                  <path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4 12.5-12.5z" />
                 </svg>
               </div>
-              <h3>Dashboard clair</h3>
+              <h3>Signature & e-signature</h3>
               <p>
-                Visualisez votre activité en un coup d&apos;œil : CA, devis en cours, factures à encaisser,
-                relances à faire.
+                Ajoutez votre signature sur vos PDFs et lancez des demandes de signature en ligne
+                pour vos contrats.
               </p>
             </div>
           </div>
@@ -1441,6 +1456,24 @@ export default function Home() {
                     <path d="M5 13l4 4L19 7" />
                   </svg>
                   Relances suggérées
+                </li>
+                <li>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M5 13l4 4L19 7" />
+                  </svg>
+                  Chatbox d&apos;aide intégrée
+                </li>
+                <li>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M5 13l4 4L19 7" />
+                  </svg>
+                  Signature sur PDF + demandes d&apos;e-signature
+                </li>
+                <li>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M5 13l4 4L19 7" />
+                  </svg>
+                  Accès “Question juriste” (5€ / question)
                 </li>
                 <li>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

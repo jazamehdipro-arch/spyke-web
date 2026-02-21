@@ -895,15 +895,15 @@ export default function CommentCaMarchePage() {
               <div className="step-icon">📝</div>
               <h3>Créez votre compte</h3>
               <p>
-                Inscription gratuite en 30 secondes. Aucune carte bancaire requise. Vous pouvez
-                tester toutes les fonctionnalités pendant 14 jours.
+                Inscription gratuite en 30 secondes (email ou Google). Aucune carte bancaire requise.
+                Vous pouvez tester les fonctionnalités Pro pendant 14 jours.
               </p>
               <div className="step-details">
                 <div className="step-detail">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
-                  <span>Email + mot de passe, c&apos;est tout</span>
+                  <span>Email + mot de passe (ou Google)</span>
                 </div>
                 <div className="step-detail">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -1033,8 +1033,8 @@ export default function CommentCaMarchePage() {
               <div className="step-icon">🚀</div>
               <h3>Laissez l&apos;IA travailler</h3>
               <p>
-                C&apos;est parti ! Générez des devis, factures et contrats en quelques minutes, des emails
-                en 30 secondes, analysez vos briefs instantanément. Vous venez de gagner des heures.
+                Collez un email reçu, générez vos devis/factures/contrats, lancez une signature en
+                ligne, ou posez une question juridique : Spyke vous aide à avancer vite.
               </p>
               <div className="step-details">
                 <div className="step-detail">
@@ -1047,13 +1047,19 @@ export default function CommentCaMarchePage() {
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
-                  <span>Emails générés par l&apos;IA</span>
+                  <span>Emails IA à partir d&apos;un mail collé</span>
                 </div>
                 <div className="step-detail">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
-                  <span>Relances automatiques</span>
+                  <span>Signature sur PDF + e-signature</span>
+                </div>
+                <div className="step-detail">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                  <span>Question juriste + chatbox d&apos;aide</span>
                 </div>
               </div>
             </div>
