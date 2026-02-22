@@ -9692,9 +9692,9 @@ CONTEXTE UTILISATEUR :
                 Plan actuel : <b>{planCode === 'pro' ? 'Pro' : 'Free'}</b>
               </p>
 
-              {planCode !== 'pro' ? (
+              <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
                 <button
-                  className="btn btn-primary"
+                  className="btn btn-secondary"
                   type="button"
                   onClick={async () => {
                     try {
@@ -9703,27 +9703,26 @@ CONTEXTE UTILISATEUR :
                       const token = sessionData?.session?.access_token
                       if (!token) throw new Error('Non connecté')
 
-                      const res = await fetch('/api/stripe/checkout', {
+                      const res = await fetch('/api/stripe/refresh-plan', {
                         method: 'POST',
                         headers: { authorization: `Bearer ${token}` },
                       })
                       const json = await res.json().catch(() => null)
-                      if (!res.ok) throw new Error(json?.error || 'Erreur Stripe')
-                      const url = String(json?.url || '')
-                      if (!url) throw new Error('URL Stripe manquante')
-                      window.location.href = url
+                      if (!res.ok) throw new Error(json?.error || 'Erreur rafraîchissement')
+
+                      // Refresh local profile state by reloading page (simple + reliable)
+                      window.location.reload()
                     } catch (e: any) {
-                      alert(e?.message || 'Erreur abonnement')
+                      alert(e?.message || 'Erreur rafraîchissement')
                     }
                   }}
                 >
-                  Passer Pro (14 jours offerts puis 19,90€/mois)
+                  Rafraîchir mon plan
                 </button>
-              ) : (
-                <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-                  <p style={{ color: 'var(--gray-600)', margin: 0 }}>Votre abonnement Pro est actif ✅</p>
+
+                {planCode !== 'pro' ? (
                   <button
-                    className="btn btn-secondary"
+                    className="btn btn-primary"
                     type="button"
                     onClick={async () => {
                       try {
@@ -9732,25 +9731,55 @@ CONTEXTE UTILISATEUR :
                         const token = sessionData?.session?.access_token
                         if (!token) throw new Error('Non connecté')
 
-                        const res = await fetch('/api/stripe/portal', {
+                        const res = await fetch('/api/stripe/checkout', {
                           method: 'POST',
                           headers: { authorization: `Bearer ${token}` },
+                          body: JSON.stringify({ period: 'monthly' }),
                         })
                         const json = await res.json().catch(() => null)
-                        if (!res.ok) throw new Error(json?.error || 'Erreur portail Stripe')
+                        if (!res.ok) throw new Error(json?.error || 'Erreur Stripe')
                         const url = String(json?.url || '')
-                        if (!url) throw new Error('URL portail Stripe manquante')
+                        if (!url) throw new Error('URL Stripe manquante')
                         window.location.href = url
                       } catch (e: any) {
-                        alert(e?.message || 'Erreur portail Stripe')
+                        alert(e?.message || 'Erreur abonnement')
                       }
                     }}
                   >
-                    Gérer / Résilier
+                    Passer Pro (14 jours offerts puis 19,90€/mois)
                   </button>
-                </div>
-              )}
+                ) : (
+                  <>
+                    <p style={{ color: 'var(--gray-600)', margin: 0 }}>Votre abonnement Pro est actif ✅</p>
+                    <button
+                      className="btn btn-secondary"
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          if (!supabase) throw new Error('Supabase non initialisé')
+                          const { data: sessionData } = await supabase.auth.getSession()
+                          const token = sessionData?.session?.access_token
+                          if (!token) throw new Error('Non connecté')
 
+                          const res = await fetch('/api/stripe/portal', {
+                            method: 'POST',
+                            headers: { authorization: `Bearer ${token}` },
+                          })
+                          const json = await res.json().catch(() => null)
+                          if (!res.ok) throw new Error(json?.error || 'Erreur portail Stripe')
+                          const url = String(json?.url || '')
+                          if (!url) throw new Error('URL portail Stripe manquante')
+                          window.location.href = url
+                        } catch (e: any) {
+                          alert(e?.message || 'Erreur portail Stripe')
+                        }
+                      }}
+                    >
+                      Gérer / Résilier
+                    </button>
+                  </>
+                )}
+              </div>
               <div style={{ marginTop: 14, fontSize: 13, color: 'var(--gray-500)' }}>
                 Free : 10 emails IA / mois, 3 devis / mois, 3 factures / mois, 3 contrats / mois, 3 clients max.
                 <br />
