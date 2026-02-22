@@ -284,6 +284,16 @@ function usePdfMailModals() {
           </div>
         ) : null}
       </ModalShell>
+
+      {/* Feedback modal */}
+      <ModalShell
+        open={false}
+        title="Feedback"
+        onClose={() => {}}
+        footer={null}
+      >
+        {null}
+      </ModalShell>
     </>
   )
 
@@ -909,6 +919,34 @@ Réponds uniquement par le texte de la description.`
     return 'Aucun client sélectionné'
   }, [clientChoice, clients])
 
+  async function checkFreePdfQuotaOrThrow(kind: 'devis' | 'facture' | 'contrat') {
+    if (planCode === 'pro') return
+    if (!supabase || !userId) throw new Error('Session manquante')
+
+    const start = new Date()
+    start.setDate(1)
+    start.setHours(0, 0, 0, 0)
+    const startStr = start.toISOString()
+
+    const { count, error } = await supabase
+      .from('pdf_generations')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .gte('created_at', startStr)
+
+    if (error) throw error
+    if (Number(count || 0) >= 3) {
+      throw new Error('Limite du plan Free atteinte : 3 documents / mois. Passe Pro pour illimité.')
+    }
+
+    // reserve a slot (best-effort)
+    try {
+      await supabase.from('pdf_generations').insert({ user_id: userId, kind })
+    } catch {
+      // ignore
+    }
+  }
+
   async function generateDevisPdfBlob() {
     if (!supabase) throw new Error('Supabase non initialisé')
 
@@ -1091,6 +1129,12 @@ Réponds uniquement par le texte de la description.`
   }
 
   async function generatePdf() {
+    try {
+      await checkFreePdfQuotaOrThrow('devis')
+    } catch (e: any) {
+      alert(e?.message || 'Limite atteinte')
+      return
+    }
     try {
       if (!supabase) throw new Error('Supabase non initialisé')
 
@@ -5293,6 +5337,8 @@ function FacturesV1({
         </>
       )}
     {modals}
+
+    {/* Feedback modal: handled in AppHtmlPage */}
     </div>
   )
 }
@@ -5519,6 +5565,16 @@ export default function AppHtmlPage() {
   const [helpInput, setHelpInput] = useState<string>('')
   const [helpLoading, setHelpLoading] = useState<boolean>(false)
   const [helpError, setHelpError] = useState<string>('')
+
+  // Feedback
+  const [feedbackOpen, setFeedbackOpen] = useState<boolean>(false)
+  const [feedbackText, setFeedbackText] = useState<string>('')
+  const [feedbackSending, setFeedbackSending] = useState<boolean>(false)
+  const [feedbackSent, setFeedbackSent] = useState<boolean>(false)
+
+  // Product tour (simple overlay)
+  const [tourOpen, setTourOpen] = useState<boolean>(false)
+  const [tourStep, setTourStep] = useState<number>(0)
 
   // Question juriste (Pro-only + paiement 5€)
   const [legalQuestion, setLegalQuestion] = useState<string>('')
@@ -5884,6 +5940,18 @@ export default function AppHtmlPage() {
         const plan = String((profile as any)?.plan || 'free') === 'pro' ? 'pro' : 'free'
         setPlanCode(plan)
         setUserPlan(plan === 'pro' ? 'Compte Pro' : 'Compte gratuit')
+
+        // Product tour: show once after onboarding is completed
+        try {
+          const done = Boolean((profile as any)?.onboarding_completed)
+          const already = localStorage.getItem('spyke_tour_v1_done')
+          if (done && !already) {
+            setTourOpen(true)
+            setTourStep(0)
+          }
+        } catch {
+          // ignore
+        }
 
         const { data: clientsData, error: clientsError } = await supabase
           .from('clients')
@@ -8493,6 +8561,131 @@ CONTEXTE UTILISATEUR :
 
       {/* Main Content */}
       <main className="main-content">
+        {tourOpen ? (
+          <div
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(0,0,0,0.45)',
+              zIndex: 9999,
+              display: 'flex',
+              alignItems: 'flex-end',
+              justifyContent: 'center',
+              padding: 18,
+            }}
+            onClick={() => {
+              // keep overlay
+            }}
+          >
+            {(() => {
+              const steps: Array<{ tab: Tab; title: string; body: string }> = [
+                {
+                  tab: 'dashboard',
+                  title: 'Bienvenue sur Spyke',
+                  body: "Ici tu vois ton activité (devis, factures, contrats) et tes actions rapides.",
+                },
+                {
+                  tab: 'assistant',
+                  title: 'Assistant IA',
+                  body: "Colle un email reçu ou un contexte, choisis le type et le ton, et génère une réponse prête à envoyer.",
+                },
+                {
+                  tab: 'devis',
+                  title: 'Devis',
+                  body: "Crée un devis, exporte en PDF et envoie-le par email en 1 clic.",
+                },
+                {
+                  tab: 'contrats',
+                  title: 'Contrats + signature',
+                  body: "Génère un contrat (PDF) et lance une demande de signature électronique.",
+                },
+                {
+                  tab: 'analyseur',
+                  title: 'Analyseur de brief',
+                  body: "Colle un brief client : Spyke l’analyse selon ton profil (compétences/expérience) et te donne une reco.",
+                },
+                {
+                  tab: 'settings',
+                  title: 'Paramètres',
+                  body: "Gère ton abonnement, connecte Gmail, mets ta signature et envoie un feedback.",
+                },
+              ]
+
+              const s = steps[Math.min(Math.max(tourStep, 0), steps.length - 1)]
+
+              // Ensure we are on the right tab
+              if (tab !== s.tab) {
+                setTimeout(() => {
+                  try {
+                    setTab(s.tab)
+                  } catch {}
+                }, 0)
+              }
+
+              return (
+                <div
+                  style={{
+                    width: 'min(720px, 100%)',
+                    background: 'white',
+                    borderRadius: 16,
+                    padding: 18,
+                    boxShadow: '0 20px 50px rgba(0,0,0,0.25)',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                    <div style={{ fontWeight: 900, fontSize: 16 }}>{s.title}</div>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      style={{ padding: '10px 12px' }}
+                      onClick={() => {
+                        try {
+                          localStorage.setItem('spyke_tour_v1_done', '1')
+                        } catch {}
+                        setTourOpen(false)
+                      }}
+                    >
+                      Passer
+                    </button>
+                  </div>
+                  <div style={{ marginTop: 8, fontSize: 14, color: 'rgba(0,0,0,0.7)' }}>{s.body}</div>
+
+                  <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.55)' }}>
+                      Étape {Math.min(tourStep + 1, steps.length)} / {steps.length}
+                    </div>
+                    <div style={{ display: 'flex', gap: 10 }}>
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        disabled={tourStep <= 0}
+                        onClick={() => setTourStep((v) => Math.max(0, v - 1))}
+                      >
+                        Précédent
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-primary"
+                        onClick={() => {
+                          if (tourStep >= steps.length - 1) {
+                            try {
+                              localStorage.setItem('spyke_tour_v1_done', '1')
+                            } catch {}
+                            setTourOpen(false)
+                            return
+                          }
+                          setTourStep((v) => Math.min(steps.length - 1, v + 1))
+                        }}
+                      >
+                        {tourStep >= steps.length - 1 ? 'Terminer' : 'Suivant'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )
+            })()}
+          </div>
+        ) : null}
         <div className="mobile-topbar">
           <button className="mobile-menu-btn" type="button" onClick={() => setMobileNavOpen(true)} aria-label="Ouvrir le menu">
             <svg viewBox="0 0 24 24">
@@ -9788,6 +9981,16 @@ CONTEXTE UTILISATEUR :
             </div>
 
             <div className="form-section" style={{ marginTop: 24 }}>
+              <div className="form-section-title">Feedback</div>
+              <p style={{ marginBottom: 12, color: 'var(--gray-600)' }}>
+                Une idée, un bug, une amélioration ? Dis-le nous.
+              </p>
+              <button className="btn btn-secondary" type="button" onClick={() => { setFeedbackOpen(true); setFeedbackSent(false) }}>
+                Envoyer un feedback
+              </button>
+            </div>
+
+            <div className="form-section" style={{ marginTop: 24 }}>
               <div className="form-section-title">Connexion Gmail</div>
               <p style={{ marginBottom: 12, color: 'var(--gray-600)' }}>
                 Connectez votre boîte Gmail pour pouvoir envoyer des devis/factures/contrats directement depuis Spyke.
@@ -10431,6 +10634,74 @@ CONTEXTE UTILISATEUR :
         </div>
       </div>
 
+      {/* Feedback modal */}
+      <ModalShell
+        open={feedbackOpen}
+        title="Feedback"
+        onClose={() => {
+          setFeedbackOpen(false)
+          setFeedbackText('')
+        }}
+        footer={
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+            <button
+              className="btn btn-secondary"
+              type="button"
+              onClick={() => {
+                setFeedbackOpen(false)
+                setFeedbackText('')
+              }}
+              disabled={feedbackSending}
+            >
+              Fermer
+            </button>
+            <button
+              className="btn btn-primary"
+              type="button"
+              disabled={feedbackSending || feedbackText.trim().length < 3}
+              onClick={async () => {
+                try {
+                  if (!supabase) throw new Error('Supabase non initialisé')
+                  const { data } = await supabase.auth.getSession()
+                  const token = data.session?.access_token
+                  if (!token) throw new Error('Non connecté')
+
+                  setFeedbackSending(true)
+                  setFeedbackSent(false)
+                  const res = await fetch('/api/feedback', {
+                    method: 'POST',
+                    headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+                    body: JSON.stringify({ message: feedbackText.trim(), page: window.location.pathname + window.location.search }),
+                  })
+                  const json = await res.json().catch(() => null)
+                  if (!res.ok) throw new Error(json?.error || `Erreur feedback (${res.status})`)
+                  setFeedbackSent(true)
+                  setFeedbackText('')
+                } catch (e: any) {
+                  alert(e?.message || 'Erreur feedback')
+                } finally {
+                  setFeedbackSending(false)
+                }
+              }}
+            >
+              {feedbackSending ? 'Envoi…' : 'Envoyer'}
+            </button>
+          </div>
+        }
+      >
+        <div style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ fontSize: 13, color: 'rgba(0,0,0,0.65)' }}>
+            Décris le bug ou l’idée. Plus c’est précis, plus on corrige vite.
+          </div>
+          <textarea
+            value={feedbackText}
+            onChange={(e) => setFeedbackText(e.target.value)}
+            placeholder="Ex: Sur mobile, le bouton X ne marche pas…"
+            style={{ width: '100%', minHeight: 140, resize: 'vertical', padding: '12px 14px', borderRadius: 12, border: '1px solid rgba(0,0,0,0.12)', fontFamily: 'inherit' }}
+          />
+          {feedbackSent ? <div style={{ fontSize: 13, color: '#15803d' }}>Merci ! Feedback envoyé ✅</div> : null}
+        </div>
+      </ModalShell>
     </>
   )
 }

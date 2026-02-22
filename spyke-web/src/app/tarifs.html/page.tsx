@@ -573,6 +573,40 @@ export default function TarifsPage() {
           </div>
 
           {error ? <div className="error">{error}</div> : null}
+
+          {/* FAQ */}
+          <div style={{ maxWidth: 920, margin: '48px auto 0' }}>
+            <h2 style={{ fontFamily: 'Syne, sans-serif', fontSize: 34, letterSpacing: '-1px', marginBottom: 14 }}>FAQ</h2>
+            <div style={{ color: 'var(--gray-500)', marginBottom: 18 }}>Réponses rapides aux questions les plus fréquentes.</div>
+
+            {[
+              {
+                q: "L’essai gratuit Pro, comment ça marche ?",
+                a: "Tu peux activer Pro et tester pendant 14 jours. À la fin de l’essai, l’abonnement mensuel (19,90€/mois) démarre sauf résiliation avant.",
+              },
+              {
+                q: "Puis-je payer en annuel ?",
+                a: "Oui. L’annuel est à 199€/an, soit 16,58€/mois. Tu économises l’équivalent de 2 mois par rapport au mensuel.",
+              },
+              {
+                q: "Je peux annuler quand je veux ?",
+                a: "Oui. Tu peux résilier à tout moment depuis ton espace client (Stripe).",
+              },
+              {
+                q: "Que se passe-t-il si je reste en Gratuit ?",
+                a: "Le plan Gratuit te permet de tester l’app avec des limites mensuelles (emails IA, documents et clients). Tu peux passer Pro quand tu veux.",
+              },
+              {
+                q: "La question juriste est incluse dans Pro ?",
+                a: "Le bouton est inclus dans Pro, mais la prestation est facturée à la question (5€) car elle déclenche un traitement côté juristes.",
+              },
+            ].map((item) => (
+              <details key={item.q} style={{ border: '1px solid var(--gray-200)', borderRadius: 14, padding: '14px 16px', marginBottom: 10, background: 'var(--white)' }}>
+                <summary style={{ cursor: 'pointer', fontWeight: 900, color: 'var(--gray-800)' }}>{item.q}</summary>
+                <div style={{ marginTop: 10, color: 'var(--gray-600)', fontSize: 14, lineHeight: 1.7 }}>{item.a}</div>
+              </details>
+            ))}
+          </div>
         </div>
       </section>
     </>
