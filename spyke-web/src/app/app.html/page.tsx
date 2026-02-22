@@ -5575,6 +5575,113 @@ export default function AppHtmlPage() {
   // Product tour (simple overlay)
   const [tourOpen, setTourOpen] = useState<boolean>(false)
   const [tourStep, setTourStep] = useState<number>(0)
+  const [tourSpot, setTourSpot] = useState<{ top: number; left: number; width: number; height: number } | null>(null)
+
+  const tourSteps = useMemo(
+    () =>
+      [
+        {
+          tab: 'dashboard' as Tab,
+          target: 'dashboard',
+          title: 'Dashboard',
+          body: "Vue d’ensemble : CA du mois, activité, raccourcis.",
+        },
+        {
+          tab: 'clients' as Tab,
+          target: 'clients',
+          title: 'Clients',
+          body: 'Ajoute et retrouve tes clients. Tout le reste se base dessus.',
+        },
+        {
+          tab: 'assistant' as Tab,
+          target: 'assistant',
+          title: 'Assistant IA',
+          body: 'Génère des emails pro (réponse, relance, négociation…) à partir du contexte.',
+        },
+        {
+          tab: 'devis' as Tab,
+          target: 'devis',
+          title: 'Devis',
+          body: 'Crée un devis, exporte en PDF, puis envoie-le par email.',
+        },
+        {
+          tab: 'factures' as Tab,
+          target: 'factures',
+          title: 'Factures',
+          body: 'Génère des factures propres et envoie-les facilement.',
+        },
+        {
+          tab: 'contrats' as Tab,
+          target: 'contrats',
+          title: 'Contrats',
+          body: 'Génère un contrat PDF + lance une demande de signature électronique.',
+        },
+        {
+          tab: 'analyseur' as Tab,
+          target: 'analyseur',
+          title: 'Analyseur de projet',
+          body: 'Colle un brief : analyse rapide + recommandation selon ton profil.',
+        },
+        {
+          tab: 'juriste' as Tab,
+          target: 'juriste',
+          title: 'Question juriste',
+          body: 'Pose une question (Pro). Facturation à la question.',
+        },
+        {
+          tab: 'settings' as Tab,
+          target: 'settings',
+          title: 'Paramètres',
+          body: 'Abonnement, connexion Gmail, signature, et feedback.',
+        },
+        {
+          tab: 'dashboard' as Tab,
+          target: 'help-fab',
+          title: 'Aide (chat)',
+          body: 'Besoin d’un rappel ? Utilise le chat d’aide à tout moment.',
+          openHelp: true,
+        },
+      ] as Array<{ tab: Tab; target: string; title: string; body: string; openHelp?: boolean }>,
+    []
+  )
+
+  useEffect(() => {
+    if (!tourOpen) {
+      setTourSpot(null)
+      return
+    }
+
+    const s = tourSteps[Math.min(Math.max(tourStep, 0), tourSteps.length - 1)]
+
+    // navigate
+    if (tab !== s.tab) {
+      setTab(s.tab)
+    }
+
+    if (s.openHelp) {
+      setHelpOpen(true)
+    }
+
+    const updateSpot = () => {
+      const el = document.querySelector(`[data-tour="${s.target}"]`) as HTMLElement | null
+      if (!el) {
+        setTourSpot(null)
+        return
+      }
+      const r = el.getBoundingClientRect()
+      setTourSpot({ top: r.top, left: r.left, width: r.width, height: r.height })
+    }
+
+    const t = window.setTimeout(updateSpot, 60)
+    window.addEventListener('resize', updateSpot)
+    window.addEventListener('scroll', updateSpot, true)
+
+    return () => {
+      window.clearTimeout(t)
+      window.removeEventListener('resize', updateSpot)
+      window.removeEventListener('scroll', updateSpot, true)
+    }
+  }, [tourOpen, tourStep, tab, tourSteps])
 
   // Question juriste (Pro-only + paiement 5€)
   const [legalQuestion, setLegalQuestion] = useState<string>('')
@@ -8378,7 +8485,7 @@ CONTEXTE UTILISATEUR :
         </div>
 
         <nav className="sidebar-nav">
-          <button className={`nav-item ${tab === 'dashboard' ? 'active' : ''}`} onClick={() => goTab('dashboard')}>
+          <button data-tour="dashboard" className={`nav-item ${tab === 'dashboard' ? 'active' : ''}`} onClick={() => goTab('dashboard')}>
             <svg viewBox="0 0 24 24">
               <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
               <polyline points="9 22 9 12 15 12 15 22" />
@@ -8386,7 +8493,7 @@ CONTEXTE UTILISATEUR :
             Dashboard
           </button>
 
-          <button className={`nav-item ${tab === 'clients' ? 'active' : ''}`} onClick={() => goTab('clients')}>
+          <button data-tour="clients" className={`nav-item ${tab === 'clients' ? 'active' : ''}`} onClick={() => goTab('clients')}>
             <svg viewBox="0 0 24 24">
               <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
               <circle cx="9" cy="7" r="4" />
@@ -8398,7 +8505,7 @@ CONTEXTE UTILISATEUR :
 
           {/* Assistant IA (déplacé plus bas) */}
 
-          <button className={`nav-item ${tab === 'devis' ? 'active' : ''}`} onClick={() => goTab('devis')}>
+          <button data-tour="devis" className={`nav-item ${tab === 'devis' ? 'active' : ''}`} onClick={() => goTab('devis')}>
             <svg viewBox="0 0 24 24">
               <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
               <polyline points="14 2 14 8 20 8" />
@@ -8409,7 +8516,7 @@ CONTEXTE UTILISATEUR :
             Devis
           </button>
 
-          <button className={`nav-item ${tab === 'factures' ? 'active' : ''}`} onClick={() => goTab('factures')}>
+          <button data-tour="factures" className={`nav-item ${tab === 'factures' ? 'active' : ''}`} onClick={() => goTab('factures')}>
             <svg viewBox="0 0 24 24">
               <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
               <polyline points="14 2 14 8 20 8" />
@@ -8419,7 +8526,7 @@ CONTEXTE UTILISATEUR :
             Factures
           </button>
 
-          <button className={`nav-item ${tab === 'contrats' ? 'active' : ''}`} onClick={() => goTab('contrats')}>
+          <button data-tour="contrats" className={`nav-item ${tab === 'contrats' ? 'active' : ''}`} onClick={() => goTab('contrats')}>
             <svg viewBox="0 0 24 24">
               <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
               <polyline points="14 2 14 8 20 8" />
@@ -8431,7 +8538,7 @@ CONTEXTE UTILISATEUR :
 
           <span className="nav-section-title">Outils</span>
 
-          <button className={`nav-item ${tab === 'analyseur' ? 'active' : ''}`} onClick={() => goTab('analyseur')}>
+          <button data-tour="analyseur" className={`nav-item ${tab === 'analyseur' ? 'active' : ''}`} onClick={() => goTab('analyseur')}>
             <svg viewBox="0 0 24 24">
               <circle cx="11" cy="11" r="8" />
               <path d="M21 21l-4.35-4.35" />
@@ -8439,7 +8546,7 @@ CONTEXTE UTILISATEUR :
             Analyseur de projet
           </button>
 
-          <button className={`nav-item ${tab === 'assistant' ? 'active' : ''}`} onClick={() => goTab('assistant')}>
+          <button data-tour="assistant" className={`nav-item ${tab === 'assistant' ? 'active' : ''}`} onClick={() => goTab('assistant')}>
             <svg viewBox="0 0 24 24">
               <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
             </svg>
@@ -8447,6 +8554,7 @@ CONTEXTE UTILISATEUR :
           </button>
 
           <button
+            data-tour="juriste"
             className={`nav-item ${tab === 'juriste' ? 'active' : ''}`}
             onClick={() => {
               if (planCode !== 'pro') {
@@ -8466,6 +8574,7 @@ CONTEXTE UTILISATEUR :
           </button>
 
           <button
+            data-tour="help"
             className="nav-item"
             onClick={() => {
               setHelpOpen(true)
@@ -8482,7 +8591,7 @@ CONTEXTE UTILISATEUR :
         </nav>
 
         <div className="sidebar-footer">
-          <button className="user-profile" onClick={() => goTab('settings')}>
+          <button data-tour="settings" className="user-profile" onClick={() => goTab('settings')}>
             <div className="user-avatar">{initials}</div>
             <div className="user-info">
               <h4>{userFullName}</h4>
@@ -8494,6 +8603,7 @@ CONTEXTE UTILISATEUR :
 
       {/* Help chat floating button */}
       <button
+        data-tour="help-fab"
         className="help-fab"
         type="button"
         onClick={() => setHelpOpen(true)}
@@ -8566,95 +8676,71 @@ CONTEXTE UTILISATEUR :
             style={{
               position: 'fixed',
               inset: 0,
-              background: 'rgba(0,0,0,0.45)',
               zIndex: 9999,
-              display: 'flex',
-              alignItems: 'flex-end',
-              justifyContent: 'center',
-              padding: 18,
-            }}
-            onClick={() => {
-              // keep overlay
+              pointerEvents: 'auto',
             }}
           >
+            {/* dark overlay */}
+            <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.55)' }} />
+
+            {/* spotlight */}
+            {tourSpot ? (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: Math.max(8, tourSpot.top - 6),
+                  left: Math.max(8, tourSpot.left - 6),
+                  width: Math.max(18, tourSpot.width + 12),
+                  height: Math.max(18, tourSpot.height + 12),
+                  borderRadius: 14,
+                  boxShadow: '0 0 0 9999px rgba(0,0,0,0.55)',
+                  border: '2px solid rgba(255,255,255,0.9)',
+                  background: 'transparent',
+                }}
+              />
+            ) : null}
+
+            {/* tooltip */}
             {(() => {
-              const steps: Array<{ tab: Tab; title: string; body: string }> = [
-                {
-                  tab: 'dashboard',
-                  title: 'Bienvenue sur Spyke',
-                  body: "Ici tu vois ton activité (devis, factures, contrats) et tes actions rapides.",
-                },
-                {
-                  tab: 'assistant',
-                  title: 'Assistant IA',
-                  body: "Colle un email reçu ou un contexte, choisis le type et le ton, et génère une réponse prête à envoyer.",
-                },
-                {
-                  tab: 'devis',
-                  title: 'Devis',
-                  body: "Crée un devis, exporte en PDF et envoie-le par email en 1 clic.",
-                },
-                {
-                  tab: 'contrats',
-                  title: 'Contrats + signature',
-                  body: "Génère un contrat (PDF) et lance une demande de signature électronique.",
-                },
-                {
-                  tab: 'analyseur',
-                  title: 'Analyseur de brief',
-                  body: "Colle un brief client : Spyke l’analyse selon ton profil (compétences/expérience) et te donne une reco.",
-                },
-                {
-                  tab: 'settings',
-                  title: 'Paramètres',
-                  body: "Gère ton abonnement, connecte Gmail, mets ta signature et envoie un feedback.",
-                },
-              ]
-
-              const s = steps[Math.min(Math.max(tourStep, 0), steps.length - 1)]
-
-              // Ensure we are on the right tab
-              if (tab !== s.tab) {
-                setTimeout(() => {
-                  try {
-                    setTab(s.tab)
-                  } catch {}
-                }, 0)
-              }
+              const s = tourSteps[Math.min(Math.max(tourStep, 0), tourSteps.length - 1)]
+              const spot = tourSpot
+              const tooltipWidth = 340
+              const left = spot ? Math.min(Math.max(12, spot.left), window.innerWidth - tooltipWidth - 12) : 12
+              const top = spot ? Math.min(window.innerHeight - 220, spot.top + spot.height + 14) : 12
 
               return (
                 <div
                   style={{
-                    width: 'min(720px, 100%)',
+                    position: 'absolute',
+                    left,
+                    top,
+                    width: tooltipWidth,
                     background: 'white',
-                    borderRadius: 16,
-                    padding: 18,
+                    borderRadius: 14,
+                    padding: 14,
                     boxShadow: '0 20px 50px rgba(0,0,0,0.25)',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-                    <div style={{ fontWeight: 900, fontSize: 16 }}>{s.title}</div>
-                    <button
-                      type="button"
-                      className="btn btn-secondary"
-                      style={{ padding: '10px 12px' }}
-                      onClick={() => {
-                        try {
-                          localStorage.setItem('spyke_tour_v1_done', '1')
-                        } catch {}
-                        setTourOpen(false)
-                      }}
-                    >
-                      Passer
-                    </button>
-                  </div>
-                  <div style={{ marginTop: 8, fontSize: 14, color: 'rgba(0,0,0,0.7)' }}>{s.body}</div>
+                  <div style={{ fontWeight: 900, marginBottom: 6 }}>{s.title}</div>
+                  <div style={{ fontSize: 13, color: 'rgba(0,0,0,0.72)', lineHeight: 1.5 }}>{s.body}</div>
 
-                  <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.55)' }}>
-                      Étape {Math.min(tourStep + 1, steps.length)} / {steps.length}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
+                    <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.5)' }}>
+                      Étape {Math.min(tourStep + 1, tourSteps.length)} / {tourSteps.length}
                     </div>
                     <div style={{ display: 'flex', gap: 10 }}>
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        onClick={() => {
+                          try {
+                            localStorage.setItem('spyke_tour_v1_done', '1')
+                          } catch {}
+                          setTourOpen(false)
+                        }}
+                      >
+                        Passer
+                      </button>
                       <button
                         type="button"
                         className="btn btn-secondary"
@@ -8667,17 +8753,17 @@ CONTEXTE UTILISATEUR :
                         type="button"
                         className="btn btn-primary"
                         onClick={() => {
-                          if (tourStep >= steps.length - 1) {
+                          if (tourStep >= tourSteps.length - 1) {
                             try {
                               localStorage.setItem('spyke_tour_v1_done', '1')
                             } catch {}
                             setTourOpen(false)
                             return
                           }
-                          setTourStep((v) => Math.min(steps.length - 1, v + 1))
+                          setTourStep((v) => Math.min(tourSteps.length - 1, v + 1))
                         }}
                       >
-                        {tourStep >= steps.length - 1 ? 'Terminer' : 'Suivant'}
+                        {tourStep >= tourSteps.length - 1 ? 'Terminer' : 'Suivant'}
                       </button>
                     </div>
                   </div>
