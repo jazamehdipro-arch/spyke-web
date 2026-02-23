@@ -5374,6 +5374,21 @@ type ClientRow = {
 
 export default function AppHtmlPage() {
   const [tab, setTab] = useState<Tab>('dashboard')
+
+  // Toasts (replace browser alerts)
+  const [toast, setToast] = useState<null | { type: 'success' | 'error' | 'info'; title?: string; message: string }>(null)
+  const toastTimerRef = useRef<number | null>(null)
+
+  function notify(message: string, type: 'success' | 'error' | 'info' = 'info', title?: string) {
+    try {
+      if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current)
+    } catch {}
+    setToast({ type, title, message })
+    try {
+      toastTimerRef.current = window.setTimeout(() => setToast(null), type === 'error' ? 6000 : 3500) as any
+    } catch {}
+  }
+
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const goTab = (t: Tab) => {
     setTab(t)
@@ -8641,7 +8656,7 @@ CONTEXTE UTILISATEUR :
             className={`nav-item ${tab === 'juriste' ? 'active' : ''}`}
             onClick={() => {
               if (planCode !== 'pro') {
-                alert('Question juriste : réservé au plan Pro.')
+                notify('Question juriste : réservé au plan Pro.', 'info')
                 goTab('settings')
                 return
               }
@@ -10138,7 +10153,7 @@ CONTEXTE UTILISATEUR :
                       // Refresh local profile state by reloading page (simple + reliable)
                       window.location.reload()
                     } catch (e: any) {
-                      alert(e?.message || 'Erreur rafraîchissement')
+                      notify(e?.message || 'Erreur rafraîchissement', 'error')
                     }
                   }}
                 >
@@ -10167,7 +10182,7 @@ CONTEXTE UTILISATEUR :
                         if (!url) throw new Error('URL Stripe manquante')
                         window.location.href = url
                       } catch (e: any) {
-                        alert(e?.message || 'Erreur abonnement')
+                        notify(e?.message || 'Erreur abonnement', 'error')
                       }
                     }}
                   >
@@ -10196,7 +10211,7 @@ CONTEXTE UTILISATEUR :
                           if (!url) throw new Error('URL portail Stripe manquante')
                           window.location.href = url
                         } catch (e: any) {
-                          alert(e?.message || 'Erreur portail Stripe')
+                          notify(e?.message || 'Erreur portail Stripe', 'error')
                         }
                       }}
                     >
@@ -10275,7 +10290,7 @@ CONTEXTE UTILISATEUR :
                           if (!url) throw new Error('URL Google manquante')
                           window.location.href = url
                         } catch (e: any) {
-                          alert(e?.message || 'Erreur connexion Gmail')
+                          notify(e?.message || 'Erreur connexion Gmail', 'error')
                         }
                       }}
                     >
@@ -10306,7 +10321,7 @@ CONTEXTE UTILISATEUR :
                         setGmailConnected(false)
                         setGmailEmail('')
                       } catch (e: any) {
-                        alert(e?.message || 'Erreur déconnexion Gmail')
+                        notify(e?.message || 'Erreur déconnexion Gmail', 'error')
                       }
                     }}
                   >
@@ -10336,7 +10351,7 @@ CONTEXTE UTILISATEUR :
                       if (!url) throw new Error('URL Google manquante')
                       window.location.href = url
                     } catch (e: any) {
-                      alert(e?.message || 'Erreur connexion Gmail')
+                      notify(e?.message || 'Erreur connexion Gmail', 'error')
                     }
                   }}
                 >
@@ -10622,9 +10637,9 @@ CONTEXTE UTILISATEUR :
                       setUserJob(settingsJob)
                       setUserDefaultTone(settingsEmailTone)
 
-                      alert('Profil mis à jour')
+                      notify('Profil mis à jour', 'success')
                     } catch (e: any) {
-                      alert(e?.message || 'Erreur mise à jour profil')
+                      notify(e?.message || 'Erreur mise à jour profil', 'error')
                     } finally {
                       setLoading(false)
                     }
@@ -10638,6 +10653,60 @@ CONTEXTE UTILISATEUR :
           </div>
         </div>
       </main>
+
+      {/* Toast */}
+      {toast ? (
+        <div
+          style={{
+            position: 'fixed',
+            left: 16,
+            right: 16,
+            bottom: 16,
+            zIndex: 9999,
+            display: 'flex',
+            justifyContent: 'center',
+            pointerEvents: 'none',
+          }}
+        >
+          <div
+            style={{
+              width: 'min(520px, 100%)',
+              pointerEvents: 'auto',
+              background: toast.type === 'error' ? 'rgba(17,17,17,0.96)' : 'rgba(17,17,17,0.92)',
+              color: 'white',
+              borderRadius: 16,
+              padding: '12px 14px',
+              border:
+                toast.type === 'success'
+                  ? '1px solid rgba(34,197,94,0.35)'
+                  : toast.type === 'error'
+                    ? '1px solid rgba(239,68,68,0.35)'
+                    : '1px solid rgba(250,204,21,0.35)',
+              boxShadow: '0 18px 50px rgba(0,0,0,0.35)',
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: 12,
+            }}
+          >
+            <div style={{ marginTop: 2, flex: 1 }}>
+              <div style={{ fontWeight: 900, fontSize: 13, letterSpacing: 0.2 }}>
+                {toast.title || (toast.type === 'success' ? 'OK' : toast.type === 'error' ? 'Erreur' : 'Info')}
+              </div>
+              <div style={{ marginTop: 3, fontSize: 13, color: 'rgba(255,255,255,0.88)', lineHeight: 1.45, whiteSpace: 'pre-line' }}>
+                {toast.message}
+              </div>
+            </div>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              style={{ padding: '8px 10px', borderRadius: 12, background: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.12)', color: 'white' }}
+              onClick={() => setToast(null)}
+            >
+              Fermer
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       {/* Modal: New Client */}
       <div
@@ -10948,7 +11017,7 @@ CONTEXTE UTILISATEUR :
                   setFeedbackSent(true)
                   setFeedbackText('')
                 } catch (e: any) {
-                  alert(e?.message || 'Erreur feedback')
+                  notify(e?.message || 'Erreur feedback', 'error')
                 } finally {
                   setFeedbackSending(false)
                 }
