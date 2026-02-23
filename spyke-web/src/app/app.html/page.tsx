@@ -5578,7 +5578,7 @@ export default function AppHtmlPage() {
   const [tourSpot, setTourSpot] = useState<{ top: number; left: number; width: number; height: number } | null>(null)
 
   // Settings UI
-  const [settingsTab, setSettingsTab] = useState<'abonnement' | 'profil' | 'gmail' | 'signature' | 'feedback' | 'compte'>('abonnement')
+  const [settingsTab, setSettingsTab] = useState<'abonnement' | 'profil' | 'gmail' | 'signature' | 'feedback' | 'compte'>('profil')
 
   const tourSteps = useMemo(
     () =>
