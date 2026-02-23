@@ -9,6 +9,12 @@ export default function ConnexionPage() {
   const [tab, setTab] = useState<Tab>('connexion')
   const [loading, setLoading] = useState(false)
 
+  // Forgot password
+  const [forgotOpen, setForgotOpen] = useState(false)
+  const [forgotEmail, setForgotEmail] = useState('')
+  const [forgotSent, setForgotSent] = useState(false)
+  const [forgotError, setForgotError] = useState('')
+
   const supabase = useMemo(() => {
     try {
       return getSupabase()
@@ -126,6 +132,75 @@ export default function ConnexionPage() {
           padding: 48px;
           border: 1px solid var(--gray-200);
           box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+        }
+
+        /* Modal */
+        .modal-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.55);
+          display: none;
+          align-items: center;
+          justify-content: center;
+          padding: 18px;
+          z-index: 9999;
+        }
+        .modal-overlay.active {
+          display: flex;
+        }
+        .modal {
+          width: 100%;
+          max-width: 520px;
+          background: var(--white);
+          border-radius: 18px;
+          border: 1px solid var(--gray-200);
+          box-shadow: 0 18px 50px rgba(0, 0, 0, 0.25);
+          overflow: hidden;
+        }
+        .modal-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          padding: 16px 18px;
+          border-bottom: 1px solid var(--gray-200);
+          background: var(--gray-50);
+        }
+        .modal-title {
+          font-weight: 800;
+          font-size: 16px;
+          color: var(--gray-900);
+        }
+        .modal-close {
+          border: none;
+          background: transparent;
+          font-size: 18px;
+          cursor: pointer;
+          color: var(--gray-600);
+          padding: 6px 10px;
+          border-radius: 10px;
+        }
+        .modal-close:hover {
+          background: var(--gray-100);
+        }
+        .modal-body {
+          padding: 18px;
+        }
+        .modal-actions {
+          display: flex;
+          gap: 10px;
+          justify-content: flex-end;
+          padding: 14px 18px 18px;
+        }
+        .modal-error {
+          margin-top: 10px;
+          font-size: 13px;
+          color: var(--red);
+        }
+        .modal-success {
+          margin-top: 10px;
+          font-size: 13px;
+          color: #15803d;
         }
         .auth-header {
           text-align: center;
@@ -475,7 +550,22 @@ export default function ConnexionPage() {
                 <input type="checkbox" />
                 Se souvenir de moi
               </label>
-              <a href="#" className="form-link">
+              <a
+                href="#"
+                className="form-link"
+                onClick={(e) => {
+                  e.preventDefault()
+                  setForgotOpen(true)
+                  setForgotSent(false)
+                  setForgotError('')
+                  // prefill from login form if available
+                  try {
+                    const form = document.getElementById('formConnexion') as HTMLFormElement | null
+                    const v = String((form?.querySelector('[name="email"]') as HTMLInputElement | null)?.value || '')
+                    if (v) setForgotEmail(v)
+                  } catch {}
+                }}
+              >
                 Mot de passe oublié ?
               </a>
             </div>
@@ -707,6 +797,74 @@ export default function ConnexionPage() {
           <a href="/confidentialite.html">Confidentialité</a>
         </div>
       </footer>
+
+      {/* Forgot password modal */}
+      <div
+        className={`modal-overlay ${forgotOpen ? 'active' : ''}`}
+        onClick={(e) => {
+          if (e.target === e.currentTarget) setForgotOpen(false)
+        }}
+      >
+        <div className="modal">
+          <div className="modal-header">
+            <div className="modal-title">Réinitialiser le mot de passe</div>
+            <button className="modal-close" type="button" onClick={() => setForgotOpen(false)}>
+              ✕
+            </button>
+          </div>
+          <div className="modal-body">
+            <div style={{ fontSize: 13, color: 'var(--gray-600)', lineHeight: 1.6 }}>
+              Entre ton email et on t’envoie un lien pour choisir un nouveau mot de passe.
+            </div>
+
+            <div className="form-group" style={{ marginTop: 14 }}>
+              <label className="form-label">Email</label>
+              <input
+                className="form-input"
+                type="email"
+                placeholder="vous@exemple.com"
+                value={forgotEmail}
+                onChange={(e) => setForgotEmail(e.target.value)}
+              />
+            </div>
+
+            {forgotError ? <div className="modal-error">{forgotError}</div> : null}
+            {forgotSent ? <div className="modal-success">Email envoyé. Vérifie ta boîte mail.</div> : null}
+          </div>
+          <div className="modal-actions">
+            <button className="btn btn-secondary" type="button" onClick={() => setForgotOpen(false)} disabled={loading}>
+              Annuler
+            </button>
+            <button
+              className="btn btn-primary"
+              type="button"
+              disabled={loading || !forgotEmail.trim()}
+              onClick={async () => {
+                if (!supabase) {
+                  setForgotError('Supabase non configuré (env manquantes)')
+                  return
+                }
+                try {
+                  setLoading(true)
+                  setForgotError('')
+                  const origin = window.location.origin
+                  const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail.trim(), {
+                    redirectTo: `${origin}/reset.html`,
+                  })
+                  if (error) throw error
+                  setForgotSent(true)
+                } catch (e: any) {
+                  setForgotError(e?.message || 'Erreur envoi email')
+                } finally {
+                  setLoading(false)
+                }
+              }}
+            >
+              {loading ? 'Envoi…' : 'Envoyer le lien'}
+            </button>
+          </div>
+        </div>
+      </div>
     </>
   )
 }
