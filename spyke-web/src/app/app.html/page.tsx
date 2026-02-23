@@ -6017,7 +6017,7 @@ export default function AppHtmlPage() {
         {
           const { data, error } = await supabase
             .from('profiles')
-            .select('first_name,last_name,job,experience_years,skills,email_tone,plan,company_name,address,postal_code,city,country,siret,vat_number,iban,bic,signature_path,onboarding_completed,stripe_subscription_status,stripe_current_period_end,stripe_cancel_at_period_end,stripe_cancel_at')
+            .select('first_name,last_name,job,experience_years,skills,email_tone,plan,company_name,address,postal_code,city,country,siret,vat_number,iban,bic,signature_path,onboarding_completed,stripe_subscription_status,stripe_current_period_end,stripe_cancel_at_period_end,stripe_cancel_at,welcome_sent_at')
             .eq('id', userId)
             .maybeSingle()
           if (error) {
@@ -6025,7 +6025,7 @@ export default function AppHtmlPage() {
             if (msg.includes('experience_years') || msg.includes('skills')) {
               const { data: data2, error: error2 } = await supabase
                 .from('profiles')
-                .select('first_name,last_name,job,email_tone,plan,company_name,address,postal_code,city,country,siret,vat_number,iban,bic,signature_path,onboarding_completed,stripe_subscription_status,stripe_current_period_end,stripe_cancel_at_period_end,stripe_cancel_at')
+                .select('first_name,last_name,job,email_tone,plan,company_name,address,postal_code,city,country,siret,vat_number,iban,bic,signature_path,onboarding_completed,stripe_subscription_status,stripe_current_period_end,stripe_cancel_at_period_end,stripe_cancel_at,welcome_sent_at')
                 .eq('id', userId)
                 .maybeSingle()
               if (error2) throw error2
@@ -6092,11 +6092,38 @@ export default function AppHtmlPage() {
         setStripeCancelAtPeriodEnd(Boolean((profile as any)?.stripe_cancel_at_period_end))
         setStripeCancelAt(String((profile as any)?.stripe_cancel_at || ''))
 
+        // Welcome email (best-effort): send once per user
+        try {
+          const welcomeSent = Boolean((profile as any)?.welcome_sent_at)
+          if (!welcomeSent) {
+            const { data: s } = await supabase.auth.getSession()
+            const token = s.session?.access_token
+            if (token) {
+              fetch('/api/welcome', { method: 'POST', headers: { authorization: `Bearer ${token}` } }).catch(() => null)
+            }
+          }
+        } catch {
+          // ignore
+        }
+
         // Product tour: show once after onboarding is completed
         try {
           const done = Boolean((profile as any)?.onboarding_completed)
           const already = localStorage.getItem('spyke_tour_v1_done')
-          if (done && !already) {
+
+          const url = new URL(window.location.href)
+          const force = url.searchParams.get('tour') === '1'
+
+          if (done && (force || !already)) {
+            // mark as done to avoid re-trigger loops
+            localStorage.setItem('spyke_tour_v1_done', '1')
+
+            // clean URL (best-effort)
+            try {
+              url.searchParams.delete('tour')
+              window.history.replaceState({}, '', url.toString())
+            } catch {}
+
             setTourOpen(true)
             setTourStep(0)
           }
@@ -10453,6 +10480,9 @@ CONTEXTE UTILISATEUR :
             {settingsTab === 'profil' ? (
             <div className="form-section" style={{ marginTop: 14 }}>
               <div className="form-section-title">Profil (utilisé dans Devis / Factures / Contrats)</div>
+              <div style={{ marginTop: 6, fontSize: 13, color: 'var(--gray-500)' }}>
+                Ces informations servent à pré-remplir automatiquement tes documents et personnaliser les recommandations.
+              </div>
 
               <div className="form-row">
                 <div className="form-group">

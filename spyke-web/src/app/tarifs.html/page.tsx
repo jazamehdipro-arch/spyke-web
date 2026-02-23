@@ -41,7 +41,7 @@ export default function TarifsPage() {
   async function chooseFree() {
     try {
       if (!supabase) {
-        window.location.href = '/app.html'
+        window.location.href = '/app.html?tour=1'
         return
       }
 
@@ -57,9 +57,9 @@ export default function TarifsPage() {
         return
       }
 
-      window.location.href = '/app.html'
+      window.location.href = '/app.html?tour=1'
     } catch {
-      window.location.href = '/app.html'
+      window.location.href = '/app.html?tour=1'
     }
   }
 
