@@ -5653,6 +5653,17 @@ export default function AppHtmlPage() {
 
     const s = tourSteps[Math.min(Math.max(tourStep, 0), tourSteps.length - 1)]
 
+    // On mobile: open the sidebar when the step points to a sidebar element
+    try {
+      const isMobile = window.innerWidth <= 768
+      const sidebarTargets = new Set(['dashboard', 'clients', 'devis', 'factures', 'contrats', 'analyseur', 'assistant', 'juriste', 'help', 'settings'])
+      if (isMobile) {
+        if (sidebarTargets.has(String(s.target))) setMobileNavOpen(true)
+      }
+    } catch {
+      // ignore
+    }
+
     // navigate
     if (tab !== s.tab) {
       setTab(s.tab)
@@ -10104,9 +10115,24 @@ CONTEXTE UTILISATEUR :
               <p style={{ marginBottom: 12, color: 'var(--gray-600)' }}>
                 Une idée, un bug, une amélioration ? Dis-le nous.
               </p>
-              <button className="btn btn-secondary" type="button" onClick={() => { setFeedbackOpen(true); setFeedbackSent(false) }}>
-                Envoyer un feedback
-              </button>
+              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                <button className="btn btn-secondary" type="button" onClick={() => { setFeedbackOpen(true); setFeedbackSent(false) }}>
+                  Envoyer un feedback
+                </button>
+                <button
+                  className="btn btn-secondary"
+                  type="button"
+                  onClick={() => {
+                    try {
+                      localStorage.removeItem('spyke_tour_v1_done')
+                    } catch {}
+                    setTourStep(0)
+                    setTourOpen(true)
+                  }}
+                >
+                  Revoir le guide
+                </button>
+              </div>
             </div>
 
             <div className="form-section" style={{ marginTop: 24 }}>
