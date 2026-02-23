@@ -5400,6 +5400,10 @@ export default function AppHtmlPage() {
   const [userFullName, setUserFullName] = useState<string>('')
   const [planCode, setPlanCode] = useState<'free' | 'pro'>('free')
   const [userPlan, setUserPlan] = useState<string>('Compte gratuit')
+  const [stripeSubStatus, setStripeSubStatus] = useState<string>('')
+  const [stripePeriodEnd, setStripePeriodEnd] = useState<string>('')
+  const [stripeCancelAtPeriodEnd, setStripeCancelAtPeriodEnd] = useState<boolean>(false)
+  const [stripeCancelAt, setStripeCancelAt] = useState<string>('')
   const [userJob, setUserJob] = useState<string>('')
   const [userDefaultTone, setUserDefaultTone] = useState<string>('')
 
@@ -6013,7 +6017,7 @@ export default function AppHtmlPage() {
         {
           const { data, error } = await supabase
             .from('profiles')
-            .select('first_name,last_name,job,experience_years,skills,email_tone,plan,company_name,address,postal_code,city,country,siret,vat_number,iban,bic,signature_path,onboarding_completed')
+            .select('first_name,last_name,job,experience_years,skills,email_tone,plan,company_name,address,postal_code,city,country,siret,vat_number,iban,bic,signature_path,onboarding_completed,stripe_subscription_status,stripe_current_period_end,stripe_cancel_at_period_end,stripe_cancel_at')
             .eq('id', userId)
             .maybeSingle()
           if (error) {
@@ -6021,7 +6025,7 @@ export default function AppHtmlPage() {
             if (msg.includes('experience_years') || msg.includes('skills')) {
               const { data: data2, error: error2 } = await supabase
                 .from('profiles')
-                .select('first_name,last_name,job,email_tone,plan,company_name,address,postal_code,city,country,siret,vat_number,iban,bic,signature_path,onboarding_completed')
+                .select('first_name,last_name,job,email_tone,plan,company_name,address,postal_code,city,country,siret,vat_number,iban,bic,signature_path,onboarding_completed,stripe_subscription_status,stripe_current_period_end,stripe_cancel_at_period_end,stripe_cancel_at')
                 .eq('id', userId)
                 .maybeSingle()
               if (error2) throw error2
@@ -6082,6 +6086,11 @@ export default function AppHtmlPage() {
         const plan = String((profile as any)?.plan || 'free') === 'pro' ? 'pro' : 'free'
         setPlanCode(plan)
         setUserPlan(plan === 'pro' ? 'Compte Pro' : 'Compte gratuit')
+
+        setStripeSubStatus(String((profile as any)?.stripe_subscription_status || ''))
+        setStripePeriodEnd(String((profile as any)?.stripe_current_period_end || ''))
+        setStripeCancelAtPeriodEnd(Boolean((profile as any)?.stripe_cancel_at_period_end))
+        setStripeCancelAt(String((profile as any)?.stripe_cancel_at || ''))
 
         // Product tour: show once after onboarding is completed
         try {
@@ -10044,9 +10053,42 @@ CONTEXTE UTILISATEUR :
             {settingsTab === 'abonnement' ? (
             <div className="form-section" style={{ marginTop: 14 }}>
               <div className="form-section-title">Abonnement</div>
-              <p style={{ marginBottom: 12, color: 'var(--gray-600)' }}>
+              <p style={{ marginBottom: 10, color: 'var(--gray-600)' }}>
                 Plan actuel : <b>{planCode === 'pro' ? 'Pro' : 'Free'}</b>
               </p>
+
+              {planCode === 'pro' && stripeCancelAtPeriodEnd && stripePeriodEnd ? (
+                <div
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    padding: '8px 10px',
+                    borderRadius: 12,
+                    background: 'rgba(250, 204, 21, 0.18)',
+                    color: 'var(--gray-800)',
+                    fontSize: 13,
+                    fontWeight: 800,
+                    marginBottom: 12,
+                  }}
+                >
+                  Abonnement annulé — Pro jusqu’au{' '}
+                  {new Date(stripePeriodEnd).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                </div>
+              ) : null}
+
+              {planCode === 'free' && stripeSubStatus && stripePeriodEnd ? (
+                <div style={{ marginBottom: 12, fontSize: 13, color: 'var(--gray-500)' }}>
+                  Statut Stripe: <b>{stripeSubStatus}</b>
+                  {stripeCancelAt ? (
+                    <>
+                      {' '}
+                      · Fin:{' '}
+                      {new Date(stripeCancelAt).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                    </>
+                  ) : null}
+                </div>
+              ) : null}
 
               <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
                 <button

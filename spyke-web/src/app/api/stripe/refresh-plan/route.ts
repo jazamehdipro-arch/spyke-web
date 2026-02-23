@@ -60,6 +60,8 @@ export async function POST(req: Request) {
           subscriptionId: string
           status: Stripe.Subscription.Status
           currentPeriodEnd: string | null
+          cancelAtPeriodEnd: boolean
+          cancelAt: string | null
         }
       | null = null
 
@@ -70,23 +72,41 @@ export async function POST(req: Request) {
         const score = metaUserId && metaUserId === userId ? 2 : 1
 
         const currentPeriodEnd = s.current_period_end ? new Date(s.current_period_end * 1000).toISOString() : null
+        const cancelAtPeriodEnd = Boolean((s as any).cancel_at_period_end)
+        const cancelAt = (s as any).cancel_at ? new Date((s as any).cancel_at * 1000).toISOString() : null
 
         const candidate = {
           customerId: c.id,
           subscriptionId: s.id,
           status: s.status,
           currentPeriodEnd,
+          cancelAtPeriodEnd,
+          cancelAt,
           score,
         }
 
         if (!best) {
-          best = { customerId: candidate.customerId, subscriptionId: candidate.subscriptionId, status: candidate.status, currentPeriodEnd: candidate.currentPeriodEnd }
+          best = {
+            customerId: candidate.customerId,
+            subscriptionId: candidate.subscriptionId,
+            status: candidate.status,
+            currentPeriodEnd: candidate.currentPeriodEnd,
+            cancelAtPeriodEnd: candidate.cancelAtPeriodEnd,
+            cancelAt: candidate.cancelAt,
+          }
           ;(best as any).score = candidate.score
           continue
         }
 
         if ((candidate as any).score > (best as any).score) {
-          best = { customerId: candidate.customerId, subscriptionId: candidate.subscriptionId, status: candidate.status, currentPeriodEnd: candidate.currentPeriodEnd }
+          best = {
+            customerId: candidate.customerId,
+            subscriptionId: candidate.subscriptionId,
+            status: candidate.status,
+            currentPeriodEnd: candidate.currentPeriodEnd,
+            cancelAtPeriodEnd: candidate.cancelAtPeriodEnd,
+            cancelAt: candidate.cancelAt,
+          }
           ;(best as any).score = candidate.score
         }
       }
@@ -98,7 +118,7 @@ export async function POST(req: Request) {
       // No subscription found: ensure free
       await supabaseAdmin
         .from('profiles')
-        .update({ plan: 'free', stripe_subscription_status: null, stripe_current_period_end: null } as any)
+        .update({ plan: 'free', stripe_subscription_status: null, stripe_current_period_end: null, stripe_cancel_at_period_end: null, stripe_cancel_at: null } as any)
         .eq('id', userId)
 
       return NextResponse.json({ plan: 'free', found: false })
@@ -114,6 +134,8 @@ export async function POST(req: Request) {
         stripe_subscription_id: best.subscriptionId || null,
         stripe_subscription_status: best.status || null,
         stripe_current_period_end: best.currentPeriodEnd,
+        stripe_cancel_at_period_end: best.cancelAtPeriodEnd,
+        stripe_cancel_at: best.cancelAt,
       } as any)
       .eq('id', userId)
 

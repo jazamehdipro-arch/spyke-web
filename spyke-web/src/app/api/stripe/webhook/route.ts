@@ -146,10 +146,14 @@ export async function POST(req: Request) {
         // Fetch subscription for status + period_end
         let status: string | null = null
         let currentPeriodEnd: string | null = null
+        let cancelAtPeriodEnd: boolean | null = null
+        let cancelAt: string | null = null
         if (subscriptionId) {
           const sub = await stripe.subscriptions.retrieve(subscriptionId)
           status = sub.status
           currentPeriodEnd = sub.current_period_end ? new Date(sub.current_period_end * 1000).toISOString() : null
+          cancelAtPeriodEnd = Boolean(sub.cancel_at_period_end)
+          cancelAt = sub.cancel_at ? new Date(sub.cancel_at * 1000).toISOString() : null
         }
 
         await supabase
@@ -160,6 +164,8 @@ export async function POST(req: Request) {
             stripe_subscription_id: subscriptionId || null,
             stripe_subscription_status: status || null,
             stripe_current_period_end: currentPeriodEnd,
+            stripe_cancel_at_period_end: cancelAtPeriodEnd,
+            stripe_cancel_at: cancelAt,
           } as any)
           .eq('id', userId)
       }
@@ -170,6 +176,8 @@ export async function POST(req: Request) {
       const userId = String((sub.metadata as any)?.supabase_user_id || '')
       const status = sub.status
       const currentPeriodEnd = sub.current_period_end ? new Date(sub.current_period_end * 1000).toISOString() : null
+      const cancelAtPeriodEnd = Boolean(sub.cancel_at_period_end)
+      const cancelAt = sub.cancel_at ? new Date(sub.cancel_at * 1000).toISOString() : null
 
       if (userId) {
         await supabase
@@ -180,6 +188,8 @@ export async function POST(req: Request) {
             stripe_subscription_id: sub.id,
             stripe_subscription_status: status,
             stripe_current_period_end: currentPeriodEnd,
+            stripe_cancel_at_period_end: cancelAtPeriodEnd,
+            stripe_cancel_at: cancelAt,
           } as any)
           .eq('id', userId)
       }
