@@ -6836,9 +6836,20 @@ CONTEXTE UTILISATEUR :
 
         .sidebar-nav {
           flex: 1;
+          min-height: 0; /* allow scrolling inside fixed-height sidebar */
           display: flex;
           flex-direction: column;
           gap: 4px;
+          overflow-y: auto;
+          padding-bottom: 10px;
+        }
+
+        .sidebar-nav::-webkit-scrollbar {
+          width: 8px;
+        }
+        .sidebar-nav::-webkit-scrollbar-thumb {
+          background: rgba(255, 255, 255, 0.12);
+          border-radius: 999px;
         }
 
         .nav-item {
@@ -6891,6 +6902,7 @@ CONTEXTE UTILISATEUR :
 
         .sidebar-footer {
           padding-top: 24px;
+          padding-bottom: max(16px, env(safe-area-inset-bottom));
           border-top: 1px solid var(--gray-800);
         }
 
