@@ -6010,7 +6010,7 @@ export default function AppHtmlPage() {
         {
           const { data, error } = await supabase
             .from('profiles')
-            .select('first_name,last_name,job,experience_years,skills,email_tone,plan,company_name,address,postal_code,city,country,siret,vat_number,iban,bic,signature_path')
+            .select('first_name,last_name,job,experience_years,skills,email_tone,plan,company_name,address,postal_code,city,country,siret,vat_number,iban,bic,signature_path,onboarding_completed')
             .eq('id', userId)
             .maybeSingle()
           if (error) {
@@ -6018,7 +6018,7 @@ export default function AppHtmlPage() {
             if (msg.includes('experience_years') || msg.includes('skills')) {
               const { data: data2, error: error2 } = await supabase
                 .from('profiles')
-                .select('first_name,last_name,job,email_tone,plan,company_name,address,postal_code,city,country,siret,vat_number,iban,bic,signature_path')
+                .select('first_name,last_name,job,email_tone,plan,company_name,address,postal_code,city,country,siret,vat_number,iban,bic,signature_path,onboarding_completed')
                 .eq('id', userId)
                 .maybeSingle()
               if (error2) throw error2
