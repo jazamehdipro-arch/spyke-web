@@ -10892,9 +10892,17 @@ CONTEXTE UTILISATEUR :
               <button
                 className="btn btn-primary"
                 type="button"
-                disabled={feedbackSurveySending}
+                disabled={
+                  feedbackSurveySending ||
+                  !Object.values(feedbackSurveyRatings || {}).some((v) => Number(v || 0) >= 1)
+                }
                 onClick={async () => {
                   try {
+                    if (!Object.values(feedbackSurveyRatings || {}).some((v) => Number(v || 0) >= 1)) {
+                      notify('Mets au moins 1 étoile sur un outil pour envoyer.', 'info')
+                      return
+                    }
+
                     if (!supabase) throw new Error('Supabase non initialisé')
                     const { data } = await supabase.auth.getSession()
                     const token = data.session?.access_token
