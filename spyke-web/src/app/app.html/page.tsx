@@ -84,7 +84,19 @@ function ModalShell({
 }
 
 function usePdfMailModals() {
-  const [pdfPreview, setPdfPreview] = useState<null | { url: string; filename: string }>(null)
+  const [pdfPreview, setPdfPreview] = useState<null | {
+    url: string
+    filename: string
+    actions?: {
+      kind: 'devis' | 'facture' | 'contrat'
+      to: string
+      subject: string
+      text: string
+      getBlob: () => Promise<{ blob: Blob; token: string }>
+      filename: string
+      onSign?: () => Promise<void>
+    }
+  }>(null)
   const [mailCompose, setMailCompose] = useState<null | {
     to: string
     subject: string
@@ -107,9 +119,21 @@ function usePdfMailModals() {
     }
   }, [pdfPreview])
 
-  function openPdfPreviewFromBlob(blob: Blob, filename: string) {
+  function openPdfPreviewFromBlob(
+    blob: Blob,
+    filename: string,
+    actions?: {
+      kind: 'devis' | 'facture' | 'contrat'
+      to: string
+      subject: string
+      text: string
+      getBlob: () => Promise<{ blob: Blob; token: string }>
+      filename: string
+      onSign?: () => Promise<void>
+    }
+  ) {
     const url = URL.createObjectURL(blob)
-    setPdfPreview({ url, filename })
+    setPdfPreview({ url, filename, actions })
   }
 
   async function openMailComposeWithAttachment(opts: {
@@ -212,12 +236,58 @@ function usePdfMailModals() {
         }
         footer={
           pdfPreview ? (
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-              <a className="btn btn-secondary" href={pdfPreview.url} download={pdfPreview.filename}>
-                Télécharger
-              </a>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                {pdfPreview.actions?.onSign ? (
+                  <button
+                    className="btn btn-secondary"
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        await pdfPreview.actions?.onSign?.()
+                      } catch (e: any) {
+                        alert(e?.message || 'Erreur signature')
+                      }
+                    }}
+                  >
+                    Signer
+                  </button>
+                ) : null}
+
+                {pdfPreview.actions ? (
+                  <button
+                    className="btn btn-secondary"
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        const a = pdfPreview.actions
+                        if (!a) return
+                        // Close preview first for UX
+                        setPdfPreview(null)
+                        await openMailComposeWithAttachment({
+                          kind: a.kind,
+                          to: a.to,
+                          subject: a.subject,
+                          text: a.text,
+                          getBlob: a.getBlob,
+                          filename: a.filename,
+                        })
+                      } catch (e: any) {
+                        alert(e?.message || 'Erreur envoi mail')
+                      }
+                    }}
+                  >
+                    Envoyer par mail
+                  </button>
+                ) : null}
+
+                <a className="btn btn-secondary" href={pdfPreview.url} download={pdfPreview.filename}>
+                  Télécharger
+                </a>
+              </div>
+
               <button className="btn btn-primary" type="button" onClick={() => setPdfPreview(null)}>
-                OK
+                Fermer
               </button>
             </div>
           ) : null
@@ -1392,7 +1462,23 @@ Réponds uniquement par le texte de la description.`
         alert(`PDF généré, mais sauvegarde en base impossible: ${e?.message || 'Erreur Supabase'}`)
       }
 
-      openPdfPreviewFromBlob(blob, `Devis-${quoteNumber}.pdf`)
+      openPdfPreviewFromBlob(blob, `Devis-${quoteNumber}.pdf`, {
+        kind: 'devis',
+        to: (() => {
+          try {
+            if (clientChoice.mode === 'existing') {
+              const c: any = clients.find((x) => x.id === clientChoice.id)
+              return String(c?.email || '')
+            }
+            if (clientChoice.mode === 'new') return String((clientChoice as any)?.email || '')
+          } catch {}
+          return ''
+        })(),
+        subject: `Devis ${String(quoteNumber || '').trim() || 'Spyke'}`,
+        text: `Bonjour,\n\nVeuillez trouver ci-joint votre devis.\n\nCordialement,\n${userFullName || ''}`.trim(),
+        getBlob: generateDevisPdfBlob,
+        filename: 'Devis-' + String(quoteNumber || 'Spyke') + '.pdf',
+      })
     } catch (e: any) {
       alert(e?.message || 'Erreur PDF')
     }
@@ -2421,8 +2507,8 @@ Réponds uniquement par le texte de la description.`
           </div>
 
           <div className="btn-group devis-actions">
-            <button className="btn btn-secondary" type="button" onClick={sendDevisByEmail}>
-              Envoyer par mail
+            <button className="btn btn-secondary" type="button" onClick={() => alert('Brouillon: à connecter')}>
+              Enregistrer brouillon
             </button>
             <button className="btn btn-primary" type="button" onClick={generatePdf}>
               Générer PDF
@@ -3483,7 +3569,33 @@ function ContratsV1({
       const blob = await res.blob()
       if (!res.ok) throw new Error((await blob.text()) || 'Erreur PDF')
 
-      openPdfPreviewFromBlob(blob, `Contrat-${new Date().toISOString().slice(0, 10)}.pdf`)
+      openPdfPreviewFromBlob(blob, `Contrat-${new Date().toISOString().slice(0, 10)}.pdf`, {
+        kind: 'contrat',
+        to: String(clientEmail || ''),
+        subject: `Contrat ${String(contractNumber || '').trim() || 'Spyke'}`,
+        text: `Bonjour,\n\nVeuillez trouver ci-joint le contrat.\n\nCordialement,\n${userFullName || ''}`.trim(),
+        getBlob: generateContractPdfBlob,
+        filename: 'Contrat-' + String(contractNumber || 'Spyke') + '.pdf',
+        onSign: async () => {
+          // Best-effort: requires the contract to be saved in DB.
+          if (!supabase) throw new Error('Supabase non initialisé')
+          if (!contractNumber) throw new Error('Numéro de contrat manquant')
+
+          // Find the most recent contract by number
+          const { data: cRow, error: cErr } = await supabase
+            .from('contracts')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('number', contractNumber)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle()
+          if (cErr) throw cErr
+          const cid = String((cRow as any)?.id || '')
+          if (!cid) throw new Error('Contrat non sauvegardé (id introuvable)')
+          await sendContractForSignature(cid)
+        },
+      })
     } catch (e: any) {
       alert(e?.message || 'Erreur PDF')
     }
@@ -4026,25 +4138,14 @@ function ContratsV1({
             </details>
 
             <div className="btn-group contrats-actions" style={{ marginTop: 18 }}>
-          <button
-            className="btn btn-secondary"
-            type="button"
-            onClick={() => {
-              const txt = buildContractText()
-              setContractText(txt)
-            }}
-          >
-            Générer l'aperçu
-          </button>
+              <button className="btn btn-secondary" type="button" onClick={() => alert('Brouillon: à connecter')}>
+                Enregistrer brouillon
+              </button>
 
-          <button className="btn btn-secondary" type="button" onClick={sendContractByEmail}>
-            Envoyer par mail
-          </button>
-
-          <button className="btn btn-primary" type="button" onClick={generateContractPdf}>
-            Télécharger PDF
-          </button>
-        </div>
+              <button className="btn btn-primary" type="button" onClick={generateContractPdf}>
+                Générer PDF
+              </button>
+            </div>
 
         {contractText ? (
           <details className="mobile-preview" open>
@@ -4696,7 +4797,14 @@ function FacturesV1({
         alert(`PDF généré, mais sauvegarde de la facture en base impossible: ${e?.message || 'Erreur Supabase'}`)
       }
 
-      openPdfPreviewFromBlob(blob, `Facture-${invoiceNumber}.pdf`)
+      openPdfPreviewFromBlob(blob, `Facture-${invoiceNumber}.pdf`, {
+        kind: 'facture',
+        to: String((buyer as any)?.email || ''),
+        subject: `Facture ${String(invoiceNumber || '').trim() || 'Spyke'}`,
+        text: `Bonjour,\n\nVeuillez trouver ci-joint la facture.\n\nCordialement,\n${userFullName || ''}`.trim(),
+        getBlob: generateInvoicePdfBlob,
+        filename: 'Facture-' + String(invoiceNumber || 'Spyke') + '.pdf',
+      })
     } catch (e: any) {
       alert(e?.message || 'Erreur PDF')
     }
@@ -5323,9 +5431,6 @@ function FacturesV1({
             <div className="btn-group factures-actions" style={{ marginTop: 18 }}>
               <button className="btn btn-secondary" type="button" onClick={() => alert('Brouillon: à connecter')}>
                 Enregistrer brouillon
-              </button>
-              <button className="btn btn-secondary" type="button" onClick={sendInvoiceByEmail}>
-                Envoyer par mail
               </button>
               <button className="btn btn-primary" type="button" onClick={generateInvoicePdf}>
                 Générer PDF
