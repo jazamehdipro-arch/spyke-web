@@ -5577,6 +5577,9 @@ export default function AppHtmlPage() {
   const [tourStep, setTourStep] = useState<number>(0)
   const [tourSpot, setTourSpot] = useState<{ top: number; left: number; width: number; height: number } | null>(null)
 
+  // Settings UI
+  const [settingsTab, setSettingsTab] = useState<'abonnement' | 'profil' | 'gmail' | 'signature' | 'feedback' | 'compte'>('abonnement')
+
   const tourSteps = useMemo(
     () =>
       [
@@ -10009,7 +10012,37 @@ CONTEXTE UTILISATEUR :
             </div>
           </div>
           <div className="card">
-            <div className="form-section">
+            {/* Settings tabs */}
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', padding: '14px 14px 0' }}>
+              {(
+                [
+                  { key: 'abonnement', label: 'Abonnement' },
+                  { key: 'profil', label: 'Profil' },
+                  { key: 'gmail', label: 'Gmail' },
+                  { key: 'signature', label: 'Signature' },
+                  { key: 'feedback', label: 'Feedback' },
+                  { key: 'compte', label: 'Compte' },
+                ] as Array<{ key: typeof settingsTab; label: string }>
+              ).map((t) => (
+                <button
+                  key={t.key}
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setSettingsTab(t.key)}
+                  style={{
+                    padding: '10px 12px',
+                    borderRadius: 999,
+                    border: settingsTab === t.key ? '2px solid rgba(0,0,0,0.18)' : '2px solid rgba(0,0,0,0.12)',
+                    background: settingsTab === t.key ? 'var(--gray-100)' : 'var(--white)',
+                    fontWeight: 900,
+                  }}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+            {settingsTab === 'abonnement' ? (
+            <div className="form-section" style={{ marginTop: 14 }}>
               <div className="form-section-title">Abonnement</div>
               <p style={{ marginBottom: 12, color: 'var(--gray-600)' }}>
                 Plan actuel : <b>{planCode === 'pro' ? 'Pro' : 'Free'}</b>
@@ -10109,8 +10142,10 @@ CONTEXTE UTILISATEUR :
                 Pro : illimité.
               </div>
             </div>
+            ) : null}
 
-            <div className="form-section" style={{ marginTop: 24 }}>
+            {settingsTab === 'feedback' ? (
+            <div className="form-section" style={{ marginTop: 14 }}>
               <div className="form-section-title">Feedback</div>
               <p style={{ marginBottom: 12, color: 'var(--gray-600)' }}>
                 Une idée, un bug, une amélioration ? Dis-le nous.
@@ -10134,8 +10169,10 @@ CONTEXTE UTILISATEUR :
                 </button>
               </div>
             </div>
+            ) : null}
 
-            <div className="form-section" style={{ marginTop: 24 }}>
+            {settingsTab === 'gmail' ? (
+            <div className="form-section" style={{ marginTop: 14 }}>
               <div className="form-section-title">Connexion Gmail</div>
               <p style={{ marginBottom: 12, color: 'var(--gray-600)' }}>
                 Connectez votre boîte Gmail pour pouvoir envoyer des devis/factures/contrats directement depuis Spyke.
@@ -10238,8 +10275,10 @@ CONTEXTE UTILISATEUR :
                 </button>
               )}
             </div>
+            ) : null}
 
-            <div className="form-section" style={{ marginTop: 24 }}>
+            {settingsTab === 'signature' ? (
+            <div className="form-section" style={{ marginTop: 14 }}>
               <div className="form-section-title">Signature (prestataire)</div>
               <p style={{ marginBottom: 12, color: 'var(--gray-600)' }}>
                 Cette signature sera ajoutée automatiquement à vos <b>factures</b> et <b>contrats</b> (pas sur les devis).
@@ -10308,8 +10347,10 @@ CONTEXTE UTILISATEUR :
                 </div>
               ) : null}
             </div>
+            ) : null}
 
-            <div className="form-section" style={{ marginTop: 24 }}>
+            {settingsTab === 'compte' ? (
+            <div className="form-section" style={{ marginTop: 14 }}>
               <div className="form-section-title">Compte</div>
 
               <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
@@ -10365,8 +10406,10 @@ CONTEXTE UTILISATEUR :
                 </div>
               ) : null}
             </div>
+            ) : null}
 
-            <div className="form-section" style={{ marginTop: 24 }}>
+            {settingsTab === 'profil' ? (
+            <div className="form-section" style={{ marginTop: 14 }}>
               <div className="form-section-title">Profil (utilisé dans Devis / Factures / Contrats)</div>
 
               <div className="form-row">
@@ -10519,6 +10562,7 @@ CONTEXTE UTILISATEUR :
                 </button>
               </div>
             </div>
+            ) : null}
           </div>
         </div>
       </main>
