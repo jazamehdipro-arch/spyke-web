@@ -145,7 +145,18 @@ export default function OnboardingPage() {
         onboarding_completed: true,
       }
 
-      const { error: upsertError } = await supabase.from('profiles').upsert(payload, { onConflict: 'id' })
+      // Some Supabase projects may not have the latest columns yet (schema cache / migrations not applied).
+      // We try full payload first, then retry without optional columns.
+      let { error: upsertError } = await supabase.from('profiles').upsert(payload, { onConflict: 'id' })
+      if (upsertError) {
+        const msg = String((upsertError as any)?.message || '')
+        if (msg.includes("experience_years") || msg.includes('skills')) {
+          const fallbackPayload: any = { ...payload }
+          delete fallbackPayload.experience_years
+          delete fallbackPayload.skills
+          ;({ error: upsertError } = await supabase.from('profiles').upsert(fallbackPayload, { onConflict: 'id' }))
+        }
+      }
       if (upsertError) throw upsertError
 
       window.location.href = '/tarifs.html'

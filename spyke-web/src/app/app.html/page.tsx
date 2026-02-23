@@ -5993,11 +5993,32 @@ export default function AppHtmlPage() {
       try {
         setLoading(true)
 
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('first_name,last_name,job,experience_years,skills,email_tone,plan,company_name,address,postal_code,city,country,siret,vat_number,iban,bic,signature_path')
-          .eq('id', userId)
-          .maybeSingle()
+        // Some deployments may not have experience_years/skills columns yet.
+        // Try full select, then fallback without those columns.
+        let profile: any = null
+        {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('first_name,last_name,job,experience_years,skills,email_tone,plan,company_name,address,postal_code,city,country,siret,vat_number,iban,bic,signature_path')
+            .eq('id', userId)
+            .maybeSingle()
+          if (error) {
+            const msg = String((error as any)?.message || '')
+            if (msg.includes('experience_years') || msg.includes('skills')) {
+              const { data: data2, error: error2 } = await supabase
+                .from('profiles')
+                .select('first_name,last_name,job,email_tone,plan,company_name,address,postal_code,city,country,siret,vat_number,iban,bic,signature_path')
+                .eq('id', userId)
+                .maybeSingle()
+              if (error2) throw error2
+              profile = data2
+            } else {
+              throw error
+            }
+          } else {
+            profile = data
+          }
+        }
 
         const firstName = String((profile as any)?.first_name || '')
         const lastName = String((profile as any)?.last_name || '')
@@ -10403,7 +10424,7 @@ CONTEXTE UTILISATEUR :
                       if (!supabase || !userId) throw new Error('Session manquante')
                       setLoading(true)
 
-                      const payload = {
+                      const payload: any = {
                         first_name: settingsFirstName || null,
                         last_name: settingsLastName || null,
                         job: settingsJob || null,
@@ -10428,9 +10449,18 @@ CONTEXTE UTILISATEUR :
                         vat_number: settingsVatNumber || null,
                         iban: settingsIban || null,
                         bic: settingsBic || null,
-                      } as any
+                      }
 
-                      const { error } = await supabase.from('profiles').update(payload).eq('id', userId)
+                      let { error } = await supabase.from('profiles').update(payload).eq('id', userId)
+                      if (error) {
+                        const msg = String((error as any)?.message || '')
+                        if (msg.includes('experience_years') || msg.includes('skills')) {
+                          const fallback: any = { ...payload }
+                          delete fallback.experience_years
+                          delete fallback.skills
+                          ;({ error } = await supabase.from('profiles').update(fallback).eq('id', userId))
+                        }
+                      }
                       if (error) throw error
 
                       // Refresh display fields
