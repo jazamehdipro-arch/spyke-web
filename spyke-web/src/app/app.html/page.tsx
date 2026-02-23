@@ -5419,6 +5419,25 @@ export default function AppHtmlPage() {
   const [stripePeriodEnd, setStripePeriodEnd] = useState<string>('')
   const [stripeCancelAtPeriodEnd, setStripeCancelAtPeriodEnd] = useState<boolean>(false)
   const [stripeCancelAt, setStripeCancelAt] = useState<string>('')
+
+  // Feedback survey after 10 generations
+  const [feedbackSurveyOpen, setFeedbackSurveyOpen] = useState(false)
+  const [feedbackSurveyRatings, setFeedbackSurveyRatings] = useState<Record<string, number>>({
+    devis: 0,
+    facture: 0,
+    contrat: 0,
+    assistant: 0,
+    juriste: 0,
+  })
+  const [feedbackSurveyComments, setFeedbackSurveyComments] = useState<Record<string, string>>({
+    devis: '',
+    facture: '',
+    contrat: '',
+    assistant: '',
+    juriste: '',
+  })
+  const [feedbackSurveySending, setFeedbackSurveySending] = useState(false)
+  const [feedbackSurveyCompletedAt, setFeedbackSurveyCompletedAt] = useState<string>('')
   const [userJob, setUserJob] = useState<string>('')
   const [userDefaultTone, setUserDefaultTone] = useState<string>('')
 
@@ -6032,7 +6051,7 @@ export default function AppHtmlPage() {
         {
           const { data, error } = await supabase
             .from('profiles')
-            .select('first_name,last_name,job,experience_years,skills,email_tone,plan,company_name,address,postal_code,city,country,siret,vat_number,iban,bic,signature_path,onboarding_completed,stripe_subscription_status,stripe_current_period_end,stripe_cancel_at_period_end,stripe_cancel_at,welcome_sent_at')
+            .select('first_name,last_name,job,experience_years,skills,email_tone,plan,company_name,address,postal_code,city,country,siret,vat_number,iban,bic,signature_path,onboarding_completed,stripe_subscription_status,stripe_current_period_end,stripe_cancel_at_period_end,stripe_cancel_at,welcome_sent_at,feedback_survey_completed_at')
             .eq('id', userId)
             .maybeSingle()
           if (error) {
@@ -6040,7 +6059,7 @@ export default function AppHtmlPage() {
             if (msg.includes('experience_years') || msg.includes('skills')) {
               const { data: data2, error: error2 } = await supabase
                 .from('profiles')
-                .select('first_name,last_name,job,email_tone,plan,company_name,address,postal_code,city,country,siret,vat_number,iban,bic,signature_path,onboarding_completed,stripe_subscription_status,stripe_current_period_end,stripe_cancel_at_period_end,stripe_cancel_at,welcome_sent_at')
+                .select('first_name,last_name,job,email_tone,plan,company_name,address,postal_code,city,country,siret,vat_number,iban,bic,signature_path,onboarding_completed,stripe_subscription_status,stripe_current_period_end,stripe_cancel_at_period_end,stripe_cancel_at,welcome_sent_at,feedback_survey_completed_at')
                 .eq('id', userId)
                 .maybeSingle()
               if (error2) throw error2
@@ -6116,6 +6135,45 @@ export default function AppHtmlPage() {
             if (token) {
               fetch('/api/welcome', { method: 'POST', headers: { authorization: `Bearer ${token}` } }).catch(() => null)
             }
+          }
+        } catch {
+          // ignore
+        }
+
+        // Feedback survey flag
+        setFeedbackSurveyCompletedAt(String((profile as any)?.feedback_survey_completed_at || ''))
+
+        // Auto-popup feedback survey after 10 generations (best-effort)
+        try {
+          const completed = Boolean((profile as any)?.feedback_survey_completed_at)
+          if (!completed && supabase && userId) {
+            const startSurvey = async () => {
+              const start = new Date()
+              start.setDate(1)
+              start.setHours(0, 0, 0, 0)
+              const startStr = start.toISOString()
+
+              const queries = [
+                supabase.from('assistant_generations').select('id', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', startStr),
+                supabase.from('pdf_generations').select('id', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', startStr),
+                supabase.from('quotes').select('id', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', startStr),
+                supabase.from('invoices').select('id', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', startStr),
+                supabase.from('contracts').select('id', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', startStr),
+                supabase.from('legal_questions').select('id', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', startStr),
+              ]
+
+              const res = await Promise.all(queries)
+              const total = res.reduce((acc, r: any) => acc + Number(r?.count || 0), 0)
+
+              if (total >= 10) {
+                setFeedbackSurveyOpen(true)
+              }
+            }
+
+            // don't block UI
+            setTimeout(() => {
+              startSurvey().catch(() => null)
+            }, 400)
           }
         } catch {
           // ignore
@@ -10653,6 +10711,114 @@ CONTEXTE UTILISATEUR :
           </div>
         </div>
       </main>
+
+      {/* Feedback survey modal */}
+      {feedbackSurveyOpen ? (
+        <div
+          style={{ position: 'fixed', inset: 0, zIndex: 9998, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 18 }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setFeedbackSurveyOpen(false)
+          }}
+        >
+          <div style={{ width: 'min(820px, 100%)', background: 'white', borderRadius: 18, border: '1px solid rgba(0,0,0,0.08)', boxShadow: '0 20px 60px rgba(0,0,0,0.28)', overflow: 'hidden' }}>
+            <div style={{ padding: '16px 18px', borderBottom: '1px solid rgba(0,0,0,0.08)', background: 'var(--gray-50)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+              <div>
+                <div style={{ fontWeight: 900, fontSize: 16 }}>Ton avis (1 minute)</div>
+                <div style={{ marginTop: 3, fontSize: 13, color: 'var(--gray-600)' }}>Note chaque outil et laisse un commentaire rapide (optionnel).</div>
+              </div>
+              <button className="btn btn-secondary" type="button" onClick={() => setFeedbackSurveyOpen(false)}>
+                Fermer
+              </button>
+            </div>
+
+            <div style={{ padding: 18, display: 'grid', gridTemplateColumns: '1fr', gap: 12, maxHeight: '72vh', overflow: 'auto' }}>
+              {(
+                [
+                  { key: 'devis', label: 'Devis' },
+                  { key: 'facture', label: 'Factures' },
+                  { key: 'contrat', label: 'Contrats' },
+                  { key: 'assistant', label: 'Assistant IA' },
+                  { key: 'juriste', label: 'Question juriste' },
+                ] as const
+              ).map((t) => (
+                <div key={t.key} style={{ border: '1px solid rgba(0,0,0,0.08)', borderRadius: 16, padding: 14 }}>
+                  <div style={{ fontWeight: 900, marginBottom: 8 }}>{t.label}</div>
+
+                  <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                    {[1, 2, 3, 4, 5].map((n) => {
+                      const active = (feedbackSurveyRatings[t.key] || 0) >= n
+                      return (
+                        <button
+                          key={n}
+                          type="button"
+                          onClick={() => setFeedbackSurveyRatings((prev) => ({ ...prev, [t.key]: n }))}
+                          style={{
+                            width: 38,
+                            height: 38,
+                            borderRadius: 12,
+                            border: '1px solid rgba(0,0,0,0.12)',
+                            background: active ? 'var(--yellow)' : 'white',
+                            cursor: 'pointer',
+                            fontSize: 18,
+                            lineHeight: '38px',
+                          }}
+                          aria-label={`${t.label} ${n} étoiles`}
+                          title={`${n}/5`}
+                        >
+                          ★
+                        </button>
+                      )
+                    })}
+                    <div style={{ marginLeft: 6, fontSize: 13, color: 'var(--gray-500)' }}>{feedbackSurveyRatings[t.key] || 0}/5</div>
+                  </div>
+
+                  <textarea
+                    value={feedbackSurveyComments[t.key] || ''}
+                    onChange={(e) => setFeedbackSurveyComments((prev) => ({ ...prev, [t.key]: e.target.value }))}
+                    placeholder="Commentaire (optionnel)"
+                    style={{ width: '100%', marginTop: 10, minHeight: 70, resize: 'vertical', padding: '10px 12px', borderRadius: 14, border: '1px solid rgba(0,0,0,0.12)', fontFamily: 'inherit' }}
+                  />
+                </div>
+              ))}
+            </div>
+
+            <div style={{ padding: 18, borderTop: '1px solid rgba(0,0,0,0.08)', display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+              <div style={{ fontSize: 12, color: 'var(--gray-500)' }}>0/5 = pas utilisé / pas d’avis.</div>
+              <button
+                className="btn btn-primary"
+                type="button"
+                disabled={feedbackSurveySending}
+                onClick={async () => {
+                  try {
+                    if (!supabase) throw new Error('Supabase non initialisé')
+                    const { data } = await supabase.auth.getSession()
+                    const token = data.session?.access_token
+                    if (!token) throw new Error('Non connecté')
+
+                    setFeedbackSurveySending(true)
+                    const res = await fetch('/api/feedback-survey', {
+                      method: 'POST',
+                      headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+                      body: JSON.stringify({ ratings: feedbackSurveyRatings, comments: feedbackSurveyComments }),
+                    })
+                    const json = await res.json().catch(() => null)
+                    if (!res.ok) throw new Error(json?.error || `Erreur survey (${res.status})`)
+
+                    setFeedbackSurveyOpen(false)
+                    notify('Merci ! Ton feedback a bien été envoyé.', 'success')
+                  } catch (e: any) {
+                    notify(e?.message || 'Erreur envoi feedback', 'error')
+                  } finally {
+                    setFeedbackSurveySending(false)
+                  }
+                }}
+              >
+                {feedbackSurveySending ? 'Envoi…' : 'Envoyer'}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {/* Toast */}
       {toast ? (
