@@ -64,6 +64,7 @@ export async function POST(req: Request) {
   try {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL
     const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
     if (!url || !anonKey) {
       return NextResponse.json({ error: 'Supabase env missing' }, { status: 500 })
     }
@@ -89,6 +90,32 @@ export async function POST(req: Request) {
 
     const json = await req.json()
     const body = BodySchema.parse(json)
+
+    // Resolve signature URL server-side (signed URL) to avoid relying on a public bucket.
+    let resolvedSignatureUrl = String(body.signatureUrl || '')
+    if (serviceRoleKey) {
+      try {
+        const supabaseAdmin = createClient(url, serviceRoleKey, {
+          auth: { persistSession: false, autoRefreshToken: false },
+        })
+        const { data: profile } = await supabaseAdmin
+          .from('profiles')
+          .select('signature_path')
+          .eq('id', data.user.id)
+          .maybeSingle()
+
+        const signaturePath = String((profile as any)?.signature_path || '')
+        if (signaturePath) {
+          const { data: signed } = await supabaseAdmin.storage
+            .from('signatures')
+            .createSignedUrl(signaturePath, 60 * 10) // 10 min
+          const signedUrl = String((signed as any)?.signedUrl || '')
+          if (signedUrl) resolvedSignatureUrl = signedUrl
+        }
+      } catch {
+        // ignore best-effort
+      }
+    }
 
     // Lazy import so Next doesn't try to evaluate it in other runtimes.
     const React = (await import('react')).default
@@ -392,7 +419,7 @@ export async function POST(req: Request) {
               React.createElement(Text, { style: styles.underline }, '____________________________'),
               React.createElement(Text, { style: styles.signLine }, 'À :'),
               React.createElement(Text, { style: styles.underline }, '____________________________'),
-              body.signatureUrl ? React.createElement(Image, { style: styles.signImg, src: body.signatureUrl }) : null
+              resolvedSignatureUrl ? React.createElement(Image, { style: styles.signImg, src: resolvedSignatureUrl }) : null
             )
           ),
 

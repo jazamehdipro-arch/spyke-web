@@ -60,6 +60,7 @@ export async function POST(req: Request) {
   try {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL
     const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
     if (!url || !anonKey) {
       return NextResponse.json({ error: 'Supabase env missing' }, { status: 500 })
     }
@@ -90,6 +91,32 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: msg }, { status: 400 })
     }
     const body = parsed.data
+
+    // Resolve signature URL server-side (signed URL) to avoid relying on a public bucket.
+    let resolvedSignatureUrl = String((body as any).signatureUrl || '')
+    if (serviceRoleKey) {
+      try {
+        const supabaseAdmin = createClient(url, serviceRoleKey, {
+          auth: { persistSession: false, autoRefreshToken: false },
+        })
+        const { data: profile } = await supabaseAdmin
+          .from('profiles')
+          .select('signature_path')
+          .eq('id', data.user.id)
+          .maybeSingle()
+
+        const signaturePath = String((profile as any)?.signature_path || '')
+        if (signaturePath) {
+          const { data: signed } = await supabaseAdmin.storage
+            .from('signatures')
+            .createSignedUrl(signaturePath, 60 * 10) // 10 min
+          const signedUrl = String((signed as any)?.signedUrl || '')
+          if (signedUrl) resolvedSignatureUrl = signedUrl
+        }
+      } catch {
+        // ignore best-effort
+      }
+    }
 
     const React = (await import('react')).default
     const { Document, Page, Text, View, Image, StyleSheet, pdf } = await import('@react-pdf/renderer')
@@ -375,7 +402,7 @@ export async function POST(req: Request) {
             )
           ),
 
-          body.signatureUrl
+          resolvedSignatureUrl
             ? React.createElement(
                 View,
                 { style: { marginTop: 14, alignItems: 'flex-end' } },
@@ -383,7 +410,7 @@ export async function POST(req: Request) {
                 React.createElement(
                   View,
                   { style: styles.signatureBox },
-                  React.createElement(Image, { style: styles.signatureImg, src: body.signatureUrl })
+                  React.createElement(Image, { style: styles.signatureImg, src: resolvedSignatureUrl })
                 ),
                 React.createElement(Text, { style: styles.signatureMeta }, `Signé le ${formatDateFr(body.dateIssue)}`)
               )
