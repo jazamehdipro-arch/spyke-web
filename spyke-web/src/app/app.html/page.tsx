@@ -244,7 +244,23 @@ function usePdfMailModals() {
                     type="button"
                     onClick={async () => {
                       try {
-                        await pdfPreview.actions?.onSign?.()
+                        const a = pdfPreview.actions
+                        if (!a) return
+
+                        // "Signer" = régénérer le PDF (avec signature manuscrite intégrée) et rafraîchir l'aperçu.
+                        const { blob } = await a.getBlob()
+                        const nextUrl = URL.createObjectURL(blob)
+
+                        setPdfPreview((prev) => {
+                          if (prev?.url?.startsWith('blob:')) {
+                            try {
+                              URL.revokeObjectURL(prev.url)
+                            } catch {}
+                          }
+                          return prev ? { ...prev, url: nextUrl } : null
+                        })
+
+                        alert('Document signé (signature ajoutée).')
                       } catch (e: any) {
                         alert(e?.message || 'Erreur signature')
                       }
@@ -3577,21 +3593,7 @@ function ContratsV1({
         getBlob: generateContractPdfBlob,
         filename: 'Contrat-' + String(contractNumber || 'Spyke') + '.pdf',
         onSign: async () => {
-          // "Signer" = intégrer la signature manuscrite (Paramètres) et télécharger le PDF.
-          const { blob } = await generateContractPdfBlob()
-          const url = URL.createObjectURL(blob)
-          try {
-            const a = document.createElement('a')
-            a.href = url
-            a.download = 'Contrat-' + String(contractNumber || 'Spyke') + '.pdf'
-            document.body.appendChild(a)
-            a.click()
-            a.remove()
-          } finally {
-            try {
-              URL.revokeObjectURL(url)
-            } catch {}
-          }
+          // handled centrally in the PDF preview modal (refresh preview after re-generating the PDF)
         },
       })
     } catch (e: any) {
