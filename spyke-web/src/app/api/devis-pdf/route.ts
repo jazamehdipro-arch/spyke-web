@@ -22,6 +22,7 @@ const BodySchema = z.object({
   dateIssue: z.string().min(1), // YYYY-MM-DD
   validityUntil: z.string().optional().default(''),
   logoUrl: z.string().optional().default(''),
+  includeSignature: z.boolean().optional().default(false),
   signatureUrl: z.string().optional().default(''),
 
   seller: z.object({
@@ -92,8 +93,9 @@ export async function POST(req: Request) {
     const body = BodySchema.parse(json)
 
     // Resolve signature URL server-side (signed URL) to avoid relying on a public bucket.
-    let resolvedSignatureUrl = String(body.signatureUrl || '')
-    if (serviceRoleKey) {
+    // Only do it when the caller explicitly wants to include the signature.
+    let resolvedSignatureUrl = ''
+    if (body.includeSignature && serviceRoleKey) {
       try {
         const supabaseAdmin = createClient(url, serviceRoleKey, {
           auth: { persistSession: false, autoRefreshToken: false },
@@ -408,20 +410,22 @@ export async function POST(req: Request) {
             )
           ),
 
-          React.createElement(
-            View,
-            { style: styles.signRow },
-            React.createElement(
-              View,
-              { style: styles.signBox },
-              React.createElement(Text, { style: styles.signTitle }, 'Bon pour accord'),
-              React.createElement(Text, { style: styles.signLine }, 'Signé le :'),
-              React.createElement(Text, { style: styles.underline }, '____________________________'),
-              React.createElement(Text, { style: styles.signLine }, 'À :'),
-              React.createElement(Text, { style: styles.underline }, '____________________________'),
-              resolvedSignatureUrl ? React.createElement(Image, { style: styles.signImg, src: resolvedSignatureUrl }) : null
-            )
-          ),
+          body.includeSignature
+            ? React.createElement(
+                View,
+                { style: styles.signRow },
+                React.createElement(
+                  View,
+                  { style: styles.signBox },
+                  React.createElement(Text, { style: styles.signTitle }, 'Bon pour accord'),
+                  React.createElement(Text, { style: styles.signLine }, 'Signé le :'),
+                  React.createElement(Text, { style: styles.underline }, '____________________________'),
+                  React.createElement(Text, { style: styles.signLine }, 'À :'),
+                  React.createElement(Text, { style: styles.underline }, '____________________________'),
+                  resolvedSignatureUrl ? React.createElement(Image, { style: styles.signImg, src: resolvedSignatureUrl }) : null
+                )
+              )
+            : null,
 
           React.createElement(
             Text,

@@ -19,6 +19,7 @@ const BodySchema = z.object({
   dateIssue: z.string().min(1, 'Date de facture manquante'),
   dueDate: z.string().optional().default(''),
   logoUrl: z.string().optional().default(''),
+  includeSignature: z.boolean().optional().default(false),
   signatureUrl: z.string().optional().default(''),
 
   seller: z.object({
@@ -93,8 +94,9 @@ export async function POST(req: Request) {
     const body = parsed.data
 
     // Resolve signature URL server-side (signed URL) to avoid relying on a public bucket.
-    let resolvedSignatureUrl = String((body as any).signatureUrl || '')
-    if (serviceRoleKey) {
+    // Only do it when the caller explicitly wants to include the signature.
+    let resolvedSignatureUrl = ''
+    if ((body as any).includeSignature && serviceRoleKey) {
       try {
         const supabaseAdmin = createClient(url, serviceRoleKey, {
           auth: { persistSession: false, autoRefreshToken: false },

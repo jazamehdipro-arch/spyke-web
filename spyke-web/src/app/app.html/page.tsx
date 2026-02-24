@@ -93,8 +93,8 @@ function usePdfMailModals() {
       subject: string
       text: string
       getBlob: () => Promise<{ blob: Blob; token: string }>
+      getSignedBlob?: () => Promise<{ blob: Blob; token: string }>
       filename: string
-      onSign?: () => Promise<void>
     }
   }>(null)
   const [mailCompose, setMailCompose] = useState<null | {
@@ -128,8 +128,8 @@ function usePdfMailModals() {
       subject: string
       text: string
       getBlob: () => Promise<{ blob: Blob; token: string }>
+      getSignedBlob?: () => Promise<{ blob: Blob; token: string }>
       filename: string
-      onSign?: () => Promise<void>
     }
   ) {
     const url = URL.createObjectURL(blob)
@@ -238,17 +238,17 @@ function usePdfMailModals() {
           pdfPreview ? (
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                {pdfPreview.actions?.onSign ? (
+                {pdfPreview.actions?.getSignedBlob ? (
                   <button
                     className="btn btn-secondary"
                     type="button"
                     onClick={async () => {
                       try {
                         const a = pdfPreview.actions
-                        if (!a) return
+                        if (!a?.getSignedBlob) return
 
                         // "Signer" = régénérer le PDF (avec signature manuscrite intégrée) et rafraîchir l'aperçu.
-                        const { blob } = await a.getBlob()
+                        const { blob } = await a.getSignedBlob()
                         const nextUrl = URL.createObjectURL(blob)
 
                         setPdfPreview((prev) => {
@@ -1033,7 +1033,7 @@ Réponds uniquement par le texte de la description.`
     }
   }
 
-  async function generateDevisPdfBlob() {
+  async function generateDevisPdfBlob(opts?: { includeSignature?: boolean }) {
     if (!supabase) throw new Error('Supabase non initialisé')
 
     const { data: sessionData } = await supabase.auth.getSession()
@@ -1145,18 +1145,8 @@ Réponds uniquement par le texte de la description.`
       } catch {}
     }
 
-    // best-effort signature
-    let signatureUrl = ''
-    if (userId) {
-      try {
-        const { data: profile } = await supabase.from('profiles').select('signature_path').eq('id', userId).maybeSingle()
-        const signaturePath = String((profile as any)?.signature_path || '')
-        if (signaturePath) {
-          const pub = supabase.storage.from('signatures').getPublicUrl(signaturePath)
-          signatureUrl = String(pub?.data?.publicUrl || '')
-        }
-      } catch {}
-    }
+    // signature handled server-side (signed URL). We only indicate whether it should be included.
+    const includeSignature = !!opts?.includeSignature
 
     const payload: any = {
       quoteNumber: String(quoteNumber || ''),
@@ -1164,7 +1154,7 @@ Réponds uniquement par le texte de la description.`
       dateIssue: String(dateIssue || ''),
       validityUntil: String(validityUntil || ''),
       logoUrl,
-      signatureUrl,
+      includeSignature,
       seller,
       buyer,
       lines,
@@ -1206,7 +1196,7 @@ Réponds uniquement par le texte de la description.`
         to,
         subject: `Devis ${String(quoteNumber || '').trim() || 'Spyke'}`,
         text: `Bonjour,\n\nVeuillez trouver ci-joint votre devis.\n\nCordialement,\n${userFullName || ''}`.trim(),
-        getBlob: generateDevisPdfBlob,
+        getBlob: () => generateDevisPdfBlob({ includeSignature: true }),
         filename: 'Devis-' + String(quoteNumber || 'Spyke') + '.pdf',
       })
     } catch (e: any) {
@@ -1492,7 +1482,8 @@ Réponds uniquement par le texte de la description.`
         })(),
         subject: `Devis ${String(quoteNumber || '').trim() || 'Spyke'}`,
         text: `Bonjour,\n\nVeuillez trouver ci-joint votre devis.\n\nCordialement,\n${userFullName || ''}`.trim(),
-        getBlob: generateDevisPdfBlob,
+        getBlob: () => generateDevisPdfBlob({ includeSignature: false }),
+        getSignedBlob: () => generateDevisPdfBlob({ includeSignature: true }),
         filename: 'Devis-' + String(quoteNumber || 'Spyke') + '.pdf',
       })
     } catch (e: any) {
@@ -3251,7 +3242,7 @@ function ContratsV1({
     return lines.join('\n')
   }
 
-  async function generateContractPdfBlob() {
+  async function generateContractPdfBlob(opts?: { includeSignature?: boolean }) {
     if (!supabase) throw new Error('Supabase non initialisé')
 
     const { data: sessionData } = await supabase.auth.getSession()
@@ -3271,24 +3262,14 @@ function ContratsV1({
       } catch {}
     }
 
-    // best-effort signature
-    let signatureUrl = ''
-    try {
-      if (userId) {
-        const { data: profile } = await supabase.from('profiles').select('signature_path').eq('id', userId).maybeSingle()
-        const signaturePath = String((profile as any)?.signature_path || '')
-        if (signaturePath) {
-          const pub = supabase.storage.from('signatures').getPublicUrl(signaturePath)
-          signatureUrl = String(pub?.data?.publicUrl || '')
-        }
-      }
-    } catch {}
+    // signature handled server-side (signed URL). We only indicate whether it should be included.
+    const includeSignature = !!opts?.includeSignature
 
     const payload: any = {
       title: 'Contrat de prestation de service',
       date: today,
       logoUrl,
-      signatureUrl,
+      includeSignature,
       contractText: contractText || buildContractText(),
       parties: { sellerName: prestaName, buyerName: clientName },
 
@@ -3363,7 +3344,7 @@ function ContratsV1({
         to,
         subject: `Contrat ${String(contractNumber || '').trim() || 'Spyke'}`,
         text: `Bonjour,\n\nVeuillez trouver ci-joint le contrat.\n\nCordialement,\n${userFullName || ''}`.trim(),
-        getBlob: generateContractPdfBlob,
+        getBlob: () => generateContractPdfBlob({ includeSignature: true }),
         filename: 'Contrat-' + String(contractNumber || 'Spyke') + '.pdf',
       })
     } catch (e: any) {
@@ -3590,11 +3571,9 @@ function ContratsV1({
         to: String(clientEmail || ''),
         subject: `Contrat ${String(contractNumber || '').trim() || 'Spyke'}`,
         text: `Bonjour,\n\nVeuillez trouver ci-joint le contrat.\n\nCordialement,\n${userFullName || ''}`.trim(),
-        getBlob: generateContractPdfBlob,
+        getBlob: () => generateContractPdfBlob({ includeSignature: false }),
+        getSignedBlob: () => generateContractPdfBlob({ includeSignature: true }),
         filename: 'Contrat-' + String(contractNumber || 'Spyke') + '.pdf',
-        onSign: async () => {
-          // handled centrally in the PDF preview modal (refresh preview after re-generating the PDF)
-        },
       })
     } catch (e: any) {
       alert(e?.message || 'Erreur PDF')
@@ -4470,7 +4449,7 @@ function FacturesV1({
 
   // invoice-from-contract shortcut removed
 
-  async function generateInvoicePdfBlob() {
+  async function generateInvoicePdfBlob(opts?: { includeSignature?: boolean }) {
     if (!supabase) throw new Error('Supabase non initialisé')
 
     const { data: sessionData } = await supabase.auth.getSession()
@@ -4529,18 +4508,8 @@ function FacturesV1({
 
     const totals = computeInvoiceTotals(lines)
 
-    // best-effort signature
-    let signatureUrl = ''
-    try {
-      if (userId) {
-        const { data: profile } = await supabase.from('profiles').select('signature_path').eq('id', userId).maybeSingle()
-        const signaturePath = String((profile as any)?.signature_path || '')
-        if (signaturePath) {
-          const pub = supabase.storage.from('signatures').getPublicUrl(signaturePath)
-          signatureUrl = String(pub?.data?.publicUrl || '')
-        }
-      }
-    } catch {}
+    // signature handled server-side (signed URL). We only indicate whether it should be included.
+    const includeSignature = !!opts?.includeSignature
 
     const payload: any = {
       invoiceNumber,
@@ -4551,7 +4520,7 @@ function FacturesV1({
       lines,
       totals,
       notes: '',
-      signatureUrl,
+      includeSignature,
     }
 
     const res = await fetch('/api/facture-pdf', {
@@ -4576,7 +4545,7 @@ function FacturesV1({
         to,
         subject: `Facture ${String(invoiceNumber || '').trim() || 'Spyke'}`,
         text: `Bonjour,\n\nVeuillez trouver ci-joint votre facture.\n\nCordialement,\n${userFullName || ''}`.trim(),
-        getBlob: generateInvoicePdfBlob,
+        getBlob: () => generateInvoicePdfBlob({ includeSignature: true }),
         filename: 'Facture-' + String(invoiceNumber || 'Spyke') + '.pdf',
       })
     } catch (e: any) {
@@ -4802,7 +4771,8 @@ function FacturesV1({
         to: String((buyer as any)?.email || ''),
         subject: `Facture ${String(invoiceNumber || '').trim() || 'Spyke'}`,
         text: `Bonjour,\n\nVeuillez trouver ci-joint la facture.\n\nCordialement,\n${userFullName || ''}`.trim(),
-        getBlob: generateInvoicePdfBlob,
+        getBlob: () => generateInvoicePdfBlob({ includeSignature: false }),
+        getSignedBlob: () => generateInvoicePdfBlob({ includeSignature: true }),
         filename: 'Facture-' + String(invoiceNumber || 'Spyke') + '.pdf',
       })
     } catch (e: any) {

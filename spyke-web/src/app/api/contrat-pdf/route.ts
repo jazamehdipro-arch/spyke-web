@@ -15,6 +15,7 @@ const BodySchema = z.object({
   title: z.string().default('Contrat'),
   date: z.string().default(''),
   logoUrl: z.string().optional().default(''),
+  includeSignature: z.boolean().optional().default(false),
   signatureUrl: z.string().optional().default(''),
   contractText: z.string().optional().default(''),
   parties: z
@@ -82,6 +83,7 @@ export async function POST(req: Request) {
   try {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL
     const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
     if (!url || !anonKey) {
       return NextResponse.json({ error: 'Supabase env missing' }, { status: 500 })
     }
@@ -106,6 +108,33 @@ export async function POST(req: Request) {
 
     const json = await req.json()
     const body = BodySchema.parse(json)
+
+    // Resolve signature URL server-side (signed URL) to avoid relying on a public bucket.
+    // Only do it when the caller explicitly wants to include the signature.
+    let resolvedSignatureUrl = ''
+    if (body.includeSignature && serviceRoleKey) {
+      try {
+        const supabaseAdmin = createClient(url, serviceRoleKey, {
+          auth: { persistSession: false, autoRefreshToken: false },
+        })
+        const { data: profile } = await supabaseAdmin
+          .from('profiles')
+          .select('signature_path')
+          .eq('id', data.user.id)
+          .maybeSingle()
+
+        const signaturePath = String((profile as any)?.signature_path || '')
+        if (signaturePath) {
+          const { data: signed } = await supabaseAdmin.storage
+            .from('signatures')
+            .createSignedUrl(signaturePath, 60 * 10) // 10 min
+          const signedUrl = String((signed as any)?.signedUrl || '')
+          if (signedUrl) resolvedSignatureUrl = signedUrl
+        }
+      } catch {
+        // ignore best-effort
+      }
+    }
 
     const sellerName = body.seller?.name || body.parties?.sellerName || ''
     const buyerName = body.buyer?.name || body.parties?.buyerName || ''
@@ -156,13 +185,13 @@ export async function POST(req: Request) {
       })
 
       // Optional: append a signature page (freelance signature) at the end.
-      if (body.signatureUrl) {
+      if (resolvedSignatureUrl) {
         try {
           const { PDFDocument, StandardFonts, rgb } = await import('pdf-lib')
           const baseDoc = await PDFDocument.load(filled)
           const helvetica = await baseDoc.embedFont(StandardFonts.Helvetica)
 
-          const imgRes = await fetch(body.signatureUrl)
+          const imgRes = await fetch(resolvedSignatureUrl)
           if (imgRes.ok) {
             const imgBytes = new Uint8Array(await imgRes.arrayBuffer())
             const png = await baseDoc.embedPng(imgBytes)
@@ -175,9 +204,9 @@ export async function POST(req: Request) {
             if (sellerLine) page.drawText(sellerLine, { x: 50, y: 748, size: 12, font: helvetica, color: rgb(0.1, 0.1, 0.1) })
             if (dateLine) page.drawText(dateLine, { x: 50, y: 730, size: 12, font: helvetica, color: rgb(0.1, 0.1, 0.1) })
 
-            // Signature box
-            page.drawRectangle({ x: 50, y: 560, width: 495, height: 200, borderWidth: 1, borderColor: rgb(0.9, 0.9, 0.92) })
-            page.drawImage(png, { x: 60, y: 570, width: 475, height: 180 })
+            // Signature box (smaller)
+            page.drawRectangle({ x: 50, y: 610, width: 495, height: 120, borderWidth: 1, borderColor: rgb(0.9, 0.9, 0.92) })
+            page.drawImage(png, { x: 90, y: 625, width: 320, height: 90 })
 
             filled = new Uint8Array((await baseDoc.save()) as any)
           }
