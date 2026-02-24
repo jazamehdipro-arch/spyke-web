@@ -3577,23 +3577,21 @@ function ContratsV1({
         getBlob: generateContractPdfBlob,
         filename: 'Contrat-' + String(contractNumber || 'Spyke') + '.pdf',
         onSign: async () => {
-          // Best-effort: requires the contract to be saved in DB.
-          if (!supabase) throw new Error('Supabase non initialisé')
-          if (!contractNumber) throw new Error('Numéro de contrat manquant')
-
-          // Find the most recent contract by number
-          const { data: cRow, error: cErr } = await supabase
-            .from('contracts')
-            .select('id')
-            .eq('user_id', userId)
-            .eq('number', contractNumber)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle()
-          if (cErr) throw cErr
-          const cid = String((cRow as any)?.id || '')
-          if (!cid) throw new Error('Contrat non sauvegardé (id introuvable)')
-          await sendContractForSignature(cid)
+          // "Signer" = intégrer la signature manuscrite (Paramètres) et télécharger le PDF.
+          const { blob } = await generateContractPdfBlob()
+          const url = URL.createObjectURL(blob)
+          try {
+            const a = document.createElement('a')
+            a.href = url
+            a.download = 'Contrat-' + String(contractNumber || 'Spyke') + '.pdf'
+            document.body.appendChild(a)
+            a.click()
+            a.remove()
+          } finally {
+            try {
+              URL.revokeObjectURL(url)
+            } catch {}
+          }
         },
       })
     } catch (e: any) {
