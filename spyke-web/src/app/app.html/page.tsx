@@ -3493,7 +3493,8 @@ function ContratsV1({
         to,
         subject: `Contrat ${String(contractNumber || '').trim() || 'Spyke'}`,
         text: `Bonjour,\n\nVeuillez trouver ci-joint le contrat.\n\nCordialement,\n${userFullName || ''}`.trim(),
-        getBlob: () => generateContractPdfBlob({ includeSignature: true }),
+        // default: send without signature (user can click "Signer" in the preview first)
+        getBlob: () => generateContractPdfBlob({ includeSignature: false }),
         filename: 'Contrat-' + String(contractNumber || 'Spyke') + '.pdf',
       })
     } catch (e: any) {
