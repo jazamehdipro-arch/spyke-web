@@ -16,6 +16,8 @@ const BodySchema = z.object({
   date: z.string().default(''),
   logoUrl: z.string().optional().default(''),
   includeSignature: z.boolean().optional().default(false),
+  signedAt: z.string().optional().default(''),
+  signedPlace: z.string().optional().default(''),
   signatureUrl: z.string().optional().default(''),
   contractText: z.string().optional().default(''),
   parties: z
@@ -200,9 +202,11 @@ export async function POST(req: Request) {
             page.drawText('Signature du prestataire', { x: 50, y: 780, size: 18, font: helvetica, color: rgb(0.12, 0.23, 0.54) })
 
             const sellerLine = sellerName ? `Prestataire : ${sellerName}` : ''
-            const dateLine = body.date ? `Date : ${body.date}` : ''
+            const dateLine = body.signedAt ? `Signé le : ${body.signedAt}` : (body.date ? `Date : ${body.date}` : '')
+            const placeLine = body.signedPlace ? `À : ${body.signedPlace}` : ''
             if (sellerLine) page.drawText(sellerLine, { x: 50, y: 748, size: 12, font: helvetica, color: rgb(0.1, 0.1, 0.1) })
             if (dateLine) page.drawText(dateLine, { x: 50, y: 730, size: 12, font: helvetica, color: rgb(0.1, 0.1, 0.1) })
+            if (placeLine) page.drawText(placeLine, { x: 50, y: 714, size: 12, font: helvetica, color: rgb(0.1, 0.1, 0.1) })
 
             // Signature box (smaller)
             page.drawRectangle({ x: 50, y: 610, width: 495, height: 120, borderWidth: 1, borderColor: rgb(0.9, 0.9, 0.92) })

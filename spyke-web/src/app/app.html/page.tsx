@@ -93,8 +93,9 @@ function usePdfMailModals() {
       subject: string
       text: string
       getBlob: () => Promise<{ blob: Blob; token: string }>
-      getSignedBlob?: () => Promise<{ blob: Blob; token: string }>
+      getSignedBlob?: (opts: { signedAt: string; signedPlace: string }) => Promise<{ blob: Blob; token: string }>
       filename: string
+      getSignaturePreview?: () => Promise<{ signaturePath: string; url?: string }>
     }
   }>(null)
   const [mailCompose, setMailCompose] = useState<null | {
@@ -108,6 +109,14 @@ function usePdfMailModals() {
   }>(null)
   const [mailSending, setMailSending] = useState(false)
   const [signatureFrame, setSignatureFrame] = useState<null | { url: string; title?: string }>(null)
+
+  const [manualSignModal, setManualSignModal] = useState<null | {
+    kind: 'devis' | 'facture' | 'contrat'
+    signedAt: string
+    signedPlace: string
+    signaturePath: string
+    signaturePreviewUrl?: string
+  }>(null)
 
   useEffect(() => {
     return () => {
@@ -128,8 +137,9 @@ function usePdfMailModals() {
       subject: string
       text: string
       getBlob: () => Promise<{ blob: Blob; token: string }>
-      getSignedBlob?: () => Promise<{ blob: Blob; token: string }>
+      getSignedBlob?: (opts: { signedAt: string; signedPlace: string }) => Promise<{ blob: Blob; token: string }>
       filename: string
+      getSignaturePreview?: () => Promise<{ signaturePath: string; url?: string }>
     }
   ) {
     const url = URL.createObjectURL(blob)
@@ -222,6 +232,120 @@ function usePdfMailModals() {
       </ModalShell>
 
       <ModalShell
+        open={!!manualSignModal}
+        title="Signature"
+        onClose={() => setManualSignModal(null)}
+        footer={
+          manualSignModal ? (
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+              <button className="btn btn-secondary" type="button" onClick={() => setManualSignModal(null)}>
+                Annuler
+              </button>
+              {manualSignModal.signaturePath ? (
+                <button
+                  className="btn btn-primary"
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      if (!pdfPreview?.actions?.getSignedBlob) throw new Error('Aperçu indisponible')
+                      const a = pdfPreview.actions
+                      if (!a?.getSignedBlob) throw new Error('Action signature indisponible')
+
+                      const { blob } = await a.getSignedBlob({
+                        signedAt: String(manualSignModal.signedAt || ''),
+                        signedPlace: String(manualSignModal.signedPlace || ''),
+                      })
+                      const nextUrl = URL.createObjectURL(blob)
+
+                      setPdfPreview((prev) => {
+                        if (prev?.url?.startsWith('blob:')) {
+                          try {
+                            URL.revokeObjectURL(prev.url)
+                          } catch {}
+                        }
+                        return prev ? { ...prev, url: nextUrl } : null
+                      })
+
+                      setManualSignModal(null)
+                      alert('Document signé (signature ajoutée).')
+                    } catch (e: any) {
+                      alert(e?.message || 'Erreur signature')
+                    }
+                  }}
+                >
+                  Valider la signature
+                </button>
+              ) : (
+                <button
+                  className="btn btn-primary"
+                  type="button"
+                  onClick={() => {
+                    setManualSignModal(null)
+                    alert('Ajoute ta signature dans Profil > Signature, puis reviens signer le document.')
+                  }}
+                >
+                  Ajouter ma signature
+                </button>
+              )}
+            </div>
+          ) : null
+        }
+      >
+        {manualSignModal ? (
+          <div style={{ display: 'grid', gap: 12 }}>
+            {manualSignModal.signaturePath ? (
+              <div>
+                <div style={{ fontSize: 12, color: 'var(--gray-600)', marginBottom: 6 }}>Signature</div>
+                <div
+                  style={{
+                    border: '1px solid var(--gray-200)',
+                    borderRadius: 12,
+                    padding: 10,
+                    background: '#fff',
+                    display: 'flex',
+                    justifyContent: 'center',
+                  }}
+                >
+                  {manualSignModal.signaturePreviewUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={manualSignModal.signaturePreviewUrl} alt="signature" style={{ maxWidth: '100%', maxHeight: 90, objectFit: 'contain' }} />
+                  ) : (
+                    <div style={{ color: 'var(--gray-500)' }}>Signature enregistrée</div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="card" style={{ padding: 14, background: 'var(--gray-50)', border: '1px solid var(--gray-200)' }}>
+                <div style={{ fontWeight: 700, marginBottom: 6 }}>Aucune signature enregistrée</div>
+                <div style={{ color: 'var(--gray-600)', fontSize: 13 }}>Ajoute une signature dans ton profil pour pouvoir signer tes documents.</div>
+              </div>
+            )}
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <div>
+                <label style={{ fontSize: 12, color: 'var(--gray-600)' }}>Signé le</label>
+                <input
+                  className="input"
+                  type="date"
+                  value={manualSignModal.signedAt}
+                  onChange={(e) => setManualSignModal((p) => (p ? { ...p, signedAt: e.target.value } : p))}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: 12, color: 'var(--gray-600)' }}>À</label>
+                <input
+                  className="input"
+                  placeholder="Ville"
+                  value={manualSignModal.signedPlace}
+                  onChange={(e) => setManualSignModal((p) => (p ? { ...p, signedPlace: e.target.value } : p))}
+                />
+              </div>
+            </div>
+          </div>
+        ) : null}
+      </ModalShell>
+
+      <ModalShell
         open={!!pdfPreview}
         title={pdfPreview?.filename || 'Aperçu PDF'}
         onClose={() =>
@@ -247,20 +371,22 @@ function usePdfMailModals() {
                         const a = pdfPreview.actions
                         if (!a?.getSignedBlob) return
 
-                        // "Signer" = régénérer le PDF (avec signature manuscrite intégrée) et rafraîchir l'aperçu.
-                        const { blob } = await a.getSignedBlob()
-                        const nextUrl = URL.createObjectURL(blob)
+                        const todayStr = new Date().toISOString().slice(0, 10)
+                        let signaturePath = ''
+                        let signaturePreviewUrl = ''
+                        try {
+                          const prev = await a.getSignaturePreview?.()
+                          signaturePath = String(prev?.signaturePath || '')
+                          signaturePreviewUrl = String(prev?.url || '')
+                        } catch {}
 
-                        setPdfPreview((prev) => {
-                          if (prev?.url?.startsWith('blob:')) {
-                            try {
-                              URL.revokeObjectURL(prev.url)
-                            } catch {}
-                          }
-                          return prev ? { ...prev, url: nextUrl } : null
+                        setManualSignModal({
+                          kind: a.kind,
+                          signedAt: todayStr,
+                          signedPlace: '',
+                          signaturePath,
+                          signaturePreviewUrl: signaturePreviewUrl || undefined,
                         })
-
-                        alert('Document signé (signature ajoutée).')
                       } catch (e: any) {
                         alert(e?.message || 'Erreur signature')
                       }
@@ -1033,7 +1159,7 @@ Réponds uniquement par le texte de la description.`
     }
   }
 
-  async function generateDevisPdfBlob(opts?: { includeSignature?: boolean }) {
+  async function generateDevisPdfBlob(opts?: { includeSignature?: boolean; signedAt?: string; signedPlace?: string }) {
     if (!supabase) throw new Error('Supabase non initialisé')
 
     const { data: sessionData } = await supabase.auth.getSession()
@@ -1155,6 +1281,8 @@ Réponds uniquement par le texte de la description.`
       validityUntil: String(validityUntil || ''),
       logoUrl,
       includeSignature,
+      signedAt: String(opts?.signedAt || ''),
+      signedPlace: String(opts?.signedPlace || ''),
       seller,
       buyer,
       lines,
@@ -1483,7 +1611,22 @@ Réponds uniquement par le texte de la description.`
         subject: `Devis ${String(quoteNumber || '').trim() || 'Spyke'}`,
         text: `Bonjour,\n\nVeuillez trouver ci-joint votre devis.\n\nCordialement,\n${userFullName || ''}`.trim(),
         getBlob: () => generateDevisPdfBlob({ includeSignature: false }),
-        getSignedBlob: () => generateDevisPdfBlob({ includeSignature: true }),
+        getSignedBlob: (opts) => generateDevisPdfBlob({ includeSignature: true, signedAt: opts.signedAt, signedPlace: opts.signedPlace }),
+        getSignaturePreview: async () => {
+          if (!supabase) return { signaturePath: '' }
+          const { data: sessionData } = await supabase.auth.getSession()
+          const token = sessionData?.session?.access_token
+          if (!token) return { signaturePath: '' }
+          const { data: profile } = await supabase.from('profiles').select('signature_path').eq('id', userId).maybeSingle()
+          const signaturePath = String((profile as any)?.signature_path || '')
+          if (!signaturePath) return { signaturePath: '' }
+          try {
+            const { data: signed } = await supabase.storage.from('signatures').createSignedUrl(signaturePath, 60 * 10)
+            return { signaturePath, url: String((signed as any)?.signedUrl || '') }
+          } catch {
+            return { signaturePath }
+          }
+        },
         filename: 'Devis-' + String(quoteNumber || 'Spyke') + '.pdf',
       })
     } catch (e: any) {
@@ -3242,7 +3385,7 @@ function ContratsV1({
     return lines.join('\n')
   }
 
-  async function generateContractPdfBlob(opts?: { includeSignature?: boolean }) {
+  async function generateContractPdfBlob(opts?: { includeSignature?: boolean; signedAt?: string; signedPlace?: string }) {
     if (!supabase) throw new Error('Supabase non initialisé')
 
     const { data: sessionData } = await supabase.auth.getSession()
@@ -3270,6 +3413,8 @@ function ContratsV1({
       date: today,
       logoUrl,
       includeSignature,
+      signedAt: String(opts?.signedAt || ''),
+      signedPlace: String(opts?.signedPlace || ''),
       contractText: contractText || buildContractText(),
       parties: { sellerName: prestaName, buyerName: clientName },
 
@@ -3572,7 +3717,22 @@ function ContratsV1({
         subject: `Contrat ${String(contractNumber || '').trim() || 'Spyke'}`,
         text: `Bonjour,\n\nVeuillez trouver ci-joint le contrat.\n\nCordialement,\n${userFullName || ''}`.trim(),
         getBlob: () => generateContractPdfBlob({ includeSignature: false }),
-        getSignedBlob: () => generateContractPdfBlob({ includeSignature: true }),
+        getSignedBlob: (opts) => generateContractPdfBlob({ includeSignature: true, signedAt: opts.signedAt, signedPlace: opts.signedPlace }),
+        getSignaturePreview: async () => {
+          if (!supabase) return { signaturePath: '' }
+          const { data: sessionData } = await supabase.auth.getSession()
+          const token = sessionData?.session?.access_token
+          if (!token) return { signaturePath: '' }
+          const { data: profile } = await supabase.from('profiles').select('signature_path').eq('id', userId).maybeSingle()
+          const signaturePath = String((profile as any)?.signature_path || '')
+          if (!signaturePath) return { signaturePath: '' }
+          try {
+            const { data: signed } = await supabase.storage.from('signatures').createSignedUrl(signaturePath, 60 * 10)
+            return { signaturePath, url: String((signed as any)?.signedUrl || '') }
+          } catch {
+            return { signaturePath }
+          }
+        },
         filename: 'Contrat-' + String(contractNumber || 'Spyke') + '.pdf',
       })
     } catch (e: any) {
@@ -4449,7 +4609,7 @@ function FacturesV1({
 
   // invoice-from-contract shortcut removed
 
-  async function generateInvoicePdfBlob(opts?: { includeSignature?: boolean }) {
+  async function generateInvoicePdfBlob(opts?: { includeSignature?: boolean; signedAt?: string; signedPlace?: string }) {
     if (!supabase) throw new Error('Supabase non initialisé')
 
     const { data: sessionData } = await supabase.auth.getSession()
@@ -4521,6 +4681,8 @@ function FacturesV1({
       totals,
       notes: '',
       includeSignature,
+      signedAt: String(opts?.signedAt || ''),
+      signedPlace: String(opts?.signedPlace || ''),
     }
 
     const res = await fetch('/api/facture-pdf', {
@@ -4772,7 +4934,22 @@ function FacturesV1({
         subject: `Facture ${String(invoiceNumber || '').trim() || 'Spyke'}`,
         text: `Bonjour,\n\nVeuillez trouver ci-joint la facture.\n\nCordialement,\n${userFullName || ''}`.trim(),
         getBlob: () => generateInvoicePdfBlob({ includeSignature: false }),
-        getSignedBlob: () => generateInvoicePdfBlob({ includeSignature: true }),
+        getSignedBlob: (opts) => generateInvoicePdfBlob({ includeSignature: true, signedAt: opts.signedAt, signedPlace: opts.signedPlace }),
+        getSignaturePreview: async () => {
+          if (!supabase) return { signaturePath: '' }
+          const { data: sessionData } = await supabase.auth.getSession()
+          const token = sessionData?.session?.access_token
+          if (!token) return { signaturePath: '' }
+          const { data: profile } = await supabase.from('profiles').select('signature_path').eq('id', userId).maybeSingle()
+          const signaturePath = String((profile as any)?.signature_path || '')
+          if (!signaturePath) return { signaturePath: '' }
+          try {
+            const { data: signed } = await supabase.storage.from('signatures').createSignedUrl(signaturePath, 60 * 10)
+            return { signaturePath, url: String((signed as any)?.signedUrl || '') }
+          } catch {
+            return { signaturePath }
+          }
+        },
         filename: 'Facture-' + String(invoiceNumber || 'Spyke') + '.pdf',
       })
     } catch (e: any) {

@@ -20,6 +20,8 @@ const BodySchema = z.object({
   dueDate: z.string().optional().default(''),
   logoUrl: z.string().optional().default(''),
   includeSignature: z.boolean().optional().default(false),
+  signedAt: z.string().optional().default(''),
+  signedPlace: z.string().optional().default(''),
   signatureUrl: z.string().optional().default(''),
 
   seller: z.object({
@@ -414,7 +416,11 @@ export async function POST(req: Request) {
                   { style: styles.signatureBox },
                   React.createElement(Image, { style: styles.signatureImg, src: resolvedSignatureUrl })
                 ),
-                React.createElement(Text, { style: styles.signatureMeta }, `Signé le ${formatDateFr(body.dateIssue)}`)
+                React.createElement(
+                  Text,
+                  { style: styles.signatureMeta },
+                  `Signé le ${String((body as any).signedAt || formatDateFr(body.dateIssue) || '')}${(body as any).signedPlace ? ` à ${(body as any).signedPlace}` : ''}`
+                )
               )
             : null,
 

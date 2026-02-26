@@ -23,6 +23,8 @@ const BodySchema = z.object({
   validityUntil: z.string().optional().default(''),
   logoUrl: z.string().optional().default(''),
   includeSignature: z.boolean().optional().default(false),
+  signedAt: z.string().optional().default(''),
+  signedPlace: z.string().optional().default(''),
   signatureUrl: z.string().optional().default(''),
 
   seller: z.object({
@@ -419,9 +421,9 @@ export async function POST(req: Request) {
                   { style: styles.signBox },
                   React.createElement(Text, { style: styles.signTitle }, 'Bon pour accord'),
                   React.createElement(Text, { style: styles.signLine }, 'Signé le :'),
-                  React.createElement(Text, { style: styles.underline }, '____________________________'),
+                  React.createElement(Text, { style: styles.signValue }, body.signedAt || '____________________________'),
                   React.createElement(Text, { style: styles.signLine }, 'À :'),
-                  React.createElement(Text, { style: styles.underline }, '____________________________'),
+                  React.createElement(Text, { style: styles.signValue }, body.signedPlace || '____________________________'),
                   resolvedSignatureUrl ? React.createElement(Image, { style: styles.signImg, src: resolvedSignatureUrl }) : null
                 )
               )
