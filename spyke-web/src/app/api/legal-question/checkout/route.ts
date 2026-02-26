@@ -11,6 +11,12 @@ const HeaderSchema = z.object({
 
 const BodySchema = z.object({
   question: z.string().min(10).max(5000),
+  phone: z
+    .string()
+    .trim()
+    .max(40)
+    .optional()
+    .default(''),
 })
 
 function requireEnv(name: string): string {
@@ -62,7 +68,15 @@ export async function POST(req: Request) {
     // Create draft row
     const { data: qRow, error: qErr } = await supabaseAdmin
       .from('legal_questions')
-      .insert({ user_id: userId, user_email: userEmail || null, question: body.question, status: 'draft' } as any)
+      .insert(
+        {
+          user_id: userId,
+          user_email: userEmail || null,
+          question: body.question,
+          contact_phone: body.phone || null,
+          status: 'draft',
+        } as any
+      )
       .select('id')
       .single()
 

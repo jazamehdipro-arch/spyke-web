@@ -6023,6 +6023,7 @@ export default function AppHtmlPage() {
 
   // Question juriste (Pro-only + paiement 5€)
   const [legalQuestion, setLegalQuestion] = useState<string>('')
+  const [legalPhone, setLegalPhone] = useState<string>('')
   const [legalBusy, setLegalBusy] = useState<boolean>(false)
   const [legalError, setLegalError] = useState<string>('')
   const [legalItems, setLegalItems] = useState<any[]>([])
@@ -6305,7 +6306,7 @@ export default function AppHtmlPage() {
       const res = await fetch('/api/legal-question/checkout', {
         method: 'POST',
         headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
-        body: JSON.stringify({ question: q }),
+        body: JSON.stringify({ question: q, phone: legalPhone.trim() }),
       })
       const json = await res.json().catch(() => null)
       if (!res.ok) throw new Error(json?.error || `Erreur paiement (${res.status})`)
@@ -10272,7 +10273,7 @@ CONTEXTE UTILISATEUR :
           <div className="page-header">
             <div>
               <h1 className="page-title">Question juriste</h1>
-              <p className="page-subtitle">Posez une question et elle sera transmise à un juriste.</p>
+              <p className="page-subtitle">Posez une question et elle sera transmise à un juriste (réponse sous moins de 24h).</p>
             </div>
           </div>
 
@@ -10290,16 +10291,34 @@ CONTEXTE UTILISATEUR :
             </div>
           ) : (
             <div className="card">
-              <div className="form-group">
-                <label className="form-label">Votre question</label>
-                <textarea
-                  className="form-textarea"
-                  style={{ minHeight: 160 }}
-                  placeholder="Décrivez votre situation et votre question (sans données ultra sensibles)."
-                  value={legalQuestion}
-                  onChange={(e) => setLegalQuestion(e.target.value)}
-                />
-                <div style={{ marginTop: 6, fontSize: 12, color: 'var(--gray-500)' }}>Minimum 10 caractères.</div>
+              <div className="form-row">
+                <div className="form-group" style={{ flex: 1 }}>
+                  <label className="form-label">Votre question</label>
+                  <textarea
+                    className="form-textarea"
+                    style={{ minHeight: 160 }}
+                    placeholder="Décrivez votre situation et votre question (sans données ultra sensibles)."
+                    value={legalQuestion}
+                    onChange={(e) => setLegalQuestion(e.target.value)}
+                  />
+                  <div style={{ marginTop: 6, fontSize: 12, color: 'var(--gray-500)' }}>Minimum 10 caractères.</div>
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group" style={{ flex: 1 }}>
+                  <label className="form-label">Téléphone (optionnel)</label>
+                  <input
+                    type="tel"
+                    className="form-input"
+                    placeholder="Ex: +33 6 12 34 56 78"
+                    value={legalPhone}
+                    onChange={(e) => setLegalPhone(e.target.value)}
+                  />
+                  <div style={{ marginTop: 6, fontSize: 12, color: 'var(--gray-500)' }}>
+                    Si besoin, le juriste pourra vous appeler.
+                  </div>
+                </div>
               </div>
 
               {legalError ? (

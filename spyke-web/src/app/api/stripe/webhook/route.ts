@@ -94,9 +94,13 @@ export async function POST(req: Request) {
             const subject = `Nouvelle question juriste (Spyke)`
             const text = [
               `Nouvelle question juriste payée (5€).`,
+              `Délai de réponse visé: < 24h.`,
+              `Si besoin, le juriste peut appeler l'utilisateur.`,
+
               ``,
               `Question ID: ${(qRow as any)?.id}`,
               `Utilisateur: ${(qRow as any)?.user_email || userId}`,
+              `Téléphone: ${String((qRow as any)?.contact_phone || '—')}`,
               `Créée le: ${(qRow as any)?.created_at}`,
               ``,
               `Question:`,
