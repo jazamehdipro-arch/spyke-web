@@ -281,7 +281,11 @@ function usePdfMailModals() {
                   type="button"
                   onClick={() => {
                     setManualSignModal(null)
-                    alert('Ajoute ta signature dans Profil > Signature, puis reviens signer le document.')
+                    try {
+                      window.dispatchEvent(new CustomEvent('spyke:goToSignatureSettings'))
+                    } catch {
+                      alert('Va dans Paramètres > Signature, puis reviens signer le document.')
+                    }
                   }}
                 >
                   Ajouter ma signature
@@ -2353,7 +2357,7 @@ Réponds uniquement par le texte de la description.`
                         {c.name}
                       </option>
                     ))}
-                    <option value="new">+ Nouveau client</option>
+                    <option value="new">✍️ Remplir à la main</option>
                   </select>
                 </div>
               </div>
@@ -5646,6 +5650,35 @@ export default function AppHtmlPage() {
     setTab(t)
     setMobileNavOpen(false)
   }
+
+  // Allow nested modals/components (e.g. PDF preview) to redirect user to signature settings.
+  useEffect(() => {
+    const handler = () => {
+      try {
+        setTab('settings')
+        try {
+          setSettingsTab('signature')
+        } catch {}
+        // open signature pad if available
+        try {
+          // @ts-ignore
+          setSignatureEditOpen(true)
+        } catch {}
+        try {
+          setTimeout(() => {
+            const el = document.getElementById('signature-settings')
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          }, 50)
+        } catch {}
+      } catch {}
+    }
+    try {
+      window.addEventListener('spyke:goToSignatureSettings', handler as any)
+      return () => window.removeEventListener('spyke:goToSignatureSettings', handler as any)
+    } catch {
+      return
+    }
+  }, [])
 
   const [modal, setModal] = useState<ModalName | null>(null)
   const [tone, setTone] = useState<Tone>('pro')
@@ -10672,7 +10705,7 @@ CONTEXTE UTILISATEUR :
             ) : null}
 
             {settingsTab === 'signature' ? (
-            <div className="form-section" style={{ marginTop: 14 }}>
+            <div id="signature-settings" className="form-section" style={{ marginTop: 14 }}>
               <div className="form-section-title">Signature (prestataire)</div>
               <p style={{ marginBottom: 12, color: 'var(--gray-600)' }}>
                 Cette signature sera ajoutée automatiquement à vos <b>factures</b> et <b>contrats</b> (pas sur les devis).
