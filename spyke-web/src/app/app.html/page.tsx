@@ -10852,6 +10852,10 @@ CONTEXTE UTILISATEUR :
                   L’abonnement est annulable à tout moment depuis le portail Stripe.
                 </div>
               ) : null}
+
+              <div style={{ marginTop: 14, fontSize: 13, color: 'var(--gray-600)' }}>
+                Besoin d’aide ? Contact : <a href="mailto:contact@spykeapp.fr">contact@spykeapp.fr</a>
+              </div>
             </div>
             ) : null}
 
