@@ -231,25 +231,88 @@ function usePdfMailModals() {
         ) : null}
       </ModalShell>
 
-      <ModalShell
-        open={!!manualSignModal}
-        title="Signature"
-        onClose={() => setManualSignModal(null)}
-        footer={
-          manualSignModal ? (
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
-              <button className="btn btn-secondary" type="button" onClick={() => setManualSignModal(null)}>
+      {manualSignModal ? (
+        <div
+          role="dialog"
+          aria-label="Signature"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 9999,
+            background: 'rgba(0,0,0,0.35)',
+            display: 'flex',
+            alignItems: 'flex-start',
+            justifyContent: 'center',
+            padding: 18,
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setManualSignModal(null)
+          }}
+        >
+          <div
+            style={{
+              width: 'min(420px, 100%)',
+              marginTop: 40,
+              background: '#fff',
+              borderRadius: 16,
+              border: '1px solid rgba(0,0,0,0.08)',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.25)',
+              overflow: 'hidden',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px', borderBottom: '1px solid var(--gray-200)' }}>
+              <div style={{ fontWeight: 800 }}>Signer</div>
+              <button className="btn btn-secondary" type="button" onClick={() => setManualSignModal(null)} style={{ padding: '8px 10px', fontSize: 12 }}>
+                Fermer
+              </button>
+            </div>
+
+            <div style={{ padding: 14, display: 'grid', gap: 12 }}>
+              {manualSignModal.signaturePath ? (
+                <div>
+                  <div style={{ fontSize: 12, color: 'var(--gray-600)', marginBottom: 6 }}>Aperçu de la signature</div>
+                  <div style={{ border: '1px solid var(--gray-200)', borderRadius: 12, padding: 10, background: '#fff', display: 'flex', justifyContent: 'center' }}>
+                    {manualSignModal.signaturePreviewUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={manualSignModal.signaturePreviewUrl} alt="signature" style={{ maxWidth: '100%', maxHeight: 70, objectFit: 'contain' }} />
+                    ) : (
+                      <div style={{ color: 'var(--gray-500)' }}>Signature enregistrée</div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div style={{ padding: 12, borderRadius: 12, background: 'var(--gray-50)', border: '1px solid var(--gray-200)' }}>
+                  <div style={{ fontWeight: 800, marginBottom: 6 }}>Aucune signature enregistrée</div>
+                  <div style={{ color: 'var(--gray-600)', fontSize: 13 }}>Ajoute une signature dans Paramètres → Signature.</div>
+                </div>
+              )}
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <div>
+                  <label style={{ fontSize: 12, color: 'var(--gray-600)' }}>Signé le</label>
+                  <input className="input" type="date" value={manualSignModal.signedAt} onChange={(e) => setManualSignModal((p) => (p ? { ...p, signedAt: e.target.value } : p))} />
+                </div>
+                <div>
+                  <label style={{ fontSize: 12, color: 'var(--gray-600)' }}>À</label>
+                  <input className="input" placeholder="Ville" value={manualSignModal.signedPlace} onChange={(e) => setManualSignModal((p) => (p ? { ...p, signedPlace: e.target.value } : p))} />
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, padding: 14, borderTop: '1px solid var(--gray-200)' }}>
+              <button className="btn btn-secondary" type="button" onClick={() => setManualSignModal(null)} style={{ flex: 1 }}>
                 Annuler
               </button>
+
               {manualSignModal.signaturePath ? (
                 <button
                   className="btn btn-primary"
                   type="button"
+                  style={{ flex: 1 }}
                   onClick={async () => {
                     try {
-                      if (!pdfPreview?.actions?.getSignedBlob) throw new Error('Aperçu indisponible')
-                      const a = pdfPreview.actions
-                      if (!a?.getSignedBlob) throw new Error('Action signature indisponible')
+                      const a = pdfPreview?.actions
+                      if (!a?.getSignedBlob) throw new Error('Signature indisponible')
 
                       const { blob } = await a.getSignedBlob({
                         signedAt: String(manualSignModal.signedAt || ''),
@@ -267,18 +330,19 @@ function usePdfMailModals() {
                       })
 
                       setManualSignModal(null)
-                      alert('Document signé (signature ajoutée).')
+                      alert('Signature ajoutée ✅')
                     } catch (e: any) {
                       alert(e?.message || 'Erreur signature')
                     }
                   }}
                 >
-                  Valider la signature
+                  Valider
                 </button>
               ) : (
                 <button
                   className="btn btn-primary"
                   type="button"
+                  style={{ flex: 1 }}
                   onClick={() => {
                     setManualSignModal(null)
                     try {
@@ -288,66 +352,13 @@ function usePdfMailModals() {
                     }
                   }}
                 >
-                  Ajouter ma signature
+                  Ajouter signature
                 </button>
               )}
             </div>
-          ) : null
-        }
-      >
-        {manualSignModal ? (
-          <div style={{ display: 'grid', gap: 12 }}>
-            {manualSignModal.signaturePath ? (
-              <div>
-                <div style={{ fontSize: 12, color: 'var(--gray-600)', marginBottom: 6 }}>Signature</div>
-                <div
-                  style={{
-                    border: '1px solid var(--gray-200)',
-                    borderRadius: 12,
-                    padding: 10,
-                    background: '#fff',
-                    display: 'flex',
-                    justifyContent: 'center',
-                  }}
-                >
-                  {manualSignModal.signaturePreviewUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={manualSignModal.signaturePreviewUrl} alt="signature" style={{ maxWidth: '100%', maxHeight: 90, objectFit: 'contain' }} />
-                  ) : (
-                    <div style={{ color: 'var(--gray-500)' }}>Signature enregistrée</div>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <div className="card" style={{ padding: 14, background: 'var(--gray-50)', border: '1px solid var(--gray-200)' }}>
-                <div style={{ fontWeight: 700, marginBottom: 6 }}>Aucune signature enregistrée</div>
-                <div style={{ color: 'var(--gray-600)', fontSize: 13 }}>Ajoute une signature dans ton profil pour pouvoir signer tes documents.</div>
-              </div>
-            )}
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-              <div>
-                <label style={{ fontSize: 12, color: 'var(--gray-600)' }}>Signé le</label>
-                <input
-                  className="input"
-                  type="date"
-                  value={manualSignModal.signedAt}
-                  onChange={(e) => setManualSignModal((p) => (p ? { ...p, signedAt: e.target.value } : p))}
-                />
-              </div>
-              <div>
-                <label style={{ fontSize: 12, color: 'var(--gray-600)' }}>À</label>
-                <input
-                  className="input"
-                  placeholder="Ville"
-                  value={manualSignModal.signedPlace}
-                  onChange={(e) => setManualSignModal((p) => (p ? { ...p, signedPlace: e.target.value } : p))}
-                />
-              </div>
-            </div>
           </div>
-        ) : null}
-      </ModalShell>
+        </div>
+      ) : null}
 
       <ModalShell
         open={!!pdfPreview}
@@ -1621,14 +1632,16 @@ Réponds uniquement par le texte de la description.`
           const { data: sessionData } = await supabase.auth.getSession()
           const token = sessionData?.session?.access_token
           if (!token) return { signaturePath: '' }
-          const { data: profile } = await supabase.from('profiles').select('signature_path').eq('id', userId).maybeSingle()
-          const signaturePath = String((profile as any)?.signature_path || '')
-          if (!signaturePath) return { signaturePath: '' }
           try {
-            const { data: signed } = await supabase.storage.from('signatures').createSignedUrl(signaturePath, 60 * 10)
-            return { signaturePath, url: String((signed as any)?.signedUrl || '') }
+            const res = await fetch('/api/signature-preview', {
+              method: 'GET',
+              headers: { authorization: `Bearer ${token}` },
+            })
+            const json = await res.json().catch(() => ({}))
+            if (!res.ok) return { signaturePath: '' }
+            return { signaturePath: String((json as any)?.signaturePath || ''), url: String((json as any)?.url || '') }
           } catch {
-            return { signaturePath }
+            return { signaturePath: '' }
           }
         },
         filename: 'Devis-' + String(quoteNumber || 'Spyke') + '.pdf',
@@ -3728,14 +3741,16 @@ function ContratsV1({
           const { data: sessionData } = await supabase.auth.getSession()
           const token = sessionData?.session?.access_token
           if (!token) return { signaturePath: '' }
-          const { data: profile } = await supabase.from('profiles').select('signature_path').eq('id', userId).maybeSingle()
-          const signaturePath = String((profile as any)?.signature_path || '')
-          if (!signaturePath) return { signaturePath: '' }
           try {
-            const { data: signed } = await supabase.storage.from('signatures').createSignedUrl(signaturePath, 60 * 10)
-            return { signaturePath, url: String((signed as any)?.signedUrl || '') }
+            const res = await fetch('/api/signature-preview', {
+              method: 'GET',
+              headers: { authorization: `Bearer ${token}` },
+            })
+            const json = await res.json().catch(() => ({}))
+            if (!res.ok) return { signaturePath: '' }
+            return { signaturePath: String((json as any)?.signaturePath || ''), url: String((json as any)?.url || '') }
           } catch {
-            return { signaturePath }
+            return { signaturePath: '' }
           }
         },
         filename: 'Contrat-' + String(contractNumber || 'Spyke') + '.pdf',
@@ -4945,14 +4960,16 @@ function FacturesV1({
           const { data: sessionData } = await supabase.auth.getSession()
           const token = sessionData?.session?.access_token
           if (!token) return { signaturePath: '' }
-          const { data: profile } = await supabase.from('profiles').select('signature_path').eq('id', userId).maybeSingle()
-          const signaturePath = String((profile as any)?.signature_path || '')
-          if (!signaturePath) return { signaturePath: '' }
           try {
-            const { data: signed } = await supabase.storage.from('signatures').createSignedUrl(signaturePath, 60 * 10)
-            return { signaturePath, url: String((signed as any)?.signedUrl || '') }
+            const res = await fetch('/api/signature-preview', {
+              method: 'GET',
+              headers: { authorization: `Bearer ${token}` },
+            })
+            const json = await res.json().catch(() => ({}))
+            if (!res.ok) return { signaturePath: '' }
+            return { signaturePath: String((json as any)?.signaturePath || ''), url: String((json as any)?.url || '') }
           } catch {
-            return { signaturePath }
+            return { signaturePath: '' }
           }
         },
         filename: 'Facture-' + String(invoiceNumber || 'Spyke') + '.pdf',
