@@ -286,6 +286,7 @@ export default function MentionsLegalesPage() {
             <a href="/comment-ca-marche.html">Comment ça marche</a>
             <a href="/#pricing">Tarifs</a>
             <a href="/mentions-legales.html">Mentions légales</a>
+            <a href="/cgu.html">CGU</a>
             <a href="/confidentialite.html">Confidentialité</a>
           </div>
 

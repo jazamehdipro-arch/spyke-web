@@ -1446,6 +1446,7 @@ export default function Home() {
             <a href="/comment-ca-marche.html">Comment ça marche</a>
             <a href="/tarifs.html">Tarifs</a>
             <a href="/mentions-legales.html">Mentions légales</a>
+            <a href="/cgu.html">CGU</a>
             <a href="/confidentialite.html">Confidentialité</a>
           </div>
           <p className="footer-copy">Spyke © 2025 – L’assistant freelance (emails, devis, factures, contrats)</p>

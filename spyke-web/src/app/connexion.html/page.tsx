@@ -711,7 +711,7 @@ export default function ConnexionPage() {
             <div className="form-group">
               <label className="form-checkbox">
                 <input type="checkbox" required />
-                J&apos;accepte les <a href="/mentions-legales.html" target="_blank">CGU</a> et la{' '}
+                J&apos;accepte les <a href="/cgu.html" target="_blank">CGU</a> et la{' '}
                 <a href="/confidentialite.html" target="_blank">
                   politique de confidentialité
                 </a>
@@ -782,7 +782,7 @@ export default function ConnexionPage() {
             </button>
 
             <p className="terms">
-              En créant un compte, vous acceptez nos <a href="/mentions-legales.html">CGU</a> et notre{' '}
+              En créant un compte, vous acceptez nos <a href="/cgu.html">CGU</a> et notre{' '}
               <a href="/confidentialite.html">politique de confidentialité</a>.
             </p>
           </form>
@@ -794,6 +794,7 @@ export default function ConnexionPage() {
           <a href="/">Accueil</a>
           <a href="/fonctionnalites.html">Fonctionnalités</a>
           <a href="/mentions-legales.html">Mentions légales</a>
+          <a href="/cgu.html">CGU</a>
           <a href="/confidentialite.html">Confidentialité</a>
         </div>
       </footer>

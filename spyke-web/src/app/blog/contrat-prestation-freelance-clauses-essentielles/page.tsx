@@ -682,6 +682,7 @@ export default function BlogContratClausesPage() {
             <a href="/facture-auto-entrepreneur">Facture gratuite</a>
             <a href="/contrat-freelance">Contrat gratuit</a>
             <a href="/mentions-legales.html">Mentions légales</a>
+            <a href="/cgu.html">CGU</a>
             <a href="/confidentialite.html">Confidentialité</a>
           </div>
           <p className="footer-copy">Spyke © 2026 — L&apos;assistant IA des freelances français</p>
