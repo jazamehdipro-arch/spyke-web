@@ -170,6 +170,9 @@ export default function CguPage() {
         </a>
         <ul className="nav-links">
           <li>
+            <a href="mailto:contact@spykeapp.fr">Contact</a>
+          </li>
+          <li>
             <a href="/mentions-legales.html">Mentions légales</a>
           </li>
           <li>
@@ -259,8 +262,8 @@ export default function CguPage() {
 
           <h2>11. Contact</h2>
           <p>
-            Pour toute question, vous pouvez nous contacter via les informations disponibles dans les{' '}
-            <a href="/mentions-legales.html">Mentions légales</a>.
+            Pour toute question, vous pouvez nous contacter à l’adresse :{' '}
+            <a href="mailto:contact@spykeapp.fr">contact@spykeapp.fr</a>.
           </p>
         </div>
       </main>
