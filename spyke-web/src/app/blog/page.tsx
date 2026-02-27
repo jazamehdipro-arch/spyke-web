@@ -71,6 +71,8 @@ const posts: BlogPost[] = [
   },
 ]
 
+import { MarketingNav } from '@/components/MarketingNav'
+
 export default async function BlogPage({
   searchParams,
 }: {
@@ -567,32 +569,7 @@ export default async function BlogPage({
         .footer-copy { font-size: 0.8rem; color: var(--gray-600); }
       `}</style>
 
-      <nav>
-        <div className="nav-inner">
-          <a href="/" className="nav-logo">
-            <div className="nav-logo-icon">⚡</div>
-            Spyke
-          </a>
-          <ul className="nav-links">
-            <li>
-              <a href="/fonctionnalites.html">Fonctionnalités</a>
-            </li>
-            <li>
-              <a href="/blog" className="active">
-                Blog
-              </a>
-            </li>
-            <li>
-              <a href="/#pricing">Tarifs</a>
-            </li>
-            <li>
-              <a href="/connexion.html" className="nav-cta">
-                Créer un compte gratuit
-              </a>
-            </li>
-          </ul>
-        </div>
-      </nav>
+      <MarketingNav active="Blog" pricingHref="/#pricing" />
 
       <section className="hero">
         <div className="hero-badge">📝 Blog Spyke</div>

@@ -7,6 +7,7 @@ type ProPeriod = 'monthly' | 'annual'
 
 export default function TarifsPage() {
   const [period, setPeriod] = useState<ProPeriod>('annual')
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [profilePlan, setProfilePlan] = useState<'free' | 'pro' | null>(null)
@@ -410,6 +411,10 @@ export default function TarifsPage() {
           color: var(--black);
         }
 
+        .mobile-nav-toggle {
+          display: none;
+        }
+
         .error {
           margin-top: 14px;
           text-align: center;
@@ -421,6 +426,47 @@ export default function TarifsPage() {
           nav {
             padding: 16px 18px;
           }
+
+          .mobile-nav-toggle {
+            display: inline-flex;
+            width: 52px;
+            height: 52px;
+            border: 1px solid var(--gray-200);
+            background: #fff;
+            border-radius: 16px;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+          }
+
+          .mobile-nav-toggle svg {
+            width: 24px;
+            height: 24px;
+            stroke: var(--gray-800);
+            stroke-width: 2;
+            fill: none;
+            stroke-linecap: round;
+          }
+
+          .nav-links {
+            display: none;
+            position: absolute;
+            top: 74px;
+            left: 16px;
+            right: 16px;
+            flex-direction: column;
+            gap: 16px;
+            padding: 18px;
+            background: rgba(255, 255, 255, 0.98);
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 18px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+          }
+
+          .nav-links.open {
+            display: flex;
+          }
+
           .hero {
             padding: 120px 18px 30px;
           }
@@ -437,7 +483,7 @@ export default function TarifsPage() {
       `}</style>
 
       <nav>
-        <a href="/" className="logo">
+        <a href="/" className="logo" onClick={() => setMobileMenuOpen(false)}>
           <div className="logo-icon">
             <svg viewBox="0 0 24 24">
               <path d="M13 3L4 14h7l-2 7 9-11h-7l2-7z" />
@@ -445,20 +491,38 @@ export default function TarifsPage() {
           </div>
           Spyke
         </a>
-        <ul className="nav-links">
+
+        <button
+          type="button"
+          className="mobile-nav-toggle"
+          aria-label="Ouvrir le menu"
+          aria-expanded={mobileMenuOpen}
+          onClick={() => setMobileMenuOpen((v) => !v)}
+        >
+          <svg viewBox="0 0 24 24">
+            <path d="M4 6h16" />
+            <path d="M4 12h16" />
+            <path d="M4 18h16" />
+          </svg>
+        </button>
+
+        <ul className={`nav-links ${mobileMenuOpen ? 'open' : ''}`}>
           <li>
-            <a href="/fonctionnalites.html">Fonctionnalités</a>
+            <a href="/fonctionnalites.html" onClick={() => setMobileMenuOpen(false)}>Fonctionnalités</a>
           </li>
           <li>
-            <a href="/comment-ca-marche.html">Comment ça marche</a>
+            <a href="/comment-ca-marche.html" onClick={() => setMobileMenuOpen(false)}>Comment ça marche</a>
           </li>
           <li>
-            <a href="/tarifs.html" className="active">
+            <a href="/blog" onClick={() => setMobileMenuOpen(false)}>Blog</a>
+          </li>
+          <li>
+            <a href="/tarifs.html" className="active" onClick={() => setMobileMenuOpen(false)}>
               Tarifs
             </a>
           </li>
           <li>
-            <a href="/connexion.html" className="nav-cta">
+            <a href="/connexion.html" className="nav-cta" onClick={() => setMobileMenuOpen(false)}>
               Créer un compte
             </a>
           </li>
