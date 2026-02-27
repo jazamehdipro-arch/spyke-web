@@ -929,6 +929,25 @@ export default function Home() {
             padding: 16px 18px;
           }
 
+          /* Prevent hero visual/cards from overlapping the CTA on small screens */
+          .hero {
+            min-height: auto;
+            align-items: flex-start;
+          }
+
+          .hero-container {
+            gap: 28px;
+          }
+
+          .hero-visual {
+            margin-top: 12px;
+            z-index: 1;
+          }
+
+          .hero-card {
+            display: none;
+          }
+
           .mobile-nav-toggle {
             display: inline-flex;
           }
