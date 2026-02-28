@@ -2051,7 +2051,7 @@ Réponds uniquement par le texte de la description.`
               <div className="empty-state" style={{ padding: 24 }}>
                 <div className="empty-state-icon">📄</div>
                 <h4>Aucun devis</h4>
-                <p>Créez votre premier devis en cliquant sur “Nouveau devis”.</p>
+                <p>Créez votre premier devis en cliquant sur "Nouveau devis".</p>
               </div>
             ) : (
               <>
@@ -2071,7 +2071,7 @@ Réponds uniquement par le texte de la description.`
                       {quotes.map((q) => (
                         <tr key={q.id}>
                           <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{q.number}</td>
-                          <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{q.title || '—'}</td>
+                          <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{q.title || '-'}</td>
                           <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>
                             <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                               <span>{q.status || 'draft'}</span>
@@ -2151,7 +2151,7 @@ Réponds uniquement par le texte de la description.`
                         <div className="mobile-card-top">
                           <div>
                             <div className="mobile-card-title">{q.number}</div>
-                            <div className="mobile-card-sub">{q.title || '—'}</div>
+                            <div className="mobile-card-sub">{q.title || '-'}</div>
                           </div>
                           <div style={{ textAlign: 'right' }}>
                             <div className="mobile-card-amount">{formatMoney(Number(q.total_ttc || 0))}</div>
@@ -2202,10 +2202,22 @@ Réponds uniquement par le texte de la description.`
         </>
       ) : (
         <>
-          <button className="btn btn-secondary" type="button" onClick={() => setMode('list')} style={{ marginBottom: 16 }}>
-            ← Retour aux devis
-          </button>
-
+          <div className="page-header" style={{ marginBottom: 16 }}>
+            <div>
+              <h1 className="page-title">{currentQuoteId ? `Devis ${String(quoteNumber || '').trim() || ''}` : 'Nouveau devis'}</h1>
+              <p className="page-subtitle">Créez et exportez un devis PDF</p>
+            </div>
+            <div className="header-actions" style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              <button className="btn btn-secondary" type="button" onClick={() => setMode('list')}>
+                ← Retour aux devis
+              </button>
+              {currentQuoteId ? (
+                <button className="btn btn-secondary" type="button" onClick={() => deleteQuote(String(currentQuoteId))}>
+                  Supprimer
+                </button>
+              ) : null}
+            </div>
+          </div>
 
           <div className="devis-container">
         <div className="form-wrapper">
@@ -2417,9 +2429,9 @@ Réponds uniquement par le texte de la description.`
                   return (
                     <div className="card" style={{ background: 'var(--gray-50)', border: '1px dashed var(--gray-200)', marginTop: 12 }}>
                       <div style={{ fontSize: 13, color: 'var(--gray-500)' }}>
-                        <div><b>Email</b> : {c?.email || '—'}</div>
-                        <div><b>SIRET</b> : {c?.siret || '—'}</div>
-                        <div><b>Adresse</b> : {addressLine || '—'}</div>
+                        <div><b>Email</b> : {c?.email || '-'}</div>
+                        <div><b>SIRET</b> : {c?.siret || '-'}</div>
+                        <div><b>Adresse</b> : {addressLine || '-'}</div>
                       </div>
                     </div>
                   )
@@ -2778,7 +2790,7 @@ Réponds uniquement par le texte de la description.`
               <div style={{ color: 'var(--gray-600)', fontSize: 13, lineHeight: 1.6 }}>
                 <b>Aucune prestation trouvée.</b>
                 <div style={{ marginTop: 6 }}>
-                  Si c’est la première fois : exécute le SQL dans <code>spyke-web/docs/supabase-devis-extensions.sql</code> (table{' '}
+                  Si c'est la première fois : exécute le SQL dans <code>spyke-web/docs/supabase-devis-extensions.sql</code> (table{' '}
                   <code>service_items</code>).
                 </div>
               </div>
@@ -2802,7 +2814,7 @@ Réponds uniquement par le texte de la description.`
                       <span>
                         <b>{it.name}</b>
                         <span style={{ display: 'block', fontSize: 12, color: 'var(--gray-500)', marginTop: 3, whiteSpace: 'normal' }}>
-                          {it.description || '—'}
+                          {it.description || '-'}
                         </span>
                       </span>
                       <span style={{ fontSize: 12, color: 'var(--gray-600)' }}>
@@ -2868,7 +2880,7 @@ Réponds uniquement par le texte de la description.`
               <div style={{ color: 'var(--gray-600)', fontSize: 13, lineHeight: 1.6 }}>
                 <b>Aucun template.</b>
                 <div style={{ marginTop: 6 }}>
-                  Si c’est la première fois : exécute le SQL dans <code>spyke-web/docs/supabase-devis-extensions.sql</code> (tables{' '}
+                  Si c'est la première fois : exécute le SQL dans <code>spyke-web/docs/supabase-devis-extensions.sql</code> (tables{' '}
                   <code>quote_templates</code> / <code>quote_template_lines</code>).
                 </div>
               </div>
@@ -3161,7 +3173,7 @@ function ContratsV1({
     const desc = (qLines || [])
       .map((l: any) => {
         const base = l.label || ''
-        const extra = l.description ? ` — ${l.description}` : ''
+        const extra = l.description ? ` - ${l.description}` : ''
         return `${base}${extra}`.trim()
       })
       .filter(Boolean)
@@ -3378,48 +3390,48 @@ function ContratsV1({
     lines.push(`Établi le ${todayStr}`)
     lines.push('')
     lines.push('Entre les soussignés :')
-    lines.push(`${prestaName || 'Le Prestataire'}, ${prestaActivity || 'Prestataire de services'}, immatriculé sous le SIRET ${prestaSiret || '—'}, dont le siège est situé au ${prestaAddress || '—'}, ci-après dénommé « le Prestataire ». 
-`) 
-    lines.push(`${clientName || 'Le Client'}, immatriculé sous le SIRET ${clientSiret || '—'}, dont le siège est situé au ${clientAddress || '—'}, représenté par ${clientRepresentant || '—'}, ci-après dénommé « le Client ». 
+    lines.push(`${prestaName || 'Le Prestataire'}, ${prestaActivity || 'Prestataire de services'}, immatriculé sous le SIRET ${prestaSiret || '-'}, dont le siège est situé au ${prestaAddress || '-'}, ci-après dénommé « le Prestataire ».
+`)
+    lines.push(`${clientName || 'Le Client'}, immatriculé sous le SIRET ${clientSiret || '-'}, dont le siège est situé au ${clientAddress || '-'}, représenté par ${clientRepresentant || '-'}, ci-après dénommé « le Client ».
 `)
 
-    lines.push('Article 1 — Objet du contrat')
+    lines.push('Article 1 - Objet du contrat')
     lines.push(missionDescription || 'Prestation de service.')
     lines.push('')
 
-    lines.push('Article 2 — Livrables')
+    lines.push('Article 2 - Livrables')
     lines.push(missionLivrables || 'Livrables à définir.')
     lines.push(`Le Client dispose de ${revMap[missionRevisions]} révisions incluses dans le prix convenu.`)
     lines.push('')
 
-    lines.push('Article 3 — Durée et lieu d\'exécution')
+    lines.push('Article 3 - Durée et lieu d\'exécution')
     lines.push(`La mission débute le ${startDate} et se termine le ${endDate}. Elle sera exécutée ${lieuMap[missionLieu]}.`)
     lines.push('')
 
-    lines.push('Article 4 — Rémunération')
+    lines.push('Article 4 - Rémunération')
     lines.push(pricingText)
     lines.push(tvaText)
     lines.push(`Le paiement sera effectué selon l'échéancier suivant : ${scheduleMap[paymentSchedule]}. Chaque paiement est exigible ${delayMap[paymentDelay]}.`)
     lines.push('')
 
-    lines.push('Article 5 — Propriété intellectuelle')
+    lines.push('Article 5 - Propriété intellectuelle')
     lines.push(ipMap[ipClause])
     lines.push('')
 
     if (confidentialityClause === 'oui') {
-      lines.push('Article 6 — Confidentialité')
+      lines.push('Article 6 - Confidentialité')
       lines.push("Chacune des Parties s'engage à considérer comme confidentielles et à ne pas divulguer les informations de l'autre Partie dont elle pourrait avoir connaissance à l'occasion de l'exécution du présent contrat. Cette obligation reste en vigueur pendant 2 ans après la fin du contrat.")
       lines.push('')
     }
 
     if (nonCompeteClause !== 'non') {
       const duration = nonCompeteClause === '6mois' ? '6 mois' : '12 mois'
-      lines.push('Article 7 — Non-concurrence')
+      lines.push('Article 7 - Non-concurrence')
       lines.push(`Le Prestataire s'engage, pendant une durée de ${duration} à compter de la fin du présent contrat, à ne pas fournir de services similaires à un concurrent direct du Client, identifié d'un commun accord entre les Parties.`)
       lines.push('')
     }
 
-    lines.push('Article 8 — Résiliation')
+    lines.push('Article 8 - Résiliation')
     lines.push(`Le présent contrat peut être résilié par anticipation moyennant un préavis de ${termMap[terminationClause]}.`)
     lines.push('')
 
@@ -3820,7 +3832,7 @@ function ContratsV1({
             <div className="empty-state" style={{ padding: 24 }}>
               <div className="empty-state-icon">📝</div>
               <h4>Aucun contrat</h4>
-              <p>Créez votre premier contrat en cliquant sur “Nouveau contrat”.</p>
+              <p>Créez votre premier contrat en cliquant sur "Nouveau contrat".</p>
             </div>
           ) : (
             <>
@@ -3839,7 +3851,7 @@ function ContratsV1({
                   <tbody>
                     {contracts.map((c) => (
                       <tr key={c.id}>
-                        <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{(c as any).number || '—'}</td>
+                        <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{(c as any).number || '-'}</td>
                         <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{c.title || 'Contrat'}</td>
                         <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{c.status || 'draft'}</td>
                         <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)', textAlign: 'right', fontWeight: 700 }}>
@@ -3905,7 +3917,7 @@ function ContratsV1({
                   <div key={c.id} className="mobile-card">
                     <div className="mobile-card-top">
                       <div>
-                        <div className="mobile-card-title">{(c as any).number || '—'}</div>
+                        <div className="mobile-card-title">{(c as any).number || '-'}</div>
                         <div className="mobile-card-sub">{c.title || 'Contrat'}</div>
                       </div>
                       <div style={{ textAlign: 'right' }}>
@@ -3973,8 +3985,15 @@ function ContratsV1({
 
           <div className="page-header">
             <div>
-              <h1 className="page-title">Nouveau contrat</h1>
-              <p className="page-subtitle">Créez un contrat (UI) — la sauvegarde viendra ensuite</p>
+              <h1 className="page-title">{selectedContractId ? `Contrat ${String(contractNumber || '').trim() || ''}` : 'Nouveau contrat'}</h1>
+              <p className="page-subtitle">Créez un contrat (UI) - la sauvegarde viendra ensuite</p>
+            </div>
+            <div className="header-actions" style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              {selectedContractId ? (
+                <button className="btn btn-secondary" type="button" onClick={() => deleteContract(String(selectedContractId))}>
+                  Supprimer
+                </button>
+              ) : null}
             </div>
           </div>
 
@@ -3985,7 +4004,7 @@ function ContratsV1({
                 <path d="M12 16v-4M12 8h.01" />
               </svg>
               <p>
-                Signature non enregistrée : vos contrats seront générés <b>sans signature</b>. Allez dans <b>Paramètres → Signature</b> pour l’ajouter.
+                Signature non enregistrée : vos contrats seront générés <b>sans signature</b>. Allez dans <b>Paramètres → Signature</b> pour l'ajouter.
               </p>
             </div>
           ) : null}
@@ -4116,15 +4135,15 @@ function ContratsV1({
             <div className="form-group">
               <label className="form-label">Choisir un devis</label>
               <select className="form-select" value={contractFromQuoteId} onChange={(e) => importFromQuote(e.target.value)}>
-                <option value="">—</option>
+                <option value="">-</option>
                 {quotes.map((q) => (
                   <option key={q.id} value={q.id}>
-                    {q.number}{q.title ? ` — ${q.title}` : ''}{q.total_ttc != null ? ` (${formatMoney(Number(q.total_ttc) || 0)})` : ''}
+                    {q.number}{q.title ? ` - ${q.title}` : ''}{q.total_ttc != null ? ` (${formatMoney(Number(q.total_ttc) || 0)})` : ''}
                   </option>
                 ))}
               </select>
               <div style={{ marginTop: 6, fontSize: 12, color: 'var(--gray-500)' }}>
-                Astuce : génère un devis en PDF pour qu’il apparaisse ici.
+                Astuce : génère un devis en PDF pour qu'il apparaisse ici.
               </div>
             </div>
           </div>
@@ -4581,7 +4600,7 @@ function FacturesV1({
 
     const imported = (qLines || []).map((l: any, idx: number) => ({
       id: String(Date.now() + idx),
-      description: l.label ? `${l.label}${l.description ? ` — ${l.description}` : ''}` : String(l.description || ''),
+      description: l.label ? `${l.label}${l.description ? ` - ${l.description}` : ''}` : String(l.description || ''),
       qty: Number(l.qty || 0),
       unitPrice: Number(l.unit_price_ht || 0),
     }))
@@ -4647,6 +4666,33 @@ function FacturesV1({
     }
   }
 
+  async function deleteInvoice(id: string) {
+    try {
+      if (!supabase || !id) return
+      const inv = invoices.find((x) => String((x as any).id) === String(id))
+      const ok = confirm(`Supprimer la facture ${String((inv as any)?.number || '')} ?`)
+      if (!ok) return
+
+      const { error: delLinesErr } = await supabase.from('invoice_lines').delete().eq('invoice_id', id)
+      if (delLinesErr) throw delLinesErr
+
+      const { error: delInvErr } = await supabase.from('invoices').delete().eq('id', id)
+      if (delInvErr) throw delInvErr
+
+      // refresh list
+      const { data: invData } = await supabase
+        .from('invoices')
+        .select('id,number,status,paid_at,date_issue,due_date,total_ttc,client_id,created_at')
+        .order('created_at', { ascending: false })
+        .limit(50)
+      setInvoices((invData || []) as any[])
+
+      if (selectedInvoiceId === id) setSelectedInvoiceId('')
+    } catch (e: any) {
+      alert(e?.message || 'Erreur suppression facture')
+    }
+  }
+
 
   function updateLine(id: string, patch: Partial<InvoiceLine>) {
     setLines((prev) => prev.map((l) => (l.id === id ? { ...l, ...patch } : l)))
@@ -4669,7 +4715,7 @@ function FacturesV1({
     const token = sessionData?.session?.access_token
     if (!token) throw new Error('Non connecté')
 
-    // Seller info from profile (best-effort) — same as generateInvoicePdf
+    // Seller info from profile (best-effort) - same as generateInvoicePdf
     let seller: any = {
       name: userFullName || 'Votre entreprise',
       addressLines: [],
@@ -5096,7 +5142,7 @@ function FacturesV1({
               <div className="empty-state" style={{ padding: 24 }}>
                 <div className="empty-state-icon">📄</div>
                 <h4>Aucune facture</h4>
-                <p>Créez votre première facture en cliquant sur “Nouvelle facture”.</p>
+                <p>Créez votre première facture en cliquant sur "Nouvelle facture".</p>
               </div>
             ) : (
               <>
@@ -5119,7 +5165,7 @@ function FacturesV1({
                         <tr key={inv.id}>
                           <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{inv.number}</td>
                           <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>
-                            {clients.find((c) => c.id === inv.client_id)?.name || '—'}
+                            {clients.find((c) => c.id === inv.client_id)?.name || '-'}
                           </td>
                           <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>
                             {(() => {
@@ -5130,8 +5176,8 @@ function FacturesV1({
                               return 'Non payée'
                             })()}
                           </td>
-                          <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{inv.date_issue ? formatDateFr(String(inv.date_issue)) : '—'}</td>
-                          <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{inv.due_date ? formatDateFr(String(inv.due_date)) : '—'}</td>
+                          <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{inv.date_issue ? formatDateFr(String(inv.date_issue)) : '-'}</td>
+                          <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{inv.due_date ? formatDateFr(String(inv.due_date)) : '-'}</td>
                           <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)', textAlign: 'right', fontWeight: 700 }}>{formatMoney(Number(inv.total_ttc || 0))}</td>
                           <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)', textAlign: 'right' }}>
                             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
@@ -5235,7 +5281,7 @@ function FacturesV1({
                 {/* Mobile cards */}
                 <div className="only-mobile mobile-cards">
                   {invoices.map((inv) => {
-                    const clientName = clients.find((c) => c.id === inv.client_id)?.name || '—'
+                    const clientName = clients.find((c) => c.id === inv.client_id)?.name || '-'
                     const paidAt = (inv as any)?.paid_at
                     const due = String((inv as any)?.due_date || '')
                     const statusLabel = paidAt ? 'Payée' : due && due < todayStr ? 'En retard' : 'Non payée'
@@ -5248,8 +5294,8 @@ function FacturesV1({
                             <div className="mobile-card-title">{inv.number}</div>
                             <div className="mobile-card-sub">{clientName}</div>
                             <div className="mobile-card-meta">
-                              <span>Émise: {inv.date_issue ? formatDateFr(String(inv.date_issue)) : '—'}</span>
-                              <span style={{ marginLeft: 10 }}>Échéance: {inv.due_date ? formatDateFr(String(inv.due_date)) : '—'}</span>
+                              <span>Émise: {inv.date_issue ? formatDateFr(String(inv.date_issue)) : '-'}</span>
+                              <span style={{ marginLeft: 10 }}>Échéance: {inv.due_date ? formatDateFr(String(inv.due_date)) : '-'}</span>
                             </div>
                           </div>
                           <div style={{ textAlign: 'right' }}>
@@ -5361,8 +5407,15 @@ function FacturesV1({
 
           <div className="page-header">
             <div>
-              <h1 className="page-title">Nouvelle facture</h1>
+              <h1 className="page-title">{selectedInvoiceId ? `Facture ${String(invoiceNumber || '').trim() || ''}` : 'Nouvelle facture'}</h1>
               <p className="page-subtitle">Créez une facture (UI) — la sauvegarde viendra ensuite</p>
+            </div>
+            <div className="header-actions" style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              {selectedInvoiceId ? (
+                <button className="btn btn-secondary" type="button" onClick={() => deleteInvoice(String(selectedInvoiceId))}>
+                  Supprimer
+                </button>
+              ) : null}
             </div>
           </div>
 
@@ -5373,7 +5426,7 @@ function FacturesV1({
                 <path d="M12 16v-4M12 8h.01" />
               </svg>
               <p>
-                Signature non enregistrée : vos factures seront générées <b>sans signature</b>. Allez dans <b>Paramètres → Signature</b> pour l’ajouter.
+                Signature non enregistrée : vos factures seront générées <b>sans signature</b>. Allez dans <b>Paramètres → Signature</b> pour l'ajouter.
               </p>
             </div>
           ) : null}
@@ -5484,12 +5537,12 @@ function FacturesV1({
                   <option value="">Choisir un devis…</option>
                   {quotes.map((q) => (
                     <option key={q.id} value={q.id}>
-                      {q.number}{q.title ? ` — ${q.title}` : ''}{q.total_ttc != null ? ` (${formatMoney(Number(q.total_ttc) || 0)})` : ''}
+                      {q.number}{q.title ? ` - ${q.title}` : ''}{q.total_ttc != null ? ` (${formatMoney(Number(q.total_ttc) || 0)})` : ''}
                     </option>
                   ))}
                 </select>
                 <div style={{ marginTop: 6, fontSize: 12, color: 'var(--gray-500)' }}>
-                  Astuce : génère au moins un devis en PDF pour qu’il apparaisse ici.
+                  Astuce : génère au moins un devis en PDF pour qu'il apparaisse ici.
                 </div>
               </div>
               <div className="form-group">
@@ -5961,7 +6014,7 @@ export default function AppHtmlPage() {
           tab: 'dashboard' as Tab,
           target: 'dashboard',
           title: 'Dashboard',
-          body: "Vue d’ensemble : CA du mois, activité, raccourcis.",
+          body: "Vue d'ensemble : CA du mois, activité, raccourcis.",
         },
         {
           tab: 'clients' as Tab,
@@ -6015,7 +6068,7 @@ export default function AppHtmlPage() {
           tab: 'dashboard' as Tab,
           target: 'help-fab',
           title: 'Aide (chat)',
-          body: 'Besoin d’un rappel ? Utilise le chat d’aide à tout moment.',
+          body: "Besoin d'un rappel ? Utilise le chat d'aide à tout moment.",
           openHelp: true,
         },
       ] as Array<{ tab: Tab; target: string; title: string; body: string; openHelp?: boolean }>,
@@ -6650,7 +6703,7 @@ export default function AppHtmlPage() {
     try {
       setSignatureError('')
       if (!signatureHasInkRef.current) {
-        setSignatureError('Signe dans la zone avant d’enregistrer.')
+        setSignatureError("Signe dans la zone avant d'enregistrer.")
         return
       }
       if (!supabase) throw new Error('Supabase non initialisé')
@@ -6800,7 +6853,7 @@ export default function AppHtmlPage() {
   async function deleteClient(id: string) {
     if (!supabase) return
     const c = clients.find((x) => x.id === id)
-    const ok = confirm(`Supprimer le client “${c?.name || ''}” ?`)
+    const ok = confirm(`Supprimer le client "${c?.name || ''}" ?`)
     if (!ok) return
 
     try {
@@ -6888,25 +6941,25 @@ export default function AppHtmlPage() {
 
       for (const q of (qData || []) as any[]) {
         const id = String(q.client_id)
-        if (!map[id]) map[id] = { quotes: 0, invoices: 0, contracts: 0, totalInvoiced: 0, lastStatus: '—', lastAt: 0 }
+        if (!map[id]) map[id] = { quotes: 0, invoices: 0, contracts: 0, totalInvoiced: 0, lastStatus: '-', lastAt: 0 }
         map[id].quotes += 1
       }
 
       for (const c of (cData || []) as any[]) {
         const id = String(c.client_id)
-        if (!map[id]) map[id] = { quotes: 0, invoices: 0, contracts: 0, totalInvoiced: 0, lastStatus: '—', lastAt: 0 }
+        if (!map[id]) map[id] = { quotes: 0, invoices: 0, contracts: 0, totalInvoiced: 0, lastStatus: '-', lastAt: 0 }
         map[id].contracts += 1
       }
 
       for (const inv of (iData || []) as any[]) {
         const id = String(inv.client_id)
-        if (!map[id]) map[id] = { quotes: 0, invoices: 0, contracts: 0, totalInvoiced: 0, lastStatus: '—', lastAt: 0 }
+        if (!map[id]) map[id] = { quotes: 0, invoices: 0, contracts: 0, totalInvoiced: 0, lastStatus: '-', lastAt: 0 }
         map[id].invoices += 1
         map[id].totalInvoiced += Number(inv.total_ttc || 0)
         const t = inv.created_at ? new Date(inv.created_at).getTime() : 0
         if (t >= map[id].lastAt) {
           map[id].lastAt = t
-          map[id].lastStatus = String(inv.status || '—')
+          map[id].lastStatus = String(inv.status || '-')
         }
       }
 
@@ -7037,7 +7090,7 @@ RÈGLES :
 - Termine toujours par une formule de politesse adaptée au ton
 - Ne mets pas d'objet sauf si demandé
 - Écris uniquement l'email, rien d'autre (pas d'explication, pas de commentaire)
-- Ne signe jamais “Spyke” ou “Spyke assistance IA”. La signature doit être celle du freelance.
+- Ne signe jamais "Spyke" ou "Spyke assistance IA". La signature doit être celle du freelance.
 
 LONGUEUR : Adapte la longueur au contexte.
 - Relance / message simple → court (4-6 lignes)
@@ -7058,13 +7111,13 @@ CONTEXTE UTILISATEUR :
         const c = ins.activeContracts?.[0]
 
         if (template === 'Relance' && inv) {
-          return `Je souhaite relancer ${ins.clientName || 'le client'} pour une facture impayée (n° ${inv.number || '—'}, montant ${formatMoney(Number(inv.total_ttc || 0))}${inv.due_date ? `, échéance ${formatDateFr(String(inv.due_date).slice(0, 10))}` : ''}).`
+          return `Je souhaite relancer ${ins.clientName || 'le client'} pour une facture impayée (n° ${inv.number || '-'}, montant ${formatMoney(Number(inv.total_ttc || 0))}${inv.due_date ? `, échéance ${formatDateFr(String(inv.due_date).slice(0, 10))}` : ''}).`
         }
         if (template === 'Facture' && inv) {
-          return `Je veux envoyer une relance de paiement concernant la facture n° ${inv.number || '—'} (${formatMoney(Number(inv.total_ttc || 0))}).`
+          return `Je veux envoyer une relance de paiement concernant la facture n° ${inv.number || '-'} (${formatMoney(Number(inv.total_ttc || 0))}).`
         }
         if (template === 'Relance devis' && quote) {
-          return `Je souhaite relancer ${ins.clientName || 'le client'} suite à l'envoi du devis n° ${quote.number || '—'} (${formatMoney(Number(quote.total_ttc || 0))}).`
+          return `Je souhaite relancer ${ins.clientName || 'le client'} suite à l'envoi du devis n° ${quote.number || '-'} (${formatMoney(Number(quote.total_ttc || 0))}).`
         }
         if (template === 'Réponse' && c) {
           return `Répondre au client au sujet du contrat ${c.number || ''} (${c.title || 'Contrat'}).`
@@ -9122,7 +9175,7 @@ CONTEXTE UTILISATEUR :
         <div className="help-drawer-header">
           <div>
             <div className="help-drawer-title">Aide Spyke</div>
-            <div className="help-drawer-subtitle">Pose une question sur l’outil (réponses générales)</div>
+            <div className="help-drawer-subtitle">Pose une question sur l'outil (réponses générales)</div>
           </div>
           <button className="btn btn-secondary" type="button" onClick={() => setHelpOpen(false)}>
             Fermer
@@ -9133,7 +9186,7 @@ CONTEXTE UTILISATEUR :
           {helpError ? <div className="help-error">{helpError}</div> : null}
 
           {helpMessages.length === 0 ? (
-            <div className="help-empty">Ex: “Comment envoyer un devis ?”, “Quelles mentions sur une facture ?”</div>
+            <div className="help-empty">Ex: "Comment envoyer un devis ?", "Quelles mentions sur une facture ?"</div>
           ) : (
             helpMessages.map((m) => (
               <div key={m.id} className={`help-msg ${m.role === 'user' ? 'user' : 'assistant'}`}>
@@ -9282,7 +9335,7 @@ CONTEXTE UTILISATEUR :
           <div className="mobile-topbar-title">Spyke</div>
         </div>
         {/* Dashboard */}
-        <div id="tab-dashboard" className={`tab-content ${tab === 'dashboard' ? 'active' : ''}`}> 
+        <div id="tab-dashboard" className={`tab-content ${tab === 'dashboard' ? 'active' : ''}`}>
           <div className="page-header">
             <div>
               <h1 className="page-title">Dashboard</h1>
@@ -9362,7 +9415,7 @@ CONTEXTE UTILISATEUR :
                   </div>
                 </div>
 
-                <div className="quick-action" onClick={() => goTab('factures')}> 
+                <div className="quick-action" onClick={() => goTab('factures')}>
                   <div className="quick-action-icon">💰</div>
                   <div className="quick-action-text">
                     <h4>Nouvelle facture</h4>
@@ -9441,7 +9494,7 @@ CONTEXTE UTILISATEUR :
                         {dashboardQuotes.map((q) => (
                           <tr key={q.id}>
                             <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{q.number}</td>
-                            <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{q.title || '—'}</td>
+                            <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{q.title || '-'}</td>
                             <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{q.status || 'draft'}</td>
                             <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)', textAlign: 'right', fontWeight: 700 }}>
                               {formatMoney(Number(q.total_ttc || 0))}
@@ -9459,7 +9512,7 @@ CONTEXTE UTILISATEUR :
                         <div className="mobile-card-top">
                           <div>
                             <div className="mobile-card-title">{q.number}</div>
-                            <div className="mobile-card-sub">{q.title || '—'}</div>
+                            <div className="mobile-card-sub">{q.title || '-'}</div>
                           </div>
                           <div style={{ textAlign: 'right' }}>
                             <div className="mobile-card-amount">{formatMoney(Number(q.total_ttc || 0))}</div>
@@ -9526,7 +9579,7 @@ CONTEXTE UTILISATEUR :
                             <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{inv.number}</td>
                             <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{inv.status || 'draft'}</td>
                             <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>
-                              {inv.due_date ? formatDateFr(String(inv.due_date)) : '—'}
+                              {inv.due_date ? formatDateFr(String(inv.due_date)) : '-'}
                             </td>
                             <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)', textAlign: 'right', fontWeight: 700 }}>
                               {formatMoney(Number(inv.total_ttc || 0))}
@@ -9551,7 +9604,7 @@ CONTEXTE UTILISATEUR :
                           <div className="mobile-card-top">
                             <div>
                               <div className="mobile-card-title">{inv.number}</div>
-                              <div className="mobile-card-sub">Échéance: {inv.due_date ? formatDateFr(String(inv.due_date)) : '—'}</div>
+                              <div className="mobile-card-sub">Échéance: {inv.due_date ? formatDateFr(String(inv.due_date)) : '-'}</div>
                             </div>
                             <div style={{ textAlign: 'right' }}>
                               <div className="mobile-card-amount">{formatMoney(Number(inv.total_ttc || 0))}</div>
@@ -9741,11 +9794,11 @@ CONTEXTE UTILISATEUR :
                     <div className="empty-state"><p>Client introuvable</p></div>
                   ) : (
                     <div style={{ fontSize: 14, color: 'var(--gray-700)' }}>
-                      <div><b>Email:</b> {c.email || '—'}</div>
-                      <div><b>Téléphone:</b> {c.phone || '—'}</div>
-                      <div><b>SIRET:</b> {c.siret || '—'}</div>
+                      <div><b>Email:</b> {c.email || '-'}</div>
+                      <div><b>Téléphone:</b> {c.phone || '-'}</div>
+                      <div><b>SIRET:</b> {c.siret || '-'}</div>
                       <div style={{ marginTop: 8 }}>
-                        <b>Adresse:</b> {[c.address, [c.postal_code, c.city].filter(Boolean).join(' '), c.country].filter(Boolean).join(', ') || '—'}
+                        <b>Adresse:</b> {[c.address, [c.postal_code, c.city].filter(Boolean).join(' '), c.country].filter(Boolean).join(', ') || '-'}
                       </div>
                       {c.notes ? (
                         <div style={{ marginTop: 8 }}>
@@ -9823,7 +9876,7 @@ CONTEXTE UTILISATEUR :
                         </thead>
                         <tbody>
                           {filtered.map((c) => {
-                            const s = clientStats[c.id] || { quotes: 0, invoices: 0, contracts: 0, totalInvoiced: 0, lastStatus: '—' }
+                            const s = clientStats[c.id] || { quotes: 0, invoices: 0, contracts: 0, totalInvoiced: 0, lastStatus: '-' }
                             return (
                               <tr
                                 key={c.id}
@@ -9838,10 +9891,10 @@ CONTEXTE UTILISATEUR :
                                   <div style={{ fontSize: 12, color: 'var(--gray-500)' }}>{c.siret || ''}</div>
                                 </td>
                                 <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>
-                                  <div style={{ fontSize: 13 }}>{c.email || '—'}</div>
+                                  <div style={{ fontSize: 13 }}>{c.email || '-'}</div>
                                   <div style={{ fontSize: 12, color: 'var(--gray-500)' }}>{c.phone || ''}</div>
                                 </td>
-                                <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{c.city || '—'}</td>
+                                <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{c.city || '-'}</td>
                                 <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{s.quotes}</td>
                                 <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{s.contracts}</td>
                                 <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{s.invoices}</td>
@@ -9895,7 +9948,7 @@ CONTEXTE UTILISATEUR :
                         </div>
                       ) : (
                         filtered.map((c) => {
-                          const s = clientStats[c.id] || { quotes: 0, invoices: 0, contracts: 0, totalInvoiced: 0, lastStatus: '—' }
+                          const s = clientStats[c.id] || { quotes: 0, invoices: 0, contracts: 0, totalInvoiced: 0, lastStatus: '-' }
 
                           return (
                             <div
@@ -9911,7 +9964,7 @@ CONTEXTE UTILISATEUR :
                                 <div>
                                   <div className="mobile-card-title">{c.name}</div>
                                   <div className="mobile-card-sub">
-                                    {(c.city || '—')}{c.email ? ` • ${c.email}` : ''}
+                                    {(c.city || '-')}{c.email ? ` • ${c.email}` : ''}
                                   </div>
                                   {c.phone ? <div className="mobile-card-meta">{c.phone}</div> : null}
                                 </div>
@@ -10157,7 +10210,7 @@ CONTEXTE UTILISATEUR :
                         🤖
                       </div>
                       <div className="assistant-empty-title">Décrivez votre situation</div>
-                      <div className="assistant-empty-sub">et l’IA rédige votre email en ~5 secondes.</div>
+                      <div className="assistant-empty-sub">et l'IA rédige votre email en ~5 secondes.</div>
                       <div className="assistant-examples" style={{ justifyContent: 'center' }}>
                         {[
                           'Relance polie après devis envoyé',
@@ -10237,10 +10290,10 @@ CONTEXTE UTILISATEUR :
           >
             <div style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 12, height: '100%' }}>
               <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.6)' }}>
-                À : <b>{String(assistantTo || (clients.find((c) => c.id === selectedClientId)?.email || '')).trim() || '—'}</b>
+                À : <b>{String(assistantTo || (clients.find((c) => c.id === selectedClientId)?.email || '')).trim() || '-'}</b>
               </div>
               <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.6)' }}>
-                Objet : <b>{assistantSubject.trim() || '—'}</b>
+                Objet : <b>{assistantSubject.trim() || '-'}</b>
               </div>
               <textarea
                 readOnly
@@ -10248,7 +10301,7 @@ CONTEXTE UTILISATEUR :
                 style={{ width: '100%', flex: 1, resize: 'none', padding: '12px 14px', borderRadius: 12, border: '1px solid rgba(0,0,0,0.12)', fontFamily: 'inherit' }}
               />
               <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.55)' }}>
-                Vérifie le contenu, puis clique sur “Envoyer”.
+                Vérifie le contenu, puis clique sur "Envoyer".
               </div>
             </div>
           </ModalShell>
@@ -10343,7 +10396,7 @@ CONTEXTE UTILISATEUR :
                 Cette fonctionnalité est réservée au <b>plan Pro</b>.
               </p>
               <p style={{ color: 'var(--gray-600)', marginTop: 8 }}>
-                Passez Pro dans l’onglet Paramètres pour débloquer la question juriste.
+                Passez Pro dans l'onglet Paramètres pour débloquer la question juriste.
               </p>
               <button className="btn btn-primary" type="button" onClick={() => goTab('settings')}>
                 Voir les plans
@@ -10537,7 +10590,7 @@ CONTEXTE UTILISATEUR :
                     marginBottom: 12,
                   }}
                 >
-                  Abonnement annulé — Pro jusqu’au{' '}
+                  Abonnement annulé - Pro jusqu'au{' '}
                   {new Date(stripePeriodEnd).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
                 </div>
               ) : null}
@@ -10909,12 +10962,12 @@ CONTEXTE UTILISATEUR :
 
               {planCode === 'pro' ? (
                 <div style={{ marginTop: 10, fontSize: 13, color: 'var(--gray-500)' }}>
-                  L’abonnement est annulable à tout moment depuis le portail Stripe.
+                  L'abonnement est annulable à tout moment depuis le portail Stripe.
                 </div>
               ) : null}
 
               <div style={{ marginTop: 14, fontSize: 13, color: 'var(--gray-600)' }}>
-                Besoin d’aide ? Contact : <a href="mailto:contact@spykeapp.fr">contact@spykeapp.fr</a>
+                Besoin d'aide ? Contact : <a href="mailto:contact@spykeapp.fr">contact@spykeapp.fr</a>
               </div>
             </div>
             ) : null}
@@ -11152,7 +11205,7 @@ CONTEXTE UTILISATEUR :
             </div>
 
             <div style={{ padding: 18, borderTop: '1px solid rgba(0,0,0,0.08)', display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-              <div style={{ fontSize: 12, color: 'var(--gray-500)' }}>0/5 = pas utilisé / pas d’avis.</div>
+              <div style={{ fontSize: 12, color: 'var(--gray-500)' }}>0/5 = pas utilisé / pas d'avis.</div>
               <button
                 className="btn btn-primary"
                 type="button"
@@ -11573,7 +11626,7 @@ CONTEXTE UTILISATEUR :
       >
         <div style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div style={{ fontSize: 13, color: 'rgba(0,0,0,0.65)' }}>
-            Décris le bug ou l’idée. Plus c’est précis, plus on corrige vite.
+            Décris le bug ou l'idée. Plus c'est précis, plus on corrige vite.
           </div>
           <textarea
             value={feedbackText}
