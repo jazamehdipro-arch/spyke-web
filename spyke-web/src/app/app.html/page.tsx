@@ -2995,6 +2995,11 @@ function ContratsV1({
   const [showContracts, setShowContracts] = useState(false)
   const [contracts, setContracts] = useState<any[]>([])
   const [selectedContractId, setSelectedContractId] = useState<string>('')
+  const selectedContractIdRef = useRef<string>('')
+
+  useEffect(() => {
+    selectedContractIdRef.current = String(selectedContractId || '')
+  }, [selectedContractId])
 
   const [clientId, setClientId] = useState('')
   const [clientName, setClientName] = useState('')
@@ -3191,6 +3196,8 @@ function ContratsV1({
   }
 
   async function openContract(id: string) {
+    // Keep a synchronous reference to avoid race conditions in generateContractPdf()
+    selectedContractIdRef.current = String(id || '')
     setSelectedContractId(id)
     if (!supabase || !id) return
 
@@ -3622,7 +3629,8 @@ function ContratsV1({
             .maybeSingle()
           if (existingErr) throw existingErr
 
-          if (existing?.id && String(existing.id) !== String(selectedContractId || '')) {
+          const currentId = String(selectedContractIdRef.current || selectedContractId || '')
+          if (existing?.id && String(existing.id) !== currentId) {
             throw new Error('Numéro de contrat déjà utilisé')
           }
 
