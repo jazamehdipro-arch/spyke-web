@@ -6061,7 +6061,7 @@ export default function AppHtmlPage() {
   const [dashboardCaMonth, setDashboardCaMonth] = useState<number>(0)
   const [dashboardActiveClients, setDashboardActiveClients] = useState<number>(0)
   const [dashboardPendingQuotes, setDashboardPendingQuotes] = useState<number>(0)
-  const [dashboardSentInvoices, setDashboardSentInvoices] = useState<number>(0)
+  const [dashboardPaidInvoices, setDashboardPaidInvoices] = useState<number>(0)
 
   // Allow sub-components to navigate tabs
   useEffect(() => {
@@ -6799,7 +6799,7 @@ export default function AppHtmlPage() {
       const startStr = start.toISOString().slice(0, 10)
       const endStr = end.toISOString().slice(0, 10)
 
-      const [{ data: q }, { data: inv }, { data: ctr }, { data: invMonth }, { count: clientsCount }, { count: pendingQuotesCount }, { count: sentInvoicesCount }] = await Promise.all([
+      const [{ data: q }, { data: inv }, { data: ctr }, { data: invMonth }, { count: clientsCount }, { count: pendingQuotesCount }, { count: paidInvoicesCount }] = await Promise.all([
         supabase.from('quotes').select('id,number,title,status,total_ttc,created_at,date_issue,validity_until').order('created_at', { ascending: false }).limit(5),
         supabase
           .from('invoices')
@@ -6820,7 +6820,7 @@ export default function AppHtmlPage() {
         supabase
           .from('invoices')
           .select('id', { count: 'exact', head: true })
-          .in('status', ['sent', 'overdue']),
+          .eq('status', 'paid'),
       ])
 
       setDashboardQuotes(q || [])
@@ -6833,7 +6833,7 @@ export default function AppHtmlPage() {
       setDashboardCaMonth(ca)
 
       setDashboardPendingQuotes(Number(pendingQuotesCount || 0))
-      setDashboardSentInvoices(Number(sentInvoicesCount || 0))
+      setDashboardPaidInvoices(Number(paidInvoicesCount || 0))
     } catch {
       // ignore
     }
@@ -9310,8 +9310,8 @@ CONTEXTE UTILISATEUR :
                   </svg>
                 </div>
               </div>
-              <div className="stat-value">{dashboardSentInvoices}</div>
-              <div className="stat-label">Factures envoyées</div>
+              <div className="stat-value">{dashboardPaidInvoices}</div>
+              <div className="stat-label">Factures payées</div>
             </div>
           </div>
 
