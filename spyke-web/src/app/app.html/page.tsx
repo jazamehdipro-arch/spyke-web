@@ -910,6 +910,33 @@ function DevisV4({
     }
   }
 
+  async function deleteQuote(id: string) {
+    try {
+      if (!supabase || !userId || !id) return
+      const q = quotes.find((x) => String(x.id) === String(id))
+      const ok = confirm(`Supprimer le devis ${String((q as any)?.number || '')} ?`)
+      if (!ok) return
+
+      const { error: delLinesErr } = await supabase.from('quote_lines').delete().eq('quote_id', id)
+      if (delLinesErr) throw delLinesErr
+
+      const { error: delQuoteErr } = await supabase.from('quotes').delete().eq('id', id)
+      if (delQuoteErr) throw delQuoteErr
+
+      // Refresh list
+      const { data: quotesData } = await supabase
+        .from('quotes')
+        .select('id,number,title,status,total_ttc,created_at,date_issue,validity_until')
+        .order('created_at', { ascending: false })
+        .limit(30)
+
+      setQuotes(quotesData || [])
+      if (currentQuoteId === id) setCurrentQuoteId('')
+    } catch (e: any) {
+      alert(e?.message || 'Erreur suppression devis')
+    }
+  }
+
   function resetNewQuote() {
     setMode('create')
     setCurrentQuoteId('')
@@ -2098,6 +2125,9 @@ Réponds uniquement par le texte de la description.`
                               >
                                 Facture
                               </button>
+                              <button className="btn btn-secondary" type="button" onClick={() => deleteQuote(String(q.id))}>
+                                Supprimer
+                              </button>
                             </div>
                           </td>
                         </tr>
@@ -2157,6 +2187,9 @@ Réponds uniquement par le texte de la description.`
                             }}
                           >
                             Facture
+                          </button>
+                          <button className="btn btn-secondary" type="button" onClick={() => deleteQuote(String(q.id))}>
+                            Supprimer
                           </button>
                         </div>
                       </div>
