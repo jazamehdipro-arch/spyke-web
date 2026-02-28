@@ -191,79 +191,169 @@ export default function CguPage() {
             plateforme Spyke (le « Service »).
           </p>
           <p>
-            En utilisant Spyke, vous acceptez ces CGU. Si vous n’acceptez pas, n’utilisez pas le Service.
+            En utilisant Spyke, vous reconnaissez avoir pris connaissance des CGU et les accepter. Si vous n’acceptez pas
+            ces CGU, n’utilisez pas le Service.
           </p>
 
-          <h2>1. Objet du Service</h2>
+          <h2>1. Éditeur du Service</h2>
           <p>
-            Spyke propose des fonctionnalités d’aide à la rédaction et à la génération de contenus destinés aux freelances
-            (ex. emails, devis, factures, contrats), ainsi que des fonctionnalités optionnelles (ex. question juriste).
+            Le Service est édité par <b>JAZA Mehdi</b> (Auto-entrepreneur) – SIRET : <b>929 238 566 00020</b>.
+            <br />
+            Contact : <a href="mailto:contact@spykeapp.fr">contact@spykeapp.fr</a>.
+            <br />
+            Pour plus d’informations, voir les <a href="/mentions-legales.html">Mentions légales</a>.
           </p>
 
-          <h2>2. Création de compte</h2>
-          <p>
-            Certaines fonctionnalités nécessitent la création d’un compte. Vous vous engagez à fournir des informations
-            exactes et à maintenir la confidentialité de vos identifiants.
-          </p>
-
-          <h2>3. Utilisation acceptable</h2>
+          <h2>2. Définitions (extraits)</h2>
           <ul>
-            <li>Vous vous engagez à ne pas utiliser le Service à des fins illégales, frauduleuses ou malveillantes.</li>
-            <li>Vous ne devez pas tenter de contourner les limites, protections ou mesures de sécurité du Service.</li>
-            <li>Vous restez responsable des contenus que vous saisissez et de ceux que vous envoyez à des tiers.</li>
+            <li>
+              <b>Utilisateur</b> : toute personne créant un compte ou utilisant le Service.
+            </li>
+            <li>
+              <b>Compte</b> : espace personnel permettant d’accéder aux fonctionnalités (clients, devis, factures, contrats,
+              emails, etc.).
+            </li>
+            <li>
+              <b>Contenu Utilisateur</b> : informations et contenus saisis/importés par l’Utilisateur (données clients,
+              lignes, PDF importés, etc.).
+            </li>
+            <li>
+              <b>Documents</b> : devis, factures, contrats et tout PDF généré via le Service.
+            </li>
+            <li>
+              <b>Abonnement</b> : accès payant (ex. Pro) décrit sur la page <a href="/tarifs.html">Tarifs</a>.
+            </li>
           </ul>
 
-          <h2>4. Contenus générés & responsabilité</h2>
+          <h2>3. À qui s’adresse Spyke (éligibilité)</h2>
           <p>
-            Le Service peut générer des textes automatiquement. Ces contenus sont fournis à titre d’assistance et doivent
-            être relus et validés par vous avant utilisation (envoi à un client, signature, émission de documents, etc.).
-          </p>
-          <p>
-            Spyke ne garantit pas l’exactitude, l’exhaustivité ni l’adéquation juridique/fiscale des contenus générés.
+            Spyke est destiné aux <b>freelances</b> et <b>entreprises</b> (usage professionnel). En utilisant le Service, vous
+            déclarez agir dans un cadre professionnel et disposer de la capacité nécessaire.
           </p>
 
-          <h2>5. Fonction « Question juriste »</h2>
+          <h2>4. Création de compte et sécurité</h2>
+          <p>
+            Certaines fonctionnalités nécessitent la création d’un Compte. Vous vous engagez à fournir des informations
+            exactes, à les maintenir à jour, et à conserver la confidentialité de vos identifiants.
+          </p>
+          <p>
+            Vous êtes responsable de toute activité réalisée depuis votre Compte, sauf preuve d’un usage frauduleux non
+            imputable à votre fait.
+          </p>
+
+          <h2>5. Fonctionnement du Service (résumé)</h2>
+          <p>
+            Spyke propose notamment :
+          </p>
+          <ul>
+            <li>génération et gestion de Documents (devis, factures, contrats) ;</li>
+            <li>aide à la rédaction (ex. emails) ;</li>
+            <li>fonctionnalités optionnelles (ex. « Question juriste ») ;</li>
+            <li>intégrations (ex. connexion Gmail) lorsqu’elles sont disponibles.</li>
+          </ul>
+
+          <h2>6. Abonnements, paiement et essai</h2>
+          <p>
+            Spyke propose un plan gratuit et un plan payant (ex. Pro). Les fonctionnalités, limites et prix applicables sont
+            ceux décrits sur la page <a href="/tarifs.html">Tarifs</a> au moment de la souscription.
+          </p>
+          <p>
+            Les paiements et la gestion de l’Abonnement peuvent être opérés via un prestataire de paiement (ex. Stripe).
+            Vous pouvez résilier à tout moment selon les modalités indiquées dans l’interface (portail client).
+          </p>
+          <p>
+            Lorsque le plan Pro inclut une période d’essai, les conditions (durée, passage à l’offre payante, résiliation
+            avant échéance) sont celles affichées sur la page Tarifs / au moment du checkout.
+          </p>
+
+          <h2>7. Utilisation acceptable</h2>
+          <ul>
+            <li>ne pas utiliser le Service à des fins illégales, frauduleuses ou malveillantes ;</li>
+            <li>ne pas tenter de contourner les limites, protections ou mesures de sécurité ;</li>
+            <li>ne pas perturber le Service (ex. scraping, attaques, surcharge) ;</li>
+            <li>ne pas exploiter Spyke pour fournir un service concurrent ou détourner ses fonctionnalités.</li>
+          </ul>
+
+          <h2>8. IA, contenus générés et vérifications</h2>
+          <p>
+            Le Service peut générer des contenus automatiquement (IA). Ces contenus sont fournis à titre d’assistance et
+            doivent être <b>relus, vérifiés et validés</b> par vous avant toute utilisation (envoi à un client, émission
+            d’un Document, signature, dépôt administratif, etc.).
+          </p>
+          <p>
+            Spyke ne garantit pas l’exactitude, l’exhaustivité, ni l’adéquation juridique/fiscale des contenus générés.
+            Vous restez seul responsable de leur utilisation et des décisions prises sur leur base.
+          </p>
+
+          <h2>9. Documents (devis, factures, contrats)</h2>
+          <p>
+            Spyke fournit des outils de génération de Documents. Il vous appartient notamment de vérifier les mentions
+            obligatoires, les montants, les taux de TVA, les délais et, plus généralement, la conformité de vos Documents à
+            votre situation (régime, activité, obligations légales et contractuelles).
+          </p>
+
+          <h2>10. Fonction « Question juriste »</h2>
           <p>
             Lorsque cette fonctionnalité est utilisée, votre question est transmise à un juriste. La réponse est fournie
             selon le délai indiqué dans l’interface (objectif « moins de 24h »).
           </p>
           <p>
+            Cette fonctionnalité peut être facturée <b>à la question</b> (ex. 5€). Le prix affiché au moment de l’achat
+            fait foi.
+          </p>
+          <p>
             Si vous renseignez un numéro de téléphone, vous acceptez qu’un juriste puisse vous contacter si nécessaire.
           </p>
 
-          <h2>6. Facturation</h2>
+          <h2>11. Données personnelles</h2>
           <p>
-            Certaines fonctionnalités peuvent être payantes (ex. abonnement Pro, paiement à l’acte). Les prix applicables
-            sont ceux affichés au moment de l’achat.
-          </p>
-
-          <h2>7. Disponibilité</h2>
-          <p>
-            Le Service est fourni « en l’état » et peut être interrompu pour maintenance, mises à jour ou incidents.
-          </p>
-
-          <h2>8. Données personnelles</h2>
-          <p>
-            Le traitement des données personnelles est décrit dans la{' '}
+            Les modalités de traitement de vos données sont décrites dans la{' '}
             <a href="/confidentialite.html">Politique de confidentialité</a>.
           </p>
 
-          <h2>9. Propriété intellectuelle</h2>
+          <h2>12. Propriété intellectuelle</h2>
           <p>
-            Spyke, ses marques, logos, éléments graphiques et logiciels sont protégés. Toute reproduction non autorisée est
-            interdite.
+            Spyke (logiciel, interface, marque, logos, éléments graphiques) est protégé. Sauf mention contraire, aucun
+            droit de propriété intellectuelle ne vous est cédé.
+          </p>
+          <p>
+            Vous conservez vos droits sur votre Contenu Utilisateur. Vous accordez à Spyke une licence limitée, non
+            exclusive, strictement nécessaire au fonctionnement du Service (hébergement, traitement, génération de
+            Documents, support).
           </p>
 
-          <h2>10. Modification des CGU</h2>
+          <h2>13. Disponibilité – maintenance</h2>
           <p>
-            Nous pouvons faire évoluer les CGU. La version applicable est celle publiée sur cette page à la date de votre
-            utilisation.
+            Le Service est fourni « en l’état » et peut être interrompu (maintenance, mises à jour, incidents, contraintes
+            d’hébergement). Spyke s’efforce d’assurer un niveau de disponibilité raisonnable, sans garantie absolue.
           </p>
 
-          <h2>11. Contact</h2>
+          <h2>14. Suspension / résiliation</h2>
           <p>
-            Pour toute question, vous pouvez nous contacter à l’adresse :{' '}
-            <a href="mailto:contact@spykeapp.fr">contact@spykeapp.fr</a>.
+            Vous pouvez cesser d’utiliser le Service à tout moment. Spyke peut suspendre ou résilier l’accès en cas de
+            violation des CGU, d’abus, ou de risque de sécurité.
+          </p>
+
+          <h2>15. Responsabilité</h2>
+          <p>
+            Dans les limites autorisées par la loi, Spyke ne pourra être tenu responsable des dommages indirects (perte de
+            chance, perte d’exploitation, perte de données, etc.) et ne garantit pas que le Service réponde à l’ensemble de
+            vos besoins spécifiques.
+          </p>
+
+          <h2>16. Modification des CGU</h2>
+          <p>
+            Les CGU peuvent évoluer. La version applicable est celle publiée sur cette page à la date d’utilisation.
+          </p>
+
+          <h2>17. Droit applicable</h2>
+          <p>
+            Les présentes CGU sont régies par le droit français.
+          </p>
+
+          <h2>18. Contact</h2>
+          <p>
+            Pour toute question : <a href="mailto:contact@spykeapp.fr">contact@spykeapp.fr</a>.
           </p>
         </div>
       </main>
