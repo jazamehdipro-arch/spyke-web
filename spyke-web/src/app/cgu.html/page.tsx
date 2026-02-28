@@ -25,6 +25,7 @@ export default function CguPage() {
           --gray-800: #27272a;
           --gray-900: #18181b;
           --yellow: #facc15;
+          --yellow-dark: #eab308;
         }
 
         body {
@@ -79,7 +80,7 @@ export default function CguPage() {
         .nav-links {
           display: flex;
           align-items: center;
-          gap: 28px;
+          gap: 40px;
           list-style: none;
         }
 
@@ -87,7 +88,27 @@ export default function CguPage() {
           text-decoration: none;
           color: var(--gray-600);
           font-size: 15px;
+          font-weight: 500;
+          transition: color 0.2s ease;
+        }
+
+        .nav-links a:hover,
+        .nav-links a.active {
+          color: var(--black);
+        }
+
+        .nav-cta {
+          background: var(--black);
+          color: var(--white) !important;
+          padding: 12px 28px;
+          border-radius: 50px;
           font-weight: 600;
+          transition: all 0.3s ease;
+        }
+
+        .nav-cta:hover {
+          background: var(--gray-800);
+          transform: translateY(-2px);
         }
 
         .container {
@@ -117,6 +138,32 @@ export default function CguPage() {
           background: var(--white);
         }
 
+        .toc {
+          margin: 18px 0 10px;
+          padding: 14px 14px;
+          border-radius: 14px;
+          background: var(--gray-50);
+          border: 1px solid var(--gray-200);
+        }
+
+        .toc-title {
+          font-weight: 800;
+          font-size: 13px;
+          letter-spacing: 0.5px;
+          text-transform: uppercase;
+          color: var(--gray-700);
+          margin-bottom: 10px;
+        }
+
+        .toc a {
+          color: var(--gray-800);
+          text-decoration: none;
+        }
+
+        .toc a:hover {
+          text-decoration: underline;
+        }
+
         h2 {
           font-size: 18px;
           margin-top: 22px;
@@ -139,22 +186,73 @@ export default function CguPage() {
         }
 
         footer {
-          border-top: 1px solid var(--gray-200);
-          padding: 26px 18px;
+          padding: 60px 48px;
+          background: var(--gray-900);
+        }
+
+        .footer-container {
+          max-width: 1200px;
+          margin: 0 auto;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 24px;
+        }
+
+        .footer-logo {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          font-family: 'Syne', sans-serif;
+          font-size: 22px;
+          font-weight: 700;
+          color: var(--white);
+        }
+
+        .footer-logo .logo-icon {
+          width: 32px;
+          height: 32px;
+        }
+
+        .footer-links {
+          display: flex;
+          gap: 32px;
+          flex-wrap: wrap;
+          justify-content: center;
+        }
+
+        .footer-links a {
+          color: var(--gray-400);
+          text-decoration: none;
+          font-size: 14px;
+        }
+
+        .footer-links a:hover {
+          color: var(--white);
+        }
+
+        .footer-copy {
+          font-size: 14px;
           color: var(--gray-500);
-          font-size: 13px;
-          text-align: center;
         }
 
         @media (max-width: 768px) {
           nav {
-            padding: 16px 18px;
+            padding: 16px 24px;
           }
           h1 {
             font-size: 34px;
           }
           .nav-links {
             display: none;
+          }
+          footer {
+            padding: 50px 24px;
+          }
+          .footer-container {
+            flex-direction: column;
+            gap: 24px;
+            text-align: center;
           }
         }
       `}</style>
@@ -170,13 +268,18 @@ export default function CguPage() {
         </a>
         <ul className="nav-links">
           <li>
-            <a href="mailto:contact@spykeapp.fr">Contact</a>
+            <a href="/fonctionnalites.html">Fonctionnalités</a>
           </li>
           <li>
-            <a href="/mentions-legales.html">Mentions légales</a>
+            <a href="/comment-ca-marche.html">Comment ça marche</a>
           </li>
           <li>
-            <a href="/confidentialite.html">Confidentialité</a>
+            <a href="/tarifs.html">Tarifs</a>
+          </li>
+          <li>
+            <a href="/connexion.html" className="nav-cta">
+              Commencer
+            </a>
           </li>
         </ul>
       </nav>
@@ -195,7 +298,31 @@ export default function CguPage() {
             ces CGU, n’utilisez pas le Service.
           </p>
 
-          <h2>1. Éditeur du Service</h2>
+          <div className="toc">
+            <div className="toc-title">Sommaire</div>
+            <ul>
+              <li><a href="#editeur">1. Éditeur du Service</a></li>
+              <li><a href="#definitions">2. Définitions</a></li>
+              <li><a href="#eligibilite">3. Éligibilité</a></li>
+              <li><a href="#compte">4. Compte & sécurité</a></li>
+              <li><a href="#fonctionnement">5. Fonctionnement du Service</a></li>
+              <li><a href="#abonnements">6. Abonnements & paiement</a></li>
+              <li><a href="#usage">7. Utilisation acceptable</a></li>
+              <li><a href="#ia">8. IA & contenus générés</a></li>
+              <li><a href="#documents">9. Documents</a></li>
+              <li><a href="#juriste">10. Question juriste</a></li>
+              <li><a href="#donnees">11. Données personnelles</a></li>
+              <li><a href="#ip">12. Propriété intellectuelle</a></li>
+              <li><a href="#dispo">13. Disponibilité</a></li>
+              <li><a href="#resiliation">14. Suspension / résiliation</a></li>
+              <li><a href="#responsabilite">15. Responsabilité</a></li>
+              <li><a href="#modifs">16. Modification des CGU</a></li>
+              <li><a href="#droit">17. Droit applicable</a></li>
+              <li><a href="#contact">18. Contact</a></li>
+            </ul>
+          </div>
+
+          <h2 id="editeur">1. Éditeur du Service</h2>
           <p>
             Le Service est édité par <b>JAZA Mehdi</b> (Auto-entrepreneur) – SIRET : <b>929 238 566 00020</b>.
             <br />
@@ -204,7 +331,7 @@ export default function CguPage() {
             Pour plus d’informations, voir les <a href="/mentions-legales.html">Mentions légales</a>.
           </p>
 
-          <h2>2. Définitions (extraits)</h2>
+          <h2 id="definitions">2. Définitions (extraits)</h2>
           <ul>
             <li>
               <b>Utilisateur</b> : toute personne créant un compte ou utilisant le Service.
@@ -225,13 +352,13 @@ export default function CguPage() {
             </li>
           </ul>
 
-          <h2>3. À qui s’adresse Spyke (éligibilité)</h2>
+          <h2 id="eligibilite">3. À qui s’adresse Spyke (éligibilité)</h2>
           <p>
             Spyke est destiné aux <b>freelances</b> et <b>entreprises</b> (usage professionnel). En utilisant le Service, vous
             déclarez agir dans un cadre professionnel et disposer de la capacité nécessaire.
           </p>
 
-          <h2>4. Création de compte et sécurité</h2>
+          <h2 id="compte">4. Création de compte et sécurité</h2>
           <p>
             Certaines fonctionnalités nécessitent la création d’un Compte. Vous vous engagez à fournir des informations
             exactes, à les maintenir à jour, et à conserver la confidentialité de vos identifiants.
@@ -241,7 +368,7 @@ export default function CguPage() {
             imputable à votre fait.
           </p>
 
-          <h2>5. Fonctionnement du Service (résumé)</h2>
+          <h2 id="fonctionnement">5. Fonctionnement du Service (résumé)</h2>
           <p>
             Spyke propose notamment :
           </p>
@@ -252,7 +379,7 @@ export default function CguPage() {
             <li>intégrations (ex. connexion Gmail) lorsqu’elles sont disponibles.</li>
           </ul>
 
-          <h2>6. Abonnements, paiement et essai</h2>
+          <h2 id="abonnements">6. Abonnements, paiement et essai</h2>
           <p>
             Spyke propose un plan gratuit et un plan payant (ex. Pro). Les fonctionnalités, limites et prix applicables sont
             ceux décrits sur la page <a href="/tarifs.html">Tarifs</a> au moment de la souscription.
@@ -266,7 +393,7 @@ export default function CguPage() {
             avant échéance) sont celles affichées sur la page Tarifs / au moment du checkout.
           </p>
 
-          <h2>7. Utilisation acceptable</h2>
+          <h2 id="usage">7. Utilisation acceptable</h2>
           <ul>
             <li>ne pas utiliser le Service à des fins illégales, frauduleuses ou malveillantes ;</li>
             <li>ne pas tenter de contourner les limites, protections ou mesures de sécurité ;</li>
@@ -274,7 +401,7 @@ export default function CguPage() {
             <li>ne pas exploiter Spyke pour fournir un service concurrent ou détourner ses fonctionnalités.</li>
           </ul>
 
-          <h2>8. IA, contenus générés et vérifications</h2>
+          <h2 id="ia">8. IA, contenus générés et vérifications</h2>
           <p>
             Le Service peut générer des contenus automatiquement (IA). Ces contenus sont fournis à titre d’assistance et
             doivent être <b>relus, vérifiés et validés</b> par vous avant toute utilisation (envoi à un client, émission
@@ -285,14 +412,14 @@ export default function CguPage() {
             Vous restez seul responsable de leur utilisation et des décisions prises sur leur base.
           </p>
 
-          <h2>9. Documents (devis, factures, contrats)</h2>
+          <h2 id="documents">9. Documents (devis, factures, contrats)</h2>
           <p>
             Spyke fournit des outils de génération de Documents. Il vous appartient notamment de vérifier les mentions
             obligatoires, les montants, les taux de TVA, les délais et, plus généralement, la conformité de vos Documents à
             votre situation (régime, activité, obligations légales et contractuelles).
           </p>
 
-          <h2>10. Fonction « Question juriste »</h2>
+          <h2 id="juriste">10. Fonction « Question juriste »</h2>
           <p>
             Lorsque cette fonctionnalité est utilisée, votre question est transmise à un juriste. La réponse est fournie
             selon le délai indiqué dans l’interface (objectif « moins de 24h »).
@@ -305,13 +432,13 @@ export default function CguPage() {
             Si vous renseignez un numéro de téléphone, vous acceptez qu’un juriste puisse vous contacter si nécessaire.
           </p>
 
-          <h2>11. Données personnelles</h2>
+          <h2 id="donnees">11. Données personnelles</h2>
           <p>
             Les modalités de traitement de vos données sont décrites dans la{' '}
             <a href="/confidentialite.html">Politique de confidentialité</a>.
           </p>
 
-          <h2>12. Propriété intellectuelle</h2>
+          <h2 id="ip">12. Propriété intellectuelle</h2>
           <p>
             Spyke (logiciel, interface, marque, logos, éléments graphiques) est protégé. Sauf mention contraire, aucun
             droit de propriété intellectuelle ne vous est cédé.
@@ -322,43 +449,65 @@ export default function CguPage() {
             Documents, support).
           </p>
 
-          <h2>13. Disponibilité – maintenance</h2>
+          <h2 id="dispo">13. Disponibilité – maintenance</h2>
           <p>
             Le Service est fourni « en l’état » et peut être interrompu (maintenance, mises à jour, incidents, contraintes
             d’hébergement). Spyke s’efforce d’assurer un niveau de disponibilité raisonnable, sans garantie absolue.
           </p>
 
-          <h2>14. Suspension / résiliation</h2>
+          <h2 id="resiliation">14. Suspension / résiliation</h2>
           <p>
             Vous pouvez cesser d’utiliser le Service à tout moment. Spyke peut suspendre ou résilier l’accès en cas de
             violation des CGU, d’abus, ou de risque de sécurité.
           </p>
 
-          <h2>15. Responsabilité</h2>
+          <h2 id="responsabilite">15. Responsabilité</h2>
           <p>
             Dans les limites autorisées par la loi, Spyke ne pourra être tenu responsable des dommages indirects (perte de
             chance, perte d’exploitation, perte de données, etc.) et ne garantit pas que le Service réponde à l’ensemble de
             vos besoins spécifiques.
           </p>
 
-          <h2>16. Modification des CGU</h2>
+          <h2 id="modifs">16. Modification des CGU</h2>
           <p>
             Les CGU peuvent évoluer. La version applicable est celle publiée sur cette page à la date d’utilisation.
           </p>
 
-          <h2>17. Droit applicable</h2>
+          <h2 id="droit">17. Droit applicable</h2>
           <p>
             Les présentes CGU sont régies par le droit français.
           </p>
 
-          <h2>18. Contact</h2>
+          <h2 id="contact">18. Contact</h2>
           <p>
             Pour toute question : <a href="mailto:contact@spykeapp.fr">contact@spykeapp.fr</a>.
           </p>
         </div>
       </main>
 
-      <footer>Spyke — CGU</footer>
+      <footer>
+        <div className="footer-container">
+          <div className="footer-logo">
+            <div className="logo-icon">
+              <svg viewBox="0 0 24 24">
+                <path d="M13 3L4 14h7l-2 7 9-11h-7l2-7z" />
+              </svg>
+            </div>
+            Spyke
+          </div>
+
+          <div className="footer-links">
+            <a href="/fonctionnalites.html">Fonctionnalités</a>
+            <a href="/comment-ca-marche.html">Comment ça marche</a>
+            <a href="/tarifs.html">Tarifs</a>
+            <a href="/mentions-legales.html">Mentions légales</a>
+            <a href="/cgu.html">CGU</a>
+            <a href="/confidentialite.html">Confidentialité</a>
+          </div>
+
+          <p className="footer-copy">Spyke © 2026</p>
+        </div>
+      </footer>
     </>
   )
 }
