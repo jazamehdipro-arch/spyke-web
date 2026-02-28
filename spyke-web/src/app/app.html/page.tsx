@@ -6061,6 +6061,7 @@ export default function AppHtmlPage() {
   const [dashboardCaMonth, setDashboardCaMonth] = useState<number>(0)
   const [dashboardActiveClients, setDashboardActiveClients] = useState<number>(0)
   const [dashboardPendingQuotes, setDashboardPendingQuotes] = useState<number>(0)
+  const [dashboardSentInvoices, setDashboardSentInvoices] = useState<number>(0)
 
   // Allow sub-components to navigate tabs
   useEffect(() => {
@@ -6798,7 +6799,7 @@ export default function AppHtmlPage() {
       const startStr = start.toISOString().slice(0, 10)
       const endStr = end.toISOString().slice(0, 10)
 
-      const [{ data: q }, { data: inv }, { data: ctr }, { data: invMonth }, { count: clientsCount }] = await Promise.all([
+      const [{ data: q }, { data: inv }, { data: ctr }, { data: invMonth }, { count: clientsCount }, { count: pendingQuotesCount }, { count: sentInvoicesCount }] = await Promise.all([
         supabase.from('quotes').select('id,number,title,status,total_ttc,created_at,date_issue,validity_until').order('created_at', { ascending: false }).limit(5),
         supabase
           .from('invoices')
@@ -6812,6 +6813,14 @@ export default function AppHtmlPage() {
           .gte('date_issue', startStr)
           .lt('date_issue', endStr),
         supabase.from('clients').select('id', { count: 'exact', head: true }),
+        supabase
+          .from('quotes')
+          .select('id', { count: 'exact', head: true })
+          .not('status', 'in', '("accepted","rejected","cancelled")'),
+        supabase
+          .from('invoices')
+          .select('id', { count: 'exact', head: true })
+          .in('status', ['sent', 'overdue']),
       ])
 
       setDashboardQuotes(q || [])
@@ -6823,11 +6832,8 @@ export default function AppHtmlPage() {
       for (const r of (invMonth || []) as any[]) ca += Number(r.total_ttc || 0)
       setDashboardCaMonth(ca)
 
-      const pending = (q || []).filter((x: any) => {
-        const s = String(x.status || '')
-        return s && !['accepted', 'paid', 'rejected', 'cancelled'].includes(s)
-      }).length
-      setDashboardPendingQuotes(pending)
+      setDashboardPendingQuotes(Number(pendingQuotesCount || 0))
+      setDashboardSentInvoices(Number(sentInvoicesCount || 0))
     } catch {
       // ignore
     }
@@ -9253,6 +9259,7 @@ CONTEXTE UTILISATEUR :
           </div>
 
           <div className="stats-grid">
+            {/* 1) CA ce mois */}
             <div className="stat-card">
               <div className="stat-header">
                 <div className="stat-icon yellow">
@@ -9265,19 +9272,7 @@ CONTEXTE UTILISATEUR :
               <div className="stat-label">CA ce mois</div>
             </div>
 
-            <div className="stat-card">
-              <div className="stat-header">
-                <div className="stat-icon green">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path d="M22 11.08V12a10 10 0 11-5.93-9.14" />
-                    <polyline points="22 4 12 14.01 9 11.01" />
-                  </svg>
-                </div>
-              </div>
-              <div className="stat-value">0%</div>
-              <div className="stat-label">Taux de conversion</div>
-            </div>
-
+            {/* 2) Clients actifs */}
             <div className="stat-card">
               <div className="stat-header">
                 <div className="stat-icon blue">
@@ -9291,6 +9286,7 @@ CONTEXTE UTILISATEUR :
               <div className="stat-label">Clients actifs</div>
             </div>
 
+            {/* 3) Devis en attente */}
             <div className="stat-card">
               <div className="stat-header">
                 <div className="stat-icon red">
@@ -9302,6 +9298,20 @@ CONTEXTE UTILISATEUR :
               </div>
               <div className="stat-value">{dashboardPendingQuotes}</div>
               <div className="stat-label">Devis en attente</div>
+            </div>
+
+            {/* 4) Factures envoyées */}
+            <div className="stat-card">
+              <div className="stat-header">
+                <div className="stat-icon green">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M22 11.08V12a10 10 0 11-5.93-9.14" />
+                    <polyline points="22 4 12 14.01 9 11.01" />
+                  </svg>
+                </div>
+              </div>
+              <div className="stat-value">{dashboardSentInvoices}</div>
+              <div className="stat-label">Factures envoyées</div>
             </div>
           </div>
 
