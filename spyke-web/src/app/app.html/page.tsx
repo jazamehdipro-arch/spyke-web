@@ -10211,7 +10211,12 @@ CONTEXTE UTILISATEUR :
                 <div className="form-group">
                   <label className="form-label">Résultat</label>
                   {assistantOutput ? (
-                    <div className="output-box">{assistantOutput}</div>
+                    <textarea
+                      className="output-box"
+                      value={assistantOutput}
+                      onChange={(e) => setAssistantOutput(e.target.value)}
+                      style={{ width: '100%', minHeight: 220, resize: 'vertical', whiteSpace: 'pre-wrap' }}
+                    />
                   ) : (
                     <div className="assistant-empty-output">
                       <div className="assistant-empty-illu" aria-hidden>
@@ -10304,8 +10309,8 @@ CONTEXTE UTILISATEUR :
                 Objet : <b>{assistantSubject.trim() || '-'}</b>
               </div>
               <textarea
-                readOnly
                 value={assistantOutput || ''}
+                onChange={(e) => setAssistantOutput(e.target.value)}
                 style={{ width: '100%', flex: 1, resize: 'none', padding: '12px 14px', borderRadius: 12, border: '1px solid rgba(0,0,0,0.12)', fontFamily: 'inherit' }}
               />
               <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.55)' }}>
