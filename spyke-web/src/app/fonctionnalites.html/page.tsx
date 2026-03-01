@@ -934,7 +934,7 @@ export default function FonctionnalitesPage() {
 
           <div className="feature-visual">
             <img
-              src="/next.svg"
+              src="/feature-clients-preview.jpg"
               alt="Gestion clients"
               className="feature-image"
             />
