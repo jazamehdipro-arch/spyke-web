@@ -739,8 +739,8 @@ export default function FonctionnalitesPage() {
 
           <div className="feature-visual">
             <img
-              src="/window.svg"
-              alt="Assistant IA"
+              src="/feature-assistant-preview.jpg"
+              alt="Aperçu Assistant IA"
               className="feature-image"
             />
             <div className="feature-floating-card card-1">
