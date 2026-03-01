@@ -8423,6 +8423,17 @@ CONTEXTE UTILISATEUR :
           gap: 24px;
         }
 
+        /* ===== ANALYSEUR TAB ===== */
+        .analyseur-container {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 24px;
+        }
+
+        .analyseur-container .devis-preview {
+          max-width: 100%;
+        }
+
         /* ===== FACTURES (UI) ===== */
         .factures-v1 .invoice-lines {
           border: 1px solid var(--gray-200);
@@ -10372,7 +10383,7 @@ CONTEXTE UTILISATEUR :
             </div>
           </div>
 
-          <div className="devis-container">
+          <div className="analyseur-container">
             <div className="devis-form">
               <div className="form-group">
                 <label className="form-label">Brief du client</label>
