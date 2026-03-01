@@ -8373,6 +8373,34 @@ CONTEXTE UTILISATEUR :
           border: 1px solid var(--gray-200);
         }
 
+        .output-box .analysis-title {
+          font-weight: 900;
+          color: var(--gray-900);
+          margin: 14px 0 8px;
+        }
+
+        .output-box .analysis-title:first-child {
+          margin-top: 0;
+        }
+
+        .output-box .analysis-output p {
+          margin: 0 0 10px;
+          color: var(--gray-800);
+          line-height: 1.7;
+        }
+
+        .output-box .analysis-output ul,
+        .output-box .analysis-output ol {
+          margin: 8px 0 12px 18px;
+          padding-left: 18px;
+          color: var(--gray-800);
+        }
+
+        .output-box .analysis-output li {
+          margin: 6px 0;
+          line-height: 1.6;
+        }
+
         .output-box.empty {
           display: flex;
           align-items: center;
@@ -10383,7 +10411,101 @@ CONTEXTE UTILISATEUR :
               {briefError ? <div style={{ color: '#b91c1c', fontSize: 13, marginBottom: 10 }}>{briefError}</div> : null}
 
               {briefOutput ? (
-                <div className="output-box">{briefOutput}</div>
+                <div className="output-box">
+                  {(() => {
+                    const raw = String(briefOutput || '')
+                    const lines = raw.split(/\r?\n/)
+
+                    const blocks: Array<
+                      | { kind: 'p'; text: string }
+                      | { kind: 'h'; text: string }
+                      | { kind: 'ul'; items: string[] }
+                      | { kind: 'ol'; items: string[] }
+                    > = []
+
+                    let i = 0
+                    while (i < lines.length) {
+                      // skip empty lines
+                      while (i < lines.length && !String(lines[i] || '').trim()) i++
+                      if (i >= lines.length) break
+
+                      const line = String(lines[i] || '').trim()
+
+                      // Heading style: "XXX:" or "### XXX"
+                      const h = line.replace(/^#{2,4}\s*/, '')
+                      if (/^#{2,4}\s*/.test(line) || /:$/.test(line)) {
+                        blocks.push({ kind: 'h', text: h.replace(/:$/, '') })
+                        i++
+                        continue
+                      }
+
+                      // Ordered list "1) ..."
+                      if (/^\d+\)\s+/.test(line)) {
+                        const items: string[] = []
+                        while (i < lines.length) {
+                          const l = String(lines[i] || '').trim()
+                          if (!l) break
+                          const m = l.match(/^\d+\)\s+(.*)$/)
+                          if (!m) break
+                          items.push(String(m[1] || '').trim())
+                          i++
+                        }
+                        blocks.push({ kind: 'ol', items })
+                        continue
+                      }
+
+                      // Unordered list "- ..." or "• ..."
+                      if (/^[-•]\s+/.test(line)) {
+                        const items: string[] = []
+                        while (i < lines.length) {
+                          const l = String(lines[i] || '').trim()
+                          if (!l) break
+                          const m = l.match(/^[-•]\s+(.*)$/)
+                          if (!m) break
+                          items.push(String(m[1] || '').trim())
+                          i++
+                        }
+                        blocks.push({ kind: 'ul', items })
+                        continue
+                      }
+
+                      // Paragraph: group until blank line
+                      const paras: string[] = []
+                      while (i < lines.length) {
+                        const l = String(lines[i] || '')
+                        if (!l.trim()) break
+                        paras.push(l.trim())
+                        i++
+                      }
+                      blocks.push({ kind: 'p', text: paras.join(' ') })
+                    }
+
+                    return (
+                      <div className="analysis-output">
+                        {blocks.map((b, idx) => {
+                          if (b.kind === 'h') return <div key={idx} className="analysis-title">{b.text}</div>
+                          if (b.kind === 'ul')
+                            return (
+                              <ul key={idx}>
+                                {b.items.map((it, j) => (
+                                  <li key={j}>{it}</li>
+                                ))}
+                              </ul>
+                            )
+                          if (b.kind === 'ol')
+                            return (
+                              <ol key={idx}>
+                                {b.items.map((it, j) => (
+                                  <li key={j}>{it}</li>
+                                ))}
+                              </ol>
+                            )
+                          return <p key={idx}>{b.text}</p>
+                        })}
+                      </div>
+                    )
+                  })()}
+                </div>
               ) : (
                 <div className="empty-state" style={{ padding: '40px 20px' }}>
                   <div className="empty-state-icon">🔍</div>
