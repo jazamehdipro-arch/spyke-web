@@ -316,14 +316,15 @@ export default function Home() {
 
         .hero-window-shot {
           position: absolute;
-          /* Fit screenshot into the inner window area */
-          top: 22.5%;
-          left: 10%;
-          right: 10%;
-          bottom: 15.5%;
-          width: auto;
-          height: auto;
+          /* Fit screenshot into the inner window area (tuned to match the frame) */
+          top: 24%;
+          left: 12.5%;
+          right: 9.5%;
+          bottom: 17%;
+          width: 100%;
+          height: 100%;
           object-fit: cover;
+          object-position: 50% 10%;
           border-radius: 20px;
           transform: translateZ(0);
         }
