@@ -869,7 +869,7 @@ export default function FonctionnalitesPage() {
 
           <div className="feature-visual">
             <img
-              src="/globe.svg"
+              src="/feature-gonogo-preview.jpg"
               alt="Analyseur de projet"
               className="feature-image"
             />
