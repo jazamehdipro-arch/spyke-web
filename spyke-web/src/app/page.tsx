@@ -305,10 +305,35 @@ export default function Home() {
           animation: fadeInRight 0.8s ease 0.3s both;
         }
 
-        .hero-visual img {
+        .hero-window {
+          position: relative;
           width: 100%;
           border-radius: 24px;
           box-shadow: 0 40px 80px rgba(0, 0, 0, 0.15);
+          overflow: hidden;
+          background: transparent;
+        }
+
+        .hero-window-shot {
+          position: absolute;
+          /* Fit screenshot into the inner window area */
+          top: 22.5%;
+          left: 10%;
+          right: 10%;
+          bottom: 15.5%;
+          width: auto;
+          height: auto;
+          object-fit: cover;
+          border-radius: 20px;
+          transform: translateZ(0);
+        }
+
+        .hero-window-frame {
+          width: 100%;
+          height: auto;
+          display: block;
+          pointer-events: none;
+          user-select: none;
         }
 
         .hero-card {
@@ -1121,10 +1146,10 @@ export default function Home() {
           </div>
 
           <div className="hero-visual">
-            <img
-              src="/window.svg"
-              alt="Interface Spyke"
-            />
+            <div className="hero-window" aria-label="Aperçu de l'interface Spyke">
+              <img className="hero-window-shot" src="/hero-dashboard.jpg" alt="Dashboard Spyke" />
+              <img className="hero-window-frame" src="/window-frame.svg" alt="" aria-hidden />
+            </div>
 
             <div className="hero-card hero-card-1">
               <div className="hero-card-icon">
