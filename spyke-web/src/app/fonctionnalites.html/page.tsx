@@ -804,8 +804,8 @@ export default function FonctionnalitesPage() {
 
           <div className="feature-visual">
             <img
-              src="/file.svg"
-              alt="Documents Spyke"
+              src="/feature-documents-preview.jpg"
+              alt="Aperçu documents Spyke"
               className="feature-image"
             />
             <div className="feature-floating-card card-2">
