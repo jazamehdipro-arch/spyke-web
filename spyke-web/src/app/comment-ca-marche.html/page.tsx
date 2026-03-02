@@ -1031,8 +1031,8 @@ export default function CommentCaMarchePage() {
             </div>
             <div className="step-visual">
               <img
-                src="/window.svg"
-                alt="Profil"
+                src="/howto-step2-profile.jpg"
+                alt="Profil" 
                 className="step-image"
               />
               <div className="step-badge badge-2">
@@ -1077,7 +1077,7 @@ export default function CommentCaMarchePage() {
             </div>
             <div className="step-visual">
               <img
-                src="/globe.svg"
+                src="/howto-step3-client.jpg"
                 alt="Clients"
                 className="step-image"
               />
