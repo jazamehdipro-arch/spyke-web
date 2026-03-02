@@ -321,8 +321,9 @@ export default function CommentCaMarchePage() {
         .step-image {
           width: 100%;
           height: 420px;
-          object-fit: cover;
-          object-position: 50% 20%;
+          /* Most step screenshots are portrait: avoid ugly crops */
+          object-fit: contain;
+          object-position: center;
           border-radius: 20px;
           box-shadow: 0 30px 60px rgba(0, 0, 0, 0.1);
           border: 1px solid var(--gray-200);
