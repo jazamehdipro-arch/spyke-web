@@ -305,44 +305,13 @@ export default function Home() {
           animation: fadeInRight 0.8s ease 0.3s both;
         }
 
-        .hero-window {
-          position: relative;
-          width: 100%;
-          border-radius: 24px;
-          box-shadow: 0 40px 80px rgba(0, 0, 0, 0.15);
-          overflow: hidden;
-          background: transparent;
-        }
-
-        .hero-window-mask {
-          position: absolute;
-          /* Inner window area — match window-frame.svg (viewBox 1200x900) */
-          top: 22.22%;
-          left: 10%;
-          right: 10%;
-          bottom: 15.56%;
-          border-radius: 22px;
-          overflow: hidden;
-          background: var(--white);
-          transform: translateZ(0);
-        }
-
-        .hero-window-shot {
-          /* Fill the inner white rectangle completely (remove screenshot margins) */
-          width: 118%;
-          height: 118%;
-          object-fit: cover;
-          object-position: center;
-          transform: translate(-8%, -6%);
-          display: block;
-        }
-
-        .hero-window-frame {
+        .hero-visual-img {
           width: 100%;
           height: auto;
           display: block;
-          pointer-events: none;
-          user-select: none;
+          border-radius: 24px;
+          box-shadow: 0 40px 80px rgba(0, 0, 0, 0.15);
+          border: 1px solid rgba(0, 0, 0, 0.06);
         }
 
         .hero-card {
@@ -1155,12 +1124,7 @@ export default function Home() {
           </div>
 
           <div className="hero-visual">
-            <div className="hero-window" aria-label="Aperçu de l'interface Spyke">
-              <div className="hero-window-mask" aria-hidden>
-                <img className="hero-window-shot" src="/hero-dashboard.jpg" alt="Dashboard Spyke" />
-              </div>
-              <img className="hero-window-frame" src="/window-frame.svg" alt="" aria-hidden />
-            </div>
+            <img className="hero-visual-img" src="/hero-dashboard.jpg" alt="Aperçu du dashboard Spyke" />
 
             <div className="hero-card hero-card-1">
               <div className="hero-card-icon">
