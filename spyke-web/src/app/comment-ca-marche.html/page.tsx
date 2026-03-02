@@ -320,9 +320,13 @@ export default function CommentCaMarchePage() {
 
         .step-image {
           width: 100%;
+          height: 420px;
+          object-fit: cover;
+          object-position: 50% 20%;
           border-radius: 20px;
           box-shadow: 0 30px 60px rgba(0, 0, 0, 0.1);
           border: 1px solid var(--gray-200);
+          background: var(--white);
         }
 
         .step-badge {
@@ -981,8 +985,8 @@ export default function CommentCaMarchePage() {
             </div>
             <div className="step-visual">
               <img
-                src="/next.svg"
-                alt="Inscription"
+                src="/howto-step1-signup.jpg"
+                alt="Écran d'inscription"
                 className="step-image"
               />
               <div className="step-badge badge-1">
