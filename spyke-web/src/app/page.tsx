@@ -328,10 +328,12 @@ export default function Home() {
         }
 
         .hero-window-shot {
-          width: 100%;
-          height: 100%;
+          /* Fill the inner white rectangle completely (remove screenshot margins) */
+          width: 118%;
+          height: 118%;
           object-fit: cover;
           object-position: center;
+          transform: translate(-8%, -6%);
           display: block;
         }
 
