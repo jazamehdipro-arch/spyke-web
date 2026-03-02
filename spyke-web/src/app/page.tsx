@@ -316,12 +316,12 @@ export default function Home() {
 
         .hero-window-mask {
           position: absolute;
-          /* Inner window area (tuned to match the SVG frame) */
-          top: 23.5%;
-          left: 12.5%;
-          right: 9.5%;
-          bottom: 17%;
-          border-radius: 20px;
+          /* Inner window area — match window-frame.svg (viewBox 1200x900) */
+          top: 22.22%;
+          left: 10%;
+          right: 10%;
+          bottom: 15.56%;
+          border-radius: 22px;
           overflow: hidden;
           background: var(--white);
           transform: translateZ(0);
@@ -331,8 +331,7 @@ export default function Home() {
           width: 100%;
           height: 100%;
           object-fit: cover;
-          /* keep the top bar visible */
-          object-position: 50% 12%;
+          object-position: center;
           display: block;
         }
 
