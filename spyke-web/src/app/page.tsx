@@ -314,19 +314,26 @@ export default function Home() {
           background: transparent;
         }
 
-        .hero-window-shot {
+        .hero-window-mask {
           position: absolute;
-          /* Fit screenshot into the inner window area (tuned to match the frame) */
-          top: 24%;
+          /* Inner window area (tuned to match the SVG frame) */
+          top: 23.5%;
           left: 12.5%;
           right: 9.5%;
           bottom: 17%;
+          border-radius: 20px;
+          overflow: hidden;
+          background: var(--white);
+          transform: translateZ(0);
+        }
+
+        .hero-window-shot {
           width: 100%;
           height: 100%;
           object-fit: cover;
-          object-position: 50% 10%;
-          border-radius: 20px;
-          transform: translateZ(0);
+          /* keep the top bar visible */
+          object-position: 50% 12%;
+          display: block;
         }
 
         .hero-window-frame {
@@ -1148,7 +1155,9 @@ export default function Home() {
 
           <div className="hero-visual">
             <div className="hero-window" aria-label="Aperçu de l'interface Spyke">
-              <img className="hero-window-shot" src="/hero-dashboard.jpg" alt="Dashboard Spyke" />
+              <div className="hero-window-mask" aria-hidden>
+                <img className="hero-window-shot" src="/hero-dashboard.jpg" alt="Dashboard Spyke" />
+              </div>
               <img className="hero-window-frame" src="/window-frame.svg" alt="" aria-hidden />
             </div>
 
