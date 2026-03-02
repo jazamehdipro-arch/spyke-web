@@ -6371,6 +6371,11 @@ export default function AppHtmlPage() {
         "Tu es un expert freelance (gestion de mission + cadrage + estimation).",
         "Ta mission: analyser un brief client et donner une recommandation actionnable.",
         "",
+        "IMPORTANT: adapte TOUTE l'analyse au profil freelance ci-dessous (expérience, compétences, métier).",
+        "- Si le profil est junior: propose un scope plus simple, plus de marge, plus de questions, plus de temps.",
+        "- Si le profil est senior: propose un scope plus ambitieux si pertinent, mais reste réaliste (risques/dépendances).",
+        "- Si des compétences manquent: recommande de sous-traiter ou de négocier (ou refuser) en l'expliquant.",
+        "",
         profileContext ? profileContext : '',
         "",
         `Brief client:\n${brief}`,
@@ -6378,12 +6383,13 @@ export default function AppHtmlPage() {
         briefDelay.trim() ? `Délai demandé: ${briefDelay.trim()}` : '',
         "",
         "Format attendu (en français):",
+        "0) Une phrase d'intro: 'En tant que [profil], voici ma recommandation...'",
         "1) Résumé (3 lignes)",
-        "2) Faisabilité (OK / Risqué / Non recommandé) + pourquoi",
+        "2) Faisabilité (OK / Risqué / Non recommandé) + pourquoi (lié à ton profil)",
         "3) Zones floues / questions à poser (liste)",
-        "4) Estimation réaliste (ordre de grandeur) et hypothèses",
+        "4) Estimation réaliste (ordre de grandeur) et hypothèses (lié à ton profil)",
         "5) Risques + mitigations",
-        "6) Recommandation: accepter / négocier / refuser + message suggéré au client (court)",
+        "6) Recommandation: accepter / négocier / refuser + message suggéré au client (court, prêt à copier)",
       ]
         .filter(Boolean)
         .join('\n')
