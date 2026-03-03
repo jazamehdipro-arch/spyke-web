@@ -9143,7 +9143,12 @@ CONTEXTE UTILISATEUR :
             Clients
           </button>
 
-          {/* Assistant IA (déplacé plus bas) */}
+          <button data-tour="assistant" className={`nav-item ${tab === 'assistant' ? 'active' : ''}`} onClick={() => goTab('assistant')}>
+            <svg viewBox="0 0 24 24">
+              <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+            </svg>
+            Assistant IA
+          </button>
 
           <button data-tour="devis" className={`nav-item ${tab === 'devis' ? 'active' : ''}`} onClick={() => goTab('devis')}>
             <svg viewBox="0 0 24 24">
@@ -9184,13 +9189,6 @@ CONTEXTE UTILISATEUR :
               <path d="M21 21l-4.35-4.35" />
             </svg>
             Analyseur de projet
-          </button>
-
-          <button data-tour="assistant" className={`nav-item ${tab === 'assistant' ? 'active' : ''}`} onClick={() => goTab('assistant')}>
-            <svg viewBox="0 0 24 24">
-              <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
-            </svg>
-            Assistant IA
           </button>
 
           <button
