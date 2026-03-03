@@ -115,32 +115,8 @@ export async function POST(req: Request) {
     const json = await req.json()
     const body = BodySchema.parse(json)
 
-    // Resolve signature URL server-side (signed URL) to avoid relying on a public bucket.
-    // Only do it when the caller explicitly wants to include the signature.
-    let resolvedSignatureUrl = ''
-    if (body.includeSignature && serviceRoleKey) {
-      try {
-        const supabaseAdmin = createClient(url, serviceRoleKey, {
-          auth: { persistSession: false, autoRefreshToken: false },
-        })
-        const { data: profile } = await supabaseAdmin
-          .from('profiles')
-          .select('signature_path')
-          .eq('id', data.user.id)
-          .maybeSingle()
-
-        const signaturePath = String((profile as any)?.signature_path || '')
-        if (signaturePath) {
-          const { data: signed } = await supabaseAdmin.storage
-            .from('signatures')
-            .createSignedUrl(signaturePath, 60 * 10) // 10 min
-          const signedUrl = String((signed as any)?.signedUrl || '')
-          if (signedUrl) resolvedSignatureUrl = signedUrl
-        }
-      } catch {
-        // ignore best-effort
-      }
-    }
+    // Note: for quotes (devis), we intentionally do NOT embed the freelancer's signature.
+    // The PDF keeps a signature frame for the client to sign manually.
 
     // Lazy import so Next doesn't try to evaluate it in other runtimes.
     const React = (await import('react')).default
@@ -433,22 +409,21 @@ export async function POST(req: Request) {
             )
           ),
 
-          body.includeSignature
-            ? React.createElement(
-                View,
-                { style: styles.signRow },
-                React.createElement(
-                  View,
-                  { style: styles.signBox },
-                  React.createElement(Text, { style: styles.signTitle }, 'Bon pour accord'),
-                  React.createElement(Text, { style: styles.signLine }, 'Signé le :'),
-                  React.createElement(Text, { style: styles.signValue }, body.signedAt ? formatDateFr(String(body.signedAt)) || String(body.signedAt) : '____________________________'),
-                  React.createElement(Text, { style: styles.signLine }, 'À :'),
-                  React.createElement(Text, { style: styles.signValue }, body.signedPlace ? capitalizePlace(String(body.signedPlace)) : '____________________________'),
-                  resolvedSignatureUrl ? React.createElement(Image, { style: styles.signImg, src: resolvedSignatureUrl }) : null
-                )
-              )
-            : null,
+          React.createElement(
+            View,
+            { style: styles.signRow },
+            React.createElement(
+              View,
+              { style: styles.signBox },
+              React.createElement(Text, { style: styles.signTitle }, 'Bon pour accord'),
+              React.createElement(Text, { style: styles.signLine }, 'Signé le :'),
+              React.createElement(Text, { style: styles.signValue }, body.signedAt ? formatDateFr(String(body.signedAt)) || String(body.signedAt) : '____________________________'),
+              React.createElement(Text, { style: styles.signLine }, 'À :'),
+              React.createElement(Text, { style: styles.signValue }, body.signedPlace ? capitalizePlace(String(body.signedPlace)) : '____________________________'),
+              React.createElement(Text, { style: [styles.signLine, { marginTop: 10 }] }, 'Signature :'),
+              React.createElement(Text, { style: styles.signValue }, '____________________________')
+            )
+          ),
 
           React.createElement(
             Text,

@@ -1653,24 +1653,6 @@ Réponds uniquement par le texte de la description.`
         subject: `Devis ${String(quoteNumber || '').trim() || 'Spyke'}`,
         text: `Bonjour,\n\nVeuillez trouver ci-joint votre devis.\n\nCordialement,\n${userFullName || ''}`.trim(),
         getBlob: () => generateDevisPdfBlob({ includeSignature: false }),
-        getSignedBlob: (opts) => generateDevisPdfBlob({ includeSignature: true, signedAt: opts.signedAt, signedPlace: opts.signedPlace }),
-        getSignaturePreview: async () => {
-          if (!supabase) return { signaturePath: '' }
-          const { data: sessionData } = await supabase.auth.getSession()
-          const token = sessionData?.session?.access_token
-          if (!token) return { signaturePath: '' }
-          try {
-            const res = await fetch('/api/signature-preview', {
-              method: 'GET',
-              headers: { authorization: `Bearer ${token}` },
-            })
-            const json = await res.json().catch(() => ({}))
-            if (!res.ok) return { signaturePath: '' }
-            return { signaturePath: String((json as any)?.signaturePath || ''), url: String((json as any)?.url || '') }
-          } catch {
-            return { signaturePath: '' }
-          }
-        },
         filename: 'Devis-' + String(quoteNumber || 'Spyke') + '.pdf',
       })
     } catch (e: any) {
