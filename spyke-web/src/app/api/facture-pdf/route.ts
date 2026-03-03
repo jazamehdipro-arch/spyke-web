@@ -54,9 +54,16 @@ function formatMoney(amount: number) {
 
 function formatDateFr(dateStr: string) {
   if (!dateStr) return ''
-  const d = new Date(dateStr + 'T00:00:00')
+  const s = String(dateStr)
+  const d = new Date(s.length === 10 ? s + 'T00:00:00' : s)
   if (Number.isNaN(d.getTime())) return ''
   return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+}
+
+function capitalizePlace(raw: string) {
+  const s = String(raw || '').trim()
+  if (!s) return ''
+  return s.charAt(0).toUpperCase() + s.slice(1)
 }
 
 export async function POST(req: Request) {
@@ -255,7 +262,16 @@ export async function POST(req: Request) {
       paymentBlock: { width: '54%' },
       paymentTitle: { fontSize: 10, fontWeight: 700, marginBottom: 6, color: '#111827' },
       paymentText: { fontSize: 9.5, lineHeight: 1.35, color: '#374151' },
-      signatureBlock: { width: '42%', alignItems: 'flex-end' },
+
+      signatureRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        gap: 18,
+        marginTop: 14,
+      },
+      signatureClientBlock: { width: '50%', alignItems: 'flex-start' },
+      signatureBlock: { width: '50%', alignItems: 'flex-end' },
       signatureTitle: { fontSize: 10, fontWeight: 700, marginBottom: 6, color: '#111827' },
       signatureBox: {
         width: 300,
@@ -269,6 +285,7 @@ export async function POST(req: Request) {
       },
       signatureImg: { width: '100%', height: '100%', objectFit: 'contain' },
       signatureMeta: { fontSize: 8.5, color: '#6b7280', marginTop: 6 },
+      signatureLine: { fontSize: 9, color: '#374151', marginTop: 6 },
       footer: {
         position: 'absolute',
         left: 42,
@@ -406,23 +423,39 @@ export async function POST(req: Request) {
             )
           ),
 
-          resolvedSignatureUrl
-            ? React.createElement(
-                View,
-                { style: { marginTop: 14, alignItems: 'flex-end' } },
-                React.createElement(Text, { style: styles.signatureTitle }, 'Signature (prestataire)'),
-                React.createElement(
-                  View,
-                  { style: styles.signatureBox },
-                  React.createElement(Image, { style: styles.signatureImg, src: resolvedSignatureUrl })
-                ),
-                React.createElement(
-                  Text,
-                  { style: styles.signatureMeta },
-                  `Signé le ${String((body as any).signedAt || formatDateFr(body.dateIssue) || '')}${(body as any).signedPlace ? ` à ${(body as any).signedPlace}` : ''}`
-                )
-              )
-            : null,
+          React.createElement(
+            View,
+            { style: styles.signatureRow },
+            // Client signature frame (always displayed)
+            React.createElement(
+              View,
+              { style: styles.signatureClientBlock },
+              React.createElement(Text, { style: styles.signatureTitle }, 'Signature (client)'),
+              React.createElement(View, { style: styles.signatureBox }),
+              React.createElement(Text, { style: styles.signatureLine }, 'Signé le : ____________________'),
+              React.createElement(Text, { style: styles.signatureLine }, 'À : ____________________')
+            ),
+            // Freelancer signature (optional)
+            React.createElement(
+              View,
+              { style: styles.signatureBlock },
+              resolvedSignatureUrl ? React.createElement(Text, { style: styles.signatureTitle }, 'Signature (prestataire)') : null,
+              resolvedSignatureUrl
+                ? React.createElement(
+                    View,
+                    { style: styles.signatureBox },
+                    React.createElement(Image, { style: styles.signatureImg, src: resolvedSignatureUrl })
+                  )
+                : null,
+              resolvedSignatureUrl
+                ? React.createElement(
+                    Text,
+                    { style: styles.signatureMeta },
+                    `Signé le ${formatDateFr(String((body as any).signedAt || body.dateIssue || ''))}${(body as any).signedPlace ? ` à ${capitalizePlace(String((body as any).signedPlace))}` : ''}`
+                  )
+                : null
+            )
+          ),
 
           React.createElement(
             Text,
