@@ -3894,19 +3894,17 @@ function ContratsV1({
                               type="button"
                               onClick={async () => {
                                 try {
-                                  // Manual signature is already embedded in the generated PDF (profile signature).
                                   await openContract(String(c.id))
                                   setMode('create')
                                   // give React a tick to apply loaded state
-                                  await new Promise((r) => setTimeout(r, 400))
+                                  await new Promise((r) => setTimeout(r, 200))
                                   await generateContractPdf()
                                 } catch (e: any) {
                                   alert(e?.message || 'Erreur génération PDF')
                                 }
                               }}
-                              title="Génère le PDF avec la signature (à la main) déjà enregistrée"
                             >
-                              Signature (PDF)
+                              PDF
                             </button>
                             <button className="btn btn-secondary" type="button" onClick={() => deleteContract(String(c.id))}>
                               Supprimer
@@ -3965,15 +3963,14 @@ function ContratsV1({
                           try {
                             await openContract(String(c.id))
                             setMode('create')
-                            await new Promise((r) => setTimeout(r, 400))
+                            await new Promise((r) => setTimeout(r, 200))
                             await generateContractPdf()
                           } catch (e: any) {
                             alert(e?.message || 'Erreur génération PDF')
                           }
                         }}
-                        title="Génère le PDF avec la signature (à la main) déjà enregistrée"
                       >
-                        Signature (PDF)
+                        PDF
                       </button>
                       <button className="btn btn-secondary" type="button" onClick={() => deleteContract(String(c.id))}>
                         Supprimer
