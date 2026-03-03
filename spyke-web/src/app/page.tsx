@@ -92,14 +92,14 @@ const TESTIMONIALS: Testimonial[] = [
 
 export default function Home() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [testimonialPage, setTestimonialPage] = useState(0)
+  const [testimonialIndex, setTestimonialIndex] = useState(0)
 
-  const perPage = 3
-  const totalPages = Math.max(1, Math.ceil(TESTIMONIALS.length / perPage))
-  const currentTestimonials = useMemo(() => {
-    const start = testimonialPage * perPage
-    return TESTIMONIALS.slice(start, start + perPage)
-  }, [testimonialPage])
+  const perView = 3
+  const totalSlides = TESTIMONIALS.length
+  const viewTestimonials = useMemo(() => {
+    // Circular window so you can eventually see all testimonials, one step at a time.
+    return Array.from({ length: perView }, (_, i) => TESTIMONIALS[(testimonialIndex + i) % totalSlides])
+  }, [testimonialIndex])
 
   return (
     <>
@@ -418,7 +418,6 @@ export default function Home() {
           padding: 14px 16px;
           box-shadow: 0 18px 36px rgba(0, 0, 0, 0.10);
           animation: float 3s ease-in-out infinite;
-          transform: scale(0.88);
           transform-origin: center;
         }
 
@@ -426,18 +425,21 @@ export default function Home() {
           top: 10%;
           right: -30px;
           animation-delay: 0s;
+          transform: scale(0.88);
         }
 
         .hero-card-2 {
           bottom: 15%;
           left: -40px;
           animation-delay: 1.5s;
+          transform: scale(0.88);
         }
 
         .hero-card-3 {
           top: 48%;
           right: -30px;
           animation-delay: 0.8s;
+          transform: scale(0.78);
         }
 
         .hero-card-icon {
@@ -1508,21 +1510,21 @@ export default function Home() {
                 <button
                   type="button"
                   className="nav-arrow"
-                  onClick={() => setTestimonialPage((p) => (p - 1 + totalPages) % totalPages)}
-                  aria-label="Témoignages précédents"
+                  onClick={() => setTestimonialIndex((i) => (i - 1 + totalSlides) % totalSlides)}
+                  aria-label="Témoignage précédent"
                 >
                   <svg viewBox="0 0 24 24" fill="none" strokeWidth="2">
                     <path d="M15 18l-6-6 6-6" />
                   </svg>
                 </button>
                 <div className="testimonials-pager">
-                  {testimonialPage + 1}/{totalPages}
+                  {testimonialIndex + 1}/{totalSlides}
                 </div>
                 <button
                   type="button"
                   className="nav-arrow"
-                  onClick={() => setTestimonialPage((p) => (p + 1) % totalPages)}
-                  aria-label="Témoignages suivants"
+                  onClick={() => setTestimonialIndex((i) => (i + 1) % totalSlides)}
+                  aria-label="Témoignage suivant"
                 >
                   <svg viewBox="0 0 24 24" fill="none" strokeWidth="2">
                     <path d="M9 6l6 6-6 6" />
@@ -1532,9 +1534,9 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="testimonials-grid">
-            {currentTestimonials.map((t) => (
-              <div key={t.name} className="testimonial-card">
+          <div className="testimonials-grid" aria-live="polite">
+            {viewTestimonials.map((t) => (
+              <div key={`${testimonialIndex}-${t.name}`} className="testimonial-card">
                 <div className="testimonial-content">
                   <p className="testimonial-text">{t.text}</p>
                   <div className="testimonial-author">
