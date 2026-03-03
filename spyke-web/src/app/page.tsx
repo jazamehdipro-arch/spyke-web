@@ -1327,7 +1327,7 @@ export default function Home() {
               <div className="stat-label">Freelances actifs</div>
             </div>
             <div className="stat-item">
-              <div className="stat-number">10h</div>
+              <div className="stat-number">25h</div>
               <div className="stat-label">Économisées par mois</div>
             </div>
             <div className="stat-item">
