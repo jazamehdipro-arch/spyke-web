@@ -93,6 +93,7 @@ const TESTIMONIALS: Testimonial[] = [
 export default function Home() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [testimonialIndex, setTestimonialIndex] = useState(0)
+  const [testimonialAnimKey, setTestimonialAnimKey] = useState(0)
 
   const perView = 3
   const totalSlides = TESTIMONIALS.length
@@ -437,9 +438,9 @@ export default function Home() {
 
         .hero-card-3 {
           top: 48%;
-          right: -30px;
+          right: -26px;
           animation-delay: 0.8s;
-          transform: scale(0.78);
+          transform: scale(0.62);
         }
 
         .hero-card-icon {
@@ -464,6 +465,20 @@ export default function Home() {
           font-size: 24px;
           font-weight: 700;
           color: var(--black);
+        }
+
+        /* Make the “signed docs” card more compact */
+        .hero-card-3 {
+          max-width: 220px;
+        }
+
+        .hero-card-3 h4 {
+          font-size: 12px;
+          line-height: 1.25;
+        }
+
+        .hero-card-3 p {
+          font-size: 18px;
         }
 
         /* ===== STATS SECTION ===== */
@@ -695,8 +710,8 @@ export default function Home() {
         }
 
         .nav-arrow {
-          width: 44px;
-          height: 44px;
+          width: 52px;
+          height: 52px;
           border-radius: 999px;
           border: 1px solid var(--gray-200);
           background: var(--white);
@@ -731,6 +746,10 @@ export default function Home() {
           grid-template-columns: repeat(3, 1fr);
           gap: 32px;
           margin-top: 44px;
+        }
+
+        .testimonial-card {
+          transition: transform 220ms ease, opacity 220ms ease;
         }
 
         .testimonial-card {
@@ -1510,7 +1529,10 @@ export default function Home() {
                 <button
                   type="button"
                   className="nav-arrow"
-                  onClick={() => setTestimonialIndex((i) => (i - 1 + totalSlides) % totalSlides)}
+                  onClick={() => {
+                    setTestimonialIndex((i) => (i - 1 + totalSlides) % totalSlides)
+                    setTestimonialAnimKey((k) => k + 1)
+                  }}
                   aria-label="Témoignage précédent"
                 >
                   <svg viewBox="0 0 24 24" fill="none" strokeWidth="2">
@@ -1523,7 +1545,10 @@ export default function Home() {
                 <button
                   type="button"
                   className="nav-arrow"
-                  onClick={() => setTestimonialIndex((i) => (i + 1) % totalSlides)}
+                  onClick={() => {
+                    setTestimonialIndex((i) => (i + 1) % totalSlides)
+                    setTestimonialAnimKey((k) => k + 1)
+                  }}
                   aria-label="Témoignage suivant"
                 >
                   <svg viewBox="0 0 24 24" fill="none" strokeWidth="2">
@@ -1534,7 +1559,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="testimonials-grid" aria-live="polite">
+          <div className="testimonials-grid" aria-live="polite" key={testimonialAnimKey}>
             {viewTestimonials.map((t) => (
               <div key={`${testimonialIndex}-${t.name}`} className="testimonial-card">
                 <div className="testimonial-content">
