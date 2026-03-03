@@ -330,6 +330,16 @@ export default function CommentCaMarchePage() {
           background: var(--white);
         }
 
+        /* Step 4 uses the same dashboard visual as the homepage hero */
+        .step-image-dashboard {
+          height: auto;
+          object-fit: cover;
+          border-radius: 24px;
+          box-shadow: 0 40px 80px rgba(0, 0, 0, 0.15);
+          border: 1px solid rgba(0, 0, 0, 0.06);
+          background: transparent;
+        }
+
         .step-badge {
           position: absolute;
           background: var(--white);
@@ -1130,13 +1140,13 @@ export default function CommentCaMarchePage() {
             </div>
             <div className="step-visual">
               <img
-                src="/file.svg"
-                alt="Dashboard"
-                className="step-image"
+                src="/hero-dashboard.jpg"
+                alt="Dashboard Spyke"
+                className="step-image step-image-dashboard"
               />
               <div className="step-badge badge-2">
                 <div className="step-badge-icon">⚡</div>
-                10h/mois économisées
+                25h/mois économisées
               </div>
             </div>
           </div>
