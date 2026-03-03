@@ -634,30 +634,14 @@ export default function CommentCaMarchePage() {
           margin-bottom: 40px;
         }
 
-        .cta-form {
+        .cta-actions {
           display: flex;
+          justify-content: center;
           gap: 12px;
-          max-width: 500px;
-          margin: 0 auto;
+          margin-top: 6px;
         }
 
-        .cta-form input {
-          flex: 1;
-          padding: 18px 24px;
-          border: 2px solid var(--gray-200);
-          border-radius: 14px;
-          font-size: 16px;
-          font-family: inherit;
-          transition: all 0.3s ease;
-        }
-
-        .cta-form input:focus {
-          outline: none;
-          border-color: var(--yellow);
-          box-shadow: 0 0 0 4px rgba(250, 204, 21, 0.15);
-        }
-
-        .cta-form button {
+        .cta-btn {
           padding: 18px 36px;
           background: var(--black);
           color: var(--white);
@@ -668,11 +652,26 @@ export default function CommentCaMarchePage() {
           font-family: inherit;
           cursor: pointer;
           transition: all 0.3s ease;
+          text-decoration: none;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
         }
 
-        .cta-form button:hover {
+        .cta-btn:hover {
           background: var(--gray-800);
           transform: translateY(-2px);
+        }
+
+        .cta-btn.secondary {
+          background: var(--white);
+          color: var(--black);
+          border: 2px solid var(--gray-200);
+        }
+
+        .cta-btn.secondary:hover {
+          border-color: var(--gray-300);
+          background: var(--gray-50);
         }
 
         /* ===== FOOTER ===== */
@@ -1314,19 +1313,11 @@ export default function CommentCaMarchePage() {
       <section className="cta">
         <div className="cta-container">
           <h2>Prêt à gagner du temps ?</h2>
-          <p>
-            Créez votre compte gratuitement et découvrez comment Spyke peut transformer votre
-            quotidien.
-          </p>
-          <form
-            className="cta-form"
-            onSubmit={(e) => {
-              e.preventDefault()
-            }}
-          >
-            <input type="email" placeholder="Votre email professionnel" />
-            <button type="submit">Essai gratuit</button>
-          </form>
+          <p>Connectez-vous pour reprendre vos échanges et vos documents.</p>
+          <div className="cta-actions">
+            <a href="/connexion.html" className="cta-btn">Connexion →</a>
+            <a href="/connexion.html" className="cta-btn secondary">Créer un compte</a>
+          </div>
         </div>
       </section>
 
