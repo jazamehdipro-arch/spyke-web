@@ -52,15 +52,36 @@ const BodySchema = z.object({
   }),
 })
 
+function normalizeFrNumberString(s: string) {
+  // Some PDF fonts/renderers mis-handle narrow no-break space (U+202F) used by fr-FR thousands separators.
+  // Replace NBSP / NNBSP by a normal space to avoid "1/500,00"-like artifacts.
+  return String(s || '').replace(/[\u00A0\u202F]/g, ' ')
+}
+
 function formatMoney(amount: number) {
-  return (amount || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'
+  const n = Number.isFinite(amount) ? amount : 0
+  const formatted = new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n)
+  return normalizeFrNumberString(formatted) + ' €'
 }
 
 function formatDateFr(dateStr: string) {
   if (!dateStr) return ''
-  const d = new Date(dateStr + 'T00:00:00')
+  // Supports YYYY-MM-DD or ISO
+  const d = new Date(String(dateStr).length === 10 ? String(dateStr) + 'T00:00:00' : String(dateStr))
   if (Number.isNaN(d.getTime())) return ''
   return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+}
+
+function formatSiret(raw: string) {
+  const digits = String(raw || '').replace(/\D/g, '')
+  if (digits.length !== 14) return String(raw || '')
+  return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6, 9)} ${digits.slice(9)}`
+}
+
+function capitalizePlace(raw: string) {
+  const s = String(raw || '').trim()
+  if (!s) return ''
+  return s.charAt(0).toUpperCase() + s.slice(1)
 }
 
 export async function POST(req: Request) {
@@ -318,7 +339,7 @@ export async function POST(req: Request) {
                 React.createElement(Text, { key: `s-${i}`, style: styles.partyLine }, l)
               ),
               body.seller.siret
-                ? React.createElement(Text, { style: [styles.partyLine, { marginTop: 6 }] }, `SIRET : ${body.seller.siret}`)
+                ? React.createElement(Text, { style: [styles.partyLine, { marginTop: 6 }] }, `SIRET : ${formatSiret(body.seller.siret)}`)
                 : null,
               body.seller.vatNumber
                 ? React.createElement(Text, { style: styles.partyLine }, `N° TVA Intracommunautaire : ${body.seller.vatNumber}`)
@@ -328,7 +349,7 @@ export async function POST(req: Request) {
               View,
               { style: [styles.partyBlock, { alignItems: 'flex-end' }] },
               React.createElement(Text, { style: styles.partyName }, body.buyer.name),
-              body.buyer.siret ? React.createElement(Text, { style: styles.partyLine }, `SIRET : ${body.buyer.siret}`) : null,
+              body.buyer.siret ? React.createElement(Text, { style: styles.partyLine }, `SIRET : ${formatSiret(body.buyer.siret)}`) : null,
               ...(body.buyer.addressLines || []).map((l, i) =>
                 React.createElement(Text, { key: `b-${i}`, style: [styles.partyLine, styles.footerRight] }, l)
               )
@@ -421,9 +442,9 @@ export async function POST(req: Request) {
                   { style: styles.signBox },
                   React.createElement(Text, { style: styles.signTitle }, 'Bon pour accord'),
                   React.createElement(Text, { style: styles.signLine }, 'Signé le :'),
-                  React.createElement(Text, { style: styles.signValue }, body.signedAt || '____________________________'),
+                  React.createElement(Text, { style: styles.signValue }, body.signedAt ? formatDateFr(String(body.signedAt)) || String(body.signedAt) : '____________________________'),
                   React.createElement(Text, { style: styles.signLine }, 'À :'),
-                  React.createElement(Text, { style: styles.signValue }, body.signedPlace || '____________________________'),
+                  React.createElement(Text, { style: styles.signValue }, body.signedPlace ? capitalizePlace(String(body.signedPlace)) : '____________________________'),
                   resolvedSignatureUrl ? React.createElement(Image, { style: styles.signImg, src: resolvedSignatureUrl }) : null
                 )
               )
@@ -433,7 +454,9 @@ export async function POST(req: Request) {
             Text,
             { style: styles.footer },
             'La facture devra être payée dans les 30 jours à compter de la réalisation de la prestation ou de la réception de la marchandise.\n'
-              + 'TVA non applicable, art. 293 B du CGI (si applicable).\n'
+              + (body.totals.totalTva > 0
+                ? 'TVA applicable (détail indiqué ci-dessus).\n'
+                : 'TVA non applicable, art. 293 B du CGI.\n')
               + 'En cas de retard de paiement, seront exigibles, conformément au code de commerce, une indemnité calculée sur la base de trois fois le taux de l\'intérêt légal en vigueur ainsi qu\'une indemnité forfaitaire pour frais de recouvrement de 40€.\n'
               + 'Pas d\'escompte en cas de paiement anticipé.\n'
           ),

@@ -4186,7 +4186,19 @@ function ContratsV1({
           <div className="form-row">
             <div className="form-group">
               <label className="form-label">SIRET client</label>
-              <input className="form-input" value={clientSiret} onChange={(e) => setClientSiret(e.target.value)} />
+              <input
+                className="form-input"
+                inputMode="numeric"
+                placeholder="14 chiffres"
+                value={clientSiret}
+                onChange={(e) => {
+                  const v = e.target.value.replace(/\D/g, '').slice(0, 14)
+                  setClientSiret(v)
+                }}
+              />
+              {clientSiret && clientSiret.replace(/\D/g, '').length !== 14 ? (
+                <div style={{ marginTop: 6, fontSize: 12, color: 'var(--red)' }}>Le SIRET doit contenir 14 chiffres.</div>
+              ) : null}
             </div>
             <div className="form-group">
               <label className="form-label">Représentant du client</label>
