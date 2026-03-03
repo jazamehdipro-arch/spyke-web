@@ -6134,6 +6134,7 @@ export default function AppHtmlPage() {
 
   // Question juriste (Pro-only + paiement 5€)
   const [legalQuestion, setLegalQuestion] = useState<string>('')
+  const [legalTopic, setLegalTopic] = useState<string>('Contrat')
   const [legalPhone, setLegalPhone] = useState<string>('')
   const [legalBusy, setLegalBusy] = useState<boolean>(false)
   const [legalError, setLegalError] = useState<string>('')
@@ -6212,10 +6213,14 @@ export default function AppHtmlPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [helpOpen])
 
-  // Question juriste: load history when tab is opened
+  // Question juriste: load history when tab is opened + auto-refresh
   useEffect(() => {
     if (tab !== 'juriste') return
     refreshLegalQuestions()
+    const t = window.setInterval(() => {
+      refreshLegalQuestions()
+    }, 20000)
+    return () => window.clearInterval(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab])
 
@@ -6409,6 +6414,34 @@ export default function AppHtmlPage() {
     }
   }
 
+  function formatLegalStatus(raw: any): { label: string; key: 'pending' | 'replied' | 'closed' } {
+    const s = String(raw || '').toLowerCase().trim()
+    if (!s || s === 'draft' || s === 'pending' || s === 'open') return { label: 'En attente de réponse', key: 'pending' }
+    if (['replied', 'answered', 'repondu', 'répondu'].includes(s)) return { label: 'Répondu', key: 'replied' }
+    if (['closed', 'ferme', 'fermé', 'done', 'resolved'].includes(s)) return { label: 'Fermé', key: 'closed' }
+    // Fallback: prefer French labels
+    return { label: 'En attente de réponse', key: 'pending' }
+  }
+
+  function formatFrDateSmart(iso: any): string {
+    const d = new Date(String(iso || ''))
+    if (Number.isNaN(d.getTime())) return ''
+    const now = new Date()
+    const diffMs = now.getTime() - d.getTime()
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+    if (diffDays === 0) return "Aujourd'hui"
+    if (diffDays === 1) return 'Il y a 1 jour'
+    if (diffDays > 1 && diffDays <= 7) return `Il y a ${diffDays} jours`
+    return d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })
+  }
+
+  function extractTopicFromQuestion(text: string): { topic?: string; body: string } {
+    const t = String(text || '').trim()
+    const m = t.match(/^Thème:\s*(.+)\n\n([\s\S]*)$/i)
+    if (!m) return { body: t }
+    return { topic: String(m[1] || '').trim(), body: String(m[2] || '').trim() }
+  }
+
   async function submitLegalQuestion() {
     try {
       const q = legalQuestion.trim()
@@ -6421,10 +6454,12 @@ export default function AppHtmlPage() {
       const token = s.session?.access_token
       if (!token) throw new Error('Non connecté')
 
+      const payloadQuestion = `${legalTopic ? `Thème: ${legalTopic}\n\n` : ''}${q}`
+
       const res = await fetch('/api/legal-question/checkout', {
         method: 'POST',
         headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
-        body: JSON.stringify({ question: q, phone: legalPhone.trim() }),
+        body: JSON.stringify({ question: payloadQuestion, phone: legalPhone.trim() }),
       })
       const json = await res.json().catch(() => null)
       if (!res.ok) throw new Error(json?.error || `Erreur paiement (${res.status})`)
@@ -10558,11 +10593,25 @@ CONTEXTE UTILISATEUR :
             <div className="card">
               <div className="form-row">
                 <div className="form-group" style={{ flex: 1 }}>
+                  <label className="form-label">Thème</label>
+                  <select className="form-input" value={legalTopic} onChange={(e) => setLegalTopic(e.target.value)}>
+                    <option value="Contrat">Contrat</option>
+                    <option value="Facturation">Facturation</option>
+                    <option value="TVA / charges">TVA / charges</option>
+                    <option value="Litige client">Litige client</option>
+                    <option value="Statut juridique">Statut juridique</option>
+                    <option value="Autre">Autre</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group" style={{ flex: 1 }}>
                   <label className="form-label">Votre question</label>
                   <textarea
                     className="form-textarea"
                     style={{ minHeight: 160 }}
-                    placeholder="Décrivez votre situation et votre question (sans données ultra sensibles)."
+                    placeholder="Décrivez votre situation et votre question. Ne partagez pas de données personnelles sensibles (numéro de sécurité sociale, coordonnées bancaires, etc.)."
                     value={legalQuestion}
                     onChange={(e) => setLegalQuestion(e.target.value)}
                   />
@@ -10590,12 +10639,18 @@ CONTEXTE UTILISATEUR :
                 <div style={{ marginTop: 10, color: '#b91c1c', fontSize: 13 }}>{legalError}</div>
               ) : null}
 
-              <div style={{ display: 'flex', gap: 12, marginTop: 14, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: 12, marginTop: 14, flexWrap: 'wrap', alignItems: 'center' }}>
                 <button className="btn btn-primary" type="button" onClick={submitLegalQuestion} disabled={legalBusy || legalQuestion.trim().length < 10}>
                   {legalBusy ? 'Ouverture du paiement…' : 'Payer 5€ et envoyer'}
                 </button>
-                <button className="btn btn-secondary" type="button" onClick={refreshLegalQuestions} disabled={legalBusy}>
-                  Rafraîchir
+                <button
+                  className="btn btn-secondary"
+                  type="button"
+                  onClick={refreshLegalQuestions}
+                  disabled={legalBusy}
+                  style={{ padding: '10px 12px', fontSize: 13, opacity: 0.8 }}
+                >
+                  Actualiser
                 </button>
               </div>
 
@@ -10611,30 +10666,52 @@ CONTEXTE UTILISATEUR :
                   </div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    {legalItems.map((it: any) => (
-                      <div key={it.id} style={{ border: '1px solid var(--gray-200)', borderRadius: 12, padding: 12, background: '#fff' }}>
+                    {legalItems.map((it: any) => {
+                      const createdAt = String(it.created_at || '')
+                      const status = formatLegalStatus(it.status)
+                      const { topic, body } = extractTopicFromQuestion(String(it.question || '').trim())
+                      const due = (() => {
+                        const d = new Date(createdAt)
+                        if (Number.isNaN(d.getTime())) return ''
+                        const dueD = new Date(d.getTime() + 24 * 60 * 60 * 1000)
+                        return dueD.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })
+                      })()
+                      const canViewReplies = status.key === 'replied'
+
+                      return (
+                        <div key={it.id} style={{ border: '1px solid var(--gray-200)', borderRadius: 12, padding: 12, background: '#fff' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-                          <div style={{ fontSize: 12, color: 'var(--gray-500)' }}>{new Date(String(it.created_at || '')).toLocaleString('fr-FR')}</div>
+                          <div style={{ fontSize: 12, color: 'var(--gray-500)' }}>
+                            <div>{formatFrDateSmart(createdAt)}</div>
+                            {due ? <div style={{ marginTop: 2 }}>Réponse prévue avant le {due}</div> : null}
+                          </div>
                           <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-                            <div style={{ fontSize: 12, fontWeight: 700 }}>{String(it.status || 'draft')}</div>
-                            <button
-                              className="btn btn-secondary"
-                              type="button"
-                              onClick={() => {
-                                const id = String(it.id)
-                                const cur = legalThreads[id]
-                                if (!cur || (!cur.messages?.length && !cur.loading && !cur.error)) {
-                                  loadLegalThread(id)
-                                } else {
-                                  toggleLegalThread(id)
-                                }
-                              }}
-                            >
-                              {legalThreads[String(it.id)]?.open ? 'Masquer' : 'Voir réponses'}
-                            </button>
+                            <div style={{ fontSize: 12, fontWeight: 800 }}>{status.label}</div>
+                            {topic ? (
+                              <span className="badge badge-gray" style={{ fontSize: 12, fontWeight: 800 }}>
+                                {topic}
+                              </span>
+                            ) : null}
+                            {canViewReplies ? (
+                              <button
+                                className="btn btn-secondary"
+                                type="button"
+                                onClick={() => {
+                                  const id = String(it.id)
+                                  const cur = legalThreads[id]
+                                  if (!cur || (!cur.messages?.length && !cur.loading && !cur.error)) {
+                                    loadLegalThread(id)
+                                  } else {
+                                    toggleLegalThread(id)
+                                  }
+                                }}
+                              >
+                                {legalThreads[String(it.id)]?.open ? 'Masquer' : 'Voir réponse'}
+                              </button>
+                            ) : null}
                           </div>
                         </div>
-                        <div style={{ marginTop: 8, whiteSpace: 'pre-wrap', color: 'var(--gray-800)' }}>{String(it.question || '').trim()}</div>
+                        <div style={{ marginTop: 8, whiteSpace: 'pre-wrap', color: 'var(--gray-800)' }}>{body}</div>
 
                         {legalThreads[String(it.id)]?.open ? (
                           <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px dashed var(--gray-200)' }}>
@@ -10658,7 +10735,7 @@ CONTEXTE UTILISATEUR :
                                   >
                                     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
                                       <div style={{ fontSize: 12, fontWeight: 700 }}>{String(m.role) === 'jurist' ? 'Juriste' : String(m.role)}</div>
-                                      <div style={{ fontSize: 12, color: 'var(--gray-500)' }}>{new Date(String(m.created_at)).toLocaleString('fr-FR')}</div>
+                                      <div style={{ fontSize: 12, color: 'var(--gray-500)' }}>{formatFrDateSmart(String(m.created_at))}</div>
                                     </div>
                                     <div style={{ marginTop: 6, whiteSpace: 'pre-wrap', color: 'var(--gray-800)' }}>{String(m.content || '').trim()}</div>
                                   </div>
@@ -10667,14 +10744,15 @@ CONTEXTE UTILISATEUR :
                             )}
 
                             <div style={{ marginTop: 10 }}>
-                              <button className="btn btn-secondary" type="button" onClick={() => loadLegalThread(String(it.id))}>
-                                Rafraîchir réponses
+                              <button className="btn btn-secondary" type="button" onClick={() => loadLegalThread(String(it.id))} style={{ padding: '10px 12px', fontSize: 13, opacity: 0.8 }}>
+                                Actualiser les réponses
                               </button>
                             </div>
                           </div>
                         ) : null}
-                      </div>
-                    ))}
+                        </div>
+                      )
+                    })}
                   </div>
                 )}
               </div>
