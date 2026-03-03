@@ -1,9 +1,106 @@
 "use client"
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
+
+type Testimonial = {
+  initials: string
+  name: string
+  role: string
+  text: string
+}
+
+const TESTIMONIALS: Testimonial[] = [
+  {
+    initials: 'SL',
+    name: 'Sophie Laurent',
+    role: 'Développeuse freelance',
+    text: "L’IA a vraiment capté mon style. Mes clients ne voient pas la différence avec mes vrais emails. Je gagne un temps fou sur les réponses.",
+  },
+  {
+    initials: 'TM',
+    name: 'Thomas Martin',
+    role: 'Designer UI/UX',
+    text: "Fini les 20 minutes à rédiger un email de relance. Je décris la situation, Spyke génère un message propre, avec le bon ton.",
+  },
+  {
+    initials: 'JD',
+    name: 'Julie Dubois',
+    role: 'Consultante marketing',
+    text: "Les devis personnalisés c’est top. Je choisis le template, je modifie deux trucs, et c’est envoyé. Pro et rapide.",
+  },
+  {
+    initials: 'AR',
+    name: 'Antoine Roux',
+    role: 'Développeur web (freelance)',
+    text: "Le combo devis + facture derrière me fait gagner du temps. Même numérotation, mêmes infos, et le PDF est clean.",
+  },
+  {
+    initials: 'CM',
+    name: 'Clara Morel',
+    role: 'Rédactrice / SEO',
+    text: "Pour les relances impayés, c’est parfait : ton ferme mais poli. Je garde la main et j’édite avant envoi.",
+  },
+  {
+    initials: 'NB',
+    name: 'Nicolas Bernard',
+    role: 'Consultant data',
+    text: "L’analyseur de projet m’aide à cadrer vite (questions à poser + risques). Je parais beaucoup plus structuré face au client.",
+  },
+  {
+    initials: 'LP',
+    name: 'Lina Petit',
+    role: 'Graphiste',
+    text: "J’envoie un devis en 2 minutes, et je peux le signer direct dans le PDF. Ça fait tout de suite plus pro.",
+  },
+  {
+    initials: 'HK',
+    name: 'Hugo Klein',
+    role: 'Chef de projet freelance',
+    text: "J’ai arrêté de copier-coller des modèles Word. Je garde une base de clients et tout est cohérent.",
+  },
+  {
+    initials: 'MA',
+    name: 'Mélanie Aubry',
+    role: 'Consultante RH',
+    text: "Les emails générés sont super naturels. J’ai juste à donner le contexte et je retouche deux phrases.",
+  },
+  {
+    initials: 'PC',
+    name: 'Pauline Caron',
+    role: 'Product designer',
+    text: "Les statuts (devis en attente / factures payées) me donnent une vue simple. Je sais quoi relancer sans réfléchir.",
+  },
+  {
+    initials: 'GG',
+    name: 'Guillaume Giraud',
+    role: 'Consultant no-code',
+    text: "Le contrat généré est clair et réutilisable. Ça sécurise la mission, surtout quand le scope bouge.",
+  },
+  {
+    initials: 'SA',
+    name: 'Sarah Adam',
+    role: 'Développeuse mobile',
+    text: "Entre les templates d’emails et les docs, je gagne facilement plusieurs heures par semaine. Ça fait la diff.",
+  },
+  {
+    initials: 'ET',
+    name: 'Emma Tessier',
+    role: 'Consultante communication',
+    text: "J’aime le côté ‘copilote’ : je garde mon style, mais j’ai toujours une réponse propre à envoyer.",
+  },
+]
 
 export default function Home() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [testimonialPage, setTestimonialPage] = useState(0)
+
+  const perPage = 3
+  const totalPages = Math.max(1, Math.ceil(TESTIMONIALS.length / perPage))
+  const currentTestimonials = useMemo(() => {
+    const start = testimonialPage * perPage
+    return TESTIMONIALS.slice(start, start + perPage)
+  }, [testimonialPage])
+
   return (
     <>
       <style jsx global>{`
@@ -581,11 +678,57 @@ export default function Home() {
           margin: 0 auto;
         }
 
+        .testimonials-head {
+          display: flex;
+          align-items: flex-end;
+          justify-content: space-between;
+          gap: 16px;
+          margin-top: 22px;
+        }
+
+        .testimonials-nav {
+          display: flex;
+          gap: 10px;
+          align-items: center;
+        }
+
+        .nav-arrow {
+          width: 44px;
+          height: 44px;
+          border-radius: 999px;
+          border: 1px solid var(--gray-200);
+          background: var(--white);
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .nav-arrow:hover {
+          transform: translateY(-1px);
+          border-color: var(--gray-300);
+          box-shadow: 0 10px 20px rgba(0, 0, 0, 0.06);
+        }
+
+        .nav-arrow svg {
+          width: 18px;
+          height: 18px;
+          stroke: var(--gray-800);
+        }
+
+        .testimonials-pager {
+          font-size: 13px;
+          color: var(--gray-500);
+          min-width: 70px;
+          text-align: center;
+        }
+
         .testimonials-grid {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
           gap: 32px;
-          margin-top: 80px;
+          margin-top: 44px;
         }
 
         .testimonial-card {
@@ -1022,6 +1165,12 @@ export default function Home() {
             font-size: 56px;
           }
 
+          .testimonials-head {
+            align-items: flex-start;
+            flex-direction: column;
+            gap: 12px;
+          }
+
           .features-grid,
           .testimonials-grid {
             grid-template-columns: 1fr;
@@ -1349,58 +1498,55 @@ export default function Home() {
         <div className="testimonials-container">
           <div className="section-header">
             <span className="section-label">Témoignages</span>
-            <h2>Ils nous font confiance</h2>
-            <p>Découvrez ce que les freelances pensent de Spyke.</p>
+            <div className="testimonials-head">
+              <div>
+                <h2>Ils nous font confiance</h2>
+                <p>Découvrez ce que les freelances pensent de Spyke.</p>
+              </div>
+
+              <div className="testimonials-nav" aria-label="Navigation témoignages">
+                <button
+                  type="button"
+                  className="nav-arrow"
+                  onClick={() => setTestimonialPage((p) => (p - 1 + totalPages) % totalPages)}
+                  aria-label="Témoignages précédents"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" strokeWidth="2">
+                    <path d="M15 18l-6-6 6-6" />
+                  </svg>
+                </button>
+                <div className="testimonials-pager">
+                  {testimonialPage + 1}/{totalPages}
+                </div>
+                <button
+                  type="button"
+                  className="nav-arrow"
+                  onClick={() => setTestimonialPage((p) => (p + 1) % totalPages)}
+                  aria-label="Témoignages suivants"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" strokeWidth="2">
+                    <path d="M9 6l6 6-6 6" />
+                  </svg>
+                </button>
+              </div>
+            </div>
           </div>
 
           <div className="testimonials-grid">
-            <div className="testimonial-card">
-              <div className="testimonial-content">
-                <p className="testimonial-text">
-                  L&apos;IA a vraiment capté mon style. Mes clients ne voient pas la différence avec mes
-                  vrais emails. Je gagne un temps fou sur les réponses.
-                </p>
-                <div className="testimonial-author">
-                  <div className="testimonial-avatar">SL</div>
-                  <div className="testimonial-info">
-                    <h4>Sophie Laurent</h4>
-                    <p>Développeuse freelance</p>
+            {currentTestimonials.map((t) => (
+              <div key={t.name} className="testimonial-card">
+                <div className="testimonial-content">
+                  <p className="testimonial-text">{t.text}</p>
+                  <div className="testimonial-author">
+                    <div className="testimonial-avatar">{t.initials}</div>
+                    <div className="testimonial-info">
+                      <h4>{t.name}</h4>
+                      <p>{t.role}</p>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-
-            <div className="testimonial-card">
-              <div className="testimonial-content">
-                <p className="testimonial-text">
-                  Fini les 20 minutes à rédiger un email de relance. Je décris la situation, Spyke
-                  génère un message parfait avec le bon ton.
-                </p>
-                <div className="testimonial-author">
-                  <div className="testimonial-avatar">TM</div>
-                  <div className="testimonial-info">
-                    <h4>Thomas Martin</h4>
-                    <p>Designer UI/UX</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="testimonial-card">
-              <div className="testimonial-content">
-                <p className="testimonial-text">
-                  Les devis personnalisés c&apos;est top. Je choisis le template, je modifie deux
-                  trucs, et c&apos;est envoyé. Professionnel et rapide.
-                </p>
-                <div className="testimonial-author">
-                  <div className="testimonial-avatar">JD</div>
-                  <div className="testimonial-info">
-                    <h4>Julie Dubois</h4>
-                    <p>Consultante marketing</p>
-                  </div>
-                </div>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       </section>
