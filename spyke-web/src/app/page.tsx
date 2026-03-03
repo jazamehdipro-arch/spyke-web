@@ -318,9 +318,11 @@ export default function Home() {
           position: absolute;
           background: var(--white);
           border-radius: 16px;
-          padding: 20px;
-          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+          padding: 14px 16px;
+          box-shadow: 0 18px 36px rgba(0, 0, 0, 0.10);
           animation: float 3s ease-in-out infinite;
+          transform: scale(0.88);
+          transform-origin: center;
         }
 
         .hero-card-1 {
@@ -333,6 +335,12 @@ export default function Home() {
           bottom: 15%;
           left: -40px;
           animation-delay: 1.5s;
+        }
+
+        .hero-card-3 {
+          top: 48%;
+          right: -30px;
+          animation-delay: 0.8s;
         }
 
         .hero-card-icon {
@@ -1136,6 +1144,16 @@ export default function Home() {
               <p>+2 450</p>
             </div>
 
+            <div className="hero-card hero-card-3">
+              <div className="hero-card-icon">
+                <svg width="24" height="24" fill="none" stroke="#000" strokeWidth="2" viewBox="0 0 24 24">
+                  <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <h4>Devis / Facture / Contrat signés</h4>
+              <p>+500</p>
+            </div>
+
             <div className="hero-card hero-card-2">
               <div className="hero-card-icon">
                 <svg width="24" height="24" fill="none" stroke="#000" strokeWidth="2" viewBox="0 0 24 24">
@@ -1143,7 +1161,7 @@ export default function Home() {
                 </svg>
               </div>
               <h4>Temps gagné</h4>
-              <p>10h/mois</p>
+              <p>25h/mois</p>
             </div>
           </div>
         </div>
