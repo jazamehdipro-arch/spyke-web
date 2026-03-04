@@ -37,6 +37,7 @@ const BodySchema = z.object({
   buyer: z.object({
     name: z.string().min(1, 'Nom du client manquant'),
     addressLines: z.array(z.string()).default([]),
+    siret: z.string().optional().default(''),
   }),
 
   lines: z.array(LineSchema).min(1),
@@ -64,6 +65,12 @@ function capitalizePlace(raw: string) {
   const s = String(raw || '').trim()
   if (!s) return ''
   return s.charAt(0).toUpperCase() + s.slice(1)
+}
+
+function formatSiret(raw: string) {
+  const digits = String(raw || '').replace(/\D/g, '')
+  if (digits.length !== 14) return String(raw || '')
+  return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6, 9)} ${digits.slice(9)}`
 }
 
 export async function POST(req: Request) {
@@ -348,13 +355,14 @@ export async function POST(req: Request) {
               { style: styles.partyBlock },
               React.createElement(Text, { style: [styles.docSubtitle, { fontWeight: 700, color: '#111827' }] }, 'Émetteur'),
               ...(body.seller.addressLines || []).map((l, i) => React.createElement(Text, { key: `sa-${i}`, style: styles.partyLine }, l)),
-              body.seller.siret ? React.createElement(Text, { style: [styles.partyLine, { marginTop: 6 }] }, `SIRET : ${body.seller.siret}`) : null
+              body.seller.siret ? React.createElement(Text, { style: [styles.partyLine, { marginTop: 6 }] }, `SIRET : ${formatSiret(body.seller.siret)}`) : null
             ),
             React.createElement(
               View,
               { style: [styles.partyBlock, { alignItems: 'flex-end' }] },
               React.createElement(Text, { style: [styles.docSubtitle, { fontWeight: 700, color: '#111827' }] }, 'Client'),
               React.createElement(Text, { style: [styles.partyLine, { textAlign: 'right' }] }, body.buyer.name),
+              body.buyer.siret ? React.createElement(Text, { style: [styles.partyLine, { textAlign: 'right' }] }, `SIRET : ${formatSiret(body.buyer.siret)}`) : null,
               ...(body.buyer.addressLines || []).map((l, i) =>
                 React.createElement(Text, { key: `ba-${i}`, style: [styles.partyLine, { textAlign: 'right' }] }, l)
               )

@@ -4431,7 +4431,7 @@ function FacturesV1({
   const [invoiceNumber, setInvoiceNumber] = useState(() => genInvoiceNumber(today, 1))
   const [invoiceNumberDirty, setInvoiceNumberDirty] = useState(false)
 
-  const [buyer, setBuyer] = useState<any>({ name: '', email: '', addressLines: [] })
+  const [buyer, setBuyer] = useState<any>({ name: '', email: '', siret: '', addressLines: [] })
   const [clientId, setClientId] = useState('')
   const [lines, setLines] = useState<InvoiceLine[]>(() => [
     { id: '0', description: '', qty: 1, unitPrice: 0 },
@@ -4550,7 +4550,7 @@ function FacturesV1({
     if (!supabase || !id) return
     const { data: c } = await supabase
       .from('clients')
-      .select('name,email,address,postal_code,city,country')
+      .select('name,email,siret,address,postal_code,city,country')
       .eq('id', id)
       .maybeSingle()
 
@@ -4567,6 +4567,7 @@ function FacturesV1({
     setBuyer({
       name: String((c as any)?.name || ''),
       email: String((c as any)?.email || ''),
+      siret: String((c as any)?.siret || ''),
       addressLines,
     })
   }
@@ -4593,6 +4594,7 @@ function FacturesV1({
       setBuyer({
         name: String(buyerSnap.name || ''),
         email: String(buyerSnap.email || ''),
+        siret: String(buyerSnap.siret || ''),
         addressLines: Array.isArray(buyerSnap.addressLines) ? buyerSnap.addressLines : [],
       })
     }
@@ -5589,8 +5591,34 @@ function FacturesV1({
               </div>
 
               <div className="form-group">
+                <label className="form-label">SIRET client (optionnel)</label>
+                <input
+                  className="form-input"
+                  inputMode="numeric"
+                  placeholder="14 chiffres"
+                  value={buyer?.siret || ''}
+                  onChange={(e) => {
+                    const v = e.target.value.replace(/\D/g, '').slice(0, 14)
+                    setBuyer({ ...buyer, siret: v })
+                  }}
+                />
+              </div>
+
+              <div className="form-group">
                 <label className="form-label">Email (optionnel)</label>
                 <input className="form-input" value={buyer?.email || ''} onChange={(e) => setBuyer({ ...buyer, email: e.target.value })} />
+              </div>
+            </div>
+
+            <div className="form-row single">
+              <div className="form-group">
+                <label className="form-label">Adresse du client</label>
+                <textarea
+                  className="form-textarea"
+                  placeholder="Adresse (une ligne par champ)"
+                  value={(buyer?.addressLines || []).join('\n')}
+                  onChange={(e) => setBuyer({ ...buyer, addressLines: e.target.value.split('\n').map((x) => x.trim()).filter(Boolean) })}
+                />
               </div>
             </div>
               </div>
