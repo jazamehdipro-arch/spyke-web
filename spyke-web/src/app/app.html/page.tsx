@@ -3269,30 +3269,50 @@ function ContratsV1({
     try {
       if (!supabase || !contractId) return
 
-      const ok = confirm('Démarrer la signature électronique ? (1) Vous signez en tant que prestataire (2) puis le client reçoit la demande.')
+      const ok = confirm('Envoyer un lien de signature au client ? (Le lien expire dans 14 jours)')
       if (!ok) return
 
       const { data: sessionData } = await supabase.auth.getSession()
       const token = sessionData?.session?.access_token
       if (!token) throw new Error('Non connecté')
 
-      const res = await fetch('/api/signature-requests/create', {
+      // 1) Create manual signing link (public)
+      const linkRes = await fetch('/api/contract-sign/create-link', {
         method: 'POST',
-        headers: {
-          authorization: `Bearer ${token}`,
-          'content-type': 'application/json',
-        },
-        body: JSON.stringify({ contractId: contractId, mode: 'seller_first' }),
+        headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+        body: JSON.stringify({ contractId, expiresInDays: 14 }),
       })
+      const linkJson = await linkRes.json().catch(() => ({}))
+      if (!linkRes.ok) throw new Error(String((linkJson as any)?.error || 'Erreur création lien'))
+      const signUrl = String((linkJson as any)?.signUrl || '')
+      if (!signUrl) throw new Error('Lien de signature indisponible')
 
-      const json = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(String((json as any)?.error || 'Erreur signature'))
+      // 2) Send email from freelancer Gmail
+      const to = String(clientEmail || '')
+      if (!to) throw new Error('Email client manquant')
 
-      const signingUrl = String((json as any)?.signingUrl || '')
-      if (!signingUrl) throw new Error('Lien de signature indisponible')
+      const subject = `Signature du contrat ${String(contractNumber || '').trim() || ''}`.trim()
+      const text = [
+        'Bonjour,',
+        '',
+        'Voici le lien pour consulter et signer le contrat :',
+        signUrl,
+        '',
+        'Cordialement,',
+        String(userFullName || '').trim(),
+      ]
+        .filter(Boolean)
+        .join('\n')
 
-      // Open embedded signing flow (like PDF preview)
-      openSignatureFrame(signingUrl, 'Signer le contrat')
+      const mailRes = await fetch('/api/gmail/send', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+        body: JSON.stringify({ to, subject, text }),
+      })
+      const mailJson = await mailRes.json().catch(() => ({}))
+      if (!mailRes.ok) throw new Error(String((mailJson as any)?.error || 'Erreur envoi mail'))
+
+      alert('Lien de signature envoyé ✅')
     } catch (e: any) {
       alert(e?.message || 'Erreur envoi pour signature')
     }
