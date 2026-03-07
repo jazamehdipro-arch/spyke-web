@@ -111,32 +111,8 @@ export async function POST(req: Request) {
     const json = await req.json()
     const body = BodySchema.parse(json)
 
-    // Resolve signature URL server-side (signed URL) to avoid relying on a public bucket.
-    // Only do it when the caller explicitly wants to include the signature.
-    let resolvedSignatureUrl = ''
-    if (body.includeSignature && serviceRoleKey) {
-      try {
-        const supabaseAdmin = createClient(url, serviceRoleKey, {
-          auth: { persistSession: false, autoRefreshToken: false },
-        })
-        const { data: profile } = await supabaseAdmin
-          .from('profiles')
-          .select('signature_path')
-          .eq('id', data.user.id)
-          .maybeSingle()
-
-        const signaturePath = String((profile as any)?.signature_path || '')
-        if (signaturePath) {
-          const { data: signed } = await supabaseAdmin.storage
-            .from('signatures')
-            .createSignedUrl(signaturePath, 60 * 10) // 10 min
-          const signedUrl = String((signed as any)?.signedUrl || '')
-          if (signedUrl) resolvedSignatureUrl = signedUrl
-        }
-      } catch {
-        // ignore best-effort
-      }
-    }
+    // NOTE: Contracts should NOT be auto-signed by the freelancer inside Spyke.
+    // The signature is handled via the public signing link flow (client signs), so we never embed a freelancer signature here.
 
     const sellerName = body.seller?.name || body.parties?.sellerName || ''
     const buyerName = body.buyer?.name || body.parties?.buyerName || ''
@@ -186,38 +162,7 @@ export async function POST(req: Request) {
         replacements,
       })
 
-      // Optional: append a signature page (freelance signature) at the end.
-      if (resolvedSignatureUrl) {
-        try {
-          const { PDFDocument, StandardFonts, rgb } = await import('pdf-lib')
-          const baseDoc = await PDFDocument.load(filled)
-          const helvetica = await baseDoc.embedFont(StandardFonts.Helvetica)
-
-          const imgRes = await fetch(resolvedSignatureUrl)
-          if (imgRes.ok) {
-            const imgBytes = new Uint8Array(await imgRes.arrayBuffer())
-            const png = await baseDoc.embedPng(imgBytes)
-
-            const page = baseDoc.addPage([595.28, 841.89]) // A4
-            page.drawText('Signature du prestataire', { x: 50, y: 780, size: 18, font: helvetica, color: rgb(0.12, 0.23, 0.54) })
-
-            const sellerLine = sellerName ? `Prestataire : ${sellerName}` : ''
-            const dateLine = body.signedAt ? `Signé le : ${body.signedAt}` : (body.date ? `Date : ${body.date}` : '')
-            const placeLine = body.signedPlace ? `À : ${body.signedPlace}` : ''
-            if (sellerLine) page.drawText(sellerLine, { x: 50, y: 748, size: 12, font: helvetica, color: rgb(0.1, 0.1, 0.1) })
-            if (dateLine) page.drawText(dateLine, { x: 50, y: 730, size: 12, font: helvetica, color: rgb(0.1, 0.1, 0.1) })
-            if (placeLine) page.drawText(placeLine, { x: 50, y: 714, size: 12, font: helvetica, color: rgb(0.1, 0.1, 0.1) })
-
-            // Signature box (smaller)
-            page.drawRectangle({ x: 50, y: 610, width: 495, height: 120, borderWidth: 1, borderColor: rgb(0.9, 0.9, 0.92) })
-            page.drawImage(png, { x: 90, y: 625, width: 320, height: 90 })
-
-            filled = new Uint8Array((await baseDoc.save()) as any)
-          }
-        } catch {
-          // ignore
-        }
-      }
+      // No embedded freelancer signature in contracts.
 
       return new NextResponse(filled as any, {
         status: 200,
@@ -276,14 +221,7 @@ export async function POST(req: Request) {
               React.createElement(Text, { style: styles.h2 }, 'Contenu'),
               React.createElement(Text, { style: styles.bodyText }, bodyText)
             ),
-            body.signatureUrl
-              ? React.createElement(
-                  View,
-                  null,
-                  React.createElement(Text, { style: styles.signatureTitle }, 'Signature (prestataire)'),
-                  React.createElement(View, { style: styles.signatureBox }, React.createElement(Image, { style: styles.signatureImg, src: body.signatureUrl }))
-                )
-              : null
+            null
           )
         )
 
