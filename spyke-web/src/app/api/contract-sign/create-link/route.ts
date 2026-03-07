@@ -110,8 +110,12 @@ export async function POST(req: Request) {
     const replacements: Record<string, string> = {
       '[NUMÉRO DU CONTRAT]': contractNumber,
       '[DATE]': dateStr,
+
       '[NOM PRESTATAIRE]': sellerName,
       '[NOM\nPRESTATAIRE]': sellerName,
+      '[PRÉNOM      NOM]': sellerName,
+      '[PRÉNOM NOM]': sellerName,
+      '[NUMÉRO     SIRET]': sellerSiret,
       '[SIRET PRESTATAIRE]': sellerSiret,
       '[ADRESSE PRESTATAIRE]': sellerAddress,
       '[ACTIVITÉ]': sellerActivity,
@@ -123,11 +127,24 @@ export async function POST(req: Request) {
       '[ADRESSE CLIENT]': buyerAddress,
       '[EMAIL CLIENT]': buyerEmail,
 
-      // Best-effort structured placeholders
+      "[DÉCRIRE L'OBJECTIF DE LA MISSION]": String((contract as any)?.contract_text || ''),
       'DESCRIPTION DÉTAILLÉE DE LA MISSION': String((contract as any)?.contract_text || ''),
       'LIVRABLES ATTENDUS': '',
       '[DATE DÉBUT]': String((contract as any)?.mission_start || ''),
       '[DATE FIN]': String((contract as any)?.mission_end || ''),
+
+      // Clean placeholders we don't have yet
+      '[Madame/Monsieur]': '',
+      '[Madame/Monsieur  PRÉNOM  NOM]': '',
+      '[Forme   sociale   (SARL,   SAS,   etc.)]': '',
+      '[VILLE  RCS]': '',
+      '[NUMÉRO  RCS]': '',
+      '[FONCTION]': '',
+      '[DÉCRIRE LE PROJET DU CLIENT]': '',
+      '[NOMBRE]': '',
+      '[PRIX EN LETTRES]': '',
+      '[ADRESSE DE FACTURATION DU PRESTATAIRE]': '',
+
       '[À DISTANCE / SUR SITE / MIXTE]': '',
       '[NOMBRE  DE  RÉVISIONS]': '',
       '[FORFAIT / TJM / TAUX HORAIRE]': '',

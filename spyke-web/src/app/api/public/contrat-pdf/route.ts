@@ -80,8 +80,12 @@ export async function POST(req: Request) {
     const replacements: Record<string, string> = {
       '[NUMÉRO DU CONTRAT]': body.contractNumber || '',
       '[DATE]': body.date || '',
+
       '[NOM PRESTATAIRE]': sellerName,
       '[NOM\nPRESTATAIRE]': sellerName,
+      '[PRÉNOM      NOM]': sellerName,
+      '[PRÉNOM NOM]': sellerName,
+      '[NUMÉRO     SIRET]': body.seller?.siret || '',
       '[SIRET PRESTATAIRE]': body.seller?.siret || '',
       '[ADRESSE PRESTATAIRE]': body.seller?.address || '',
       '[ACTIVITÉ]': body.seller?.activity || '',
@@ -93,6 +97,7 @@ export async function POST(req: Request) {
       '[ADRESSE CLIENT]': body.buyer?.address || '',
       '[EMAIL CLIENT]': body.buyer?.email || '',
 
+      "[DÉCRIRE L'OBJECTIF DE LA MISSION]": body.mission?.description || '',
       'DESCRIPTION DÉTAILLÉE DE LA MISSION': body.mission?.description || '',
       'LIVRABLES ATTENDUS': body.mission?.deliverables || '',
 
@@ -109,6 +114,16 @@ export async function POST(req: Request) {
       "[CESSION APRÈS PAIEMENT / LICENCE D'UTILISATION / CESSION TOTALE]": body.ipClause || '',
       '[OUI / NON]': body.confidentiality || '',
       '[PRÉAVIS 15 JOURS / 30 JOURS / SANS PRÉAVIS]': body.termination || '',
+
+      '[Madame/Monsieur]': '',
+      '[Forme   sociale   (SARL,   SAS,   etc.)]': '',
+      '[VILLE  RCS]': '',
+      '[NUMÉRO  RCS]': '',
+      '[FONCTION]': '',
+      '[DÉCRIRE LE PROJET DU CLIENT]': '',
+      '[NOMBRE]': '',
+      '[PRIX EN LETTRES]': '',
+      '[ADRESSE DE FACTURATION DU PRESTATAIRE]': '',
     }
 
     const filled = await fillContractTemplatePdf({

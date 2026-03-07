@@ -124,29 +124,40 @@ export async function POST(req: Request) {
       const templateBytes = await readFile(templatePath)
 
       const replacements: Record<string, string> = {
+        // Core placeholders
         '[NUMÉRO DU CONTRAT]': body.contractNumber || '',
         '[DATE]': body.date || '',
+
+        // Seller (prestataire)
         '[NOM PRESTATAIRE]': sellerName,
         '[NOM\nPRESTATAIRE]': sellerName,
+        '[PRÉNOM      NOM]': sellerName,
+        '[PRÉNOM NOM]': sellerName,
+        '[NUMÉRO     SIRET]': body.seller?.siret || '',
+        '[NUMÉRO     SIRET],': (body.seller?.siret || '') ? `${body.seller?.siret}` : '',
         '[SIRET PRESTATAIRE]': body.seller?.siret || '',
+        '[NUMÉRO DU SIRET]': body.seller?.siret || '',
         '[ADRESSE PRESTATAIRE]': body.seller?.address || '',
         '[ACTIVITÉ]': body.seller?.activity || '',
         '[EMAIL PRESTATAIRE]': body.seller?.email || '',
 
+        // Buyer (client)
         '[NOM CLIENT]': buyerName,
         '[SIRET CLIENT]': body.buyer?.siret || '',
-        '[REPRÉSENTANT]': body.buyer?.representant || '',
         '[ADRESSE CLIENT]': body.buyer?.address || '',
+        '[REPRÉSENTANT]': body.buyer?.representant || '',
         '[EMAIL CLIENT]': body.buyer?.email || '',
 
+        // Mission
+        "[DÉCRIRE L'OBJECTIF DE LA MISSION]": body.mission?.description || '',
         'DESCRIPTION DÉTAILLÉE DE LA MISSION': body.mission?.description || '',
         'LIVRABLES ATTENDUS': body.mission?.deliverables || '',
-
         '[DATE DÉBUT]': body.mission?.startDate || '',
         '[DATE FIN]': body.mission?.endDate || '',
         '[À DISTANCE / SUR SITE / MIXTE]': body.mission?.location || '',
         '[NOMBRE  DE  RÉVISIONS]': body.mission?.revisions || '',
 
+        // Pricing
         '[FORFAIT / TJM / TAUX HORAIRE]': body.pricing?.type || '',
         '[MONTANT]': body.pricing?.amount || '',
         '[FRANCHISE EN BASE / ASSUJETTI]': body.vatRegime || '',
@@ -155,6 +166,19 @@ export async function POST(req: Request) {
         "[CESSION APRÈS PAIEMENT / LICENCE D'UTILISATION / CESSION TOTALE]": body.ipClause || '',
         '[OUI / NON]': body.confidentiality || '',
         '[PRÉAVIS 15 JOURS / 30 JOURS / SANS PRÉAVIS]': body.termination || '',
+
+        // Clean common template placeholders we don't fill yet
+        '[Madame/Monsieur]': '',
+        '[Madame/Monsieur  PRÉNOM  NOM]': '',
+        '[Forme   sociale   (SARL,   SAS,   etc.)]': '',
+        '[MONTANT] euros': '',
+        '[VILLE  RCS]': '',
+        '[NUMÉRO  RCS]': '',
+        '[FONCTION]': '',
+        '[DÉCRIRE LE PROJET DU CLIENT]': '',
+        '[NOMBRE]': '',
+        '[PRIX EN LETTRES]': '',
+        '[ADRESSE DE FACTURATION DU PRESTATAIRE]': '',
       }
 
       let filled = await fillContractTemplatePdf({
