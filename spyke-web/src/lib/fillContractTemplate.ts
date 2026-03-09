@@ -79,20 +79,57 @@ export async function fillContractTemplatePdf(opts: { templateBytes: Uint8Array;
         })
       }
 
-      // Draw replacement once over the full placeholder bounding box.
+      // Draw replacement over the full placeholder bounding box.
       const xMin = Math.min(...segs.map((s) => s.x))
       const yMax = Math.max(...segs.map((s) => s.y))
       const xMax = Math.max(...segs.map((s) => s.x + Math.max(s.w, 10)))
+      const boxW = Math.max(xMax - xMin, 10)
       const fontSize = Math.max(8, Math.min(12, Number(segs[0]?.fontSize || 10)))
 
-      page.drawText(String(matchedValue || ''), {
-        x: xMin,
-        y: yMax,
-        size: fontSize,
-        font: helvetica,
-        color: rgb(0.1, 0.1, 0.1),
-        maxWidth: Math.max(xMax - xMin, 200),
-      })
+      const text = String(matchedValue || '').trim()
+
+      // Simple word-wrap (up to 3 lines) to avoid overlapping outside of narrow boxes.
+      const wrap = (t: string, maxWidth: number, maxLines: number) => {
+        const words = t.split(/\s+/).filter(Boolean)
+        const lines: string[] = []
+        let cur = ''
+        for (const w of words) {
+          const next = cur ? cur + ' ' + w : w
+          const width = helvetica.widthOfTextAtSize(next, fontSize)
+          if (width <= maxWidth || !cur) {
+            cur = next
+            continue
+          }
+          lines.push(cur)
+          cur = w
+          if (lines.length >= maxLines - 1) break
+        }
+        if (cur) lines.push(cur)
+        // Ellipsis if still remaining words
+        const usedWords = lines.join(' ').split(/\s+/).length
+        if (usedWords < words.length && lines.length) {
+          let last = lines[lines.length - 1]
+          while (last && helvetica.widthOfTextAtSize(last + '…', fontSize) > maxWidth) {
+            last = last.split(' ').slice(0, -1).join(' ')
+          }
+          lines[lines.length - 1] = (last || '').trim() + '…'
+        }
+        return lines
+      }
+
+      const lines = text ? wrap(text, Math.max(boxW, 120), 3) : ['']
+      const lineH = fontSize * 1.15
+
+      for (let li = 0; li < lines.length; li++) {
+        page.drawText(lines[li], {
+          x: xMin,
+          y: yMax - li * lineH,
+          size: fontSize,
+          font: helvetica,
+          color: rgb(0.1, 0.1, 0.1),
+          maxWidth: Math.max(boxW, 120),
+        })
+      }
 
       i += matchedLen - 1
     }
