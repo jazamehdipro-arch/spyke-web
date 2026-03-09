@@ -3287,16 +3287,32 @@ function ContratsV1({
       const signUrl = String((linkJson as any)?.signUrl || '')
       if (!signUrl) throw new Error('Lien de signature indisponible')
 
-      // 2) Send email from freelancer Gmail
-      const to = String(clientEmail || '')
-      if (!to) throw new Error('Email client manquant')
+      // 2) Resolve client email + contract number from DB (works from list view too)
+      let to = ''
+      let contractNo = ''
+      try {
+        const { data: c } = await supabase
+          .from('contracts')
+          .select('number,buyer_snapshot')
+          .eq('id', contractId)
+          .maybeSingle()
+        contractNo = String((c as any)?.number || '')
+        const buyerSnap: any = (c as any)?.buyer_snapshot || null
+        to = String(buyerSnap?.email || '')
+      } catch {
+        // ignore
+      }
 
-      const subject = `Signature du contrat ${String(contractNumber || '').trim() || ''}`.trim()
+      if (!to) throw new Error('Email client manquant (renseigne-le dans le client / contrat)')
+
+      const subject = `Signature du contrat ${contractNo || ''}`.trim() || 'Signature du contrat'
       const text = [
         'Bonjour,',
         '',
         'Voici le lien pour consulter et signer le contrat :',
         signUrl,
+        '',
+        'Ce lien est valable 14 jours.',
         '',
         'Cordialement,',
         String(userFullName || '').trim(),
@@ -3311,6 +3327,11 @@ function ContratsV1({
       })
       const mailJson = await mailRes.json().catch(() => ({}))
       if (!mailRes.ok) throw new Error(String((mailJson as any)?.error || 'Erreur envoi mail'))
+
+      // Helpful for the freelancer: open the signing page (so they can test/copy link)
+      try {
+        window.open(signUrl, '_blank', 'noopener,noreferrer')
+      } catch {}
 
       alert('Lien de signature envoyé ✅')
     } catch (e: any) {
