@@ -35,43 +35,62 @@ export async function fillContractTemplatePdf(opts: { templateBytes: Uint8Array;
   const items = (templateMap as any).items as MapItem[]
   const pageCount = pdfDoc.getPageCount()
 
-  // Group map items by normalized string so we can resolve quickly.
-  const buckets = new Map<string, MapItem[]>()
-  for (const it of items) {
-    const key = norm(it.str)
-    if (!key) continue
-    const arr = buckets.get(key) || []
-    arr.push(it)
-    buckets.set(key, arr)
-  }
+  // Scan items in extraction order and match 1..N consecutive segments (placeholders can be split).
+  const maxJoin = 4
 
-  for (const [rawKey, value] of Object.entries(replacementsNorm)) {
-    const segs = buckets.get(rawKey)
-    if (!segs || !segs.length) continue
+  for (let pageIndex = 0; pageIndex < pageCount; pageIndex++) {
+    const page = pdfDoc.getPage(pageIndex)
+    const pageItems = items.filter((it) => it.pageIndex === pageIndex)
 
-    for (const seg of segs) {
-      if (seg.pageIndex < 0 || seg.pageIndex >= pageCount) continue
-      const page = pdfDoc.getPage(seg.pageIndex)
+    for (let i = 0; i < pageItems.length; i++) {
+      // Try to match from longest to shortest to avoid partials.
+      let matchedLen = 0
+      let matchedValue: string | undefined
 
-      // Cover placeholder
-      page.drawRectangle({
-        x: seg.x,
-        y: seg.y - 2,
-        width: Math.max(seg.w, 10),
-        height: Math.max(seg.h, 10) + 4,
-        color: rgb(1, 1, 1),
-        opacity: 1,
-      })
+      for (let len = Math.min(maxJoin, pageItems.length - i); len >= 1; len--) {
+        const parts: string[] = []
+        for (let j = 0; j < len; j++) {
+          const s = norm(pageItems[i + j]?.str)
+          if (s) parts.push(s)
+        }
+        if (!parts.length) continue
+        const key = norm(parts.join(' '))
+        const repl = replacementsNorm[key]
+        if (repl != null) {
+          matchedLen = len
+          matchedValue = String(repl)
+          break
+        }
+      }
 
-      // Draw replacement
-      page.drawText(String(value || ''), {
-        x: seg.x,
-        y: seg.y,
-        size: Math.max(8, Math.min(12, Number(seg.fontSize || 10))),
+      if (!matchedLen || matchedValue == null) continue
+
+      const segs = pageItems.slice(i, i + matchedLen)
+
+      // Cover each segment rectangle
+      for (const s of segs) {
+        page.drawRectangle({
+          x: s.x,
+          y: s.y - 2,
+          width: Math.max(s.w, 10),
+          height: Math.max(s.h, 10) + 4,
+          color: rgb(1, 1, 1),
+          opacity: 1,
+        })
+      }
+
+      // Draw replacement at the first segment position.
+      const s0 = segs[0]
+      page.drawText(String(matchedValue || ''), {
+        x: s0.x,
+        y: s0.y,
+        size: Math.max(8, Math.min(12, Number(s0.fontSize || 10))),
         font: helvetica,
         color: rgb(0.1, 0.1, 0.1),
-        maxWidth: Math.max(seg.w, 200),
+        maxWidth: Math.max(segs.reduce((acc, s) => acc + Math.max(s.w, 10), 0), 200),
       })
+
+      i += matchedLen - 1
     }
   }
 
