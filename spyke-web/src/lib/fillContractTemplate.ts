@@ -79,15 +79,19 @@ export async function fillContractTemplatePdf(opts: { templateBytes: Uint8Array;
         })
       }
 
-      // Draw replacement at the first segment position.
-      const s0 = segs[0]
+      // Draw replacement once over the full placeholder bounding box.
+      const xMin = Math.min(...segs.map((s) => s.x))
+      const yMax = Math.max(...segs.map((s) => s.y))
+      const xMax = Math.max(...segs.map((s) => s.x + Math.max(s.w, 10)))
+      const fontSize = Math.max(8, Math.min(12, Number(segs[0]?.fontSize || 10)))
+
       page.drawText(String(matchedValue || ''), {
-        x: s0.x,
-        y: s0.y,
-        size: Math.max(8, Math.min(12, Number(s0.fontSize || 10))),
+        x: xMin,
+        y: yMax,
+        size: fontSize,
         font: helvetica,
         color: rgb(0.1, 0.1, 0.1),
-        maxWidth: Math.max(segs.reduce((acc, s) => acc + Math.max(s.w, 10), 0), 200),
+        maxWidth: Math.max(xMax - xMin, 200),
       })
 
       i += matchedLen - 1

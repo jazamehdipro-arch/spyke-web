@@ -440,7 +440,22 @@ function usePdfMailModals() {
                   </button>
                 ) : null}
 
-                {/* Envoyer pour signature removed (requires Supabase buckets/migration) */}
+                {pdfPreview.actions?.kind === 'contrat' && pdfPreview.actions?.contractId ? (
+                  <button
+                    className="btn btn-secondary"
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        await (window as any).__spyke_send_contract_for_signature?.(String(pdfPreview.actions?.contractId || ''))
+                      } catch (e: any) {
+                        alert(e?.message || 'Erreur envoi pour signature')
+                      }
+                    }}
+                    title="Envoie un lien au client (valable 14 jours) pour signer en ligne"
+                  >
+                    Envoyer pour signature
+                  </button>
+                ) : null}
 
                 <a className="btn btn-secondary" href={pdfPreview.url} download={pdfPreview.filename}>
                   Télécharger
