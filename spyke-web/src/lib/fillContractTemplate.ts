@@ -23,7 +23,7 @@ function norm(s: string) {
  * Overlay-replace placeholders using a pre-extracted coordinate map (no pdfjs at runtime).
  * This is Vercel-safe.
  */
-export async function fillContractTemplatePdf(opts: { templateBytes: Uint8Array; replacements: ReplacementMap }) {
+export async function fillContractTemplatePdf(opts: { templateBytes: Uint8Array; replacements: ReplacementMap }): Promise<{ bytes: Uint8Array; replaced: number }> {
   const replacementsNorm: ReplacementMap = {}
   for (const [k, v] of Object.entries(opts.replacements || {})) {
     replacementsNorm[norm(k)] = String(v ?? '')
@@ -37,6 +37,8 @@ export async function fillContractTemplatePdf(opts: { templateBytes: Uint8Array;
 
   // Scan items in extraction order and match 1..N consecutive segments (placeholders can be split).
   const maxJoin = 4
+
+  let replaced = 0
 
   for (let pageIndex = 0; pageIndex < pageCount; pageIndex++) {
     const page = pdfDoc.getPage(pageIndex)
@@ -131,10 +133,11 @@ export async function fillContractTemplatePdf(opts: { templateBytes: Uint8Array;
         })
       }
 
+      replaced++
       i += matchedLen - 1
     }
   }
 
   const bytes = await pdfDoc.save()
-  return new Uint8Array(bytes)
+  return { bytes: new Uint8Array(bytes), replaced }
 }

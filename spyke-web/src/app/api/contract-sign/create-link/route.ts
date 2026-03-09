@@ -158,10 +158,12 @@ export async function POST(req: Request) {
       '[PRÉAVIS 15 JOURS / 30 JOURS / SANS PRÉAVIS]': '',
     }
 
-    const filled = await fillContractTemplatePdf({
+    const filledRes = await fillContractTemplatePdf({
       templateBytes: new Uint8Array(templateBytes),
       replacements,
     })
+
+    const filled = filledRes.bytes
 
     // Create signing link
     const tokenStr = crypto.randomBytes(24).toString('hex')

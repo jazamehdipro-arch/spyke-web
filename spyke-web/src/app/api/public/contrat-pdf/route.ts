@@ -127,17 +127,18 @@ export async function POST(req: Request) {
       '[ADRESSE DE FACTURATION DU PRESTATAIRE]': '',
     }
 
-    const filled = await fillContractTemplatePdf({
+    const filledRes = await fillContractTemplatePdf({
       templateBytes: new Uint8Array(templateBytes),
       replacements,
     })
 
-    return new NextResponse(filled as any, {
+    return new NextResponse(filledRes.bytes as any, {
       status: 200,
       headers: {
         'content-type': 'application/pdf',
         'content-disposition': `attachment; filename="Contrat.pdf"`,
         'cache-control': 'no-store',
+        'x-spyke-contract-template-replaced': String(filledRes.replaced || 0),
       },
     })
 

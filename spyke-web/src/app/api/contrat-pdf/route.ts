@@ -188,10 +188,13 @@ export async function POST(req: Request) {
         '[ADRESSE DE FACTURATION DU PRESTATAIRE]': '',
       }
 
-      let filled = await fillContractTemplatePdf({
+      const filledRes = await fillContractTemplatePdf({
         templateBytes: new Uint8Array(templateBytes),
         replacements,
       })
+
+      let filled = filledRes.bytes
+      const replacedCount = filledRes.replaced
 
       // No embedded freelancer signature in contracts.
 
@@ -201,6 +204,7 @@ export async function POST(req: Request) {
           'content-type': 'application/pdf',
           'content-disposition': `attachment; filename="Contrat-${new Date().toISOString().slice(0, 10)}.pdf"`,
           'cache-control': 'no-store',
+          'x-spyke-contract-template-replaced': String(replacedCount || 0),
         },
       })
     } catch (err: any) {
