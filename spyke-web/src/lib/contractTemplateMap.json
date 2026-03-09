@@ -1,0 +1,3814 @@
+{
+  "template": "contrat-template.pdf",
+  "pages": 7,
+  "extractedAt": "2026-03-09T07:56:43.502Z",
+  "items": [
+    {
+      "pageIndex": 0,
+      "str": "SPYKE",
+      "x": 76.86614,
+      "y": 760.5276,
+      "w": 44.07000000000001,
+      "h": 13,
+      "fontSize": 13
+    },
+    {
+      "pageIndex": 0,
+      "str": "CONTRAT DE PRESTATION DE SERVICES",
+      "x": 94.83779,
+      "y": 720.685,
+      "w": 405.59999999999985,
+      "h": 20,
+      "fontSize": 14
+    },
+    {
+      "pageIndex": 0,
+      "str": "N°",
+      "x": 230.64784,
+      "y": 696.1811,
+      "w": 11.219999999999999,
+      "h": 10,
+      "fontSize": 10
+    },
+    {
+      "pageIndex": 0,
+      "str": "[NUMÉRO DU CONTRAT]",
+      "x": 244.64784,
+      "y": 696.1811,
+      "w": 119.98000000000006,
+      "h": 10,
+      "fontSize": 10
+    },
+    {
+      "pageIndex": 0,
+      "str": "ENTRE LES SOUSSIGNÉS :",
+      "x": 76.86614,
+      "y": 660.0039,
+      "w": 124.58300000000001,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "LE PRESTATAIRE",
+      "x": 91.37008,
+      "y": 617.9134,
+      "w": 81.814,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "[Madame/Monsieur]",
+      "x": 91.37008,
+      "y": 588.9134,
+      "w": 89.205,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "[PRÉNOM",
+      "x": 196.69294,
+      "y": 588.9134,
+      "w": 44.859,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "NOM]",
+      "x": 257.6698,
+      "y": 588.9134,
+      "w": 25.326999999999998,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": ",",
+      "x": 282.9968,
+      "y": 588.9134,
+      "w": 2.641,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "inscrit(e) à l’INSEE sous le numéro SIRET",
+      "x": 91.37008,
+      "y": 574.4134,
+      "w": 194.26771399999998,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "[NUMÉRO",
+      "x": 91.37008,
+      "y": 559.9134,
+      "w": 45.3815,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "SIRET]",
+      "x": 150.34901000000002,
+      "y": 559.9134,
+      "w": 31.141,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": ",",
+      "x": 181.49001,
+      "y": 559.9134,
+      "w": 2.641,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "dont",
+      "x": 197.72844000000003,
+      "y": 559.9134,
+      "w": 18.487000000000002,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "le",
+      "x": 229.81287,
+      "y": 559.9134,
+      "w": 7.391,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "domicile",
+      "x": 250.80130000000003,
+      "y": 559.9134,
+      "w": 34.8365,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "professionnel",
+      "x": 91.37008,
+      "y": 545.4134,
+      "w": 56.49649999999999,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "est",
+      "x": 159.212509,
+      "y": 545.4134,
+      "w": 12.673,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "situé",
+      "x": 183.231438,
+      "y": 545.4134,
+      "w": 20.064,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "au",
+      "x": 214.641367,
+      "y": 545.4134,
+      "w": 10.564,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "[ADRESSE",
+      "x": 236.551296,
+      "y": 545.4134,
+      "w": 49.08650000000001,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "PRESTATAIRE]",
+      "x": 91.37008,
+      "y": 530.9134,
+      "w": 70.1955,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": ".",
+      "x": 161.56558,
+      "y": 530.9134,
+      "w": 2.641,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "Ci-après dénommé(e) « le PRESTATAIRE »",
+      "x": 91.37008,
+      "y": 501.9134,
+      "w": 157.37600000000003,
+      "h": 10,
+      "fontSize": 8
+    },
+    {
+      "pageIndex": 0,
+      "str": "LE CLIENT",
+      "x": 309.63778,
+      "y": 617.9134,
+      "w": 49.086499999999965,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "[Forme",
+      "x": 309.63778,
+      "y": 588.9134,
+      "w": 32.195499999999996,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "sociale",
+      "x": 349.85742300000004,
+      "y": 588.9134,
+      "w": 32.2145,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "(SARL,",
+      "x": 390.096066,
+      "y": 588.9134,
+      "w": 31.663500000000006,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "SAS,",
+      "x": 429.783709,
+      "y": 588.9134,
+      "w": 22.173000000000002,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "etc.)]",
+      "x": 459.980852,
+      "y": 588.9134,
+      "w": 22.695499999999996,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": ",",
+      "x": 482.676352,
+      "y": 588.9134,
+      "w": 2.641,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "au",
+      "x": 493.341495,
+      "y": 588.9134,
+      "w": 10.564,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "capital de",
+      "x": 309.63778,
+      "y": 574.4134,
+      "w": 43.567554000000015,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "[MONTANT]",
+      "x": 358.753888,
+      "y": 574.4134,
+      "w": 53.817499999999995,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "euros, immatriculée",
+      "x": 418.11994200000004,
+      "y": 574.4134,
+      "w": 85.78555399999995,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "au",
+      "x": 309.63778,
+      "y": 559.9134,
+      "w": 10.564,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "RCS",
+      "x": 325.933311,
+      "y": 559.9134,
+      "w": 20.0545,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "de",
+      "x": 351.71934200000004,
+      "y": 559.9134,
+      "w": 10.564,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "[VILLE",
+      "x": 368.014873,
+      "y": 559.9134,
+      "w": 30.0865,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "RCS]",
+      "x": 403.83290400000004,
+      "y": 559.9134,
+      "w": 23.218,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "sous",
+      "x": 432.782435,
+      "y": 559.9134,
+      "w": 20.064,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "le",
+      "x": 458.57796600000006,
+      "y": 559.9134,
+      "w": 7.391,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "numéro",
+      "x": 471.70049700000004,
+      "y": 559.9134,
+      "w": 32.205,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "[NUMÉRO",
+      "x": 309.63778,
+      "y": 545.4134,
+      "w": 45.3815,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "RCS]",
+      "x": 361.267483,
+      "y": 545.4134,
+      "w": 23.218,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": ",",
+      "x": 384.48548300000004,
+      "y": 545.4134,
+      "w": 2.641,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "dont",
+      "x": 393.37468600000005,
+      "y": 545.4134,
+      "w": 18.487000000000002,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "le",
+      "x": 418.10988900000007,
+      "y": 545.4134,
+      "w": 7.391,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "siège",
+      "x": 431.749092,
+      "y": 545.4134,
+      "w": 22.705000000000002,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "social",
+      "x": 460.70229500000005,
+      "y": 545.4134,
+      "w": 24.281999999999996,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "est",
+      "x": 491.2324980000001,
+      "y": 545.4134,
+      "w": 12.673,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "situé",
+      "x": 309.63778,
+      "y": 530.9134,
+      "w": 20.064,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "au",
+      "x": 335.639834,
+      "y": 530.9134,
+      "w": 10.564,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "[ADRESSE",
+      "x": 352.141888,
+      "y": 530.9134,
+      "w": 49.08650000000001,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "CLIENT]",
+      "x": 407.166442,
+      "y": 530.9134,
+      "w": 37.467999999999996,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": ",",
+      "x": 444.63444200000004,
+      "y": 530.9134,
+      "w": 2.641,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "représentée",
+      "x": 453.21349599999996,
+      "y": 530.9134,
+      "w": 50.69199999999999,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "par",
+      "x": 309.63778,
+      "y": 516.4134,
+      "w": 13.7275,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "[Madame/Monsieur PRÉNOM NOM]",
+      "x": 326.933084,
+      "y": 516.4134,
+      "w": 160.19960799999998,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": ", en",
+      "x": 487.132692,
+      "y": 516.4134,
+      "w": 16.772804000000022,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "qualité de",
+      "x": 309.63778,
+      "y": 501.9134,
+      "w": 42.24504299999997,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "[FONCTION]",
+      "x": 355.576866,
+      "y": 501.9134,
+      "w": 55.936,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": ", dûment habilité(e) à",
+      "x": 411.51286600000003,
+      "y": 501.9134,
+      "w": 92.39262899999999,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "cet effet.",
+      "x": 309.63778,
+      "y": 487.4134,
+      "w": 36.442000000000014,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "Ci-après dénommé(e) « le CLIENT »",
+      "x": 309.63778,
+      "y": 458.4134,
+      "w": 130.25599999999991,
+      "h": 10,
+      "fontSize": 8
+    },
+    {
+      "pageIndex": 0,
+      "str": "Ensemble dénommées les «",
+      "x": 76.86614,
+      "y": 423.4094,
+      "w": 119.85199999999996,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "PARTIES",
+      "x": 199.35914,
+      "y": 423.4094,
+      "w": 41.173,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "» ou individuellement la «",
+      "x": 243.17314,
+      "y": 423.4094,
+      "w": 107.18850000000003,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "PARTIE",
+      "x": 353.00264000000016,
+      "y": 423.4094,
+      "w": 34.8365,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "».",
+      "x": 390.4801400000001,
+      "y": 423.4094,
+      "w": 7.923,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "ARTICLE 1 — PRÉAMBULE",
+      "x": 76.86614,
+      "y": 384.2323,
+      "w": 150.144,
+      "h": 11.5,
+      "fontSize": 11.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "Le texte ci-dessous est un exemple de préambule. Lors de la génération du contrat, ce paragraphe sera remplacé par",
+      "x": 76.86614,
+      "y": 360.8937,
+      "w": 441.54330399999947,
+      "h": 10,
+      "fontSize": 8.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "le contexte réel de la mission.",
+      "x": 76.86614,
+      "y": 348.8937,
+      "w": 111.96199999999999,
+      "h": 10,
+      "fontSize": 8.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "Dans le cadre de",
+      "x": 76.86614,
+      "y": 330.2244,
+      "w": 72.93312099999997,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "[DÉCRIRE LE PROJET DU CLIENT]",
+      "x": 152.81446799999998,
+      "y": 330.2244,
+      "w": 159.31082799999996,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": ", le CLIENT souhaite faire appel à un prestataire",
+      "x": 312.125296,
+      "y": 330.2244,
+      "w": 206.28415599999994,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "indépendant afin de",
+      "x": 76.86614,
+      "y": 315.7244,
+      "w": 83.44800000000002,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "[DÉCRIRE L'OBJECTIF DE LA MISSION]",
+      "x": 162.95513999999997,
+      "y": 315.7244,
+      "w": 180.6615,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": ".",
+      "x": 343.61663999999985,
+      "y": 315.7244,
+      "w": 2.641,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "Le PRESTATAIRE a déclaré disposer des compétences particulières requises pour répondre aux",
+      "x": 76.86614,
+      "y": 294.1378,
+      "w": 441.5433119999995,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "besoins du CLIENT et qu’il intervient régulièrement et de manière significative auprès de nombreuses",
+      "x": 76.86614,
+      "y": 279.6378,
+      "w": 441.5433079999998,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "entreprises dont les besoins et les exigences sont similaires à ceux du CLIENT.",
+      "x": 76.86614,
+      "y": 265.1378,
+      "w": 334.7419999999999,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "Les PARTIES ont eu l’occasion d’échanger sur le sujet et de poser toutes les questions utiles, en ont",
+      "x": 76.86614,
+      "y": 243.5512,
+      "w": 441.5432999999998,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "obtenu toutes les réponses et ont ainsi pu s’assurer des éléments déterminants attendus du CLIENT.",
+      "x": 76.86614,
+      "y": 229.0512,
+      "w": 425.06800000000015,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "C’est dans ce contexte que les Parties se sont réunies afin de préciser au sein du présent contrat,",
+      "x": 76.86614,
+      "y": 207.4646,
+      "w": 441.5433119999998,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "ci-après le «",
+      "x": 76.86614,
+      "y": 192.9646,
+      "w": 54.77732999999999,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "Contrat",
+      "x": 135.804635,
+      "y": 192.9646,
+      "w": 33.7725,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "», les conditions dans lesquelles le PRESTATAIRE fournira ses prestations au",
+      "x": 173.73829999999998,
+      "y": 192.9646,
+      "w": 344.6711499999999,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "CLIENT.",
+      "x": 76.86614,
+      "y": 178.4646,
+      "w": 36.422999999999995,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "ARTICLE 2 — DURÉE DU CONTRAT",
+      "x": 76.86614,
+      "y": 139.2874,
+      "w": 196.7765,
+      "h": 11.5,
+      "fontSize": 11.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "Le Contrat prendra effet le",
+      "x": 76.86614,
+      "y": 114.94882,
+      "w": 114.80801199999998,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "[DATE DÉBUT]",
+      "x": 195.29378,
+      "y": 114.94882,
+      "w": 68.52362800000002,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "et se terminera de plein droit le",
+      "x": 267.43703600000003,
+      "y": 114.94882,
+      "w": 136.28776799999991,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "[DATE FIN]",
+      "x": 407.34443199999976,
+      "y": 114.94882,
+      "w": 51.110127999999925,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": ", ci-après la «",
+      "x": 458.4545599999998,
+      "y": 114.94882,
+      "w": 59.95488399999999,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "Période Contractuelle",
+      "x": 76.86614,
+      "y": 100.44882,
+      "w": 98.192,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 0,
+      "str": "».",
+      "x": 177.69914,
+      "y": 100.44882,
+      "w": 7.923,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 1,
+      "str": "À l’expiration de la Période Contractuelle, le Contrat prendra fin automatiquement sans qu’aucune",
+      "x": 76.86614,
+      "y": 764.0276,
+      "w": 441.54330399999964,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 1,
+      "str": "formalité ne soit nécessaire, sauf accord écrit des deux Parties pour son renouvellement.",
+      "x": 76.86614,
+      "y": 749.5276,
+      "w": 373.82499999999976,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 1,
+      "str": "ARTICLE 3 — OBLIGATIONS DU PRESTATAIRE",
+      "x": 76.86614,
+      "y": 710.3504,
+      "w": 261.32599999999996,
+      "h": 11.5,
+      "fontSize": 11.5
+    },
+    {
+      "pageIndex": 1,
+      "str": "3.1 — Prestations",
+      "x": 76.86614,
+      "y": 682.6772,
+      "w": 83.92,
+      "h": 10,
+      "fontSize": 10
+    },
+    {
+      "pageIndex": 1,
+      "str": "En contrepartie du prix ferme et certain visé à l’article 4, le PRESTATAIRE s’engage à effectuer les",
+      "x": 76.86614,
+      "y": 661.6732,
+      "w": 441.54330000000004,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 1,
+      "str": "prestations visées dans le devis et/ou la proposition commerciale figurant à l’annexe 1 des présentes,",
+      "x": 76.86614,
+      "y": 647.1732,
+      "w": 441.543302,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 1,
+      "str": "comprenant notamment :",
+      "x": 76.86614,
+      "y": 632.6732,
+      "w": 105.602,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 1,
+      "str": "-",
+      "x": 91.86614,
+      "y": 611.0866,
+      "w": 3.1635,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 1,
+      "str": "[Description de la prestation 1]",
+      "x": 97.67063999999999,
+      "y": 611.0866,
+      "w": 139.36499999999998,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 1,
+      "str": "-",
+      "x": 91.86614,
+      "y": 591.4173,
+      "w": 3.1635,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 1,
+      "str": "[Description de la prestation 2]",
+      "x": 97.67063999999999,
+      "y": 591.4173,
+      "w": 139.36499999999998,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 1,
+      "str": "-",
+      "x": 91.86614,
+      "y": 571.748,
+      "w": 3.1635,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 1,
+      "str": "[Description de la prestation 3]",
+      "x": 97.67063999999999,
+      "y": 571.748,
+      "w": 139.36499999999998,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 1,
+      "str": "Le PRESTATAIRE inclut",
+      "x": 76.86614,
+      "y": 546.4094,
+      "w": 106.211574,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 1,
+      "str": "[NOMBRE]",
+      "x": 186.82150099999998,
+      "y": 546.4094,
+      "w": 48.545,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 1,
+      "str": "tour(s) de révisions dans le cadre de la présente mission ; toute",
+      "x": 239.110288,
+      "y": 546.4094,
+      "w": 279.2991570000001,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 1,
+      "str": "demande de modification supplémentaire au-delà de ce nombre fera l’objet d’un devis complémentaire",
+      "x": 76.86614,
+      "y": 531.9094,
+      "w": 441.5433039999995,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 1,
+      "str": "accepté par le CLIENT préalablement à sa réalisation.",
+      "x": 76.86614,
+      "y": 517.4094,
+      "w": 228.09500000000006,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 1,
+      "str": "3.2 — Interlocuteurs des Parties",
+      "x": 76.86614,
+      "y": 488.2362,
+      "w": 152.27999999999997,
+      "h": 10,
+      "fontSize": 10
+    },
+    {
+      "pageIndex": 1,
+      "str": "A. Interlocuteur du PRESTATAIRE",
+      "x": 76.86614,
+      "y": 467.2323,
+      "w": 154.12800000000001,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 1,
+      "str": "L’interlocuteur du PRESTATAIRE est notamment chargé d’assurer la complète et bonne application du",
+      "x": 76.86614,
+      "y": 445.6457,
+      "w": 441.5433079999997,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 1,
+      "str": "Contrat, d’assurer le suivi avec le CLIENT et de gérer toute réclamation du CLIENT relative à l’une",
+      "x": 76.86614,
+      "y": 431.1457,
+      "w": 441.5433119999996,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 1,
+      "str": "quelconque des stipulations du Contrat.",
+      "x": 76.86614,
+      "y": 416.6457,
+      "w": 166.86749999999995,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 1,
+      "str": "Nom :",
+      "x": 78.86614,
+      "y": 390.0591,
+      "w": 26.913500000000003,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 1,
+      "str": "[NOM]",
+      "x": 192.25194,
+      "y": 390.0591,
+      "w": 28.490499999999997,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 1,
+      "str": "Fonction :",
+      "x": 78.86614,
+      "y": 365.5591,
+      "w": 45.9135,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 1,
+      "str": "[FONCTION]",
+      "x": 192.25194,
+      "y": 365.5591,
+      "w": 55.936,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 1,
+      "str": "Téléphone :",
+      "x": 78.86614,
+      "y": 341.0591,
+      "w": 53.31399999999999,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 1,
+      "str": "[NUMÉRO]",
+      "x": 192.25194,
+      "y": 341.0591,
+      "w": 48.545,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 1,
+      "str": "Email :",
+      "x": 78.86614,
+      "y": 316.5591,
+      "w": 31.150499999999987,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 1,
+      "str": "[EMAIL]",
+      "x": 192.25194,
+      "y": 316.5591,
+      "w": 35.881499999999996,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 1,
+      "str": "B. Interlocuteur du CLIENT",
+      "x": 76.86614,
+      "y": 285.7205,
+      "w": 121.40050000000002,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 1,
+      "str": "L’interlocuteur du CLIENT est notamment chargé de suivre la bonne application par le PRESTATAIRE du",
+      "x": 76.86614,
+      "y": 264.13390000000004,
+      "w": 441.5433019999999,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 1,
+      "str": "Contrat, d’assurer le suivi avec l’interlocuteur du PRESTATAIRE et de gérer toute réclamation qui lui",
+      "x": 76.86614,
+      "y": 249.6339,
+      "w": 441.54330199999976,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 1,
+      "str": "serait adressée par le PRESTATAIRE relative à l’une quelconque des stipulations du Contrat.",
+      "x": 76.86614,
+      "y": 235.1339,
+      "w": 393.3665,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 1,
+      "str": "Nom :",
+      "x": 78.86614,
+      "y": 208.5472,
+      "w": 26.913500000000003,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 1,
+      "str": "[NOM]",
+      "x": 192.25194,
+      "y": 208.5472,
+      "w": 28.490499999999997,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 1,
+      "str": "Fonction :",
+      "x": 78.86614,
+      "y": 184.0472,
+      "w": 45.9135,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 1,
+      "str": "[FONCTION]",
+      "x": 192.25194,
+      "y": 184.0472,
+      "w": 55.936,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 1,
+      "str": "Téléphone :",
+      "x": 78.86614,
+      "y": 159.5472,
+      "w": 53.31399999999999,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 1,
+      "str": "[NUMÉRO]",
+      "x": 192.25194,
+      "y": 159.5472,
+      "w": 48.545,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 1,
+      "str": "Email :",
+      "x": 78.86614,
+      "y": 135.0472,
+      "w": 31.150499999999987,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 1,
+      "str": "[EMAIL]",
+      "x": 192.25194,
+      "y": 135.0472,
+      "w": 35.881499999999996,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 1,
+      "str": "3.3 — Calendrier d’exécution",
+      "x": 76.86614,
+      "y": 100.87402,
+      "w": 137.27000000000007,
+      "h": 10,
+      "fontSize": 10
+    },
+    {
+      "pageIndex": 2,
+      "str": "Les Parties sont convenues du calendrier d’exécution suivant, que le PRESTATAIRE s’engage à",
+      "x": 76.86614,
+      "y": 764.0276,
+      "w": 441.543312,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 2,
+      "str": "respecter à titre de condition essentielle et déterminante de l’engagement du CLIENT :",
+      "x": 76.86614,
+      "y": 749.5276,
+      "w": 363.812,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 2,
+      "str": "Jalon",
+      "x": 78.86614,
+      "y": 721.9409,
+      "w": 24.814,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 2,
+      "str": "Livrable attendu",
+      "x": 124.22047,
+      "y": 721.9409,
+      "w": 73.37799999999999,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 2,
+      "str": "Date prévue",
+      "x": 282.96064,
+      "y": 721.9409,
+      "w": 54.378000000000014,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 2,
+      "str": "Mode de livraison",
+      "x": 382.74014,
+      "y": 721.9409,
+      "w": 80.2465,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 2,
+      "str": "1",
+      "x": 78.86614,
+      "y": 695.4409,
+      "w": 5.282,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 2,
+      "str": "[LIVRABLE 1]",
+      "x": 124.22047,
+      "y": 695.4409,
+      "w": 61.749999999999986,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 2,
+      "str": "[DATE]",
+      "x": 282.96064,
+      "y": 695.4409,
+      "w": 32.18600000000001,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 2,
+      "str": "[Email / Drive / GitHub...]",
+      "x": 382.74014,
+      "y": 695.4409,
+      "w": 110.865,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 2,
+      "str": "2",
+      "x": 78.86614,
+      "y": 668.9409,
+      "w": 5.282,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 2,
+      "str": "[LIVRABLE 2]",
+      "x": 124.22047,
+      "y": 668.9409,
+      "w": 61.749999999999986,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 2,
+      "str": "[DATE]",
+      "x": 282.96064,
+      "y": 668.9409,
+      "w": 32.18600000000001,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 2,
+      "str": "[Email / Drive / GitHub...]",
+      "x": 382.74014,
+      "y": 668.9409,
+      "w": 110.865,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 2,
+      "str": "3",
+      "x": 78.86614,
+      "y": 642.4409,
+      "w": 5.282,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 2,
+      "str": "[LIVRABLE 3]",
+      "x": 124.22047,
+      "y": 642.4409,
+      "w": 61.749999999999986,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 2,
+      "str": "[DATE]",
+      "x": 282.96064,
+      "y": 642.4409,
+      "w": 32.18600000000001,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 2,
+      "str": "[Email / Drive / GitHub...]",
+      "x": 382.74014,
+      "y": 642.4409,
+      "w": 110.865,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 2,
+      "str": "Final",
+      "x": 78.86614,
+      "y": 615.9409,
+      "w": 22.173000000000002,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 2,
+      "str": "[LIVRAISON FINALE]",
+      "x": 124.22047,
+      "y": 615.9409,
+      "w": 95.00000000000001,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 2,
+      "str": "[DATE]",
+      "x": 282.96064,
+      "y": 615.9409,
+      "w": 32.18600000000001,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 2,
+      "str": "[Email / Drive / GitHub...]",
+      "x": 382.74014,
+      "y": 615.9409,
+      "w": 110.865,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 2,
+      "str": "En cas de retard imputable au CLIENT (validation tardive, absence de retour, changement de brief), les",
+      "x": 76.86614,
+      "y": 589.7717,
+      "w": 441.54330999999996,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 2,
+      "str": "délais de livraison sont automatiquement décalés d’autant.",
+      "x": 76.86614,
+      "y": 575.2717,
+      "w": 246.5915000000001,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 2,
+      "str": "ARTICLE 4 — CONDITIONS FINANCIÈRES",
+      "x": 76.86614,
+      "y": 536.0945,
+      "w": 230.6555,
+      "h": 11.5,
+      "fontSize": 11.5
+    },
+    {
+      "pageIndex": 2,
+      "str": "4.1 — Prix",
+      "x": 76.86614,
+      "y": 508.4213,
+      "w": 48.36000000000001,
+      "h": 10,
+      "fontSize": 10
+    },
+    {
+      "pageIndex": 2,
+      "str": "En contrepartie de la réalisation des prestations visées à l’article 3 des présentes, le CLIENT s’engage à",
+      "x": 76.86614,
+      "y": 487.4173,
+      "w": 441.5432999999998,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 2,
+      "str": "verser une somme forfaitaire au profit du PRESTATAIRE dont le montant s’élève inconditionnellement et",
+      "x": 76.86614,
+      "y": 472.9173,
+      "w": 441.54331099999956,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 2,
+      "str": "invariablement à",
+      "x": 76.86614,
+      "y": 458.4173,
+      "w": 69.692,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 2,
+      "str": "[MONTANT]",
+      "x": 149.19914,
+      "y": 458.4173,
+      "w": 53.817499999999995,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 2,
+      "str": "€ HT (",
+      "x": 205.65764,
+      "y": 458.4173,
+      "w": 26.39099999999998,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 2,
+      "str": "[PRIX EN LETTRES]",
+      "x": 232.04863999999998,
+      "y": 458.4173,
+      "w": 90.25949999999992,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 2,
+      "str": "euros hors taxe), ci-après le «",
+      "x": 324.94913999999994,
+      "y": 458.4173,
+      "w": 125.65650000000001,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 2,
+      "str": "Prix",
+      "x": 453.24663999999984,
+      "y": 458.4173,
+      "w": 17.955,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 2,
+      "str": "».",
+      "x": 473.84263999999985,
+      "y": 458.4173,
+      "w": 7.923,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 2,
+      "str": "4.2 — Modalités de paiement",
+      "x": 76.86614,
+      "y": 429.2441,
+      "w": 136.71000000000006,
+      "h": 10,
+      "fontSize": 10
+    },
+    {
+      "pageIndex": 2,
+      "str": "Le PRESTATAIRE facturera le CLIENT selon les conditions financières suivantes :",
+      "x": 76.86614,
+      "y": 408.2402,
+      "w": 347.9375,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 2,
+      "str": "Échéance",
+      "x": 78.86614,
+      "y": 380.6535,
+      "w": 44.35549999999999,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 2,
+      "str": "% du Prix",
+      "x": 178.64564000000001,
+      "y": 380.6535,
+      "w": 43.291499999999985,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 2,
+      "str": "Montant HT",
+      "x": 260.28344000000004,
+      "y": 380.6535,
+      "w": 52.24050000000002,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 2,
+      "str": "Date",
+      "x": 387.27554,
+      "y": 380.6535,
+      "w": 20.5865,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 2,
+      "str": "Acompte",
+      "x": 78.86614,
+      "y": 354.1535,
+      "w": 37.486999999999995,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 2,
+      "str": "[%]",
+      "x": 178.64564000000001,
+      "y": 354.1535,
+      "w": 14.772499999999997,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 2,
+      "str": "[MONTANT]",
+      "x": 260.28344000000004,
+      "y": 354.1535,
+      "w": 53.817499999999995,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 2,
+      "str": "€",
+      "x": 316.74194000000006,
+      "y": 354.1535,
+      "w": 5.282,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 2,
+      "str": "[DATE]",
+      "x": 387.27554,
+      "y": 354.1535,
+      "w": 32.18600000000001,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 2,
+      "str": "Solde",
+      "x": 78.86614,
+      "y": 327.6535,
+      "w": 24.291500000000003,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 2,
+      "str": "[%]",
+      "x": 178.64564000000001,
+      "y": 327.6535,
+      "w": 14.772499999999997,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 2,
+      "str": "[MONTANT]",
+      "x": 260.28344000000004,
+      "y": 327.6535,
+      "w": 53.817499999999995,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 2,
+      "str": "€",
+      "x": 316.74194000000006,
+      "y": 327.6535,
+      "w": 5.282,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 2,
+      "str": "[DATE]",
+      "x": 387.27554,
+      "y": 327.6535,
+      "w": 32.18600000000001,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 2,
+      "str": "La facture sera réglée par le CLIENT par virement bancaire sur le compte du PRESTATAIRE à",
+      "x": 76.86614,
+      "y": 298.6496,
+      "w": 423.54837499999996,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 2,
+      "str": "[30",
+      "x": 504.68193999999994,
+      "y": 298.6496,
+      "w": 13.7275,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 2,
+      "str": "JOURS / 45 JOURS / 60 JOURS]",
+      "x": 76.86614,
+      "y": 284.1496,
+      "w": 149.65072599999996,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 2,
+      "str": "fin de mois à compter de la date d’émission de la facture originale",
+      "x": 230.165987,
+      "y": 284.1496,
+      "w": 288.2434520000001,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 2,
+      "str": "conforme envoyée par le PRESTATAIRE.",
+      "x": 76.86614,
+      "y": 269.6496,
+      "w": 175.81649999999993,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 2,
+      "str": "Adresse de facturation :",
+      "x": 76.86614,
+      "y": 248.063,
+      "w": 108.7465,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 2,
+      "str": "[ADRESSE DE FACTURATION DU PRESTATAIRE]",
+      "x": 188.25364000000002,
+      "y": 248.063,
+      "w": 225.35900000000007,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 2,
+      "str": "4.3 — Pénalités de retard",
+      "x": 76.86614,
+      "y": 218.8898,
+      "w": 118.93999999999998,
+      "h": 10,
+      "fontSize": 10
+    },
+    {
+      "pageIndex": 2,
+      "str": "Conformément aux articles L.441-10 et suivants du Code de commerce, tout retard de paiement",
+      "x": 76.86614,
+      "y": 197.8858,
+      "w": 441.5433089999999,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 2,
+      "str": "entraînera de plein droit, sans qu’un rappel soit nécessaire :",
+      "x": 76.86614,
+      "y": 183.3858,
+      "w": 251.87350000000012,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 2,
+      "str": "- Des",
+      "x": 91.86614,
+      "y": 161.7992,
+      "w": 22.886148000000002,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 2,
+      "str": "pénalités de retard",
+      "x": 117.58393600000001,
+      "y": 161.7992,
+      "w": 84.855296,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 2,
+      "str": "calculées au taux de 3 (trois) fois le taux d’intérêt légal en vigueur par jour",
+      "x": 205.27088,
+      "y": 161.7992,
+      "w": 313.13857199999967,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 2,
+      "str": "de retard, sur le montant dû à compter du jour auquel les sommes auraient dû être versées, et ce",
+      "x": 91.86614,
+      "y": 147.7992,
+      "w": 426.54330000000004,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 2,
+      "str": "sans préjudice de tout dommage et intérêts ;",
+      "x": 91.86614,
+      "y": 133.7992,
+      "w": 187.45400000000004,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 2,
+      "str": "- Une",
+      "x": 91.86614,
+      "y": 114.12992,
+      "w": 25.052954,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 2,
+      "str": "indemnité forfaitaire",
+      "x": 121.385548,
+      "y": 114.12992,
+      "w": 93.14895399999999,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 2,
+      "str": ", non soumise à la TVA, de recouvrement de",
+      "x": 214.534502,
+      "y": 114.12992,
+      "w": 202.58013200000005,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 2,
+      "str": "40 €",
+      "x": 421.5810879999999,
+      "y": 114.12992,
+      "w": 20.312454,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 2,
+      "str": "(quarante euros)",
+      "x": 446.3599959999999,
+      "y": 114.12992,
+      "w": 72.04945399999998,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 2,
+      "str": "conformément à l’article D.441-5 du Code de commerce.",
+      "x": 91.86614,
+      "y": 100.12992,
+      "w": 238.64000000000007,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 3,
+      "str": "Toute prestation ponctuelle supplémentaire commandée par le CLIENT, formalisée par un bon de",
+      "x": 76.86614,
+      "y": 764.0276,
+      "w": 441.5433079999998,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 3,
+      "str": "commande spécifique, donnera lieu à l’émission d’une facture établie et réglée dans les mêmes",
+      "x": 76.86614,
+      "y": 749.5276,
+      "w": 441.5433019999997,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 3,
+      "str": "conditions que celles prévues au présent article.",
+      "x": 76.86614,
+      "y": 735.0276,
+      "w": 202.7585,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 3,
+      "str": "ARTICLE 5 — OBJET DU CONTRAT",
+      "x": 76.86614,
+      "y": 695.8504,
+      "w": 194.8675,
+      "h": 11.5,
+      "fontSize": 11.5
+    },
+    {
+      "pageIndex": 3,
+      "str": "5.1 — Le Contrat a pour objet de définir les conditions dans lesquelles le PRESTATAIRE assurera, tout",
+      "x": 76.86614,
+      "y": 671.5118,
+      "w": 441.5432999999998,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 3,
+      "str": "au long de la Période Contractuelle, les prestations définies à l’article 3 du présent Contrat.",
+      "x": 76.86614,
+      "y": 657.0118,
+      "w": 382.28949999999986,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 3,
+      "str": "5.2 — Le présent Contrat traduit l’ensemble des engagements pris par les Parties dans le cadre de son",
+      "x": 76.86614,
+      "y": 635.4252,
+      "w": 441.54330199999964,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 3,
+      "str": "objet. Il annule et remplace, à compter de sa date d’effet, tout autre accord existant portant sur le même",
+      "x": 76.86614,
+      "y": 620.9252,
+      "w": 441.5432999999996,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 3,
+      "str": "objet, quelle qu’en soit la forme.",
+      "x": 76.86614,
+      "y": 606.4252,
+      "w": 134.12099999999992,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 3,
+      "str": "5.3 — Les prestations confiées au PRESTATAIRE ne font l’objet d’aucune exclusivité.",
+      "x": 76.86614,
+      "y": 584.8386,
+      "w": 361.6934999999998,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 3,
+      "str": "ARTICLE 6 — PROPRIÉTÉ INTELLECTUELLE",
+      "x": 76.86614,
+      "y": 545.6614,
+      "w": 247.917,
+      "h": 11.5,
+      "fontSize": 11.5
+    },
+    {
+      "pageIndex": 3,
+      "str": "Le présent article s’applique lorsque les prestations donnent lieu à la création d’œuvres protégées par le",
+      "x": 76.86614,
+      "y": 521.3227999999999,
+      "w": 441.54330499999975,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 3,
+      "str": "droit de la propriété intellectuelle.",
+      "x": 76.86614,
+      "y": 506.8228,
+      "w": 139.39349999999996,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 3,
+      "str": "Option retenue :",
+      "x": 76.86614,
+      "y": 485.2362,
+      "w": 73.3685,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 3,
+      "str": "[CESSION APRÈS PAIEMENT / LICENCE D'UTILISATION / CESSION TOTALE]",
+      "x": 152.87564,
+      "y": 485.2362,
+      "w": 348.52650000000006,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 3,
+      "str": "Si cession après paiement (option par défaut) :",
+      "x": 76.86614,
+      "y": 463.6496,
+      "w": 218.42380899999992,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 3,
+      "str": "Le PRESTATAIRE cède au CLIENT, à compter du",
+      "x": 298.8931359999999,
+      "y": 463.6496,
+      "w": 219.51630899999986,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 3,
+      "str": "paiement intégral et définitif de l’ensemble des sommes dues au titre du présent Contrat, l’ensemble des",
+      "x": 76.86614,
+      "y": 449.1496,
+      "w": 441.5433099999997,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 3,
+      "str": "droits patrimoniaux de propriété intellectuelle sur les livrables, pour le monde entier et pour la durée",
+      "x": 76.86614,
+      "y": 434.6496,
+      "w": 441.5433099999999,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 3,
+      "str": "légale",
+      "x": 76.86614,
+      "y": 420.1496,
+      "w": 25.346,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 3,
+      "str": "de",
+      "x": 108.31424100000001,
+      "y": 420.1496,
+      "w": 10.564,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 3,
+      "str": "protection",
+      "x": 124.98034200000001,
+      "y": 420.1496,
+      "w": 41.7145,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 3,
+      "str": "des",
+      "x": 172.796943,
+      "y": 420.1496,
+      "w": 15.314,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 3,
+      "str": "droits",
+      "x": 194.213044,
+      "y": 420.1496,
+      "w": 23.2275,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 3,
+      "str": "d’auteur.",
+      "x": 223.542645,
+      "y": 420.1496,
+      "w": 36.964499999999994,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 3,
+      "str": "Cette",
+      "x": 266.60924600000004,
+      "y": 420.1496,
+      "w": 22.705000000000002,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 3,
+      "str": "cession",
+      "x": 295.4163470000001,
+      "y": 420.1496,
+      "w": 32.205,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 3,
+      "str": "comprend",
+      "x": 333.7234480000001,
+      "y": 420.1496,
+      "w": 42.236999999999995,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 3,
+      "str": "les",
+      "x": 382.062549,
+      "y": 420.1496,
+      "w": 12.141,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 3,
+      "str": "droits",
+      "x": 400.30565,
+      "y": 420.1496,
+      "w": 23.2275,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 3,
+      "str": "de",
+      "x": 429.6352509999999,
+      "y": 420.1496,
+      "w": 10.564,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 3,
+      "str": "reproduction,",
+      "x": 446.30135199999995,
+      "y": 420.1496,
+      "w": 55.441999999999986,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 3,
+      "str": "de",
+      "x": 507.8454529999998,
+      "y": 420.1496,
+      "w": 10.564,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 3,
+      "str": "représentation, d’adaptation et de traduction.",
+      "x": 76.86614,
+      "y": 405.6496,
+      "w": 188.5275,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 3,
+      "str": "Le PRESTATAIRE conserve le droit de mentionner la réalisation dans son portfolio à titre de référence",
+      "x": 76.86614,
+      "y": 384.063,
+      "w": 441.5433099999999,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 3,
+      "str": "professionnelle, sauf opposition écrite du CLIENT.",
+      "x": 76.86614,
+      "y": 369.563,
+      "w": 211.20400000000004,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 3,
+      "str": "Tant que le paiement intégral n’est pas effectué, le PRESTATAIRE reste titulaire de l’ensemble",
+      "x": 76.86614,
+      "y": 347.9764,
+      "w": 441.54330099999993,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 3,
+      "str": "des droits de propriété intellectuelle sur les livrables.",
+      "x": 76.86614,
+      "y": 333.4764,
+      "w": 240.2360000000001,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 3,
+      "str": "ARTICLE 7 — CONFIDENTIALITÉ",
+      "x": 76.86614,
+      "y": 294.2992,
+      "w": 180.81449999999998,
+      "h": 11.5,
+      "fontSize": 11.5
+    },
+    {
+      "pageIndex": 3,
+      "str": "Clause de confidentialité :",
+      "x": 76.86614,
+      "y": 269.9606,
+      "w": 117.72400000000003,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 3,
+      "str": "[OUI / NON]",
+      "x": 197.23114000000004,
+      "y": 269.9606,
+      "w": 52.24999999999998,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 3,
+      "str": "Si oui : Chaque Partie s’engage à considérer comme strictement confidentielles toutes les informations",
+      "x": 76.86614,
+      "y": 248.374,
+      "w": 441.5433039999998,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 3,
+      "str": "de nature technique, commerciale, financière ou stratégique communiquées par l’autre Partie dans le",
+      "x": 76.86614,
+      "y": 233.874,
+      "w": 441.5433119999999,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 3,
+      "str": "cadre du présent Contrat.",
+      "x": 76.86614,
+      "y": 219.374,
+      "w": 107.7205,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 3,
+      "str": "Les",
+      "x": 76.86614,
+      "y": 197.7874,
+      "w": 15.314,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 3,
+      "str": "clauses",
+      "x": 98.849317,
+      "y": 197.7874,
+      "w": 32.205,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 3,
+      "str": "du",
+      "x": 137.723494,
+      "y": 197.7874,
+      "w": 10.564,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 3,
+      "str": "présent",
+      "x": 154.956671,
+      "y": 197.7874,
+      "w": 31.682499999999997,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 3,
+      "str": "Contrat",
+      "x": 193.308348,
+      "y": 197.7874,
+      "w": 31.1505,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 3,
+      "str": "sont",
+      "x": 231.12802499999998,
+      "y": 197.7874,
+      "w": 17.955,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 3,
+      "str": "également",
+      "x": 255.75220199999998,
+      "y": 197.7874,
+      "w": 44.3555,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 3,
+      "str": "confidentielles",
+      "x": 306.776879,
+      "y": 197.7874,
+      "w": 60.19199999999999,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 3,
+      "str": "et",
+      "x": 373.638056,
+      "y": 197.7874,
+      "w": 7.923,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 3,
+      "str": "ne",
+      "x": 388.230233,
+      "y": 197.7874,
+      "w": 10.564,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 3,
+      "str": "peuvent",
+      "x": 405.46340999999995,
+      "y": 197.7874,
+      "w": 33.801,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 3,
+      "str": "être",
+      "x": 445.9335869999999,
+      "y": 197.7874,
+      "w": 16.3685,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 3,
+      "str": "publiées",
+      "x": 468.9712639999998,
+      "y": 197.7874,
+      "w": 35.378,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 3,
+      "str": "ni",
+      "x": 511.0184409999997,
+      "y": 197.7874,
+      "w": 7.391,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 3,
+      "str": "communiquées à des tiers sans autorisation écrite et expresse de l’autre Partie.",
+      "x": 76.86614,
+      "y": 183.2874,
+      "w": 334.7515000000001,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 3,
+      "str": "Les Parties s’engagent à prendre toutes les dispositions nécessaires afin de garantir à l’autre Partie, qui",
+      "x": 76.86614,
+      "y": 161.70080000000002,
+      "w": 441.54329999999965,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 3,
+      "str": "y accorde une importance particulière, que toute personne liée à l’exécution du Contrat soit tenue à une",
+      "x": 76.86614,
+      "y": 147.20080000000002,
+      "w": 441.5433079999997,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 3,
+      "str": "discrétion stricte sur les prestations du Contrat.",
+      "x": 76.86614,
+      "y": 132.70080000000002,
+      "w": 197.9895,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 3,
+      "str": "Cette obligation de confidentialité s’applique pendant toute la durée du Contrat et pendant une période",
+      "x": 76.86614,
+      "y": 111.11417,
+      "w": 441.54330599999986,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 3,
+      "str": "de",
+      "x": 76.86614,
+      "y": 96.61417,
+      "w": 10.564,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 3,
+      "str": "[2 ANS / 5 ANS]",
+      "x": 90.07114,
+      "y": 96.61417,
+      "w": 70.205,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 3,
+      "str": "après son terme.",
+      "x": 162.91714000000002,
+      "y": 96.61417,
+      "w": 71.27849999999998,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 4,
+      "str": "Sont exclues de cette obligation les informations qui sont ou deviennent publiques sans faute de la Partie",
+      "x": 76.86614,
+      "y": 764.0276,
+      "w": 441.54330799999974,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 4,
+      "str": "réceptrice, ou qui doivent être divulguées en vertu d’une obligation légale.",
+      "x": 76.86614,
+      "y": 749.5276,
+      "w": 309.96599999999995,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 4,
+      "str": "ARTICLE 8 — NON-CONCURRENCE",
+      "x": 76.86614,
+      "y": 710.3504,
+      "w": 197.409,
+      "h": 11.5,
+      "fontSize": 11.5
+    },
+    {
+      "pageIndex": 4,
+      "str": "Clause de non-concurrence :",
+      "x": 76.86614,
+      "y": 686.0118,
+      "w": 130.91950000000003,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 4,
+      "str": "[OUI / NON]",
+      "x": 210.42664,
+      "y": 686.0118,
+      "w": 52.24999999999998,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 4,
+      "str": "Si oui : Le PRESTATAIRE s’engage, pendant la durée du Contrat et pour une période de",
+      "x": 76.86614,
+      "y": 664.4252,
+      "w": 373.0362950000002,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 4,
+      "str": "[DURÉE]",
+      "x": 452.48768800000005,
+      "y": 664.4252,
+      "w": 39.577000000000005,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 4,
+      "str": "après",
+      "x": 494.649941,
+      "y": 664.4252,
+      "w": 23.7595,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 4,
+      "str": "son terme, à ne pas réaliser de missions directement concurrentes pour le compte d’un concurrent direct",
+      "x": 76.86614,
+      "y": 649.9252,
+      "w": 441.54329999999953,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 4,
+      "str": "du CLIENT. Cette clause est limitée au secteur d’activité du CLIENT et doit faire l’objet d’une contrepartie",
+      "x": 76.86614,
+      "y": 635.4252,
+      "w": 441.54329999999993,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 4,
+      "str": "financière.",
+      "x": 76.86614,
+      "y": 620.9252,
+      "w": 43.82349999999999,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 4,
+      "str": "Si non : Le PRESTATAIRE conserve son entière liberté d’exercer son activité auprès de tout client de",
+      "x": 76.86614,
+      "y": 599.3386,
+      "w": 441.5433079999998,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 4,
+      "str": "son choix, y compris les concurrents du CLIENT.",
+      "x": 76.86614,
+      "y": 584.8386,
+      "w": 205.37099999999995,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 4,
+      "str": "ARTICLE 9 — RESPONSABILITÉ ET FORCE MAJEURE",
+      "x": 76.86614,
+      "y": 545.6614,
+      "w": 299.03450000000004,
+      "h": 11.5,
+      "fontSize": 11.5
+    },
+    {
+      "pageIndex": 4,
+      "str": "9.1 — Limitation de responsabilité",
+      "x": 76.86614,
+      "y": 517.9882,
+      "w": 162.27000000000007,
+      "h": 10,
+      "fontSize": 10
+    },
+    {
+      "pageIndex": 4,
+      "str": "La responsabilité du PRESTATAIRE au titre du présent Contrat est limitée au",
+      "x": 76.86614,
+      "y": 496.9843,
+      "w": 355.25227299999983,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 4,
+      "str": "montant total HT",
+      "x": 437.4867559999999,
+      "y": 496.9843,
+      "w": 80.92268599999994,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 4,
+      "str": "effectivement perçu",
+      "x": 76.86614,
+      "y": 482.4843,
+      "w": 89.74649999999997,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 4,
+      "str": "pour la mission concernée.",
+      "x": 169.25364,
+      "y": 482.4843,
+      "w": 113.51549999999999,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 4,
+      "str": "Le PRESTATAIRE ne pourra en aucun cas être tenu responsable des dommages indirects, incluant",
+      "x": 76.86614,
+      "y": 460.8976,
+      "w": 441.54330999999956,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 4,
+      "str": "notamment le manque à gagner, la perte de données, la perte de chiffre d’affaires, l’atteinte à l’image ou",
+      "x": 76.86614,
+      "y": 446.3976,
+      "w": 441.54330399999964,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 4,
+      "str": "tout préjudice financier ou commercial indirect.",
+      "x": 76.86614,
+      "y": 431.8976,
+      "w": 195.87100000000004,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 4,
+      "str": "Le CLIENT est seul responsable de l’utilisation qu’il fait des livrables après leur réception et acceptation.",
+      "x": 76.86614,
+      "y": 410.311,
+      "w": 437.7125,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 4,
+      "str": "9.2 — Force majeure",
+      "x": 76.86614,
+      "y": 381.1378,
+      "w": 97.82000000000002,
+      "h": 10,
+      "fontSize": 10
+    },
+    {
+      "pageIndex": 4,
+      "str": "Aucune des Parties ne sera tenue pour responsable d’une inexécution de l’une quelconque de ses",
+      "x": 76.86614,
+      "y": 360.1339,
+      "w": 441.5433099999996,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 4,
+      "str": "obligations en cas de force majeure.",
+      "x": 76.86614,
+      "y": 345.6339,
+      "w": 152.59850000000003,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 4,
+      "str": "Les Parties conviennent de considérer comme des causes d’exonération les événements suivants,",
+      "x": 76.86614,
+      "y": 324.0472,
+      "w": 441.54330199999976,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 4,
+      "str": "lorsqu’ils sont de nature à empêcher temporairement ou définitivement une Partie d’accomplir ses",
+      "x": 76.86614,
+      "y": 309.5472,
+      "w": 441.54331199999973,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 4,
+      "str": "obligations en tout ou partie : acte de terrorisme, attentat, guerre civile, émeute, réquisition, confiscation,",
+      "x": 76.86614,
+      "y": 295.0472,
+      "w": 441.5433079999997,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 4,
+      "str": "blocage ou endommagement des voies ou moyens de transport ou du réseau de communication,",
+      "x": 76.86614,
+      "y": 280.5472,
+      "w": 441.54331099999973,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 4,
+      "str": "cataclysme naturel (tempête, inondation, incendie), épidémie, pandémie (y compris Covid-19), grève,",
+      "x": 76.86614,
+      "y": 266.0472,
+      "w": 441.54330999999974,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 4,
+      "str": "acte de l’autorité publique, ou tout événement de force majeure au sens de l’article 1218 du Code civil",
+      "x": 76.86614,
+      "y": 251.5472,
+      "w": 441.54331299999967,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 4,
+      "str": "(ci-après la «",
+      "x": 76.86614,
+      "y": 237.0472,
+      "w": 54.900499999999994,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 4,
+      "str": "Force Majeure",
+      "x": 134.40764,
+      "y": 237.0472,
+      "w": 64.41,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 4,
+      "str": "»).",
+      "x": 201.45864,
+      "y": 237.0472,
+      "w": 11.0865,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 4,
+      "str": "Dans un tel cas, seules les prestations effectivement réalisées en application du Contrat donneront lieu à",
+      "x": 76.86614,
+      "y": 215.4606,
+      "w": 441.5433049999996,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 4,
+      "str": "paiement par le CLIENT. Le PRESTATAIRE s’engage à restituer au CLIENT, dès la date de prise d’effet",
+      "x": 76.86614,
+      "y": 200.9606,
+      "w": 441.5432999999997,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 4,
+      "str": "de la résiliation du Contrat, toutes les sommes éventuellement versées en contrepartie des prestations",
+      "x": 76.86614,
+      "y": 186.4606,
+      "w": 441.5433089999999,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 4,
+      "str": "non réalisées.",
+      "x": 76.86614,
+      "y": 171.9606,
+      "w": 59.13749999999998,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 4,
+      "str": "ARTICLE 10 — RÉSILIATION",
+      "x": 76.86614,
+      "y": 132.7835,
+      "w": 156.54950000000002,
+      "h": 11.5,
+      "fontSize": 11.5
+    },
+    {
+      "pageIndex": 4,
+      "str": "10.1 — Résiliation anticipée",
+      "x": 76.86614,
+      "y": 105.1102,
+      "w": 131.72,
+      "h": 10,
+      "fontSize": 10
+    },
+    {
+      "pageIndex": 5,
+      "str": "Chaque Partie peut résilier le présent Contrat par écrit (email avec accusé de réception ou courrier",
+      "x": 76.86614,
+      "y": 764.0276,
+      "w": 441.5433099999996,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 5,
+      "str": "recommandé avec avis de réception) en respectant un délai de préavis de",
+      "x": 76.86614,
+      "y": 749.5276,
+      "w": 311.5335,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 5,
+      "str": "[15 JOURS / 30 JOURS]",
+      "x": 391.04064000000005,
+      "y": 749.5276,
+      "w": 106.11500000000007,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 5,
+      "str": ".",
+      "x": 497.15563999999995,
+      "y": 749.5276,
+      "w": 2.641,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 5,
+      "str": "En cas de résiliation, le CLIENT s’engage à régler l’intégralité des prestations réalisées à la date de prise",
+      "x": 76.86614,
+      "y": 727.9409,
+      "w": 441.54330299999964,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 5,
+      "str": "d’effet de la résiliation, ainsi que les acomptes déjà versés qui restent acquis au PRESTATAIRE.",
+      "x": 76.86614,
+      "y": 713.4409,
+      "w": 406.56199999999984,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 5,
+      "str": "10.2 — Résiliation pour faute",
+      "x": 76.86614,
+      "y": 684.2677,
+      "w": 137.26000000000002,
+      "h": 10,
+      "fontSize": 10
+    },
+    {
+      "pageIndex": 5,
+      "str": "En cas de manquement grave de l’une des Parties à ses obligations contractuelles (notamment le",
+      "x": 76.86614,
+      "y": 663.2638,
+      "w": 441.54330799999974,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 5,
+      "str": "non-paiement d’une échéance), l’autre Partie pourra résilier le Contrat de plein droit après mise en",
+      "x": 76.86614,
+      "y": 648.7638,
+      "w": 441.54330399999986,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 5,
+      "str": "demeure adressée par courrier recommandé avec avis de réception, restée sans effet pendant un délai",
+      "x": 76.86614,
+      "y": 634.2638,
+      "w": 441.5433039999997,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 5,
+      "str": "de 15 (quinze) jours.",
+      "x": 76.86614,
+      "y": 619.7638,
+      "w": 86.59249999999997,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 5,
+      "str": "ARTICLE 11 — INDÉPENDANCE DES PARTIES",
+      "x": 76.86614,
+      "y": 580.5866,
+      "w": 255.58750000000003,
+      "h": 11.5,
+      "fontSize": 11.5
+    },
+    {
+      "pageIndex": 5,
+      "str": "Les Parties agiront à tout moment en toute indépendance l’une de l’autre, sans que le Contrat ne puisse",
+      "x": 76.86614,
+      "y": 556.248,
+      "w": 441.54331099999956,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 5,
+      "str": "être",
+      "x": 76.86614,
+      "y": 541.748,
+      "w": 16.3685,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 5,
+      "str": "réputé",
+      "x": 99.945471,
+      "y": 541.748,
+      "w": 26.9325,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 5,
+      "str": "créer",
+      "x": 133.588802,
+      "y": 541.748,
+      "w": 21.641,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 5,
+      "str": "une",
+      "x": 161.940633,
+      "y": 541.748,
+      "w": 15.846,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 5,
+      "str": "quelconque",
+      "x": 184.49746399999998,
+      "y": 541.748,
+      "w": 49.114999999999995,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 5,
+      "str": "filiale,",
+      "x": 240.32329500000003,
+      "y": 541.748,
+      "w": 24.282000000000004,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 5,
+      "str": "entreprise",
+      "x": 271.31612600000005,
+      "y": 541.748,
+      "w": 42.236999999999995,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 5,
+      "str": "commune,",
+      "x": 320.2639570000001,
+      "y": 541.748,
+      "w": 44.346,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 5,
+      "str": "ni",
+      "x": 371.3207880000001,
+      "y": 541.748,
+      "w": 7.391,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 5,
+      "str": "un",
+      "x": 385.42261900000005,
+      "y": 541.748,
+      "w": 10.564,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 5,
+      "str": "lien",
+      "x": 402.69745,
+      "y": 541.748,
+      "w": 14.782,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 5,
+      "str": "de",
+      "x": 424.1902809999999,
+      "y": 541.748,
+      "w": 10.564,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 5,
+      "str": "subordination,",
+      "x": 441.46511199999986,
+      "y": 541.748,
+      "w": 59.66949999999999,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 5,
+      "str": "de",
+      "x": 507.8454429999997,
+      "y": 541.748,
+      "w": 10.564,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 5,
+      "str": "représentation ou tout contrat analogue.",
+      "x": 76.86614,
+      "y": 527.248,
+      "w": 168.4635,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 5,
+      "str": "Les Parties déclarent expressément que le Contrat ne peut en aucun cas être interprété ou considéré",
+      "x": 76.86614,
+      "y": 505.6614,
+      "w": 441.5432999999998,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 5,
+      "str": "comme constituant un acte de société, un groupement doté de la personnalité morale, ni par ailleurs une",
+      "x": 76.86614,
+      "y": 491.1614,
+      "w": 441.54330799999974,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 5,
+      "str": "société en participation ou société de fait, ni créer de fait une société au sens des dispositions de l’article",
+      "x": 76.86614,
+      "y": 476.6614,
+      "w": 441.5433139999997,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 5,
+      "str": "1873 du Code civil.",
+      "x": 76.86614,
+      "y": 462.1614,
+      "w": 80.78799999999997,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 5,
+      "str": "ARTICLE 12 — ÉLECTION DE DOMICILE",
+      "x": 76.86614,
+      "y": 422.9843,
+      "w": 220.4435,
+      "h": 11.5,
+      "fontSize": 11.5
+    },
+    {
+      "pageIndex": 5,
+      "str": "Pour l’exécution du présent Contrat et de ses suites, les Parties élisent domicile au lieu de leurs sièges",
+      "x": 76.86614,
+      "y": 398.6457,
+      "w": 441.5433109999997,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 5,
+      "str": "sociaux respectifs figurant en tête des présentes.",
+      "x": 76.86614,
+      "y": 384.1457,
+      "w": 206.46350000000004,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 5,
+      "str": "ARTICLE 13 — CONVENTION DE PREUVE — SIGNATURE ÉLECTRONIQUE",
+      "x": 76.86614,
+      "y": 344.9685,
+      "w": 410.21650000000005,
+      "h": 11.5,
+      "fontSize": 11.5
+    },
+    {
+      "pageIndex": 5,
+      "str": "Les Parties conviennent expressément que le Contrat pourra être conclu de manière dématérialisée,",
+      "x": 76.86614,
+      "y": 320.6299,
+      "w": 441.5433079999997,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 5,
+      "str": "sous la forme d’un écrit électronique, dans le cadre de la plateforme de signature électronique utilisée par",
+      "x": 76.86614,
+      "y": 306.1299,
+      "w": 441.5433119999996,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 5,
+      "str": "les Parties.",
+      "x": 76.86614,
+      "y": 291.6299,
+      "w": 46.98699999999999,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 5,
+      "str": "Elles admettent, le cas échéant, que cet écrit constitue l’original du Contrat et que, dès lors qu’il est établi",
+      "x": 76.86614,
+      "y": 270.0433,
+      "w": 441.5433079999998,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 5,
+      "str": "et conservé par les Parties dans des conditions de nature à permettre d’en identifier dûment les",
+      "x": 76.86614,
+      "y": 255.5433,
+      "w": 441.5433100000001,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 5,
+      "str": "signataires et à en garantir l’intégrité :",
+      "x": 76.86614,
+      "y": 241.0433,
+      "w": 158.40300000000005,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 5,
+      "str": "- Il constitue une",
+      "x": 91.86614,
+      "y": 219.4567,
+      "w": 69.70149999999997,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 5,
+      "str": "preuve écrite",
+      "x": 164.20864,
+      "y": 219.4567,
+      "w": 59.13750000000002,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 5,
+      "str": "au sens de l’article 1365 du Code civil ;",
+      "x": 225.98713999999998,
+      "y": 219.4567,
+      "w": 164.7395000000002,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 5,
+      "str": "-",
+      "x": 91.86614,
+      "y": 199.7874,
+      "w": 3.1635,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 5,
+      "str": "Il",
+      "x": 101.15036,
+      "y": 199.7874,
+      "w": 4.75,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 5,
+      "str": "a",
+      "x": 112.02108,
+      "y": 199.7874,
+      "w": 5.282,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 5,
+      "str": "la",
+      "x": 123.4238,
+      "y": 199.7874,
+      "w": 7.391,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 5,
+      "str": "même",
+      "x": 136.93552,
+      "y": 199.7874,
+      "w": 27.455,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 5,
+      "str": "valeur",
+      "x": 170.51124,
+      "y": 199.7874,
+      "w": 27.987000000000002,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 5,
+      "str": "probante",
+      "x": 204.61896,
+      "y": 199.7874,
+      "w": 40.641000000000005,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 5,
+      "str": "qu’un",
+      "x": 251.38067999999998,
+      "y": 199.7874,
+      "w": 23.237,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 5,
+      "str": "écrit",
+      "x": 280.73840000000007,
+      "y": 199.7874,
+      "w": 17.9455,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 5,
+      "str": "signé",
+      "x": 304.80462000000006,
+      "y": 199.7874,
+      "w": 22.705000000000002,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 5,
+      "str": "de",
+      "x": 333.63034000000005,
+      "y": 199.7874,
+      "w": 10.564,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 5,
+      "str": "façon",
+      "x": 350.31506,
+      "y": 199.7874,
+      "w": 23.237,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 5,
+      "str": "manuscrite",
+      "x": 379.67278,
+      "y": 199.7874,
+      "w": 46.455,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 5,
+      "str": "sur",
+      "x": 432.2484999999999,
+      "y": 199.7874,
+      "w": 13.1955,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 5,
+      "str": "support",
+      "x": 451.56471999999997,
+      "y": 199.7874,
+      "w": 31.682499999999997,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 5,
+      "str": "papier,",
+      "x": 489.36793999999986,
+      "y": 199.7874,
+      "w": 29.0415,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 5,
+      "str": "conformément à l’article 1366 du Code civil ;",
+      "x": 91.86614,
+      "y": 185.7874,
+      "w": 186.90299999999996,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 5,
+      "str": "- Il pourra valablement être opposé à chacune des Parties et aux tiers ;",
+      "x": 91.86614,
+      "y": 166.1181,
+      "w": 298.33799999999997,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 5,
+      "str": "- Il est susceptible d’être produit en justice à titre de preuve littérale en cas de litige, y compris dans",
+      "x": 91.86614,
+      "y": 146.4488,
+      "w": 426.54331199999956,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 5,
+      "str": "les litiges opposant les Parties.",
+      "x": 91.86614,
+      "y": 132.4488,
+      "w": 130.416,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 5,
+      "str": "ARTICLE 14 — RÈGLEMENT DES LITIGES",
+      "x": 76.86614,
+      "y": 93.77165,
+      "w": 230.67850000000004,
+      "h": 11.5,
+      "fontSize": 11.5
+    },
+    {
+      "pageIndex": 6,
+      "str": "Le présent Contrat est régi exclusivement par le droit français.",
+      "x": 76.86614,
+      "y": 764.0276,
+      "w": 261.3545000000002,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 6,
+      "str": "Tout litige auquel le présent Contrat pourrait donner lieu, notamment quant à son interprétation, son",
+      "x": 76.86614,
+      "y": 742.4409,
+      "w": 441.54330399999986,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 6,
+      "str": "exécution,",
+      "x": 76.86614,
+      "y": 727.9409,
+      "w": 43.300999999999995,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 6,
+      "str": "sa",
+      "x": 127.002933,
+      "y": 727.9409,
+      "w": 10.032,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 6,
+      "str": "résiliation",
+      "x": 143.870726,
+      "y": 727.9409,
+      "w": 40.1185,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 6,
+      "str": "ou",
+      "x": 190.82501899999994,
+      "y": 727.9409,
+      "w": 10.564,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 6,
+      "str": "ses",
+      "x": 208.22481199999996,
+      "y": 727.9409,
+      "w": 14.782,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 6,
+      "str": "suites,",
+      "x": 229.84260499999996,
+      "y": 727.9409,
+      "w": 27.455,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 6,
+      "str": "sera",
+      "x": 264.13339799999994,
+      "y": 727.9409,
+      "w": 18.4775,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 6,
+      "str": "soumis",
+      "x": 289.446691,
+      "y": 727.9409,
+      "w": 30.0865,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 6,
+      "str": "aux",
+      "x": 326.368984,
+      "y": 727.9409,
+      "w": 15.314,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 6,
+      "str": "tribunaux",
+      "x": 348.518777,
+      "y": 727.9409,
+      "w": 39.073499999999996,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 6,
+      "str": "compétents",
+      "x": 394.42806999999993,
+      "y": 727.9409,
+      "w": 49.1055,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 6,
+      "str": "de",
+      "x": 450.3693629999999,
+      "y": 727.9409,
+      "w": 10.564,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 6,
+      "str": "[VILLE",
+      "x": 467.76915599999995,
+      "y": 727.9409,
+      "w": 30.0865,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 6,
+      "str": "DU",
+      "x": 504.69144900000003,
+      "y": 727.9409,
+      "w": 13.718,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 6,
+      "str": "TRIBUNAL]",
+      "x": 76.86614,
+      "y": 713.4409,
+      "w": 51.7085,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 6,
+      "str": ", nonobstant appel en garantie ou pluralité de défendeurs, même pour les procédures",
+      "x": 128.57464,
+      "y": 713.4409,
+      "w": 389.83480399999996,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 6,
+      "str": "d’urgence ou les procédures conservatoires, en référé ou par requête.",
+      "x": 76.86614,
+      "y": 698.9409,
+      "w": 294.6425000000001,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 6,
+      "str": "SIGNATURES",
+      "x": 76.86614,
+      "y": 659.7638,
+      "w": 75.39399999999999,
+      "h": 11.5,
+      "fontSize": 11.5
+    },
+    {
+      "pageIndex": 6,
+      "str": "Fait en deux exemplaires originaux, le",
+      "x": 76.86614,
+      "y": 635.4252,
+      "w": 159.98,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 6,
+      "str": "[DATE]",
+      "x": 239.48713999999998,
+      "y": 635.4252,
+      "w": 32.18600000000001,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 6,
+      "str": ".",
+      "x": 271.67314,
+      "y": 635.4252,
+      "w": 2.641,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 6,
+      "str": "Le PRESTATAIRE",
+      "x": 93.37008,
+      "y": 582.8307,
+      "w": 80.7595,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 6,
+      "str": "Nom :",
+      "x": 93.37008,
+      "y": 553.8307,
+      "w": 25.336500000000008,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 6,
+      "str": "[NOM PRESTATAIRE]",
+      "x": 121.34758,
+      "y": 553.8307,
+      "w": 98.16350000000001,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 6,
+      "str": "Mention « Lu et approuvé »",
+      "x": 93.37008,
+      "y": 524.8307,
+      "w": 115.65299999999996,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 6,
+      "str": "Signature :",
+      "x": 93.37008,
+      "y": 452.3307,
+      "w": 45.941999999999986,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 6,
+      "str": "Le CLIENT",
+      "x": 311.63778,
+      "y": 582.8307,
+      "w": 48.032000000000025,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 6,
+      "str": "Nom :",
+      "x": 311.63778,
+      "y": 553.8307,
+      "w": 25.336499999999965,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 6,
+      "str": "[NOM CLIENT]",
+      "x": 339.61528000000004,
+      "y": 553.8307,
+      "w": 65.43599999999996,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 6,
+      "str": "Qualité :",
+      "x": 311.63778,
+      "y": 539.3307,
+      "w": 35.37800000000002,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 6,
+      "str": "[FONCTION]",
+      "x": 349.65678,
+      "y": 539.3307,
+      "w": 55.936,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 6,
+      "str": "Mention « Lu et approuvé »",
+      "x": 311.63778,
+      "y": 510.3307,
+      "w": 115.653,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 6,
+      "str": "Signature :",
+      "x": 311.63778,
+      "y": 437.8307,
+      "w": 45.942000000000014,
+      "h": 10,
+      "fontSize": 9.5
+    },
+    {
+      "pageIndex": 6,
+      "str": "Contrat généré par Spyke — spykeapp.fr — L’assistant IA des freelances français",
+      "x": 161.74529,
+      "y": 362.6496,
+      "w": 271.78499999999985,
+      "h": 10,
+      "fontSize": 8
+    }
+  ]
+}
