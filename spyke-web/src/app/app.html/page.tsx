@@ -89,6 +89,7 @@ function usePdfMailModals() {
     filename: string
     actions?: {
       kind: 'devis' | 'facture' | 'contrat'
+      contractId?: string
       to: string
       subject: string
       text: string
@@ -133,6 +134,7 @@ function usePdfMailModals() {
     filename: string,
     actions?: {
       kind: 'devis' | 'facture' | 'contrat'
+      contractId?: string
       to: string
       subject: string
       text: string
@@ -435,6 +437,23 @@ function usePdfMailModals() {
                     }}
                   >
                     Envoyer par mail
+                  </button>
+                ) : null}
+
+                {pdfPreview.actions?.kind === 'contrat' && pdfPreview.actions?.contractId ? (
+                  <button
+                    className="btn btn-secondary"
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        await (window as any).__spyke_send_contract_for_signature?.(String(pdfPreview.actions?.contractId || ''))
+                      } catch (e: any) {
+                        alert(e?.message || 'Erreur envoi pour signature')
+                      }
+                    }}
+                    title="Envoie un lien au client (valable 14 jours) pour signer en ligne"
+                  >
+                    Envoyer pour signature
                   </button>
                 ) : null}
 
@@ -3265,6 +3284,16 @@ function ContratsV1({
     }
   }
 
+  useEffect(() => {
+    ;(window as any).__spyke_send_contract_for_signature = (id: string) => sendContractForSignature(id)
+    return () => {
+      try {
+        delete (window as any).__spyke_send_contract_for_signature
+      } catch {}
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [supabase, userFullName])
+
   async function sendContractForSignature(contractId: string) {
     try {
       if (!supabase || !contractId) return
@@ -3807,6 +3836,7 @@ function ContratsV1({
 
       openPdfPreviewFromBlob(blob, `Contrat-${new Date().toISOString().slice(0, 10)}.pdf`, {
         kind: 'contrat',
+        contractId: String(selectedContractIdRef.current || ''),
         to: String(clientEmail || ''),
         subject: `Contrat ${String(contractNumber || '').trim() || 'Spyke'}`,
         text: `Bonjour,\n\nVeuillez trouver ci-joint le contrat.\n\nCordialement,\n${userFullName || ''}`.trim(),

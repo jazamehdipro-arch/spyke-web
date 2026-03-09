@@ -171,7 +171,13 @@ export async function POST(req: Request) {
     const { error: upErr } = await supabaseAdmin.storage
       .from('signed_contracts')
       .upload(unsignedPath, filled as any, { contentType: 'application/pdf', upsert: true })
-    if (upErr) throw upErr
+    if (upErr) {
+      const msg = String((upErr as any)?.message || upErr)
+      if (msg.toLowerCase().includes('bucket') && msg.toLowerCase().includes('not found')) {
+        throw new Error("Bucket Supabase manquant. Applique la migration SQL (contract_sign_links + buckets) sur Supabase.")
+      }
+      throw upErr
+    }
 
     const { data: row, error: insErr } = await supabaseAdmin
       .from('contract_sign_links')
