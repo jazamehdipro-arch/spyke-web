@@ -86,6 +86,7 @@ export async function POST(req: Request) {
       '[PRÉNOM      NOM]': sellerName,
       '[PRÉNOM NOM]': sellerName,
       '[NUMÉRO     SIRET]': body.seller?.siret || '',
+      '[NUMÉRO SIRET]': body.seller?.siret || '',
       '[SIRET PRESTATAIRE]': body.seller?.siret || '',
       '[ADRESSE PRESTATAIRE]': body.seller?.address || '',
       '[ACTIVITÉ]': body.seller?.activity || '',

@@ -116,6 +116,7 @@ export async function POST(req: Request) {
       '[PRÉNOM      NOM]': sellerName,
       '[PRÉNOM NOM]': sellerName,
       '[NUMÉRO     SIRET]': sellerSiret,
+      '[NUMÉRO SIRET]': sellerSiret,
       '[SIRET PRESTATAIRE]': sellerSiret,
       '[ADRESSE PRESTATAIRE]': sellerAddress,
       '[ACTIVITÉ]': sellerActivity,
