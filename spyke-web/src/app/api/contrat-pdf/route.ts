@@ -198,6 +198,9 @@ export async function POST(req: Request) {
       })
     } catch (err: any) {
       // Fallback: generate a simple PDF without pdfjs.
+      // We also surface the template error in a header so it's diagnosable from the browser.
+      const templateErrMsg = String(err?.message || err || '').slice(0, 160)
+
       const React = (await import('react')).default
       const { Document, Page, Text, View, Image, StyleSheet, pdf } = await import('@react-pdf/renderer')
 
@@ -257,6 +260,7 @@ export async function POST(req: Request) {
           'content-disposition': `attachment; filename="Contrat-${new Date().toISOString().slice(0, 10)}.pdf"`,
           'cache-control': 'no-store',
           'x-spyke-contract-fallback': '1',
+          'x-spyke-contract-template-error': templateErrMsg,
         },
       })
     }
