@@ -3382,90 +3382,14 @@ function ContratsV1({
         .join('\n')
 
       // Open the same email composer UI as “Envoyer par mail”, with the signing link included + PDF attached.
+      // Note: the signature flow is triggered from the PDF pop-up, so we can generate the filled PDF from current form state.
       await openMailComposeWithAttachment({
         kind: 'contrat',
         to,
         subject,
         text,
-        getBlob: async () => {
-          // Generate PDF from DB snapshot so it works even when sending from list view.
-          const { data: c } = await supabase
-            .from('contracts')
-            .select('number,contract_text,mission_start,mission_end,amount_ht,tva_regime,buyer_snapshot,seller_snapshot')
-            .eq('id', contractId)
-            .maybeSingle()
-
-          const buyer: any = (c as any)?.buyer_snapshot || {}
-          const seller: any = (c as any)?.seller_snapshot || {}
-
-          // best-effort logo
-          let logoUrl = ''
-          try {
-            if (userId) {
-              const { data: profile } = await supabase.from('profiles').select('logo_path').eq('id', userId).maybeSingle()
-              const logoPath = String((profile as any)?.logo_path || '')
-              if (logoPath) {
-                const pub = supabase.storage.from('logos').getPublicUrl(logoPath)
-                logoUrl = String(pub?.data?.publicUrl || '')
-              }
-            }
-          } catch {}
-
-          const payload: any = {
-            title: 'Contrat de prestation de service',
-            date: new Date().toISOString().slice(0, 10),
-            logoUrl,
-            includeSignature: false,
-            signedAt: '',
-            signedPlace: '',
-            contractText: String((c as any)?.contract_text || contractText || buildContractText()),
-            parties: { sellerName: String(seller?.name || ''), buyerName: String(buyer?.name || '') },
-
-            contractNumber: String((c as any)?.number || contractNo || ''),
-            seller: {
-              name: String(seller?.name || ''),
-              siret: String(seller?.siret || ''),
-              address: String((seller?.addressLines || []).join(', ')),
-              activity: '',
-              email: String(seller?.email || ''),
-            },
-            buyer: {
-              name: String(buyer?.name || ''),
-              siret: String(buyer?.siret || ''),
-              representant: String(buyer?.representant || ''),
-              address: String((buyer?.addressLines || []).join(', ')),
-              email: String(buyer?.email || ''),
-            },
-            mission: {
-              startDate: formatDateFr(String((c as any)?.mission_start || '')),
-              endDate: formatDateFr(String((c as any)?.mission_end || '')),
-              location: '',
-              revisions: '',
-              description: '',
-              deliverables: '',
-            },
-            pricing: {
-              type: 'FORFAIT',
-              amount: `${Number((c as any)?.amount_ht || 0).toFixed(2)} € HT`,
-            },
-            vatRegime: String((c as any)?.tva_regime || 'franchise') === 'franchise' ? 'FRANCHISE EN BASE' : 'ASSUJETTI',
-            paymentSchedule: '',
-            paymentDelay: '',
-            ipClause: '',
-            confidentiality: '',
-            termination: '',
-          }
-
-          const res = await fetch('/api/contrat-pdf', {
-            method: 'POST',
-            headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
-            body: JSON.stringify(payload),
-          })
-          const blob = await res.blob()
-          if (!res.ok) throw new Error((await blob.text()) || 'Erreur PDF')
-          return { blob, token }
-        },
-        filename: 'Contrat-' + String(contractNo || 'Spyke') + '.pdf',
+        getBlob: () => generateContractPdfBlob({ includeSignature: false }),
+        filename: 'Contrat-' + String(contractNo || contractNumber || 'Spyke') + '.pdf',
       })
     } catch (e: any) {
       alert(e?.message || 'Erreur envoi pour signature')
