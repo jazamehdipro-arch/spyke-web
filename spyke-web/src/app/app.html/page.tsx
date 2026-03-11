@@ -440,18 +440,28 @@ function usePdfMailModals() {
                   </button>
                 ) : null}
 
-                {pdfPreview.actions?.kind === 'contrat' && pdfPreview.actions?.contractId ? (
+                {pdfPreview.actions?.kind === 'contrat' ? (
                   <button
                     className="btn btn-secondary"
                     type="button"
+                    disabled={!pdfPreview.actions?.contractId}
                     onClick={async () => {
                       try {
-                        await (window as any).__spyke_send_contract_for_signature?.(String(pdfPreview.actions?.contractId || ''))
+                        const cid = String(pdfPreview.actions?.contractId || '')
+                        if (!cid) {
+                          alert('Contrat non enregistré (id manquant). Ferme le PDF et clique “Enregistrer brouillon” puis régénère le PDF.')
+                          return
+                        }
+                        await (window as any).__spyke_send_contract_for_signature?.(cid)
                       } catch (e: any) {
                         alert(e?.message || 'Erreur envoi pour signature')
                       }
                     }}
-                    title="Envoie un lien au client (valable 14 jours) pour signer en ligne"
+                    title={
+                      pdfPreview.actions?.contractId
+                        ? 'Envoie un lien au client (valable 14 jours) pour signer en ligne'
+                        : 'Le contrat doit être enregistré avant envoi pour signature'
+                    }
                   >
                     Envoyer pour signature
                   </button>
