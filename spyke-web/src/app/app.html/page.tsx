@@ -601,6 +601,17 @@ function formatMoney(amount: number) {
   return amount.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'
 }
 
+function formatStatusFr(status?: string | null) {
+  const s = String(status || '').toLowerCase().trim()
+  if (!s || s === 'draft') return 'Brouillon'
+  if (s === 'paid') return 'Payé'
+  if (s === 'sent') return 'Envoyé'
+  if (s === 'overdue') return 'En retard'
+  if (s === 'canceled' || s === 'cancelled') return 'Annulé'
+  if (s === 'signed') return 'Signé'
+  return status || ''
+}
+
 function formatDateFr(dateStr: string) {
   // dateStr expected: YYYY-MM-DD
   if (!dateStr) return ''
@@ -2096,7 +2107,7 @@ Réponds uniquement par le texte de la description.`
                           <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{q.title || '-'}</td>
                           <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>
                             <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                              <span>{q.status || 'draft'}</span>
+                              <span>{formatStatusFr(q.status)}</span>
                               {(() => {
                                 const d = daysUntil(String((q as any).validity_until || ''))
                                 if (d === null) return null
@@ -2178,7 +2189,7 @@ Réponds uniquement par le texte de la description.`
                           <div style={{ textAlign: 'right' }}>
                             <div className="mobile-card-amount">{formatMoney(Number(q.total_ttc || 0))}</div>
                             <div className="mobile-badges">
-                              <span className="badge badge-gray">{q.status || 'draft'}</span>
+                              <span className="badge badge-gray">{formatStatusFr(q.status)}</span>
                               {expiryBadge ? (
                                 <span className={`badge ${expiryBadge.tone === 'red' ? 'badge-red' : 'badge-yellow'}`}>
                                   {expiryBadge.label}
@@ -9692,7 +9703,7 @@ CONTEXTE UTILISATEUR :
                           <tr key={q.id}>
                             <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{q.number}</td>
                             <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{q.title || '-'}</td>
-                            <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{q.status || 'draft'}</td>
+                            <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{formatStatusFr(q.status)}</td>
                             <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)', textAlign: 'right', fontWeight: 700 }}>
                               {formatMoney(Number(q.total_ttc || 0))}
                             </td>
@@ -9714,7 +9725,7 @@ CONTEXTE UTILISATEUR :
                           <div style={{ textAlign: 'right' }}>
                             <div className="mobile-card-amount">{formatMoney(Number(q.total_ttc || 0))}</div>
                             <div className="mobile-badges">
-                              <span className="badge badge-gray">{q.status || 'draft'}</span>
+                              <span className="badge badge-gray">{formatStatusFr(q.status)}</span>
                             </div>
                           </div>
                         </div>
@@ -9774,7 +9785,7 @@ CONTEXTE UTILISATEUR :
                         {dashboardInvoices.map((inv) => (
                           <tr key={inv.id}>
                             <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{inv.number}</td>
-                            <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{inv.status || 'draft'}</td>
+                            <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{formatStatusFr(inv.status)}</td>
                             <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>
                               {inv.due_date ? formatDateFr(String(inv.due_date)) : '-'}
                             </td>
@@ -9866,7 +9877,7 @@ CONTEXTE UTILISATEUR :
                         {dashboardContracts.map((c) => (
                           <tr key={c.id}>
                             <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{c.title || 'Contrat'}</td>
-                            <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{c.status || 'draft'}</td>
+                            <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{formatStatusFr(c.status)}</td>
                             <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)', textAlign: 'right', fontWeight: 700 }}>
                               {formatMoney(Number(c.amount_ht || 0))}
                             </td>
@@ -9883,12 +9894,12 @@ CONTEXTE UTILISATEUR :
                         <div className="mobile-card-top">
                           <div>
                             <div className="mobile-card-title">{c.title || 'Contrat'}</div>
-                            <div className="mobile-card-sub">Statut: {c.status || 'draft'}</div>
+                            <div className="mobile-card-sub">Statut: {formatStatusFr(c.status)}</div>
                           </div>
                           <div style={{ textAlign: 'right' }}>
                             <div className="mobile-card-amount">{formatMoney(Number(c.amount_ht || 0))}</div>
                             <div className="mobile-badges">
-                              <span className="badge badge-gray">{c.status || 'draft'}</span>
+                              <span className="badge badge-gray">{formatStatusFr(c.status)}</span>
                             </div>
                           </div>
                         </div>
