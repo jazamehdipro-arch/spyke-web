@@ -3367,10 +3367,7 @@ function ContratsV1({
       const mailJson = await mailRes.json().catch(() => ({}))
       if (!mailRes.ok) throw new Error(String((mailJson as any)?.error || 'Erreur envoi mail'))
 
-      // Helpful for the freelancer: open the signing page (so they can test/copy link)
-      try {
-        window.open(signUrl, '_blank', 'noopener,noreferrer')
-      } catch {}
+      // Do not auto-open the client signing page here.
 
       alert('Lien de signature envoyé ✅')
     } catch (e: any) {
