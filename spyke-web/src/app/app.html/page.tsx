@@ -3945,14 +3945,7 @@ function ContratsV1({
                             <button className="btn btn-secondary" type="button" onClick={() => duplicateContract(String(c.id))}>
                               Dupliquer
                             </button>
-                            <button
-                              className="btn btn-secondary"
-                              type="button"
-                              onClick={() => sendContractForSignature(String(c.id))}
-                              title="Envoie un lien pour que le client signe en ligne"
-                            >
-                              Envoyer pour signature
-                            </button>
+                            {/* Envoi pour signature disponible dans le pop-up PDF */}
                             <button
                               className="btn btn-secondary"
                               type="button"
@@ -4011,14 +4004,7 @@ function ContratsV1({
                       <button className="btn btn-secondary" type="button" onClick={() => duplicateContract(String(c.id))}>
                         Dupliquer
                       </button>
-                      <button
-                        className="btn btn-secondary"
-                        type="button"
-                        onClick={() => sendContractForSignature(String(c.id))}
-                        title="Envoie un lien pour que le client signe en ligne"
-                      >
-                        Envoyer pour signature
-                      </button>
+                      {/* Envoi pour signature disponible dans le pop-up PDF */}
                       <button
                         className="btn btn-secondary"
                         type="button"
@@ -4437,27 +4423,7 @@ function ContratsV1({
                 Générer PDF
               </button>
 
-              <button
-                className="btn btn-secondary"
-                type="button"
-                onClick={async () => {
-                  try {
-                    // Ensure the contract exists in DB (generateContractPdf already persists it).
-                    if (!selectedContractIdRef.current) {
-                      await generateContractPdf()
-                      await new Promise((r) => setTimeout(r, 250))
-                    }
-                    const id = String(selectedContractIdRef.current || '')
-                    if (!id) throw new Error('Générez le PDF une première fois pour enregistrer le contrat.')
-                    await sendContractForSignature(id)
-                  } catch (e: any) {
-                    alert(e?.message || 'Erreur envoi pour signature')
-                  }
-                }}
-                title="Envoie un lien au client (valable 14 jours) pour signer en ligne"
-              >
-                Envoyer pour signature
-              </button>
+              {/* Bouton “Envoyer pour signature” supprimé ici : disponible dans le pop-up PDF */}
             </div>
 
         {contractText ? (
