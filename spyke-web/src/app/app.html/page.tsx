@@ -3718,8 +3718,13 @@ function ContratsV1({
             const { error: updErr } = await supabase.from('contracts').update(row).eq('id', existing.id)
             if (updErr) throw updErr
           } else {
-            const { error: insErr } = await supabase.from('contracts').insert(row)
+            const { data: insData, error: insErr } = await supabase.from('contracts').insert(row).select('id').single()
             if (insErr) throw insErr
+            const newId = String((insData as any)?.id || '')
+            if (newId) {
+              selectedContractIdRef.current = newId
+              setSelectedContractId(newId)
+            }
           }
 
           // Refresh list so it appears immediately in the UI/dashboard
