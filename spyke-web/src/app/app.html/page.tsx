@@ -103,9 +103,9 @@ function usePdfMailModals() {
     to: string
     subject: string
     text: string
-    attachmentUrl: string
-    attachmentFilename: string
     token: string
+    attachmentUrl?: string
+    attachmentFilename?: string
     previewUrl?: string
   }>(null)
   const [mailSending, setMailSending] = useState(false)
@@ -181,6 +181,10 @@ function usePdfMailModals() {
       token,
       previewUrl: url,
     })
+  }
+
+  function openMailComposePlain(opts: { to: string; subject: string; text: string; token: string }) {
+    setMailCompose({ to: opts.to, subject: opts.subject, text: opts.text, token: opts.token })
   }
 
   async function sendMailNow() {
@@ -528,15 +532,21 @@ function usePdfMailModals() {
                   style={{ width: '100%', marginTop: 6, padding: '10px 12px', borderRadius: 10, border: '1px solid rgba(0,0,0,0.12)', resize: 'none', flex: 1 }}
                 />
               </label>
-              <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.6)' }}>
-                Pièce jointe : <b>{mailCompose.attachmentFilename}</b>
-              </div>
+              {mailCompose.attachmentUrl ? (
+                <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.6)' }}>
+                  Pièce jointe : <b>{mailCompose.attachmentFilename || 'document.pdf'}</b>
+                </div>
+              ) : (
+                <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.6)' }}>Pas de pièce jointe</div>
+              )}
             </div>
 
-            <div className="mail-compose-preview">
-              <div className="mail-compose-preview-title">Aperçu du PDF</div>
-              <iframe title="pdf-attachment-preview" src={mailCompose.previewUrl || mailCompose.attachmentUrl} className="mail-compose-preview-iframe" />
-            </div>
+            {mailCompose.attachmentUrl ? (
+              <div className="mail-compose-preview">
+                <div className="mail-compose-preview-title">Aperçu du PDF</div>
+                <iframe title="pdf-attachment-preview" src={mailCompose.previewUrl || mailCompose.attachmentUrl} className="mail-compose-preview-iframe" />
+              </div>
+            ) : null}
           </div>
         ) : null}
       </ModalShell>
@@ -560,6 +570,7 @@ function usePdfMailModals() {
   return {
     openPdfPreviewFromBlob,
     openMailComposeWithAttachment,
+    openMailComposePlain,
     openSignatureFrame,
     modals,
   }
@@ -2965,7 +2976,7 @@ function ContratsV1({
     }
   }, [])
 
-  const { openPdfPreviewFromBlob, openMailComposeWithAttachment, openSignatureFrame, modals } = usePdfMailModals()
+  const { openPdfPreviewFromBlob, openMailComposeWithAttachment, openMailComposePlain, openSignatureFrame, modals } = usePdfMailModals()
 
   const [signatureMissing, setSignatureMissing] = useState(false)
   useEffect(() => {
@@ -3359,17 +3370,13 @@ function ContratsV1({
         .filter(Boolean)
         .join('\n')
 
-      const mailRes = await fetch('/api/gmail/send', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
-        body: JSON.stringify({ to, subject, text }),
+      // Open the same email composer UI as “Envoyer par mail”, but with the signing link included.
+      openMailComposePlain({
+        to,
+        subject,
+        text,
+        token,
       })
-      const mailJson = await mailRes.json().catch(() => ({}))
-      if (!mailRes.ok) throw new Error(String((mailJson as any)?.error || 'Erreur envoi mail'))
-
-      // Do not auto-open the client signing page here.
-
-      alert('Lien de signature envoyé ✅')
     } catch (e: any) {
       alert(e?.message || 'Erreur envoi pour signature')
     }
