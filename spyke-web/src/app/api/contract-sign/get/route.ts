@@ -20,7 +20,11 @@ export async function GET(req: Request) {
     const serviceRoleKey = requireEnv('SUPABASE_SERVICE_ROLE_KEY')
 
     const url = new URL(req.url)
-    const { token } = QuerySchema.parse({ token: url.searchParams.get('token') || '' })
+    const parsed = QuerySchema.safeParse({ token: url.searchParams.get('token') || '' })
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Lien de signature invalide' }, { status: 400 })
+    }
+    const { token } = parsed.data
 
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
       auth: { persistSession: false, autoRefreshToken: false },

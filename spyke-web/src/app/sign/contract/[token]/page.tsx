@@ -185,7 +185,15 @@ export default function ContractSignPage({ params }: { params: { token: string }
         <div style={{ background: 'white', borderRadius: 14, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)' }}>
           <div style={{ padding: 12, borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
             <div style={{ fontSize: 13, color: '#374151' }}>
-              {loading ? 'Chargement…' : info?.isSigned ? `Signé ✅` : `Lien valable jusqu’au ${new Date(info?.expiresAt || '').toLocaleDateString('fr-FR')}`}
+              {loading
+                ? 'Chargement…'
+                : error
+                  ? 'Lien invalide'
+                  : info?.isSigned
+                    ? `Signé ✅`
+                    : info?.expiresAt
+                      ? `Lien valable jusqu’au ${new Date(info.expiresAt).toLocaleDateString('fr-FR')}`
+                      : 'Lien de signature'}
             </div>
             {error ? <div style={{ fontSize: 13, color: '#b91c1c' }}>{error}</div> : null}
           </div>
