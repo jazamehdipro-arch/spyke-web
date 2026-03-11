@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useParams } from 'next/navigation'
 
 type SignInfo = {
   ok: boolean
@@ -16,8 +17,9 @@ function todayIso() {
   return new Date().toISOString().slice(0, 10)
 }
 
-export default function ContractSignPage({ params }: { params: { token: string } }) {
-  const token = params.token
+export default function ContractSignPage({ params }: { params: { token?: string } }) {
+  const routeParams = useParams<{ token?: string }>()
+  const token = String(routeParams?.token || params?.token || '')
 
   const [info, setInfo] = useState<SignInfo | null>(null)
   const [error, setError] = useState<string>('')
@@ -53,6 +55,11 @@ export default function ContractSignPage({ params }: { params: { token: string }
   }
 
   useEffect(() => {
+    if (!token || token.length < 10) {
+      setError('Lien de signature invalide')
+      setLoading(false)
+      return
+    }
     load()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token])
