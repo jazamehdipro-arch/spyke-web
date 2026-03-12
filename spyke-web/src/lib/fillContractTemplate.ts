@@ -70,24 +70,26 @@ export async function fillContractTemplatePdf(opts: { templateBytes: Uint8Array;
 
       const segs = pageItems.slice(i, i + matchedLen)
 
-      // Cover each segment rectangle
-      for (const s of segs) {
-        page.drawRectangle({
-          x: s.x,
-          y: s.y - 2,
-          width: Math.max(s.w, 10),
-          height: Math.max(s.h, 10) + 4,
-          color: rgb(1, 1, 1),
-          opacity: 1,
-        })
-      }
-
-      // Draw replacement over the full placeholder bounding box.
+      // Compute a generous bounding box for the matched placeholder and blank it out.
+      // (Some placeholders are highlighted or split in a way where per-segment rectangles leave artifacts.)
       const xMin = Math.min(...segs.map((s) => s.x))
-      const yMax = Math.max(...segs.map((s) => s.y))
       const xMax = Math.max(...segs.map((s) => s.x + Math.max(s.w, 10)))
+      const yMax = Math.max(...segs.map((s) => s.y))
+      const yMin = Math.min(...segs.map((s) => s.y - Math.max(s.h, 10)))
+
       const boxW = Math.max(xMax - xMin, 10)
+      const boxH = Math.max(yMax - yMin, 10)
       const fontSize = Math.max(8, Math.min(12, Number(segs[0]?.fontSize || 10)))
+
+      // One big white rectangle with padding
+      page.drawRectangle({
+        x: xMin - 1,
+        y: yMin - 2,
+        width: boxW + 2,
+        height: boxH + 6,
+        color: rgb(1, 1, 1),
+        opacity: 1,
+      })
 
       const text = String(matchedValue || '').trim()
 
@@ -120,18 +122,20 @@ export async function fillContractTemplatePdf(opts: { templateBytes: Uint8Array;
         return lines
       }
 
-      const lines = text ? wrap(text, Math.max(boxW, 120), 3) : ['']
-      const lineH = fontSize * 1.15
+      if (text) {
+        const lines = wrap(text, Math.max(boxW, 40), 3)
+        const lineH = fontSize * 1.15
 
-      for (let li = 0; li < lines.length; li++) {
-        page.drawText(lines[li], {
-          x: xMin,
-          y: yMax - li * lineH,
-          size: fontSize,
-          font: helvetica,
-          color: rgb(0.1, 0.1, 0.1),
-          maxWidth: Math.max(boxW, 120),
-        })
+        for (let li = 0; li < lines.length; li++) {
+          page.drawText(lines[li], {
+            x: xMin,
+            y: yMax - li * lineH,
+            size: fontSize,
+            font: helvetica,
+            color: rgb(0.1, 0.1, 0.1),
+            maxWidth: Math.max(boxW, 40),
+          })
+        }
       }
 
       replaced++
