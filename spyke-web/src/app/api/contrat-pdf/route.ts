@@ -193,12 +193,18 @@ export async function POST(req: Request) {
         replacements,
       })
 
-      let filled = filledRes.bytes
-      const replacedCount = filledRes.replaced
+      const filled = filledRes.bytes
+      const replacedCount = Number(filledRes.replaced || 0)
+
+      // If we didn't replace anything, the coordinate map most likely doesn't match the template in production.
+      // Throw to trigger the React-PDF fallback so the user still gets a filled contract.
+      if (replacedCount <= 0) {
+        throw new Error('Template placeholders not found (map/template mismatch)')
+      }
 
       // No embedded freelancer signature in contracts.
 
-      return new NextResponse(filled as any, {
+      return new NextResponse(filled as any, { 
         status: 200,
         headers: {
           'content-type': 'application/pdf',
