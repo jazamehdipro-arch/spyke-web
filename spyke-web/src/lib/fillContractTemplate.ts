@@ -35,8 +35,9 @@ export async function fillContractTemplatePdf(opts: { templateBytes: Uint8Array;
   const items = (templateMap as any).items as MapItem[]
   const pageCount = pdfDoc.getPageCount()
 
-  // Scan items in extraction order and match 1..N consecutive segments (placeholders can be split).
-  const maxJoin = 4
+  // Scan items in extraction order and match 1..N consecutive segments (placeholders can be split across many tokens).
+  // Increase join window so long placeholders like "[Forme sociale (SARL, SAS, etc.)]" are matched.
+  const maxJoin = 12
 
   let replaced = 0
 
