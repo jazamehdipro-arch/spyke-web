@@ -81,12 +81,26 @@ export async function fillContractTemplatePdf(opts: { templateBytes: Uint8Array;
       const boxH = Math.max(yMax - yMin, 10)
       const fontSize = Math.max(8, Math.min(12, Number(segs[0]?.fontSize || 10)))
 
-      // One big white rectangle with padding
+      // Blank out: do both per-segment (inflated) + global bbox to avoid leaving artifacts.
+      for (const s of segs) {
+        const padX = 2
+        const padY = Math.max(4, fontSize * 0.9)
+        page.drawRectangle({
+          x: s.x - padX,
+          // y in the map is close to the text baseline; cover further down to hide highlights/underscores.
+          y: s.y - padY,
+          width: Math.max(s.w, 10) + padX * 2,
+          height: Math.max(s.h, 10) + padY,
+          color: rgb(1, 1, 1),
+          opacity: 1,
+        })
+      }
+
       page.drawRectangle({
-        x: xMin - 1,
-        y: yMin - 2,
-        width: boxW + 2,
-        height: boxH + 6,
+        x: xMin - 2,
+        y: yMin - 6,
+        width: boxW + 4,
+        height: boxH + 14,
         color: rgb(1, 1, 1),
         opacity: 1,
       })
