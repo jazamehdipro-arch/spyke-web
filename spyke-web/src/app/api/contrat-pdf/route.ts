@@ -117,8 +117,14 @@ export async function POST(req: Request) {
     const sellerName = body.seller?.name || body.parties?.sellerName || ''
     const buyerName = body.buyer?.name || body.parties?.buyerName || ''
 
-    // Prefer filling the PDF template, but fall back to a generated PDF if pdfjs worker setup fails in production.
+    // Prefer a generated PDF (React-PDF) by default.
+    // The template overlay approach can leave artifacts depending on PDF structure/highlights.
+    const useTemplate = process.env.SPYKE_CONTRACT_TEMPLATE === '1'
+
     try {
+      if (!useTemplate) {
+        throw new Error('Contract template disabled')
+      }
       // Fill the user-provided PDF template (only placeholder zones are replaced).
       const templatePath = join(process.cwd(), 'public', 'templates', 'contrat-template.pdf')
       const templateBytes = await readFile(templatePath)
