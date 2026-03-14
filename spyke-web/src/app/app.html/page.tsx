@@ -3066,37 +3066,11 @@ function ContratsV1({
   useEffect(() => {
     ;(async () => {
       if (!supabase || !userId) return
-      let profile: any = null
-      {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('first_name,last_name,full_name,company_name,job,address,postal_code,city,country,siret,email,legal_form,capital_amount,rcs_city,rcs_number,representative_name,representative_role')
-          .eq('id', userId)
-          .maybeSingle()
-        if (error) {
-          const msg = String((error as any)?.message || '')
-          if (
-            msg.includes('legal_form') ||
-            msg.includes('capital_amount') ||
-            msg.includes('rcs_city') ||
-            msg.includes('rcs_number') ||
-            msg.includes('representative_name') ||
-            msg.includes('representative_role')
-          ) {
-            const { data: data2, error: error2 } = await supabase
-              .from('profiles')
-              .select('first_name,last_name,full_name,company_name,job,address,postal_code,city,country,siret,email')
-              .eq('id', userId)
-              .maybeSingle()
-            if (error2) throw error2
-            profile = data2
-          } else {
-            throw error
-          }
-        } else {
-          profile = data
-        }
-      }
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('first_name,last_name,full_name,company_name,job,address,postal_code,city,country,siret,email,legal_form,capital_amount,rcs_city,rcs_number,representative_name,representative_role')
+        .eq('id', userId)
+        .maybeSingle()
 
       const fullName = [
         String((profile as any)?.first_name || ''),
@@ -6655,19 +6629,10 @@ export default function AppHtmlPage() {
             .maybeSingle()
           if (error) {
             const msg = String((error as any)?.message || '')
-            if (
-              msg.includes('experience_years') ||
-              msg.includes('skills') ||
-              msg.includes('legal_form') ||
-              msg.includes('capital_amount') ||
-              msg.includes('rcs_city') ||
-              msg.includes('rcs_number') ||
-              msg.includes('representative_name') ||
-              msg.includes('representative_role')
-            ) {
+            if (msg.includes('experience_years') || msg.includes('skills')) {
               const { data: data2, error: error2 } = await supabase
                 .from('profiles')
-                .select('first_name,last_name,job,email_tone,plan,company_name,address,postal_code,city,country,siret,vat_number,iban,bic,signature_path,onboarding_completed,stripe_subscription_status,stripe_current_period_end,stripe_cancel_at_period_end,stripe_cancel_at,welcome_sent_at,feedback_survey_completed_at')
+                .select('first_name,last_name,job,email_tone,plan,company_name,address,postal_code,city,country,siret,vat_number,iban,bic,legal_form,capital_amount,rcs_city,rcs_number,representative_name,representative_role,signature_path,onboarding_completed,stripe_subscription_status,stripe_current_period_end,stripe_cancel_at_period_end,stripe_cancel_at,welcome_sent_at,feedback_survey_completed_at')
                 .eq('id', userId)
                 .maybeSingle()
               if (error2) throw error2
@@ -11544,25 +11509,10 @@ CONTEXTE UTILISATEUR :
                       let { error } = await supabase.from('profiles').update(payload).eq('id', userId)
                       if (error) {
                         const msg = String((error as any)?.message || '')
-                        if (
-                          msg.includes('experience_years') ||
-                          msg.includes('skills') ||
-                          msg.includes('legal_form') ||
-                          msg.includes('capital_amount') ||
-                          msg.includes('rcs_city') ||
-                          msg.includes('rcs_number') ||
-                          msg.includes('representative_name') ||
-                          msg.includes('representative_role')
-                        ) {
+                        if (msg.includes('experience_years') || msg.includes('skills')) {
                           const fallback: any = { ...payload }
                           delete fallback.experience_years
                           delete fallback.skills
-                          delete fallback.legal_form
-                          delete fallback.capital_amount
-                          delete fallback.rcs_city
-                          delete fallback.rcs_number
-                          delete fallback.representative_name
-                          delete fallback.representative_role
                           ;({ error } = await supabase.from('profiles').update(fallback).eq('id', userId))
                         }
                       }
