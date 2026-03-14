@@ -232,21 +232,88 @@ export async function POST(req: Request) {
       const { Document, Page, Text, View, Image, StyleSheet, pdf } = await import('@react-pdf/renderer')
 
       const styles = StyleSheet.create({
-        page: { paddingTop: 40, paddingBottom: 36, paddingHorizontal: 44, fontSize: 10.5, fontFamily: 'Helvetica', color: '#111827', lineHeight: 1.45 },
-        header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 },
-        logo: { height: 24, objectFit: 'contain' },
-        title: { fontSize: 16, fontWeight: 700, marginBottom: 4, color: '#1e3a8a' },
-        subtitle: { fontSize: 10, color: '#6b7280' },
-        box: { borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 10, padding: 14, backgroundColor: '#ffffff' },
-        bodyText: { fontSize: 10.5, lineHeight: 1.55, color: '#111827' },
-        paragraph: { marginBottom: 8 },
-        h2: { fontSize: 12, fontWeight: 700, color: '#1e3a8a', marginTop: 10, marginBottom: 6 },
-        signatureTitle: { fontSize: 12, fontWeight: 700, color: '#1e3a8a', marginTop: 16, marginBottom: 8 },
-        signatureBox: { borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 10, padding: 10, height: 160 },
-        signatureImg: { width: '100%', height: '100%', objectFit: 'contain' },
+        page: {
+          paddingTop: 42,
+          paddingBottom: 46,
+          paddingHorizontal: 44,
+          fontSize: 10.5,
+          fontFamily: 'Helvetica',
+          color: '#111827',
+          lineHeight: 1.45,
+        },
+        topBrand: { fontSize: 11, fontWeight: 700, textAlign: 'center', marginBottom: 10 },
+        mainTitle: { fontSize: 20, fontWeight: 800, textAlign: 'center', marginBottom: 6 },
+        contractNo: { fontSize: 11, textAlign: 'center', color: '#374151', marginBottom: 16 },
+        sectionTitle: { fontSize: 11, fontWeight: 700, marginBottom: 8 },
+        partiesBox: { borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 10, padding: 12, marginBottom: 14 },
+        partiesGrid: { flexDirection: 'row', gap: 10 },
+        col: { width: '50%', padding: 10, borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 8 },
+        colTitle: { fontSize: 10.5, fontWeight: 800, marginBottom: 8 },
+        kv: { fontSize: 10.2, marginBottom: 4 },
+        kvLabel: { fontWeight: 700 },
+        contentBox: { borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 10, padding: 14, backgroundColor: '#ffffff' },
+        h2: { fontSize: 11.5, fontWeight: 800, marginTop: 10, marginBottom: 5 },
+        p: { fontSize: 10.5, lineHeight: 1.5, marginBottom: 7 },
+        footer: {
+          position: 'absolute',
+          left: 44,
+          right: 44,
+          bottom: 20,
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          fontSize: 9,
+          color: '#9ca3af',
+        },
+        signatureWrap: { marginTop: 14 },
+        signaturesRow: { flexDirection: 'row', gap: 10 },
+        sigCol: { width: '50%', borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 10, padding: 10, minHeight: 120 },
+        sigTitle: { fontSize: 10.5, fontWeight: 800, marginBottom: 6 },
+        sigLine: { marginTop: 10, borderTopWidth: 1, borderTopColor: '#e5e7eb', paddingTop: 8, color: '#6b7280', fontSize: 9.5 },
+        sigImg: { width: '100%', height: 64, objectFit: 'contain' },
+        subtle: { color: '#6b7280' },
       })
 
       const bodyText = String(body.contractText || '').trim() || 'Contrat'
+
+      const norm = (s: any) => String(s || '').trim()
+      const has = (s: any) => !!norm(s)
+
+      const seller = body.seller || { name: '', siret: '', address: '', activity: '', email: '' }
+      const buyer = body.buyer || { name: '', siret: '', representant: '', address: '', email: '' }
+
+      const sellerLines: Array<[string, string]> = [
+        ['Nom', norm(seller.name) || sellerName],
+        ['Activité', norm(seller.activity)],
+        ['SIRET', norm(seller.siret)],
+        ['Adresse', norm(seller.address)],
+        ['Email', norm(seller.email)],
+      ]
+
+      const buyerLines: Array<[string, string]> = [
+        ['Nom', norm(buyer.name) || buyerName],
+        ['Représentant', norm(buyer.representant)],
+        ['SIRET', norm(buyer.siret)],
+        ['Adresse', norm(buyer.address)],
+        ['Email', norm(buyer.email)],
+      ]
+
+      // Resolve freelancer signature image when requested (manual signing flow).
+      let signatureImgUrl = ''
+      if (body.includeSignature) {
+        signatureImgUrl = norm(body.signatureUrl)
+        if (!signatureImgUrl) {
+          try {
+            const { data: profile } = await supabase.from('profiles').select('signature_path').eq('id', data.user.id).maybeSingle()
+            const sp = norm((profile as any)?.signature_path)
+            if (sp) {
+              const signed = await supabase.storage.from('signatures').createSignedUrl(sp, 60 * 10)
+              signatureImgUrl = norm((signed as any)?.data?.signedUrl)
+            }
+          } catch {
+            signatureImgUrl = ''
+          }
+        }
+      }
 
       const Doc = () =>
         React.createElement(
@@ -255,27 +322,111 @@ export async function POST(req: Request) {
           React.createElement(
             Page,
             { size: 'A4', style: styles.page },
+            React.createElement(Text, { style: styles.topBrand }, 'SPYKE'),
+            React.createElement(Text, { style: styles.mainTitle }, 'CONTRAT DE PRESTATION DE SERVICES'),
+            React.createElement(Text, { style: styles.contractNo }, `N° ${norm(body.contractNumber) || ''}`.trim()),
+            React.createElement(Text, { style: styles.sectionTitle }, 'ENTRE LES SOUSSIGNÉS :'),
             React.createElement(
               View,
-              { style: styles.header },
-              body.logoUrl ? React.createElement(Image, { style: styles.logo, src: body.logoUrl }) : React.createElement(View, null),
+              { style: styles.partiesBox },
               React.createElement(
                 View,
-                { style: { alignItems: 'flex-end' } },
-                React.createElement(Text, { style: styles.title }, body.title || 'Contrat'),
-                body.date ? React.createElement(Text, { style: styles.subtitle }, `Date : ${body.date}`) : React.createElement(Text, { style: styles.subtitle }, ' ')
+                { style: styles.partiesGrid },
+                React.createElement(
+                  View,
+                  { style: styles.col },
+                  React.createElement(Text, { style: styles.colTitle }, 'LE PRESTATAIRE'),
+                  ...sellerLines
+                    .filter(([, v]) => has(v))
+                    .map(([k, v], idx) =>
+                      React.createElement(
+                        Text,
+                        { key: `s-${idx}`, style: styles.kv },
+                        React.createElement(Text, { style: styles.kvLabel }, `${k} : `),
+                        v
+                      )
+                    )
+                ),
+                React.createElement(
+                  View,
+                  { style: styles.col },
+                  React.createElement(Text, { style: styles.colTitle }, 'LE CLIENT'),
+                  ...buyerLines
+                    .filter(([, v]) => has(v))
+                    .map(([k, v], idx) =>
+                      React.createElement(
+                        Text,
+                        { key: `b-${idx}`, style: styles.kv },
+                        React.createElement(Text, { style: styles.kvLabel }, `${k} : `),
+                        v
+                      )
+                    )
+                )
               )
             ),
             React.createElement(
               View,
-              { style: styles.box },
-              React.createElement(Text, { style: [styles.bodyText, styles.paragraph] }, `Prestataire : ${sellerName || ''}`),
-              React.createElement(Text, { style: [styles.bodyText, styles.paragraph] }, `Client : ${buyerName || ''}`),
-              body.contractNumber ? React.createElement(Text, { style: [styles.bodyText, styles.paragraph] }, `N° : ${body.contractNumber}`) : null,
-              React.createElement(Text, { style: styles.h2 }, 'Contenu'),
-              React.createElement(Text, { style: styles.bodyText }, bodyText)
+              { style: styles.contentBox },
+              (() => {
+                const parts = bodyText
+                  .split(/\n{2,}/)
+                  .map((p) => p.trim())
+                  .filter(Boolean)
+
+                const isHeading = (p: string) =>
+                  /^ARTICLE\s+\d+\b/i.test(p) ||
+                  /^ARTICLE\b/i.test(p) ||
+                  /^TITRE\b/i.test(p) ||
+                  /^CHAPITRE\b/i.test(p)
+
+                const nodes: any[] = []
+                for (let i = 0; i < parts.length; i++) {
+                  const p = parts[i]
+                  if (isHeading(p) && p.length < 120) {
+                    nodes.push(React.createElement(Text, { key: `h-${i}`, style: styles.h2 }, p))
+                  } else {
+                    nodes.push(React.createElement(Text, { key: `p-${i}`, style: styles.p }, p))
+                  }
+                }
+
+                // Signature section (freelancer manual sign)
+                nodes.push(
+                  React.createElement(
+                    View,
+                    { key: 'sig', style: styles.signatureWrap },
+                    React.createElement(Text, { style: styles.h2 }, 'Signatures'),
+                    React.createElement(
+                      View,
+                      { style: styles.signaturesRow },
+                      React.createElement(
+                        View,
+                        { style: styles.sigCol },
+                        React.createElement(Text, { style: styles.sigTitle }, 'Le Prestataire'),
+                        signatureImgUrl ? React.createElement(Image, { style: styles.sigImg, src: signatureImgUrl }) : React.createElement(Text, { style: styles.subtle }, 'Signature : ____________________'),
+                        body.signedAt || body.signedPlace
+                          ? React.createElement(Text, { style: styles.sigLine }, `Signé le ${norm(body.signedAt) || '—'} à ${norm(body.signedPlace) || '—'}`)
+                          : React.createElement(Text, { style: styles.sigLine }, ' ')
+                      ),
+                      React.createElement(
+                        View,
+                        { style: styles.sigCol },
+                        React.createElement(Text, { style: styles.sigTitle }, 'Le Client'),
+                        React.createElement(Text, { style: styles.subtle }, 'Signature : ____________________'),
+                        React.createElement(Text, { style: styles.sigLine }, ' ')
+                      )
+                    )
+                  )
+                )
+
+                return React.createElement(View, null, ...nodes)
+              })()
             ),
-            null
+            React.createElement(
+              View,
+              { style: styles.footer },
+              React.createElement(Text, null, 'Contrat généré avec Spyke'),
+              React.createElement(Text, { render: (p: any) => `Page ${p.pageNumber}/${p.totalPages}` })
+            )
           )
         )
 
