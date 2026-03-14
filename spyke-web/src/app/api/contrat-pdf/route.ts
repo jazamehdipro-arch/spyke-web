@@ -117,9 +117,13 @@ export async function POST(req: Request) {
     const sellerName = body.seller?.name || body.parties?.sellerName || ''
     const buyerName = body.buyer?.name || body.parties?.buyerName || ''
 
-    // Prefer a generated PDF (React-PDF) by default.
-    // The template overlay approach can leave artifacts depending on PDF structure/highlights.
-    const useTemplate = process.env.SPYKE_CONTRACT_TEMPLATE === '1'
+    // Prefer filling the existing template by default (user wants to keep the original contract layout).
+    // You can force the engine via env:
+    // - SPYKE_CONTRACT_PDF_ENGINE=react   (always React-PDF)
+    // - SPYKE_CONTRACT_PDF_ENGINE=template (always template)
+    // Backward compat: SPYKE_CONTRACT_TEMPLATE=1 forces template.
+    const engine = String(process.env.SPYKE_CONTRACT_PDF_ENGINE || '').trim().toLowerCase()
+    const useTemplate = process.env.SPYKE_CONTRACT_TEMPLATE === '1' || engine === 'template' || engine === ''
 
     try {
       if (!useTemplate) {
