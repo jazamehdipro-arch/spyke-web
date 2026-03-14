@@ -3068,7 +3068,7 @@ function ContratsV1({
       if (!supabase || !userId) return
       const { data: profile } = await supabase
         .from('profiles')
-        .select('first_name,last_name,full_name,company_name,job,address,postal_code,city,country,siret,email')
+        .select('first_name,last_name,full_name,company_name,job,address,postal_code,city,country,siret,email,legal_form,capital_amount,rcs_city,rcs_number,representative_name,representative_role')
         .eq('id', userId)
         .maybeSingle()
 
@@ -3477,10 +3477,26 @@ function ContratsV1({
     lines.push(`Établi le ${todayStr}`)
     lines.push('')
     lines.push('Entre les soussignés :')
-    lines.push(`${prestaName || 'Le Prestataire'}, ${prestaActivity || 'Prestataire de services'}, immatriculé sous le SIRET ${prestaSiret || '-'}, dont le siège est situé au ${prestaAddress || '-'}, ci-après dénommé « le Prestataire ».
-`)
-    lines.push(`${clientName || 'Le Client'}, immatriculé sous le SIRET ${clientSiret || '-'}, dont le siège est situé au ${clientAddress || '-'}, représenté par ${clientRepresentant || '-'}, ci-après dénommé « le Client ».
-`)
+    {
+      const chunks: string[] = []
+      const name = prestaName || 'Le Prestataire'
+      const activity = prestaActivity || ''
+      chunks.push([name, activity].filter(Boolean).join(', '))
+      if (prestaSiret) chunks.push(`immatriculé sous le SIRET ${prestaSiret}`)
+      if (prestaAddress) chunks.push(`dont le siège est situé au ${prestaAddress}`)
+      chunks.push('ci-après dénommé « le Prestataire »')
+      lines.push(chunks.filter(Boolean).join(', ') + '.\n')
+    }
+    {
+      const chunks: string[] = []
+      const name = clientName || 'Le Client'
+      chunks.push(name)
+      if (clientSiret) chunks.push(`immatriculé sous le SIRET ${clientSiret}`)
+      if (clientAddress) chunks.push(`dont le siège est situé au ${clientAddress}`)
+      if (clientRepresentant) chunks.push(`représenté par ${clientRepresentant}`)
+      chunks.push('ci-après dénommé « le Client »')
+      lines.push(chunks.filter(Boolean).join(', ') + '.\n')
+    }
 
     lines.push('Article 1 - Objet du contrat')
     lines.push(missionDescription || 'Prestation de service.')
@@ -5964,6 +5980,14 @@ export default function AppHtmlPage() {
   const [settingsIban, setSettingsIban] = useState<string>('')
   const [settingsBic, setSettingsBic] = useState<string>('')
 
+  // Company/legal fields (for contracts)
+  const [settingsLegalForm, setSettingsLegalForm] = useState<string>('')
+  const [settingsCapitalAmount, setSettingsCapitalAmount] = useState<string>('')
+  const [settingsRcsCity, setSettingsRcsCity] = useState<string>('')
+  const [settingsRcsNumber, setSettingsRcsNumber] = useState<string>('')
+  const [settingsRepresentativeName, setSettingsRepresentativeName] = useState<string>('')
+  const [settingsRepresentativeRole, setSettingsRepresentativeRole] = useState<string>('')
+
   // Signature (freelance)
   const signatureCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const signatureDrawingRef = useRef(false)
@@ -6600,7 +6624,7 @@ export default function AppHtmlPage() {
         {
           const { data, error } = await supabase
             .from('profiles')
-            .select('first_name,last_name,job,experience_years,skills,email_tone,plan,company_name,address,postal_code,city,country,siret,vat_number,iban,bic,signature_path,onboarding_completed,stripe_subscription_status,stripe_current_period_end,stripe_cancel_at_period_end,stripe_cancel_at,welcome_sent_at,feedback_survey_completed_at')
+            .select('first_name,last_name,job,experience_years,skills,email_tone,plan,company_name,address,postal_code,city,country,siret,vat_number,iban,bic,legal_form,capital_amount,rcs_city,rcs_number,representative_name,representative_role,signature_path,onboarding_completed,stripe_subscription_status,stripe_current_period_end,stripe_cancel_at_period_end,stripe_cancel_at,welcome_sent_at,feedback_survey_completed_at')
             .eq('id', userId)
             .maybeSingle()
           if (error) {
@@ -6608,7 +6632,7 @@ export default function AppHtmlPage() {
             if (msg.includes('experience_years') || msg.includes('skills')) {
               const { data: data2, error: error2 } = await supabase
                 .from('profiles')
-                .select('first_name,last_name,job,email_tone,plan,company_name,address,postal_code,city,country,siret,vat_number,iban,bic,signature_path,onboarding_completed,stripe_subscription_status,stripe_current_period_end,stripe_cancel_at_period_end,stripe_cancel_at,welcome_sent_at,feedback_survey_completed_at')
+                .select('first_name,last_name,job,email_tone,plan,company_name,address,postal_code,city,country,siret,vat_number,iban,bic,legal_form,capital_amount,rcs_city,rcs_number,representative_name,representative_role,signature_path,onboarding_completed,stripe_subscription_status,stripe_current_period_end,stripe_cancel_at_period_end,stripe_cancel_at,welcome_sent_at,feedback_survey_completed_at')
                 .eq('id', userId)
                 .maybeSingle()
               if (error2) throw error2
@@ -6648,6 +6672,13 @@ export default function AppHtmlPage() {
         setSettingsVatNumber(String((profile as any)?.vat_number || ''))
         setSettingsIban(String((profile as any)?.iban || ''))
         setSettingsBic(String((profile as any)?.bic || ''))
+
+        setSettingsLegalForm(String((profile as any)?.legal_form || ''))
+        setSettingsCapitalAmount(String((profile as any)?.capital_amount || ''))
+        setSettingsRcsCity(String((profile as any)?.rcs_city || ''))
+        setSettingsRcsNumber(String((profile as any)?.rcs_number || ''))
+        setSettingsRepresentativeName(String((profile as any)?.representative_name || ''))
+        setSettingsRepresentativeRole(String((profile as any)?.representative_role || ''))
 
         // Signature
         const sp = String((profile as any)?.signature_path || '')
@@ -11400,6 +11431,39 @@ CONTEXTE UTILISATEUR :
                 </div>
               </div>
 
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label">Forme juridique (optionnel)</label>
+                  <input className="form-input" value={settingsLegalForm} onChange={(e) => setSettingsLegalForm(e.target.value)} placeholder="SAS, SARL…" />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Capital (optionnel)</label>
+                  <input className="form-input" value={settingsCapitalAmount} onChange={(e) => setSettingsCapitalAmount(e.target.value)} placeholder="1500 €" />
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label">RCS ville (optionnel)</label>
+                  <input className="form-input" value={settingsRcsCity} onChange={(e) => setSettingsRcsCity(e.target.value)} placeholder="Paris" />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">RCS n° (optionnel)</label>
+                  <input className="form-input" value={settingsRcsNumber} onChange={(e) => setSettingsRcsNumber(e.target.value)} placeholder="123 456 789" />
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label">Représentant (optionnel)</label>
+                  <input className="form-input" value={settingsRepresentativeName} onChange={(e) => setSettingsRepresentativeName(e.target.value)} placeholder="Prénom NOM" />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Fonction (optionnel)</label>
+                  <input className="form-input" value={settingsRepresentativeRole} onChange={(e) => setSettingsRepresentativeRole(e.target.value)} placeholder="Gérant, Président…" />
+                </div>
+              </div>
+
               <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 12 }}>
                 <button
                   className="btn btn-primary"
@@ -11434,6 +11498,12 @@ CONTEXTE UTILISATEUR :
                         vat_number: settingsVatNumber || null,
                         iban: settingsIban || null,
                         bic: settingsBic || null,
+                        legal_form: settingsLegalForm || null,
+                        capital_amount: settingsCapitalAmount || null,
+                        rcs_city: settingsRcsCity || null,
+                        rcs_number: settingsRcsNumber || null,
+                        representative_name: settingsRepresentativeName || null,
+                        representative_role: settingsRepresentativeRole || null,
                       }
 
                       let { error } = await supabase.from('profiles').update(payload).eq('id', userId)
