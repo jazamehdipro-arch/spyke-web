@@ -3422,116 +3422,332 @@ function ContratsV1({
   }
 
   function buildContractText() {
-    const todayStr = new Date().toLocaleDateString('fr-FR')
-    const startDate = formatDateFr(missionStart) || 'À définir'
-    const endDate = formatDateFr(missionEnd) || 'À définir'
+    // Canonical contract template (must stay identical to the reference document text).
+    // We only replace bracket placeholders.
+    const TEMPLATE = `SPYKE
+CONTRAT DE PRESTATION DE SERVICES
+N° [NUMÉRO DU CONTRAT]
+ENTRE LES SOUSSIGNÉS :
+LE PRESTATAIRE
+[Madame/Monsieur] [PRÉNOM NOM],
+inscrit(e) à l’INSEE sous le numéro SIRET
+[NUMÉRO SIRET], dont le domicile
+professionnel est situé au [ADRESSE
+PRESTATAIRE].
+Ci-après dénommé(e) « le PRESTATAIRE »
+LE CLIENT
+[Forme sociale (SARL, SAS, etc.)], au
+capital de [MONTANT] euros, immatriculée
+au RCS de [VILLE RCS] sous le numéro
+[NUMÉRO RCS], dont le siège social est
+situé au [ADRESSE CLIENT], représentée
+par [Madame/Monsieur PRÉNOM NOM], en
+qualité de [FONCTION], dûment habilité(e) à
+cet effet.
+Ci-après dénommé(e) « le CLIENT »
+Ensemble dénommées les « PARTIES » ou individuellement la « PARTIE ».
+ARTICLE 1 — PRÉAMBULE
+Le texte ci-dessous est un exemple de préambule. Lors de la génération du contrat, ce paragraphe sera remplacé par
+le contexte réel de la mission.
+Dans le cadre de [DÉCRIRE LE PROJET DU CLIENT], le CLIENT souhaite faire appel à un prestataire
+indépendant afin de [DÉCRIRE L'OBJECTIF DE LA MISSION].
+Le PRESTATAIRE a déclaré disposer des compétences particulières requises pour répondre aux
+besoins du CLIENT et qu’il intervient régulièrement et de manière significative auprès de nombreuses
+entreprises dont les besoins et les exigences sont similaires à ceux du CLIENT.
+Les PARTIES ont eu l’occasion d’échanger sur le sujet et de poser toutes les questions utiles, en ont
+obtenu toutes les réponses et ont ainsi pu s’assurer des éléments déterminants attendus du CLIENT.
+C’est dans ce contexte que les Parties se sont réunies afin de préciser au sein du présent contrat,
+ci-après le « Contrat », les conditions dans lesquelles le PRESTATAIRE fournira ses prestations au
+CLIENT.
+ARTICLE 2 — DURÉE DU CONTRAT
+Le Contrat prendra effet le [DATE DÉBUT] et se terminera de plein droit le [DATE FIN], ci-après la «
+Période Contractuelle ».
+À l’expiration de la Période Contractuelle, le Contrat prendra fin automatiquement sans qu’aucune
+formalité ne soit nécessaire, sauf accord écrit des deux Parties pour son renouvellement.
+ARTICLE 3 — OBLIGATIONS DU PRESTATAIRE
+3.1 — Prestations
+En contrepartie du prix ferme et certain visé à l’article 4, le PRESTATAIRE s’engage à effectuer les
+prestations visées dans le devis et/ou la proposition commerciale figurant à l’annexe 1 des présentes,
+comprenant notamment :
+- [Description de la prestation 1]
+- [Description de la prestation 2]
+- [Description de la prestation 3]
+Le PRESTATAIRE inclut [NOMBRE] tour(s) de révisions dans le cadre de la présente mission ; toute
+demande de modification supplémentaire au-delà de ce nombre fera l’objet d’un devis complémentaire
+accepté par le CLIENT préalablement à sa réalisation.
+3.2 — Interlocuteurs des Parties
+A. Interlocuteur du PRESTATAIRE
+L’interlocuteur du PRESTATAIRE est notamment chargé d’assurer la complète et bonne application du
+Contrat, d’assurer le suivi avec le CLIENT et de gérer toute réclamation du CLIENT relative à l’une
+quelconque des stipulations du Contrat.
+Nom : [NOM]
+Fonction : [FONCTION]
+Téléphone : [NUMÉRO]
+Email : [EMAIL]
+B. Interlocuteur du CLIENT
+L’interlocuteur du CLIENT est notamment chargé de suivre la bonne application par le PRESTATAIRE du
+Contrat, d’assurer le suivi avec l’interlocuteur du PRESTATAIRE et de gérer toute réclamation qui lui
+serait adressée par le PRESTATAIRE relative à l’une quelconque des stipulations du Contrat.
+Nom : [NOM]
+Fonction : [FONCTION]
+Téléphone : [NUMÉRO]
+Email : [EMAIL]
+3.3 — Calendrier d’exécution
+Les Parties sont convenues du calendrier d’exécution suivant, que le PRESTATAIRE s’engage à
+respecter à titre de condition essentielle et déterminante de l’engagement du CLIENT :
+Jalon Livrable attendu Date prévue Mode de livraison
+1 [LIVRABLE 1] [DATE] [Email / Drive / GitHub...]
+2 [LIVRABLE 2] [DATE] [Email / Drive / GitHub...]
+3 [LIVRABLE 3] [DATE] [Email / Drive / GitHub...]
+Final [LIVRAISON FINALE] [DATE] [Email / Drive / GitHub...]
+En cas de retard imputable au CLIENT (validation tardive, absence de retour, changement de brief), les
+délais de livraison sont automatiquement décalés d’autant.
+ARTICLE 4 — CONDITIONS FINANCIÈRES
+4.1 — Prix
+En contrepartie de la réalisation des prestations visées à l’article 3 des présentes, le CLIENT s’engage à
+tuer une somme forfaitaire au profit du PRESTATAIRE dont le montant s’élève inconditionnellement et
+invariablement à [MONTANT] € HT ([PRIX EN LETTRES] euros hors taxe), ci-après le « Prix ».
+4.2 — Modalités de paiement
+Le PRESTATAIRE facturera le CLIENT selon les conditions financières suivantes :
+Échéance % du Prix Montant HT Date
+Acompte [%] [MONTANT] € [DATE]
+Solde [%] [MONTANT] € [DATE]
+La facture sera réglée par le CLIENT par virement bancaire sur le compte du PRESTATAIRE à [30
+JOURS / 45 JOURS / 60 JOURS] fin de mois à compter de la date d’émission de la facture originale
+conforme envoyée par le PRESTATAIRE.
+Adresse de facturation : [ADRESSE DE FACTURATION DU PRESTATAIRE]
+4.3 — Pénalités de retard
+Conformément aux articles L.441-10 et suivants du Code de commerce, tout retard de paiement
+entraînera de plein droit, sans qu’un rappel soit nécessaire :
+- Des pénalités de retard calculées au taux de 3 (trois) fois le taux d’intérêt légal en vigueur par jour
+de retard, sur le montant dû à compter du jour auquel les sommes auraient dû être versées, et ce
+sans préjudice de tout dommage et intérêts ;
+- Une indemnité forfaitaire, non soumise à la TVA, de recouvrement de 40 € (quarante euros)
+conformément à l’article D.441-5 du Code de commerce.
+Toute prestation ponctuelle supplémentaire commandée par le CLIENT, formalisée par un bon de
+commande spécifique, donnera lieu à l’émission d’une facture établie et réglée dans les mêmes
+conditions que celles prévues au présent article.
+ARTICLE 5 — OBJET DU CONTRAT
+5.1 — Le Contrat a pour objet de définir les conditions dans lesquelles le PRESTATAIRE assurera, tout
+au long de la Période Contractuelle, les prestations définies à l’article 3 du présent Contrat.
+5.2 — Le présent Contrat traduit l’ensemble des engagements pris par les Parties dans le cadre de son
+objet. Il annule et remplace, à compter de sa date d’effet, tout autre accord existant portant sur le même
+objet, quelle qu’en soit la forme.
+5.3 — Les prestations confiées au PRESTATAIRE ne font l’objet d’aucune exclusivité.
+ARTICLE 6 — PROPRIÉTÉ INTELLECTUELLE
+Le présent article s’applique lorsque les prestations donnent lieu à la création d’oeuvres protégées par le
+droit de la propriété intellectuelle.
+Option retenue : [CESSION APRÈS PAIEMENT / LICENCE D'UTILISATION / CESSION TOTALE]
+Si cession après paiement (option par défaut) : Le PRESTATAIRE cède au CLIENT, à compter du
+paiement intégral et définitif de l’ensemble des sommes dues au titre du présent Contrat, l’ensemble des
+droits patrimoniaux de propriété intellectuelle sur les livrables, pour le monde entier et pour la durée
+légale de protection des droits d’auteur. Cette cession comprend les droits de reproduction, de
+représentation, d’adaptation et de traduction.
+Le PRESTATAIRE conserve le droit de mentionner la réalisation dans son portfolio à titre de référence
+professionnelle, sauf opposition écrite du CLIENT.
+Tant que le paiement intégral n’est pas effectué, le PRESTATAIRE reste titulaire de l’ensemble
+des droits de propriété intellectuelle sur les livrables.
+ARTICLE 7 — CONFIDENTIALITÉ
+Clause de confidentialité : [OUI / NON]
+Si oui : Chaque Partie s’engage à considérer comme strictement confidentielles toutes les informations
+de nature technique, commerciale, financière ou stratégique communiquées par l’autre Partie dans le
+cadre du présent Contrat.
+Les clauses du présent Contrat sont également confidentielles et ne peuvent être publiées ni
+communiquées à des tiers sans autorisation écrite et expresse de l’autre Partie.
+Les Parties s’engagent à prendre toutes les dispositions nécessaires afin de garantir à l’autre Partie, qui
+y accorde une importance particulière, que toute personne liée à l’exécution du Contrat soit tenue à une
+discrétion stricte sur les prestations du Contrat.
+Cette obligation de confidentialité s’applique pendant toute la durée du Contrat et pendant une période
+de [2 ANS / 5 ANS] après son terme.
+Sont exclues de cette obligation les informations qui sont ou deviennent publiques sans faute de la Partie
+réceptrice, ou qui doivent être divulguées en vertu d’une obligation légale.
+ARTICLE 8 — NON-CONCURRENCE
+Clause de non-concurrence : [OUI / NON]
+Si oui : Le PRESTATAIRE s’engage, pendant la durée du Contrat et pour une période de [DURÉE] après
+son terme, à ne pas réaliser de missions directement concurrentes pour le compte d’un concurrent direct
+du CLIENT. Cette clause est limitée au secteur d’activité du CLIENT et doit faire l’objet d’une contrepartie
+financière.
+Si non : Le PRESTATAIRE conserve son entière liberté d’exercer son activité auprès de tout client de
+son choix, y compris les concurrents du CLIENT.
+ARTICLE 9 — RESPONSABILITÉ ET FORCE MAJEURE
+9.1 — Limitation de responsabilité
+La responsabilité du PRESTATAIRE au titre du présent Contrat est limitée au montant total HT
+effectivement perçu pour la mission concernée.
+Le PRESTATAIRE ne pourra en aucun cas être tenu responsable des dommages indirects, incluant
+notamment le manque à gagner, la perte de données, la perte de chiffre d’affaires, l’atteinte à l’image ou
+tout préjudice financier ou commercial indirect.
+Le CLIENT est seul responsable de l’utilisation qu’il fait des livrables après leur réception et acceptation.
+9.2 — Force majeure
+Aucune des Parties ne sera tenue pour responsable d’une inexécution de l’une quelconque de ses
+obligations en cas de force majeure.
+Les Parties conviennent de considérer comme des causes d’exonération les événements suivants,
+lorsqu’ils sont de nature à empêcher temporairement ou définitivement une Partie d’accomplir ses
+obligations en tout ou partie : acte de terrorisme, attentat, guerre civile, émeute, réquisition, confiscation,
+blocage ou endommagement des voies ou moyens de transport ou du réseau de communication,
+cataclysme naturel (tempête, inondation, incendie), épidémie, pandémie (y compris Covid-19), grève,
+acte de l’autorité publique, ou tout événement de force majeure au sens de l’article 1218 du Code civil
+(ci-après la « Force Majeure »).
+Dans un tel cas, seules les prestations effectivement réalisées en application du Contrat donneront lieu à
+paiement par le CLIENT. Le PRESTATAIRE s’engage à restituer au CLIENT, dès la date de prise d’effet
+de la résiliation du Contrat, toutes les sommes éventuellement versées en contrepartie des prestations
+non réalisées.
+ARTICLE 10 — RÉSILIATION
+10.1 — Résiliation anticipée
+Chaque Partie peut résilier le présent Contrat par écrit (email avec accusé de réception ou courrier
+recommandé avec avis de réception) en respectant un délai de préavis de [15 JOURS / 30 JOURS].
+En cas de résiliation, le CLIENT s’engage à régler l’intégralité des prestations réalisées à la date de prise
+d’effet de la résiliation, ainsi que les acomptes déjà versés qui restent acquis au PRESTATAIRE.
+10.2 — Résiliation pour faute
+En cas de manquement grave de l’une des Parties à ses obligations contractuelles (notamment le
+non-paiement d’une échéance), l’autre Partie pourra résilier le Contrat de plein droit après mise en
+demeure adressée par courrier recommandé avec avis de réception, restée sans effet pendant un délai
+de 15 (quinze) jours.
+ARTICLE 11 — INDÉPENDANCE DES PARTIES
+Les Parties agiront à tout moment en toute indépendance l’une de l’autre, sans que le Contrat ne puisse
+être réputé créer une quelconque filiale, entreprise commune, ni un lien de subordination, de
+représentation ou tout contrat analogue.
+Les Parties déclarent expressément que le Contrat ne peut en aucun cas être interprété ou considéré
+comme constituant un acte de société, un groupement doté de la personnalité morale, ni par ailleurs une
+société en participation ou société de fait, ni créer de fait une société au sens des dispositions de l’article
+1873 du Code civil.
+ARTICLE 12 — ÉLECTION DE DOMICILE
+Pour l’exécution du présent Contrat et de ses suites, les Parties élisent domicile au lieu de leurs sièges
+sociaux respectifs figurant en tête des présentes.
+ARTICLE 13 — CONVENTION DE PREUVE — SIGNATURE ÉLECTRONIQUE
+Les Parties conviennent expressément que le Contrat pourra être conclu de manière dématérialisée,
+sous la forme d’un écrit électronique, dans le cadre de la plateforme de signature électronique utilisée par
+les Parties.
+Elles admettent, le cas échéant, que cet écrit constitue l’original du Contrat et que, dès lors qu’il est établi
+et conservé par les Parties dans des conditions de nature à permettre d’en identifier dûment les
+signataires et à en garantir l’intégrité :
+- Il constitue une preuve écrite au sens de l’article 1365 du Code civil ;
+- Il a la même valeur probante qu’un écrit signé de façon manuscrite sur support papier,
+conformément à l’article 1366 du Code civil ;
+- Il pourra valablement être opposé à chacune des Parties et aux tiers ;
+- Il est susceptible d’être produit en justice à titre de preuve littérale en cas de litige, y compris dans
+les litiges opposant les Parties.
+ARTICLE 14 — RÈGLEMENT DES LITIGES
+Le présent Contrat est régi exclusivement par le droit français.
+Tout litige auquel le présent Contrat pourrait donner lieu, notamment quant à son interprétation, son
+exécution, sa résiliation ou ses suites, sera soumis aux tribunaux compétents de [VILLE DU
+TRIBUNAL], nonobstant appel en garantie ou pluralité de défendeurs, même pour les procédures
+d’urgence ou les procédures conservatoires, en référé ou par requête.
+SIGNATURES
+Fait en deux exemplaires originaux, le [DATE].
+Le PRESTATAIRE
+Nom : [NOM PRESTATAIRE]
+Mention « Lu et approuvé »
+Signature :
+Le CLIENT
+Nom : [NOM CLIENT]
+Qualité : [FONCTION]
+Mention « Lu et approuvé »
+Signature :
+Contrat généré par Spyke — spykeapp.fr — L’assistant IA des freelances français`
 
-    const lieuMap: any = {
-      distance: 'à distance',
-      client: 'dans les locaux du client',
-      prestataire: 'dans les locaux du prestataire',
-      mixte: 'en mode mixte (distance et présentiel)',
+    const sellerCivility = 'Madame/Monsieur'
+    const sellerFull = prestaName || ''
+    const buyerFull = clientName || ''
+
+    const deliveries = String(missionLivrables || '')
+      .split(/\n+/)
+      .map((x) => x.trim())
+      .filter(Boolean)
+
+    const prestation1 = deliveries[0] || 'Description de la prestation 1'
+    const prestation2 = deliveries[1] || 'Description de la prestation 2'
+    const prestation3 = deliveries[2] || 'Description de la prestation 3'
+
+    const revisions = (() => {
+      const r = String(missionRevisions || '')
+      if (r === '2') return '2'
+      if (r === '3') return '3'
+      if (r === '5') return '5'
+      if (r === 'illimite') return 'un nombre illimité de'
+      return r || '2'
+    })()
+
+    const amountHt = (() => {
+      const amt = Number(pricingAmount || 0)
+      return Number.isFinite(amt) ? amt.toFixed(2) : ''
+    })()
+
+    const paymentDelayLabel = (() => {
+      const d = String(paymentDelay || '')
+      if (d === '30') return '30 JOURS'
+      if (d === '45') return '45 JOURS'
+      if (d === '60') return '60 JOURS'
+      return '30 JOURS'
+    })()
+
+    const ipLabel = ipClause === 'licence' ? "LICENCE D'UTILISATION" : ipClause === 'prestataire' ? 'CESSION TOTALE' : 'CESSION APRÈS PAIEMENT'
+    const confidentialityLabel = confidentialityClause === 'oui' ? 'OUI' : 'NON'
+    const nonCompeteLabel = nonCompeteClause === 'non' ? 'NON' : 'OUI'
+    const nonCompeteDuration = nonCompeteClause === '6mois' ? '6 MOIS' : nonCompeteClause === '12mois' ? '12 MOIS' : ''
+
+    const terminationLabel = terminationClause === '30' ? '30 JOURS' : '15 JOURS'
+
+    const replacements: Record<string, string> = {
+      '[NUMÉRO DU CONTRAT]': String(contractNumber || '').trim(),
+      '[Madame/Monsieur]': sellerCivility,
+      '[PRÉNOM NOM]': sellerFull,
+      '[NUMÉRO SIRET]': String(prestaSiret || '').trim(),
+      '[ADRESSE\nPRESTATAIRE]': String(prestaAddress || '').trim(),
+
+      '[Forme sociale (SARL, SAS, etc.)]': '',
+      '[MONTANT]': amountHt,
+      '[VILLE RCS]': '',
+      '[NUMÉRO RCS]': '',
+      '[ADRESSE CLIENT]': String(clientAddress || '').trim(),
+      '[Madame/Monsieur PRÉNOM NOM]': String(clientRepresentant || clientName || '').trim(),
+      '[FONCTION]': '',
+
+      '[DÉCRIRE LE PROJET DU CLIENT]': String(missionDescription || '').trim() || 'le projet du client',
+      "[DÉCRIRE L'OBJECTIF DE LA MISSION]": String(missionDescription || '').trim() || "décrire l'objectif de la mission",
+
+      '[DATE DÉBUT]': formatDateFr(missionStart) || String(missionStart || ''),
+      '[DATE FIN]': formatDateFr(missionEnd) || String(missionEnd || ''),
+
+      '[Description de la prestation 1]': prestation1,
+      '[Description de la prestation 2]': prestation2,
+      '[Description de la prestation 3]': prestation3,
+      '[NOMBRE]': revisions,
+
+      // Interlocuteurs
+      'Nom : [NOM]': `Nom : ${sellerFull}`,
+      'Fonction : [FONCTION]': `Fonction : ${String(prestaActivity || '').trim()}`,
+      'Téléphone : [NUMÉRO]': 'Téléphone : ',
+      'Email : [EMAIL]': `Email : ${String(prestaEmail || '').trim()}`,
+
+      // Calendar (keep as-is for now)
+      '[LIVRABLE 1]': deliveries[0] || 'Livrable 1',
+      '[LIVRABLE 2]': deliveries[1] || 'Livrable 2',
+      '[LIVRABLE 3]': deliveries[2] || 'Livrable 3',
+      '[LIVRAISON FINALE]': deliveries[0] || 'Livraison finale',
+      '[DATE]': formatDateFr(missionEnd) || String(missionEnd || ''),
+      '[Email / Drive / GitHub...]': 'Email',
+
+      '[PRIX EN LETTRES]': '',
+      '[%]': paymentSchedule === '50' ? '50' : paymentSchedule === 'fin' ? '100' : '30',
+      '[30\nJOURS / 45 JOURS / 60 JOURS]': paymentDelayLabel,
+      "[CESSION APRÈS PAIEMENT / LICENCE D'UTILISATION / CESSION TOTALE]": ipLabel,
+      '[OUI / NON]': confidentialityLabel,
+      '[DURÉE]': nonCompeteDuration,
+      '[15 JOURS / 30 JOURS]': terminationLabel,
+      '[VILLE DU\nTRIBUNAL]': '',
+
+      '[NOM PRESTATAIRE]': sellerFull,
+      '[NOM CLIENT]': buyerFull,
     }
-    const revMap: any = {
-      '2': 'deux (2)',
-      '3': 'trois (3)',
-      '5': 'cinq (5)',
-      illimite: 'un nombre illimité de',
+
+    let out = TEMPLATE
+    for (const [k, v] of Object.entries(replacements)) {
+      // Simple global replace
+      out = out.split(k).join(String(v ?? ''))
     }
 
-    const amount = Number(pricingAmount || 0).toFixed(2)
-    let pricingText = ''
-    if (pricingType === 'forfait') {
-      pricingText = `La rémunération du Prestataire est fixée à un forfait global de ${amount} € HT.`
-    } else if (pricingType === 'tjm') {
-      const est = (Number(pricingAmount || 0) * Number(pricingDays || 0)).toFixed(2)
-      pricingText = `La rémunération du Prestataire est fixée à un taux journalier de ${amount} € HT/jour, pour une durée estimée de ${pricingDays} jours, soit un montant estimé de ${est} € HT.`
-    } else {
-      const est = (Number(pricingAmount || 0) * Number(pricingDays || 0)).toFixed(2)
-      pricingText = `La rémunération du Prestataire est fixée à un taux horaire de ${amount} € HT/heure, pour une durée estimée de ${pricingDays} heures, soit un montant estimé de ${est} € HT.`
-    }
-
-    const tvaText = tvaRegime === 'franchise'
-      ? 'TVA non applicable, article 293 B du CGI.'
-      : 'Les montants sont soumis à la TVA au taux de 20%.'
-
-    const scheduleMap: any = {
-      '30': '30% du montant total à la signature du présent contrat, et 70% à la livraison finale',
-      '50': '50% du montant total à la signature du présent contrat, et 50% à la livraison finale',
-      tiers: '1/3 du montant total à la signature, 1/3 à mi-parcours de la mission, et 1/3 à la livraison finale',
-      fin: '100% du montant total à la livraison finale',
-    }
-
-    const delayMap: any = { reception: 'à réception de facture', '15': 'sous 15 jours', '30': 'sous 30 jours', '45': 'sous 45 jours' }
-
-    const ipMap: any = {
-      cession: `Le Prestataire cède au Client, à titre exclusif, l'ensemble des droits de propriété intellectuelle sur les livrables produits dans le cadre du présent contrat (droits de reproduction, de représentation, d'adaptation et de modification), pour le monde entier et pour toute la durée de protection légale. Cette cession est effective après paiement intégral de la rémunération prévue.`,
-      licence: `Le Prestataire accorde au Client une licence d'utilisation non exclusive sur les livrables produits dans le cadre du présent contrat. Le Client peut utiliser, reproduire et diffuser les livrables pour ses besoins propres. Le Prestataire conserve la propriété intellectuelle et le droit de réutiliser les méthodes et savoir-faire développés.`,
-      prestataire: `Le Prestataire conserve l'intégralité des droits de propriété intellectuelle sur les livrables produits. Le Client dispose d'un droit d'usage limité à l'objet du contrat. Toute reproduction, modification ou diffusion au-delà de cet usage nécessite l'accord écrit préalable du Prestataire.`,
-    }
-
-    const termMap: any = { '15': '15 jours calendaires', '30': '30 jours calendaires', mutuel: "d'un commun accord entre les Parties, formalisé par écrit" }
-
-    const lines: string[] = []
-    lines.push('CONTRAT DE PRESTATION DE SERVICE')
-    lines.push(`Établi le ${todayStr}`)
-    lines.push('')
-    lines.push('Entre les soussignés :')
-    lines.push(`${prestaName || 'Le Prestataire'}, ${prestaActivity || 'Prestataire de services'}, immatriculé sous le SIRET ${prestaSiret || '-'}, dont le siège est situé au ${prestaAddress || '-'}, ci-après dénommé « le Prestataire ».
-`)
-    lines.push(`${clientName || 'Le Client'}, immatriculé sous le SIRET ${clientSiret || '-'}, dont le siège est situé au ${clientAddress || '-'}, représenté par ${clientRepresentant || '-'}, ci-après dénommé « le Client ».
-`)
-
-    lines.push('Article 1 - Objet du contrat')
-    lines.push(missionDescription || 'Prestation de service.')
-    lines.push('')
-
-    lines.push('Article 2 - Livrables')
-    lines.push(missionLivrables || 'Livrables à définir.')
-    lines.push(`Le Client dispose de ${revMap[missionRevisions]} révisions incluses dans le prix convenu.`)
-    lines.push('')
-
-    lines.push('Article 3 - Durée et lieu d\'exécution')
-    lines.push(`La mission débute le ${startDate} et se termine le ${endDate}. Elle sera exécutée ${lieuMap[missionLieu]}.`)
-    lines.push('')
-
-    lines.push('Article 4 - Rémunération')
-    lines.push(pricingText)
-    lines.push(tvaText)
-    lines.push(`Le paiement sera effectué selon l'échéancier suivant : ${scheduleMap[paymentSchedule]}. Chaque paiement est exigible ${delayMap[paymentDelay]}.`)
-    lines.push('')
-
-    lines.push('Article 5 - Propriété intellectuelle')
-    lines.push(ipMap[ipClause])
-    lines.push('')
-
-    if (confidentialityClause === 'oui') {
-      lines.push('Article 6 - Confidentialité')
-      lines.push("Chacune des Parties s'engage à considérer comme confidentielles et à ne pas divulguer les informations de l'autre Partie dont elle pourrait avoir connaissance à l'occasion de l'exécution du présent contrat. Cette obligation reste en vigueur pendant 2 ans après la fin du contrat.")
-      lines.push('')
-    }
-
-    if (nonCompeteClause !== 'non') {
-      const duration = nonCompeteClause === '6mois' ? '6 mois' : '12 mois'
-      lines.push('Article 7 - Non-concurrence')
-      lines.push(`Le Prestataire s'engage, pendant une durée de ${duration} à compter de la fin du présent contrat, à ne pas fournir de services similaires à un concurrent direct du Client, identifié d'un commun accord entre les Parties.`)
-      lines.push('')
-    }
-
-    lines.push('Article 8 - Résiliation')
-    lines.push(`Le présent contrat peut être résilié par anticipation moyennant un préavis de ${termMap[terminationClause]}.`)
-    lines.push('')
-
-    lines.push('Fait en deux exemplaires originaux.')
-    lines.push('')
-    lines.push('Signatures :')
-    lines.push(`Le Prestataire : ${prestaName || ''}`)
-    lines.push('Signature : ____________________')
-    lines.push('')
-    lines.push(`Le Client : ${clientName || ''}`)
-    lines.push('Signature : ____________________')
-
-    return lines.join('\n')
+    // Additional placeholders that may remain: remove brackets if any are left
+    return out
   }
 
   async function generateContractPdfBlob(opts?: { includeSignature?: boolean; signedAt?: string; signedPlace?: string }) {
