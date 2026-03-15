@@ -253,7 +253,20 @@ export async function POST(req: Request) {
         kvLabel: { fontWeight: 700 },
         contentBox: { borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 10, padding: 14, backgroundColor: '#ffffff' },
         h2: { fontSize: 11.5, fontWeight: 800, marginTop: 10, marginBottom: 5 },
+        h3: { fontSize: 10.8, fontWeight: 800, marginTop: 6, marginBottom: 4 },
         p: { fontSize: 10.5, lineHeight: 1.5, marginBottom: 7 },
+        listItem: { flexDirection: 'row', marginBottom: 4 },
+        bullet: { width: 14, fontWeight: 800 },
+        listText: { flex: 1, fontSize: 10.5, lineHeight: 1.45 },
+        table: { marginTop: 6, marginBottom: 8, borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 8, overflow: 'hidden' },
+        trHead: { flexDirection: 'row', backgroundColor: '#f9fafb', borderBottomWidth: 1, borderBottomColor: '#e5e7eb' },
+        tr: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
+        th: { fontSize: 9.2, fontWeight: 800, padding: 6 },
+        td: { fontSize: 9.2, padding: 6 },
+        cellJalon: { width: '12%' },
+        cellLivrable: { width: '38%' },
+        cellDate: { width: '22%' },
+        cellMode: { width: '28%' },
         footer: {
           position: 'absolute',
           left: 44,
@@ -368,55 +381,155 @@ export async function POST(req: Request) {
               View,
               { style: styles.contentBox },
               (() => {
-                const parts = bodyText
-                  .split(/\n{2,}/)
-                  .map((p) => p.trim())
-                  .filter(Boolean)
-
-                const isHeading = (p: string) =>
-                  /^ARTICLE\s+\d+\b/i.test(p) ||
-                  /^ARTICLE\b/i.test(p) ||
-                  /^TITRE\b/i.test(p) ||
-                  /^CHAPITRE\b/i.test(p)
+                const lines = String(bodyText || '').split(/\n/)
 
                 const nodes: any[] = []
-                for (let i = 0; i < parts.length; i++) {
-                  const p = parts[i]
-                  if (isHeading(p) && p.length < 120) {
-                    nodes.push(React.createElement(Text, { key: `h-${i}`, style: styles.h2 }, p))
-                  } else {
-                    nodes.push(React.createElement(Text, { key: `p-${i}`, style: styles.p }, p))
-                  }
+                let buf: string[] = []
+
+                let inSignatures = false
+                let sigParty: 'PRESTATAIRE' | 'CLIENT' | '' = ''
+
+                const flush = (key: string) => {
+                  const text = buf
+                    .map((x) => String(x || '').trim())
+                    .filter(Boolean)
+                    .join(' ')
+                    .trim()
+                  buf = []
+                  if (!text) return
+                  nodes.push(React.createElement(Text, { key, style: styles.p }, text))
                 }
 
-                // Signature section (freelancer manual sign)
-                nodes.push(
-                  React.createElement(
-                    View,
-                    { key: 'sig', style: styles.signatureWrap },
-                    React.createElement(Text, { style: styles.h2 }, 'Signatures'),
+                const pushHeading = (key: string, t: string, level: 2 | 3) => {
+                  nodes.push(React.createElement(Text, { key, style: level === 2 ? styles.h2 : styles.h3 }, t.trim()))
+                }
+
+                const pushListItem = (key: string, t: string) => {
+                  nodes.push(
                     React.createElement(
                       View,
-                      { style: styles.signaturesRow },
+                      { key, style: styles.listItem },
+                      React.createElement(Text, { style: styles.bullet }, '•'),
+                      React.createElement(Text, { style: styles.listText }, t.trim())
+                    )
+                  )
+                }
+
+                const tableHeader = 'Jalon Livrable attendu Date prévue Mode de livraison'
+
+                const pushTable = (key: string, rows: Array<{ jalon: string; livrable: string; date: string; mode: string }>) => {
+                  nodes.push(
+                    React.createElement(
+                      View,
+                      { key, style: styles.table },
                       React.createElement(
                         View,
-                        { style: styles.sigCol },
-                        React.createElement(Text, { style: styles.sigTitle }, 'Le Prestataire'),
-                        signatureImgUrl ? React.createElement(Image, { style: styles.sigImg, src: signatureImgUrl }) : React.createElement(Text, { style: styles.subtle }, 'Signature : ____________________'),
-                        body.signedAt || body.signedPlace
-                          ? React.createElement(Text, { style: styles.sigLine }, `Signé le ${norm(body.signedAt) || '—'} à ${norm(body.signedPlace) || '—'}`)
-                          : React.createElement(Text, { style: styles.sigLine }, ' ')
+                        { style: styles.trHead },
+                        React.createElement(Text, { style: [styles.th, styles.cellJalon] }, 'Jalon'),
+                        React.createElement(Text, { style: [styles.th, styles.cellLivrable] }, 'Livrable attendu'),
+                        React.createElement(Text, { style: [styles.th, styles.cellDate] }, 'Date prévue'),
+                        React.createElement(Text, { style: [styles.th, styles.cellMode] }, 'Mode')
                       ),
-                      React.createElement(
-                        View,
-                        { style: styles.sigCol },
-                        React.createElement(Text, { style: styles.sigTitle }, 'Le Client'),
-                        React.createElement(Text, { style: styles.subtle }, 'Signature : ____________________'),
-                        React.createElement(Text, { style: styles.sigLine }, ' ')
+                      ...rows.map((r, idx) =>
+                        React.createElement(
+                          View,
+                          { key: `${key}-r-${idx}`, style: styles.tr },
+                          React.createElement(Text, { style: [styles.td, styles.cellJalon] }, r.jalon),
+                          React.createElement(Text, { style: [styles.td, styles.cellLivrable] }, r.livrable),
+                          React.createElement(Text, { style: [styles.td, styles.cellDate] }, r.date),
+                          React.createElement(Text, { style: [styles.td, styles.cellMode] }, r.mode)
+                        )
                       )
                     )
                   )
-                )
+                }
+
+                let pi = 0
+                for (let i = 0; i < lines.length; i++) {
+                  const raw = String(lines[i] || '')
+                  const line = raw.trim()
+
+                  if (!line) {
+                    flush(`p-${pi++}`)
+                    continue
+                  }
+
+                  // Table block
+                  if (line === tableHeader) {
+                    flush(`p-${pi++}`)
+                    const rows: Array<{ jalon: string; livrable: string; date: string; mode: string }> = []
+                    let j = i + 1
+                    for (; j < lines.length; j++) {
+                      const l2 = String(lines[j] || '').trim()
+                      if (!l2) break
+                      const m = l2.match(/^(Final|\d+)\s+(.+?)\s+(\[[^\]]+\]|\d{2}\/\d{2}\/\d{4}|\d{4}-\d{2}-\d{2}|\S+)\s+(\[.*\]|.+)$/)
+                      if (m) {
+                        rows.push({ jalon: m[1], livrable: m[2], date: m[3], mode: m[4] })
+                      } else {
+                        // If parsing fails, stop and let it render as normal text.
+                        break
+                      }
+                    }
+                    if (rows.length) {
+                      pushTable(`table-${pi++}`, rows)
+                      i = j - 1
+                      continue
+                    }
+                  }
+
+                  // Headings
+                  if (/^ARTICLE\b/i.test(line)) {
+                    flush(`p-${pi++}`)
+                    pushHeading(`h-${pi++}`, line, 2)
+                    continue
+                  }
+
+                  if (line === 'SIGNATURES') {
+                    flush(`p-${pi++}`)
+                    inSignatures = true
+                    sigParty = ''
+                    pushHeading(`h-${pi++}`, line, 2)
+                    continue
+                  }
+
+                  if (/^\d+(?:\.\d+)?\s+—\s+/.test(line) || /^[A-Z]\./.test(line)) {
+                    flush(`p-${pi++}`)
+                    pushHeading(`h3-${pi++}`, line, 3)
+                    continue
+                  }
+
+                  // Lists
+                  if (line.startsWith('- ')) {
+                    flush(`p-${pi++}`)
+                    pushListItem(`li-${pi++}`, line.slice(2))
+                    continue
+                  }
+
+                  // Signature embedding inside canonical signature section
+                  if (inSignatures && line === 'Le PRESTATAIRE') {
+                    flush(`p-${pi++}`)
+                    sigParty = 'PRESTATAIRE'
+                    pushHeading(`h3-${pi++}`, line, 3)
+                    continue
+                  }
+                  if (inSignatures && line === 'Le CLIENT') {
+                    flush(`p-${pi++}`)
+                    sigParty = 'CLIENT'
+                    pushHeading(`h3-${pi++}`, line, 3)
+                    continue
+                  }
+
+                  if (inSignatures && line.startsWith('Signature') && sigParty === 'PRESTATAIRE' && signatureImgUrl) {
+                    flush(`p-${pi++}`)
+                    nodes.push(React.createElement(Text, { key: `sig-label-${pi++}`, style: styles.p }, 'Signature :'))
+                    nodes.push(React.createElement(Image, { key: `sig-img-${pi++}`, style: styles.sigImg, src: signatureImgUrl }))
+                    continue
+                  }
+
+                  buf.push(line)
+                }
+
+                flush(`p-${pi++}`)
 
                 return React.createElement(View, null, ...nodes)
               })()

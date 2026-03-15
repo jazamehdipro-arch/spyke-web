@@ -3505,7 +3505,7 @@ délais de livraison sont automatiquement décalés d’autant.
 ARTICLE 4 — CONDITIONS FINANCIÈRES
 4.1 — Prix
 En contrepartie de la réalisation des prestations visées à l’article 3 des présentes, le CLIENT s’engage à
-tuer une somme forfaitaire au profit du PRESTATAIRE dont le montant s’élève inconditionnellement et
+verser une somme forfaitaire au profit du PRESTATAIRE dont le montant s’élève inconditionnellement et
 invariablement à [MONTANT] € HT ([PRIX EN LETTRES] euros hors taxe), ci-après le « Prix ».
 4.2 — Modalités de paiement
 Le PRESTATAIRE facturera le CLIENT selon les conditions financières suivantes :
