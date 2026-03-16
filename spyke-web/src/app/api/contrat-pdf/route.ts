@@ -519,10 +519,21 @@ export async function POST(req: Request) {
                     continue
                   }
 
-                  if (inSignatures && line.startsWith('Signature') && sigParty === 'PRESTATAIRE' && signatureImgUrl) {
+                  if (inSignatures && line.startsWith('Signature') && sigParty === 'PRESTATAIRE') {
                     flush(`p-${pi++}`)
                     nodes.push(React.createElement(Text, { key: `sig-label-${pi++}`, style: styles.p }, 'Signature :'))
-                    nodes.push(React.createElement(Image, { key: `sig-img-${pi++}`, style: styles.sigImg, src: signatureImgUrl }))
+                    if (signatureImgUrl) {
+                      nodes.push(React.createElement(Image, { key: `sig-img-${pi++}`, style: styles.sigImg, src: signatureImgUrl }))
+                    } else {
+                      // Keep placeholder line so the PDF stays consistent even if the image couldn't be resolved
+                      nodes.push(React.createElement(Text, { key: `sig-missing-${pi++}`, style: styles.subtle }, 'Signature introuvable (va dans Paramètres → Signature)'))
+                    }
+                    continue
+                  }
+
+                  if (inSignatures && line.startsWith('Signature') && sigParty === 'CLIENT') {
+                    flush(`p-${pi++}`)
+                    nodes.push(React.createElement(Text, { key: `sigc-label-${pi++}`, style: styles.p }, 'Signature :'))
                     continue
                   }
 
