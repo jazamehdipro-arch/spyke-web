@@ -563,6 +563,7 @@ export async function POST(req: Request) {
           'cache-control': 'no-store',
           'x-spyke-contract-fallback': '1',
           'x-spyke-contract-template-error': templateErrMsg,
+          'x-spyke-signature-url': signatureImgUrl ? '1' : '0',
         },
       })
     }
