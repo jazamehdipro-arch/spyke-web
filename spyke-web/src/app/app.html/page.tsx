@@ -3770,8 +3770,23 @@ Contrat généré par Spyke — spykeapp.fr — L’assistant IA des freelances 
       } catch {}
     }
 
-    // signature handled server-side (signed URL). We only indicate whether it should be included.
     const includeSignature = !!opts?.includeSignature
+
+    // When signing manually, resolve the signature preview URL client-side and pass it to the API.
+    // This avoids storage/RLS issues on the server when trying to create signed URLs.
+    let signatureUrl = ''
+    if (includeSignature) {
+      try {
+        const prevRes = await fetch('/api/signature-preview', {
+          method: 'GET',
+          headers: { authorization: `Bearer ${token}` },
+        })
+        const prevJson = await prevRes.json().catch(() => ({}))
+        if (prevRes.ok) signatureUrl = String((prevJson as any)?.url || '')
+      } catch {
+        signatureUrl = ''
+      }
+    }
 
     const payload: any = {
       title: 'Contrat de prestation de service',
@@ -3780,6 +3795,7 @@ Contrat généré par Spyke — spykeapp.fr — L’assistant IA des freelances 
       includeSignature,
       signedAt: String(opts?.signedAt || ''),
       signedPlace: String(opts?.signedPlace || ''),
+      signatureUrl,
       contractText: contractText || buildContractText(),
       parties: { sellerName: prestaName, buyerName: clientName },
 
