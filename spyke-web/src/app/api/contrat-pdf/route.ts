@@ -311,6 +311,8 @@ export async function POST(req: Request) {
       ]
 
       // Resolve freelancer signature image when requested (manual signing flow).
+      // React-PDF can be flaky fetching remote images depending on runtime/network.
+      // To make it robust, if we have an URL we fetch it server-side and embed as a data URL.
       let signatureImgUrl = ''
       if (body.includeSignature) {
         signatureImgUrl = norm(body.signatureUrl)
@@ -324,6 +326,19 @@ export async function POST(req: Request) {
             }
           } catch {
             signatureImgUrl = ''
+          }
+        }
+
+        // Convert to data URL if it's a remote URL
+        if (signatureImgUrl && /^https?:\/\//i.test(signatureImgUrl)) {
+          try {
+            const imgRes = await fetch(signatureImgUrl)
+            const ct = String(imgRes.headers.get('content-type') || 'image/png')
+            const ab = await imgRes.arrayBuffer()
+            const b64 = Buffer.from(ab).toString('base64')
+            signatureImgUrl = `data:${ct};base64,${b64}`
+          } catch {
+            // keep URL as-is as a fallback
           }
         }
       }
@@ -564,6 +579,7 @@ export async function POST(req: Request) {
           'x-spyke-contract-fallback': '1',
           'x-spyke-contract-template-error': templateErrMsg,
           'x-spyke-signature-url': signatureImgUrl ? '1' : '0',
+          'x-spyke-signature-data': signatureImgUrl.startsWith('data:') ? '1' : '0',
         },
       })
     }
