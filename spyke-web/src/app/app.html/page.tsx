@@ -3746,8 +3746,46 @@ Contrat généré par Spyke — spykeapp.fr — L’assistant IA des freelances 
       out = out.split(k).join(String(v ?? ''))
     }
 
-    // Additional placeholders that may remain: remove brackets if any are left
-    return out
+    // Cleanup to avoid broken phrases when optional fields are missing.
+    // 1) Remove any remaining [PLACEHOLDER] blocks
+    out = out.replace(/\[[^\]\n\r]{1,80}\]/g, '')
+
+    // 2) Remove lines that became nonsensical (missing required values)
+    const rawLines = out.split(/\n/)
+    const cleanedLines: string[] = []
+
+    for (let i = 0; i < rawLines.length; i++) {
+      let line = String(rawLines[i] || '')
+
+      // If a line still contains multiple spaces from removed placeholders, normalize
+      line = line.replace(/\s{2,}/g, ' ')
+
+      // Drop lines that are only punctuation or labels with nothing after
+      if (/^\s*(Téléphone\s*:|Email\s*:|Qualité\s*:|Nom\s*:|Fonction\s*:|Signature\s*:|Adresse de facturation\s*:)\s*$/.test(line.trim())) {
+        continue
+      }
+
+      // RCS line fragments if missing city/number → drop the whole line
+      if (line.includes('au RCS de') && line.replace(/\s/g, '').includes('auRCSdesouslenuméro')) {
+        continue
+      }
+
+      // Remove leftover "par ," / "qualité de ," patterns
+      line = line.replace(/par\s*,/g, '')
+      line = line.replace(/qualité de\s*,/g, 'qualité de ')
+
+      // Trim trailing commas introduced by removals
+      line = line.replace(/\s+,/g, ',')
+      line = line.replace(/,\s*\./g, '.')
+
+      cleanedLines.push(line.trimEnd())
+    }
+
+    // 3) Collapse excessive blank lines
+    let finalOut = cleanedLines.join('\n')
+    finalOut = finalOut.replace(/\n{3,}/g, '\n\n')
+
+    return finalOut
   }
 
   async function generateContractPdfBlob(opts?: { includeSignature?: boolean; signedAt?: string; signedPlace?: string }) {
