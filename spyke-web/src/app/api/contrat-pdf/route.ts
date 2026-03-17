@@ -228,348 +228,38 @@ export async function POST(req: Request) {
       // We also surface the template error in a header so it's diagnosable from the browser.
       const templateErrMsg = String(err?.message || err || '').slice(0, 160)
 
-      const React = (await import('react')).default
-      const { Document, Page, Text, View, Image, StyleSheet, pdf } = await import('@react-pdf/renderer')
-
-      const styles = StyleSheet.create({
-        page: {
-          paddingTop: 42,
-          paddingBottom: 46,
-          paddingHorizontal: 44,
-          fontSize: 10.5,
-          fontFamily: 'Helvetica',
-          color: '#111827',
-          lineHeight: 1.45,
-        },
-        topBrand: { fontSize: 11, fontWeight: 700, textAlign: 'center', marginBottom: 10 },
-        mainTitle: { fontSize: 20, fontWeight: 800, textAlign: 'center', marginBottom: 6 },
-        contractNo: { fontSize: 11, textAlign: 'center', color: '#374151', marginBottom: 16 },
-        sectionTitle: { fontSize: 11, fontWeight: 700, marginBottom: 8 },
-        partiesBox: { borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 10, padding: 12, marginBottom: 14 },
-        partiesGrid: { flexDirection: 'row', gap: 10 },
-        col: { width: '50%', padding: 10, borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 8 },
-        colTitle: { fontSize: 10.5, fontWeight: 800, marginBottom: 8 },
-        kv: { fontSize: 10.2, marginBottom: 4 },
-        kvLabel: { fontWeight: 700 },
-        contentBox: { borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 10, padding: 14, backgroundColor: '#ffffff' },
-        h2: { fontSize: 11.5, fontWeight: 800, marginTop: 10, marginBottom: 5 },
-        h3: { fontSize: 10.8, fontWeight: 800, marginTop: 6, marginBottom: 4 },
-        p: { fontSize: 10.5, lineHeight: 1.5, marginBottom: 7 },
-        listItem: { flexDirection: 'row', marginBottom: 4 },
-        bullet: { width: 14, fontWeight: 800 },
-        listText: { flex: 1, fontSize: 10.5, lineHeight: 1.45 },
-        table: { marginTop: 6, marginBottom: 8, borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 8, overflow: 'hidden' },
-        trHead: { flexDirection: 'row', backgroundColor: '#f9fafb', borderBottomWidth: 1, borderBottomColor: '#e5e7eb' },
-        tr: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
-        th: { fontSize: 9.2, fontWeight: 800, padding: 6 },
-        td: { fontSize: 9.2, padding: 6 },
-        cellJalon: { width: '12%' },
-        cellLivrable: { width: '38%' },
-        cellDate: { width: '22%' },
-        cellMode: { width: '28%' },
-        footer: {
-          position: 'absolute',
-          left: 44,
-          right: 44,
-          bottom: 20,
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          fontSize: 9,
-          color: '#9ca3af',
-        },
-        signatureWrap: { marginTop: 14 },
-        signaturesRow: { flexDirection: 'row', gap: 10 },
-        sigCol: { width: '50%', borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 10, padding: 10, minHeight: 120 },
-        sigTitle: { fontSize: 10.5, fontWeight: 800, marginBottom: 6 },
-        sigLine: { marginTop: 10, borderTopWidth: 1, borderTopColor: '#e5e7eb', paddingTop: 8, color: '#6b7280', fontSize: 9.5 },
-        sigImg: { width: '100%', height: 64, objectFit: 'contain' },
-        subtle: { color: '#6b7280' },
-      })
-
-      const bodyText = String(body.contractText || '').trim() || 'Contrat'
-
-      const norm = (s: any) => String(s || '').trim()
-      const has = (s: any) => !!norm(s)
-
-      const seller = body.seller || { name: '', siret: '', address: '', activity: '', email: '' }
-      const buyer = body.buyer || { name: '', siret: '', representant: '', address: '', email: '' }
-
-      const sellerLines: Array<[string, string]> = [
-        ['Nom', norm(seller.name) || sellerName],
-        ['Activité', norm(seller.activity)],
-        ['SIRET', norm(seller.siret)],
-        ['Adresse', norm(seller.address)],
-        ['Email', norm(seller.email)],
-      ]
-
-      const buyerLines: Array<[string, string]> = [
-        ['Nom', norm(buyer.name) || buyerName],
-        ['Représentant', norm(buyer.representant)],
-        ['SIRET', norm(buyer.siret)],
-        ['Adresse', norm(buyer.address)],
-        ['Email', norm(buyer.email)],
-      ]
-
       // Resolve freelancer signature image when requested (manual signing flow).
-      // React-PDF can be flaky fetching remote images depending on runtime/network.
-      // To make it robust, if we have an URL we fetch it server-side and embed as a data URL.
-      let signatureImgUrl = ''
+      // React-PDF remote images can be flaky; embed as data URL.
+      let signatureDataUrl = ''
       if (body.includeSignature) {
-        signatureImgUrl = norm(body.signatureUrl)
-        if (!signatureImgUrl) {
+        signatureDataUrl = String(body.signatureUrl || '').trim()
+        if (signatureDataUrl && /^https?:\/\//i.test(signatureDataUrl)) {
           try {
-            const { data: profile } = await supabase.from('profiles').select('signature_path').eq('id', data.user.id).maybeSingle()
-            const sp = norm((profile as any)?.signature_path)
-            if (sp) {
-              const signed = await supabase.storage.from('signatures').createSignedUrl(sp, 60 * 10)
-              signatureImgUrl = norm((signed as any)?.data?.signedUrl)
-            }
-          } catch {
-            signatureImgUrl = ''
-          }
-        }
-
-        // Convert to data URL if it's a remote URL
-        if (signatureImgUrl && /^https?:\/\//i.test(signatureImgUrl)) {
-          try {
-            const imgRes = await fetch(signatureImgUrl)
+            const imgRes = await fetch(signatureDataUrl)
             const ct = String(imgRes.headers.get('content-type') || 'image/png')
             const ab = await imgRes.arrayBuffer()
             const b64 = Buffer.from(ab).toString('base64')
-            signatureImgUrl = `data:${ct};base64,${b64}`
+            signatureDataUrl = `data:${ct};base64,${b64}`
           } catch {
-            // keep URL as-is as a fallback
+            // ignore
           }
         }
       }
 
-      const Doc = () =>
-        React.createElement(
-          Document,
-          null,
-          React.createElement(
-            Page,
-            { size: 'A4', style: styles.page },
-            React.createElement(Text, { style: styles.topBrand }, 'SPYKE'),
-            React.createElement(Text, { style: styles.mainTitle }, 'CONTRAT DE PRESTATION DE SERVICES'),
-            React.createElement(Text, { style: styles.contractNo }, `N° ${norm(body.contractNumber) || ''}`.trim()),
-            React.createElement(Text, { style: styles.sectionTitle }, 'ENTRE LES SOUSSIGNÉS :'),
-            React.createElement(
-              View,
-              { style: styles.partiesBox },
-              React.createElement(
-                View,
-                { style: styles.partiesGrid },
-                React.createElement(
-                  View,
-                  { style: styles.col },
-                  React.createElement(Text, { style: styles.colTitle }, 'LE PRESTATAIRE'),
-                  ...sellerLines
-                    .filter(([, v]) => has(v))
-                    .map(([k, v], idx) =>
-                      React.createElement(
-                        Text,
-                        { key: `s-${idx}`, style: styles.kv },
-                        React.createElement(Text, { style: styles.kvLabel }, `${k} : `),
-                        v
-                      )
-                    )
-                ),
-                React.createElement(
-                  View,
-                  { style: styles.col },
-                  React.createElement(Text, { style: styles.colTitle }, 'LE CLIENT'),
-                  ...buyerLines
-                    .filter(([, v]) => has(v))
-                    .map(([k, v], idx) =>
-                      React.createElement(
-                        Text,
-                        { key: `b-${idx}`, style: styles.kv },
-                        React.createElement(Text, { style: styles.kvLabel }, `${k} : `),
-                        v
-                      )
-                    )
-                )
-              )
-            ),
-            React.createElement(
-              View,
-              { style: styles.contentBox },
-              (() => {
-                const lines = String(bodyText || '').split(/\n/)
+      const { renderContractPdfReact } = await import('@/lib/renderContractPdfReact')
 
-                const nodes: any[] = []
-                let buf: string[] = []
+      const buf = await renderContractPdfReact({
+        title: body.title,
+        date: body.date,
+        logoUrl: body.logoUrl,
+        contractNumber: body.contractNumber,
+        contractText: body.contractText,
+        seller: body.seller,
+        buyer: body.buyer,
+        includeSignature: Boolean(body.includeSignature),
+        signatureDataUrl,
+      })
 
-                let inSignatures = false
-                let sigParty: 'PRESTATAIRE' | 'CLIENT' | '' = ''
-
-                const flush = (key: string) => {
-                  const text = buf
-                    .map((x) => String(x || '').trim())
-                    .filter(Boolean)
-                    .join(' ')
-                    .trim()
-                  buf = []
-                  if (!text) return
-                  nodes.push(React.createElement(Text, { key, style: styles.p }, text))
-                }
-
-                const pushHeading = (key: string, t: string, level: 2 | 3) => {
-                  nodes.push(React.createElement(Text, { key, style: level === 2 ? styles.h2 : styles.h3 }, t.trim()))
-                }
-
-                const pushListItem = (key: string, t: string) => {
-                  nodes.push(
-                    React.createElement(
-                      View,
-                      { key, style: styles.listItem },
-                      React.createElement(Text, { style: styles.bullet }, '•'),
-                      React.createElement(Text, { style: styles.listText }, t.trim())
-                    )
-                  )
-                }
-
-                const tableHeader = 'Jalon Livrable attendu Date prévue Mode de livraison'
-
-                const pushTable = (key: string, rows: Array<{ jalon: string; livrable: string; date: string; mode: string }>) => {
-                  nodes.push(
-                    React.createElement(
-                      View,
-                      { key, style: styles.table },
-                      React.createElement(
-                        View,
-                        { style: styles.trHead },
-                        React.createElement(Text, { style: [styles.th, styles.cellJalon] }, 'Jalon'),
-                        React.createElement(Text, { style: [styles.th, styles.cellLivrable] }, 'Livrable attendu'),
-                        React.createElement(Text, { style: [styles.th, styles.cellDate] }, 'Date prévue'),
-                        React.createElement(Text, { style: [styles.th, styles.cellMode] }, 'Mode')
-                      ),
-                      ...rows.map((r, idx) =>
-                        React.createElement(
-                          View,
-                          { key: `${key}-r-${idx}`, style: styles.tr },
-                          React.createElement(Text, { style: [styles.td, styles.cellJalon] }, r.jalon),
-                          React.createElement(Text, { style: [styles.td, styles.cellLivrable] }, r.livrable),
-                          React.createElement(Text, { style: [styles.td, styles.cellDate] }, r.date),
-                          React.createElement(Text, { style: [styles.td, styles.cellMode] }, r.mode)
-                        )
-                      )
-                    )
-                  )
-                }
-
-                let pi = 0
-                for (let i = 0; i < lines.length; i++) {
-                  const raw = String(lines[i] || '')
-                  const line = raw.trim()
-
-                  if (!line) {
-                    flush(`p-${pi++}`)
-                    continue
-                  }
-
-                  // Table block
-                  if (line === tableHeader) {
-                    flush(`p-${pi++}`)
-                    const rows: Array<{ jalon: string; livrable: string; date: string; mode: string }> = []
-                    let j = i + 1
-                    for (; j < lines.length; j++) {
-                      const l2 = String(lines[j] || '').trim()
-                      if (!l2) break
-                      const m = l2.match(/^(Final|\d+)\s+(.+?)\s+(\[[^\]]+\]|\d{2}\/\d{2}\/\d{4}|\d{4}-\d{2}-\d{2}|\S+)\s+(\[.*\]|.+)$/)
-                      if (m) {
-                        rows.push({ jalon: m[1], livrable: m[2], date: m[3], mode: m[4] })
-                      } else {
-                        // If parsing fails, stop and let it render as normal text.
-                        break
-                      }
-                    }
-                    if (rows.length) {
-                      pushTable(`table-${pi++}`, rows)
-                      i = j - 1
-                      continue
-                    }
-                  }
-
-                  // Headings
-                  if (/^ARTICLE\b/i.test(line)) {
-                    flush(`p-${pi++}`)
-                    pushHeading(`h-${pi++}`, line, 2)
-                    continue
-                  }
-
-                  if (line === 'SIGNATURES') {
-                    flush(`p-${pi++}`)
-                    inSignatures = true
-                    sigParty = ''
-                    pushHeading(`h-${pi++}`, line, 2)
-                    continue
-                  }
-
-                  if (/^\d+(?:\.\d+)?\s+—\s+/.test(line) || /^[A-Z]\./.test(line)) {
-                    flush(`p-${pi++}`)
-                    pushHeading(`h3-${pi++}`, line, 3)
-                    continue
-                  }
-
-                  // Lists
-                  if (line.startsWith('- ')) {
-                    flush(`p-${pi++}`)
-                    pushListItem(`li-${pi++}`, line.slice(2))
-                    continue
-                  }
-
-                  // Signature embedding inside canonical signature section
-                  if (inSignatures && line === 'Le PRESTATAIRE') {
-                    flush(`p-${pi++}`)
-                    sigParty = 'PRESTATAIRE'
-                    pushHeading(`h3-${pi++}`, line, 3)
-                    continue
-                  }
-                  if (inSignatures && line === 'Le CLIENT') {
-                    flush(`p-${pi++}`)
-                    sigParty = 'CLIENT'
-                    pushHeading(`h3-${pi++}`, line, 3)
-                    continue
-                  }
-
-                  if (inSignatures && line.startsWith('Signature') && sigParty === 'PRESTATAIRE') {
-                    flush(`p-${pi++}`)
-                    nodes.push(React.createElement(Text, { key: `sig-label-${pi++}`, style: styles.p }, 'Signature :'))
-                    if (signatureImgUrl) {
-                      nodes.push(React.createElement(Image, { key: `sig-img-${pi++}`, style: styles.sigImg, src: signatureImgUrl }))
-                    } else {
-                      // Keep placeholder line so the PDF stays consistent even if the image couldn't be resolved
-                      nodes.push(React.createElement(Text, { key: `sig-missing-${pi++}`, style: styles.subtle }, 'Signature introuvable (va dans Paramètres → Signature)'))
-                    }
-                    continue
-                  }
-
-                  if (inSignatures && line.startsWith('Signature') && sigParty === 'CLIENT') {
-                    flush(`p-${pi++}`)
-                    nodes.push(React.createElement(Text, { key: `sigc-label-${pi++}`, style: styles.p }, 'Signature :'))
-                    continue
-                  }
-
-                  buf.push(line)
-                }
-
-                flush(`p-${pi++}`)
-
-                return React.createElement(View, null, ...nodes)
-              })()
-            ),
-            React.createElement(
-              View,
-              { style: styles.footer },
-              React.createElement(Text, null, 'Contrat généré avec Spyke'),
-              React.createElement(Text, { render: (p: any) => `Page ${p.pageNumber}/${p.totalPages}` })
-            )
-          )
-        )
-
-      const buf = await pdf(React.createElement(Doc)).toBuffer()
       return new NextResponse(buf as any, {
         status: 200,
         headers: {
@@ -578,8 +268,8 @@ export async function POST(req: Request) {
           'cache-control': 'no-store',
           'x-spyke-contract-fallback': '1',
           'x-spyke-contract-template-error': templateErrMsg,
-          'x-spyke-signature-url': signatureImgUrl ? '1' : '0',
-          'x-spyke-signature-data': signatureImgUrl.startsWith('data:') ? '1' : '0',
+          'x-spyke-signature-url': body.includeSignature && String(body.signatureUrl || '').trim() ? '1' : '0',
+          'x-spyke-signature-data': signatureDataUrl.startsWith('data:') ? '1' : '0',
         },
       })
     }

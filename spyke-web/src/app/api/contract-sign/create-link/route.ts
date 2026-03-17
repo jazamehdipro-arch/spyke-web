@@ -1,10 +1,8 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@supabase/supabase-js'
-import { readFile } from 'node:fs/promises'
-import { join } from 'node:path'
 import crypto from 'node:crypto'
-import { fillContractTemplatePdf } from '@/lib/fillContractTemplate'
+import { renderContractPdfReact } from '@/lib/renderContractPdfReact'
 
 export const runtime = 'nodejs'
 
@@ -103,67 +101,28 @@ export async function POST(req: Request) {
     const contractNumber = String((contract as any).number || '')
     const dateStr = formatDateFr(String((contract as any).created_at || '').slice(0, 10))
 
-    // Build PDF from template
-    const templatePath = join(process.cwd(), 'public', 'templates', 'contrat-template.pdf')
-    const templateBytes = await readFile(templatePath)
-
-    const replacements: Record<string, string> = {
-      '[NUMÉRO DU CONTRAT]': contractNumber,
-      '[DATE]': dateStr,
-
-      '[NOM PRESTATAIRE]': sellerName,
-      '[NOM\nPRESTATAIRE]': sellerName,
-      '[PRÉNOM      NOM]': sellerName,
-      '[PRÉNOM NOM]': sellerName,
-      '[NUMÉRO     SIRET]': sellerSiret,
-      '[NUMÉRO SIRET]': sellerSiret,
-      '[SIRET PRESTATAIRE]': sellerSiret,
-      '[ADRESSE PRESTATAIRE]': sellerAddress,
-      '[ACTIVITÉ]': sellerActivity,
-      '[EMAIL PRESTATAIRE]': sellerEmail,
-
-      '[NOM CLIENT]': buyerName,
-      '[SIRET CLIENT]': buyerSiret,
-      '[REPRÉSENTANT]': buyerRepresentant,
-      '[ADRESSE CLIENT]': buyerAddress,
-      '[EMAIL CLIENT]': buyerEmail,
-
-      "[DÉCRIRE L'OBJECTIF DE LA MISSION]": String((contract as any)?.contract_text || ''),
-      'DESCRIPTION DÉTAILLÉE DE LA MISSION': String((contract as any)?.contract_text || ''),
-      'LIVRABLES ATTENDUS': '',
-      '[DATE DÉBUT]': String((contract as any)?.mission_start || ''),
-      '[DATE FIN]': String((contract as any)?.mission_end || ''),
-
-      // Clean placeholders we don't have yet
-      '[Madame/Monsieur]': '',
-      '[Madame/Monsieur  PRÉNOM  NOM]': '',
-      '[Forme   sociale   (SARL,   SAS,   etc.)]': '',
-      '[VILLE  RCS]': '',
-      '[NUMÉRO  RCS]': '',
-      '[FONCTION]': '',
-      '[DÉCRIRE LE PROJET DU CLIENT]': '',
-      '[NOMBRE]': '',
-      '[PRIX EN LETTRES]': '',
-      '[ADRESSE DE FACTURATION DU PRESTATAIRE]': '',
-
-      '[À DISTANCE / SUR SITE / MIXTE]': '',
-      '[NOMBRE  DE  RÉVISIONS]': '',
-      '[FORFAIT / TJM / TAUX HORAIRE]': '',
-      '[MONTANT]': (contract as any)?.amount_ht != null ? String((contract as any).amount_ht) : '',
-      '[FRANCHISE EN BASE / ASSUJETTI]': String((contract as any)?.tva_regime || ''),
-      '[30/70 / 50/50 / 100% FIN / PERSONNALISÉ]': '',
-      '[30 JOURS / 45 JOURS / 60 JOURS]': '',
-      "[CESSION APRÈS PAIEMENT / LICENCE D'UTILISATION / CESSION TOTALE]": '',
-      '[OUI / NON]': '',
-      '[PRÉAVIS 15 JOURS / 30 JOURS / SANS PRÉAVIS]': '',
-    }
-
-    const filledRes = await fillContractTemplatePdf({
-      templateBytes: new Uint8Array(templateBytes),
-      replacements,
+    // Build PDF using the same React-PDF renderer as Spyke (matches the contract the user sees)
+    const filled = await renderContractPdfReact({
+      title: 'Contrat de prestation de services',
+      date: dateStr,
+      contractNumber,
+      contractText: String((contract as any)?.contract_text || ''),
+      seller: {
+        name: sellerName,
+        siret: sellerSiret,
+        address: sellerAddress,
+        activity: sellerActivity,
+        email: sellerEmail,
+      },
+      buyer: {
+        name: buyerName,
+        siret: buyerSiret,
+        representant: buyerRepresentant,
+        address: buyerAddress,
+        email: buyerEmail,
+      },
+      includeSignature: false,
     })
-
-    const filled = filledRes.bytes
 
     // Create signing link
     const tokenStr = crypto.randomBytes(24).toString('hex')
