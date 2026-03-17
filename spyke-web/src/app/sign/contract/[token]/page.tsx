@@ -182,9 +182,9 @@ export default function ContractSignPage({ params }: { params: { token?: string 
             <div style={{ fontSize: 20, fontWeight: 800 }}>Signature du contrat</div>
             {info?.buyerName ? <div style={{ opacity: 0.8, fontSize: 13 }}>Pour {info.buyerName}</div> : null}
           </div>
-          {info?.isSigned ? (
-            <a href={pdfUrl} style={{ color: 'white', textDecoration: 'none', fontWeight: 700 }} download>
-              Télécharger le PDF signé
+          {pdfUrl ? (
+            <a href={pdfUrl} style={{ color: 'white', textDecoration: 'none', fontWeight: 700 }} target="_blank" rel="noreferrer">
+              {info?.isSigned ? 'Télécharger le PDF signé' : 'Ouvrir / télécharger le PDF'}
             </a>
           ) : null}
         </div>
@@ -206,7 +206,14 @@ export default function ContractSignPage({ params }: { params: { token?: string 
           </div>
 
           <div style={{ height: '72vh', background: '#f8fafc' }}>
-            {pdfUrl ? <iframe title="contrat" src={pdfUrl} style={{ width: '100%', height: '100%', border: 0 }} /> : null}
+            {pdfUrl ? (
+              <iframe
+                title="contrat"
+                src={pdfUrl}
+                style={{ width: '100%', height: '100%', border: 0 }}
+                // On mobile Safari, iframes with PDFs can behave oddly; the link above lets users open the full PDF reliably.
+              />
+            ) : null}
           </div>
 
           {!info?.isSigned ? (

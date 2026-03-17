@@ -70,7 +70,7 @@ export async function POST(req: Request) {
     // Load profile (seller snapshot fallback)
     const { data: profile } = await supabaseAdmin
       .from('profiles')
-      .select('full_name,company_name,address,postal_code,city,country,siret,job')
+      .select('full_name,company_name,address,postal_code,city,country,siret,job,signature_path')
       .eq('id', userId)
       .maybeSingle()
 
@@ -102,6 +102,25 @@ export async function POST(req: Request) {
     const dateStr = formatDateFr(String((contract as any).created_at || '').slice(0, 10))
 
     // Build PDF using the same React-PDF renderer as Spyke (matches the contract the user sees)
+    // Embed freelancer signature on the PDF sent to the client (client signs after seeing freelancer's signature).
+    let signatureDataUrl = ''
+    try {
+      const sp = String((profile as any)?.signature_path || '').trim()
+      if (sp) {
+        const { data: signed } = await supabaseAdmin.storage.from('signatures').createSignedUrl(sp, 60 * 10)
+        const signedUrl = String((signed as any)?.signedUrl || '')
+        if (signedUrl) {
+          const imgRes = await fetch(signedUrl)
+          const ct = String(imgRes.headers.get('content-type') || 'image/png')
+          const ab = await imgRes.arrayBuffer()
+          const b64 = Buffer.from(ab).toString('base64')
+          signatureDataUrl = `data:${ct};base64,${b64}`
+        }
+      }
+    } catch {
+      signatureDataUrl = ''
+    }
+
     const filled = await renderContractPdfReact({
       title: 'Contrat de prestation de services',
       date: dateStr,
@@ -121,7 +140,8 @@ export async function POST(req: Request) {
         address: buyerAddress,
         email: buyerEmail,
       },
-      includeSignature: false,
+      includeSignature: Boolean(signatureDataUrl),
+      signatureDataUrl,
     })
 
     // Create signing link
