@@ -3760,8 +3760,9 @@ Contrat généré par Spyke — spykeapp.fr — L’assistant IA des freelances 
       // If a line still contains multiple spaces from removed placeholders, normalize
       line = line.replace(/\s{2,}/g, ' ')
 
-      // Drop lines that are only punctuation or labels with nothing after
-      if (/^\s*(Téléphone\s*:|Email\s*:|Qualité\s*:|Nom\s*:|Fonction\s*:|Signature\s*:|Adresse de facturation\s*:)\s*$/.test(line.trim())) {
+      // Drop lines that are only punctuation or labels with nothing after.
+      // IMPORTANT: keep signature block labels (Nom/Qualité/Signature) because the PDF renderer relies on them.
+      if (/^\s*(Téléphone\s*:|Email\s*:|Adresse de facturation\s*:)\s*$/.test(line.trim())) {
         continue
       }
 
