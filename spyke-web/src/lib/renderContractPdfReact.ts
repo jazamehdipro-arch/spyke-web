@@ -307,9 +307,26 @@ export async function renderContractPdfReact(input: ContractPdfInput): Promise<B
     )
 
   const out: any = await pdf(React.createElement(Doc)).toBuffer()
+
   if (Buffer.isBuffer(out)) return out
   if (out instanceof Uint8Array) return Buffer.from(out)
   if (out instanceof ArrayBuffer) return Buffer.from(new Uint8Array(out))
-  // Fallback: try to coerce
-  return Buffer.from(out)
+
+  // In some runtimes, react-pdf returns a PDFKit PDFDocument (readable stream).
+  if (out && typeof out.on === 'function') {
+    return await new Promise<Buffer>((resolve, reject) => {
+      const chunks: Buffer[] = []
+      out.on('data', (c: any) => {
+        try {
+          chunks.push(Buffer.isBuffer(c) ? c : Buffer.from(c))
+        } catch {
+          // ignore
+        }
+      })
+      out.on('end', () => resolve(Buffer.concat(chunks)))
+      out.on('error', reject)
+    })
+  }
+
+  throw new Error('PDF buffer generation failed (unexpected react-pdf output)')
 }
