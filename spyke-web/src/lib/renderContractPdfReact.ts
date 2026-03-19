@@ -9,8 +9,15 @@ export type ContractPdfInput = {
   contractText?: string
   seller?: { name?: string; siret?: string; address?: string; activity?: string; email?: string }
   buyer?: { name?: string; siret?: string; representant?: string; address?: string; email?: string }
+
+  // Freelance signature (prestataire)
   includeSignature?: boolean
   signatureDataUrl?: string // data:... base64
+
+  // Client signature (captured on /sign/contract/[token])
+  clientSignatureDataUrl?: string // data:... base64
+  clientSignedAt?: string
+  clientSignedPlace?: string
 }
 
 function norm(s: any) {
@@ -92,6 +99,9 @@ export async function renderContractPdfReact(input: ContractPdfInput): Promise<B
   ]
 
   const signatureDataUrl = input.includeSignature ? norm(input.signatureDataUrl) : ''
+  const clientSignatureDataUrl = norm(input.clientSignatureDataUrl)
+  const clientSignedAt = norm(input.clientSignedAt)
+  const clientSignedPlace = norm(input.clientSignedPlace)
 
   const bodyText = norm(input.contractText)
 
@@ -287,6 +297,13 @@ export async function renderContractPdfReact(input: ContractPdfInput): Promise<B
               if (inSignatures && line.startsWith('Signature') && sigParty === 'CLIENT') {
                 flush(`p-${pi++}`)
                 nodes.push(React.createElement(Text, { key: `sigc-label-${pi++}`, style: styles.p }, 'Signature :'))
+                if (clientSignatureDataUrl) {
+                  nodes.push(React.createElement(Image, { key: `sigc-img-${pi++}`, style: styles.sigImg, src: clientSignatureDataUrl }))
+                }
+                if (clientSignedAt || clientSignedPlace) {
+                  const meta = [clientSignedAt ? `Signé le : ${clientSignedAt}` : '', clientSignedPlace ? `À : ${clientSignedPlace}` : ''].filter(Boolean).join(' — ')
+                  if (meta) nodes.push(React.createElement(Text, { key: `sigc-meta-${pi++}`, style: styles.subtle }, meta))
+                }
                 continue
               }
 

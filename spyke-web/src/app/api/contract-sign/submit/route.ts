@@ -79,66 +79,71 @@ export async function POST(req: Request) {
     })
     if (upSig.error) throw upSig.error
 
-    // Download unsigned PDF
-    const unsignedPath = String((link as any).pdf_url || '')
-    const dl = await supabaseAdmin.storage.from('signed_contracts').download(unsignedPath)
-    if (dl.error) throw dl.error
-    const unsignedBuf = new Uint8Array(await dl.data.arrayBuffer())
+    // Build signed PDF via the same React-PDF renderer.
+    // This guarantees signature placement identical to the freelancer signature.
+    const { renderContractPdfReact } = await import('@/lib/renderContractPdfReact')
 
-    // Create signed PDF: embed the client signature into the contract signature block (last page).
-    // This avoids adding an extra page and ensures the signature appears in the expected place.
-    const { PDFDocument, StandardFonts, rgb } = await import('pdf-lib')
-    const doc = await PDFDocument.load(unsignedBuf)
-    const helvetica = await doc.embedFont(StandardFonts.Helvetica)
+    // Load contract + seller/buyer snapshots
+    const { data: contract, error: cErr } = await supabaseAdmin
+      .from('contracts')
+      .select('id,user_id,number,contract_text,buyer_snapshot,seller_snapshot,created_at')
+      .eq('id', contractId)
+      .maybeSingle()
+    if (cErr) throw cErr
 
+    const sellerSnap: any = (contract as any)?.seller_snapshot || {}
+    const buyerSnap: any = (contract as any)?.buyer_snapshot || {}
+
+    // freelancer signature (if any)
+    let freelancerSigDataUrl = ''
+    try {
+      const { data: profile } = await supabaseAdmin.from('profiles').select('signature_path').eq('id', String((contract as any)?.user_id || '')).maybeSingle()
+      const sp = String((profile as any)?.signature_path || '').trim()
+      if (sp) {
+        const { data: signed } = await supabaseAdmin.storage.from('signatures').createSignedUrl(sp, 60 * 10)
+        const signedUrl = String((signed as any)?.signedUrl || '')
+        if (signedUrl) {
+          const r = await fetch(signedUrl)
+          const ct = String(r.headers.get('content-type') || 'image/png')
+          const ab = await r.arrayBuffer()
+          freelancerSigDataUrl = `data:${ct};base64,${Buffer.from(ab).toString('base64')}`
+        }
+      }
+    } catch {
+      freelancerSigDataUrl = ''
+    }
+
+    // client signature -> data URL
     const imgRes = await supabaseAdmin.storage.from('contract_signatures').download(sigPath)
     if (imgRes.error) throw imgRes.error
     const imgBytes = new Uint8Array(await imgRes.data.arrayBuffer())
+    const clientSigDataUrl = `data:${file.type || 'image/png'};base64,${Buffer.from(imgBytes).toString('base64')}`
 
-    // Support PNG/JPG
-    let embedded: any
-    try {
-      embedded = await doc.embedPng(imgBytes)
-    } catch {
-      embedded = await doc.embedJpg(imgBytes)
-    }
-
-    const pages = doc.getPages()
-    const lastPage = pages[pages.length - 1]
-
-    // Coordinates tuned for Spyke's React-PDF contract layout (A4).
-    // Bottom signature area: two columns.
-    const pageW = lastPage.getWidth()
-    // const pageH = lastPage.getHeight()
-
-    const marginX = 44
-    const gutter = 10
-    const colW = (pageW - marginX * 2 - gutter) / 2
-
-    // Client column is on the right.
-    const x0 = marginX + colW + gutter
-    const y0 = 88 // bottom box baseline
-
-    // Signature box size
-    const boxW = colW
-    const boxH = 90
-
-    // Draw a light signature box (so it looks intentional)
-    lastPage.drawRectangle({ x: x0, y: y0, width: boxW, height: boxH, borderWidth: 1, borderColor: rgb(0.9, 0.9, 0.92) })
-
-    // Place signature image inside
-    const pad = 10
-    const imgW = boxW - pad * 2
-    const imgH = boxH - pad * 2
-    lastPage.drawImage(embedded, { x: x0 + pad, y: y0 + pad, width: imgW, height: imgH })
-
-    // Add date/place near the box (small)
-    const dateLine = parsed.signedAt ? `Signé le : ${formatDateFr(parsed.signedAt) || parsed.signedAt}` : ''
-    const placeLine = parsed.signedPlace ? `À : ${capitalizePlace(parsed.signedPlace)}` : ''
-    if (dateLine) lastPage.drawText(dateLine, { x: x0, y: y0 + boxH + 18, size: 9.5, font: helvetica, color: rgb(0.1, 0.1, 0.1) })
-    if (placeLine) lastPage.drawText(placeLine, { x: x0, y: y0 + boxH + 6, size: 9.5, font: helvetica, color: rgb(0.1, 0.1, 0.1) })
-
-    const signedBytes = new Uint8Array((await doc.save()) as any)
+    const signedBytes = await renderContractPdfReact({
+      title: 'Contrat de prestation de services',
+      date: String((contract as any)?.created_at || '').slice(0, 10),
+      contractNumber: String((contract as any)?.number || ''),
+      contractText: String((contract as any)?.contract_text || ''),
+      seller: {
+        name: String(sellerSnap?.name || ''),
+        siret: String(sellerSnap?.siret || ''),
+        address: String(sellerSnap?.address || ''),
+        activity: String(sellerSnap?.activity || ''),
+        email: String(sellerSnap?.email || ''),
+      },
+      buyer: {
+        name: String(buyerSnap?.name || ''),
+        siret: String(buyerSnap?.siret || ''),
+        representant: String(buyerSnap?.representant || ''),
+        address: String(buyerSnap?.address || ''),
+        email: String(buyerSnap?.email || ''),
+      },
+      includeSignature: Boolean(freelancerSigDataUrl),
+      signatureDataUrl: freelancerSigDataUrl,
+      clientSignatureDataUrl: clientSigDataUrl,
+      clientSignedAt: formatDateFr(parsed.signedAt) || parsed.signedAt,
+      clientSignedPlace: capitalizePlace(parsed.signedPlace),
+    })
 
     const signedPath = `signed/${contractId}/${parsed.token}.pdf`
     const upPdf = await supabaseAdmin.storage.from('signed_contracts').upload(signedPath, signedBytes as any, {
