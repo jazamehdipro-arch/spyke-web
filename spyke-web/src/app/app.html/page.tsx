@@ -3685,6 +3685,15 @@ Contrat généré par Spyke — spykeapp.fr — L’assistant IA des freelances 
       return Number.isFinite(amt) ? amt.toFixed(2) : ''
     })()
 
+    const acomptePct = paymentSchedule === '50' ? 50 : paymentSchedule === 'fin' ? 100 : paymentSchedule === '30' ? 30 : paymentSchedule === 'tiers' ? 33 : 30
+    const soldePct = Math.max(0, 100 - acomptePct)
+
+    const acompteAmount = amountHt ? (Number(amountHt) * (acomptePct / 100)).toFixed(2) : ''
+    const soldeAmount = amountHt ? (Number(amountHt) * (soldePct / 100)).toFixed(2) : ''
+
+    const acompteDate = formatDateFr(missionStart) || String(missionStart || '')
+    const soldeDate = formatDateFr(missionEnd) || String(missionEnd || '')
+
     const paymentDelayLabel = (() => {
       const d = String(paymentDelay || '')
       if (d === '30') return '30 JOURS'
@@ -3707,13 +3716,18 @@ Contrat généré par Spyke — spykeapp.fr — L’assistant IA des freelances 
       '[NUMÉRO SIRET]': String(prestaSiret || '').trim(),
       '[ADRESSE\nPRESTATAIRE]': String(prestaAddress || '').trim(),
 
+      // Client company/legal fields are not collected yet in Spyke; keep them blank to avoid inconsistencies.
       '[Forme sociale (SARL, SAS, etc.)]': '',
-      '[MONTANT]': amountHt,
+      'capital de [MONTANT] euros': 'capital de euros',
       '[VILLE RCS]': '',
       '[NUMÉRO RCS]': '',
       '[ADRESSE CLIENT]': String(clientAddress || '').trim(),
       '[Madame/Monsieur PRÉNOM NOM]': String(clientRepresentant || clientName || '').trim(),
       '[FONCTION]': '',
+
+      // Price section
+      'invariablement à [MONTANT] € HT': `invariablement à ${amountHt} € HT`,
+      '[PRIX EN LETTRES]': '',
 
       '[DÉCRIRE LE PROJET DU CLIENT]': String(missionDescription || '').trim() || 'le projet du client',
       "[DÉCRIRE L'OBJECTIF DE LA MISSION]": String(missionDescription || '').trim() || "décrire l'objectif de la mission",
@@ -3740,12 +3754,16 @@ Contrat généré par Spyke — spykeapp.fr — L’assistant IA des freelances 
       '[DATE]': formatDateFr(missionEnd) || String(missionEnd || ''),
       '[Email / Drive / GitHub...]': 'Email',
 
-      '[PRIX EN LETTRES]': '',
-      '[%]': paymentSchedule === '50' ? '50' : paymentSchedule === 'fin' ? '100' : '30',
+      // Modalités de paiement (make the table coherent from existing schedule + dates)
+      'Acompte [%] [MONTANT] € [DATE]': `Acompte ${acomptePct}% ${acompteAmount} € ${acompteDate}`,
+      'Solde [%] [MONTANT] € [DATE]': `Solde ${soldePct}% ${soldeAmount} € ${soldeDate}`,
+
       '[30\nJOURS / 45 JOURS / 60 JOURS]': paymentDelayLabel,
       "[CESSION APRÈS PAIEMENT / LICENCE D'UTILISATION / CESSION TOTALE]": ipLabel,
       '[OUI / NON]': confidentialityLabel,
-      '[DURÉE]': nonCompeteDuration,
+      // Article 7 + 8 durations requested: set hard 8 months
+      '[2 ANS / 5 ANS]': '8 mois',
+      '[DURÉE]': '8 mois',
       '[15 JOURS / 30 JOURS]': terminationLabel,
       '[VILLE DU\nTRIBUNAL]': '',
 
@@ -3798,6 +3816,9 @@ Contrat généré par Spyke — spykeapp.fr — L’assistant IA des freelances 
     // 3) Collapse excessive blank lines
     let finalOut = cleanedLines.join('\n')
     finalOut = finalOut.replace(/\n{3,}/g, '\n\n')
+
+    // Article 14 wording tweak
+    finalOut = finalOut.replace(/tribunaux compétents de\s+/gi, 'tribunaux compétents ')
 
     return finalOut
   }

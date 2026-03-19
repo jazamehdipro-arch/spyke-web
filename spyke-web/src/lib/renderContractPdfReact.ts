@@ -158,7 +158,11 @@ export async function renderContractPdfReact(input: ContractPdfInput): Promise<B
           View,
           { style: styles.contentBox },
           (() => {
-            const lines = String(bodyText || '').split(/\n/)
+            const allLines = String(bodyText || '').split(/\n/)
+            // The contract text includes the header + parties section, but we already render it above.
+            // Start rendering content at ARTICLE 1 to avoid duplicates.
+            const firstArticleIdx = allLines.findIndex((l) => /^\s*ARTICLE\s+1\b/i.test(String(l || '').trim()))
+            const lines = firstArticleIdx >= 0 ? allLines.slice(firstArticleIdx) : allLines
 
             const nodes: any[] = []
             let buf: string[] = []
