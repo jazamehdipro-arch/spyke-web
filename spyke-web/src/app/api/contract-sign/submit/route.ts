@@ -85,7 +85,8 @@ export async function POST(req: Request) {
     if (dl.error) throw dl.error
     const unsignedBuf = new Uint8Array(await dl.data.arrayBuffer())
 
-    // Create signed PDF: append a signature page (client)
+    // Create signed PDF: embed the client signature into the contract signature block (last page).
+    // This avoids adding an extra page and ensures the signature appears in the expected place.
     const { PDFDocument, StandardFonts, rgb } = await import('pdf-lib')
     const doc = await PDFDocument.load(unsignedBuf)
     const helvetica = await doc.embedFont(StandardFonts.Helvetica)
@@ -93,6 +94,7 @@ export async function POST(req: Request) {
     const imgRes = await supabaseAdmin.storage.from('contract_signatures').download(sigPath)
     if (imgRes.error) throw imgRes.error
     const imgBytes = new Uint8Array(await imgRes.data.arrayBuffer())
+
     // Support PNG/JPG
     let embedded: any
     try {
@@ -101,16 +103,40 @@ export async function POST(req: Request) {
       embedded = await doc.embedJpg(imgBytes)
     }
 
-    const page = doc.addPage([595.28, 841.89])
-    page.drawText('Signature du client', { x: 50, y: 780, size: 18, font: helvetica, color: rgb(0.12, 0.23, 0.54) })
+    const pages = doc.getPages()
+    const lastPage = pages[pages.length - 1]
 
+    // Coordinates tuned for Spyke's React-PDF contract layout (A4).
+    // Bottom signature area: two columns.
+    const pageW = lastPage.getWidth()
+    // const pageH = lastPage.getHeight()
+
+    const marginX = 44
+    const gutter = 10
+    const colW = (pageW - marginX * 2 - gutter) / 2
+
+    // Client column is on the right.
+    const x0 = marginX + colW + gutter
+    const y0 = 88 // bottom box baseline
+
+    // Signature box size
+    const boxW = colW
+    const boxH = 90
+
+    // Draw a light signature box (so it looks intentional)
+    lastPage.drawRectangle({ x: x0, y: y0, width: boxW, height: boxH, borderWidth: 1, borderColor: rgb(0.9, 0.9, 0.92) })
+
+    // Place signature image inside
+    const pad = 10
+    const imgW = boxW - pad * 2
+    const imgH = boxH - pad * 2
+    lastPage.drawImage(embedded, { x: x0 + pad, y: y0 + pad, width: imgW, height: imgH })
+
+    // Add date/place near the box (small)
     const dateLine = parsed.signedAt ? `Signé le : ${formatDateFr(parsed.signedAt) || parsed.signedAt}` : ''
     const placeLine = parsed.signedPlace ? `À : ${capitalizePlace(parsed.signedPlace)}` : ''
-    if (dateLine) page.drawText(dateLine, { x: 50, y: 748, size: 12, font: helvetica, color: rgb(0.1, 0.1, 0.1) })
-    if (placeLine) page.drawText(placeLine, { x: 50, y: 730, size: 12, font: helvetica, color: rgb(0.1, 0.1, 0.1) })
-
-    page.drawRectangle({ x: 50, y: 610, width: 495, height: 120, borderWidth: 1, borderColor: rgb(0.9, 0.9, 0.92) })
-    page.drawImage(embedded, { x: 90, y: 625, width: 320, height: 90 })
+    if (dateLine) lastPage.drawText(dateLine, { x: x0, y: y0 + boxH + 18, size: 9.5, font: helvetica, color: rgb(0.1, 0.1, 0.1) })
+    if (placeLine) lastPage.drawText(placeLine, { x: x0, y: y0 + boxH + 6, size: 9.5, font: helvetica, color: rgb(0.1, 0.1, 0.1) })
 
     const signedBytes = new Uint8Array((await doc.save()) as any)
 
