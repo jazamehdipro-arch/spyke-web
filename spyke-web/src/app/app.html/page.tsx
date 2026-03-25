@@ -4749,6 +4749,26 @@ Contrat généré par Spyke — spykeapp.fr — L’assistant IA des freelances 
                 Générer PDF
               </button>
 
+              <button
+                className="btn btn-secondary"
+                type="button"
+                style={{ opacity: 0.85 }}
+                onClick={() => {
+                  try {
+                    window.dispatchEvent(
+                      new CustomEvent('spyke:juristContractRequest', {
+                        detail: { contractNumber, contractText: contractText || buildContractText() },
+                      })
+                    )
+                  } catch {
+                    // fallback
+                    alert('Ouvre l’onglet “Question juriste” pour demander une adaptation du contrat.')
+                  }
+                }}
+              >
+                Demander avis juriste
+              </button>
+
               {/* Bouton “Envoyer pour signature” supprimé ici : disponible dans le pop-up PDF */}
             </div>
 
@@ -6206,6 +6226,46 @@ export default function AppHtmlPage() {
     }
   }, [])
 
+  // Allow contract editor to open the jurist tab with a prefilled contract-adaptation request.
+  useEffect(() => {
+    const handler = (evt: any) => {
+      try {
+        const detail = (evt as any)?.detail || {}
+        const contractNumber = String(detail?.contractNumber || '').trim()
+        const contractText = String(detail?.contractText || '').trim()
+
+        setTab('juriste')
+        setLegalTopic('Contrat')
+        setLegalRequestType('contract_adapt')
+
+        const prefill = [
+          'Bonjour,',
+          '',
+          'Pouvez-vous adapter / sécuriser ce contrat selon ma demande ci-dessous (et me signaler les clauses à risque) ?',
+          '',
+          'Demande:',
+          '- ',
+          '',
+          contractNumber ? `Contrat: ${contractNumber}` : '',
+          '',
+          'Texte du contrat:',
+          contractText,
+        ]
+          .filter(Boolean)
+          .join('\n')
+
+        setLegalQuestion(prefill)
+      } catch {}
+    }
+
+    try {
+      window.addEventListener('spyke:juristContractRequest', handler as any)
+      return () => window.removeEventListener('spyke:juristContractRequest', handler as any)
+    } catch {
+      return
+    }
+  }, [])
+
   const [modal, setModal] = useState<ModalName | null>(null)
   const [tone, setTone] = useState<Tone>('pro')
   const [template, setTemplate] = useState<Template>('Réponse')
@@ -6547,6 +6607,7 @@ export default function AppHtmlPage() {
   }, [tourOpen, tourStep, tab, tourSteps])
 
   // Question juriste (Pro-only + paiement 5€)
+  const [legalRequestType, setLegalRequestType] = useState<'question' | 'contract_adapt'>('question')
   const [legalQuestion, setLegalQuestion] = useState<string>('')
   const [legalTopic, setLegalTopic] = useState<string>('Contrat')
   const [legalPhone, setLegalPhone] = useState<string>('')
@@ -6868,7 +6929,7 @@ export default function AppHtmlPage() {
       const token = s.session?.access_token
       if (!token) throw new Error('Non connecté')
 
-      const payloadQuestion = `${legalTopic ? `Thème: ${legalTopic}\n\n` : ''}${q}`
+      const payloadQuestion = `${legalTopic ? `Thème: ${legalTopic}\n` : ''}${legalRequestType ? `Type: ${legalRequestType === 'contract_adapt' ? 'Adaptation de contrat' : 'Question juridique'}\n\n` : ''}${q}`
 
       const res = await fetch('/api/legal-question/checkout', {
         method: 'POST',
@@ -11013,6 +11074,13 @@ CONTEXTE UTILISATEUR :
                     <option value="Litige client">Litige client</option>
                     <option value="Statut juridique">Statut juridique</option>
                     <option value="Autre">Autre</option>
+                  </select>
+                </div>
+                <div className="form-group" style={{ flex: 1 }}>
+                  <label className="form-label">Type de demande</label>
+                  <select className="form-input" value={legalRequestType} onChange={(e) => setLegalRequestType((e.target.value as any) || 'question')}>
+                    <option value="question">Question juridique</option>
+                    <option value="contract_adapt">Adapter / sécuriser mon contrat</option>
                   </select>
                 </div>
               </div>
