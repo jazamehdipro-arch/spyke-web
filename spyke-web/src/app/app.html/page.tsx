@@ -3500,7 +3500,7 @@ Email : [EMAIL]
 B. Interlocuteur du CLIENT
 L’interlocuteur du CLIENT est notamment chargé de suivre la bonne application par le PRESTATAIRE du
 Contrat, d’assurer le suivi avec l’interlocuteur du PRESTATAIRE et de gérer toute réclamation qui lui
-serait adressée par le PRESTATAIRE relative à l’une quelconque des stipulations du Contrat.
+serait adressée par le CLIENT relative à l’une quelconque des stipulations du Contrat.
 Nom : [NOM]
 Fonction : [FONCTION]
 Téléphone : [NUMÉRO]
