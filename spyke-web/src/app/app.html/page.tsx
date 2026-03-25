@@ -4766,7 +4766,7 @@ Contrat généré par Spyke — spykeapp.fr — L’assistant IA des freelances 
                   }
                 }}
               >
-                Demander avis juriste
+                Demander avis juriste (5€)
               </button>
 
               {/* Bouton “Envoyer pour signature” supprimé ici : disponible dans le pop-up PDF */}
