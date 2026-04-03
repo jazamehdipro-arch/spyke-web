@@ -591,16 +591,9 @@ export default function ConnexionPage() {
                     options: {
                       redirectTo: `${origin}/auth/callback.html`,
                       queryParams: {
-                        // Ask once for offline access + Gmail send scope.
-                        // This enables direct Gmail sending without a separate "Connect Gmail" step.
-                        access_type: 'offline',
-                        prompt: 'consent',
-                        scope: [
-                          'openid',
-                          'email',
-                          'profile',
-                          'https://www.googleapis.com/auth/gmail.send',
-                        ].join(' '),
+                        // Minimal scopes for sign-in only.
+                        // Gmail sending is requested later via the dedicated "Connecter Gmail" flow.
+                        scope: ['openid', 'email', 'profile'].join(' '),
                       },
                     },
                   })
@@ -739,16 +732,9 @@ export default function ConnexionPage() {
                     options: {
                       redirectTo: `${origin}/auth/callback.html`,
                       queryParams: {
-                        // Ask once for offline access + Gmail send scope.
-                        // This enables direct Gmail sending without a separate "Connect Gmail" step.
-                        access_type: 'offline',
-                        prompt: 'consent',
-                        scope: [
-                          'openid',
-                          'email',
-                          'profile',
-                          'https://www.googleapis.com/auth/gmail.send',
-                        ].join(' '),
+                        // Minimal scopes for sign-in only.
+                        // Gmail sending is requested later via the dedicated "Connecter Gmail" flow.
+                        scope: ['openid', 'email', 'profile'].join(' '),
                       },
                     },
                   })
