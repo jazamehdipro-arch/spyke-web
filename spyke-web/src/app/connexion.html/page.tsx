@@ -357,6 +357,24 @@ export default function ConnexionPage() {
           width: 20px;
           height: 20px;
         }
+
+        .btn-linkedin {
+          background: #0a66c2;
+          color: #fff;
+          border: 2px solid #0a66c2;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 12px;
+        }
+        .btn-linkedin:hover {
+          background: #0959aa;
+          border-color: #0959aa;
+        }
+        .btn-linkedin svg {
+          width: 20px;
+          height: 20px;
+        }
         .terms {
           margin-top: 24px;
           font-size: 13px;
@@ -625,6 +643,43 @@ export default function ConnexionPage() {
               </svg>
               Continuer avec Google
             </button>
+
+            <button
+              type="button"
+              className="btn btn-linkedin"
+              style={{ marginTop: 12 }}
+              onClick={async () => {
+                if (!supabase) {
+                  alert('Supabase non configuré (env manquantes)')
+                  return
+                }
+                try {
+                  setLoading(true)
+                  const origin = window.location.origin
+                  const provider = ((process.env.NEXT_PUBLIC_LINKEDIN_PROVIDER as any) || 'linkedin') as any
+                  const { data, error } = await supabase.auth.signInWithOAuth({
+                    provider,
+                    options: {
+                      redirectTo: `${origin}/auth/callback.html`,
+                    },
+                  })
+                  if (error) throw error
+                  if (data?.url) window.location.href = data.url
+                } catch (err: any) {
+                  alert(err?.message || 'Erreur LinkedIn')
+                } finally {
+                  setLoading(false)
+                }
+              }}
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  fill="currentColor"
+                  d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.602 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zM6.814 20.452H3.86V9h2.954v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.727v20.545C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.273V1.727C24 .774 23.2 0 22.222 0z"
+                />
+              </svg>
+              Continuer avec LinkedIn
+            </button>
           </form>
 
           {/* Inscription */}
@@ -765,6 +820,43 @@ export default function ConnexionPage() {
                 />
               </svg>
               S&apos;inscrire avec Google
+            </button>
+
+            <button
+              type="button"
+              className="btn btn-linkedin"
+              style={{ marginTop: 12 }}
+              onClick={async () => {
+                if (!supabase) {
+                  alert('Supabase non configuré (env manquantes)')
+                  return
+                }
+                try {
+                  setLoading(true)
+                  const origin = window.location.origin
+                  const provider = ((process.env.NEXT_PUBLIC_LINKEDIN_PROVIDER as any) || 'linkedin') as any
+                  const { data, error } = await supabase.auth.signInWithOAuth({
+                    provider,
+                    options: {
+                      redirectTo: `${origin}/auth/callback.html`,
+                    },
+                  })
+                  if (error) throw error
+                  if (data?.url) window.location.href = data.url
+                } catch (err: any) {
+                  alert(err?.message || 'Erreur LinkedIn')
+                } finally {
+                  setLoading(false)
+                }
+              }}
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  fill="currentColor"
+                  d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.602 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zM6.814 20.452H3.86V9h2.954v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.727v20.545C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.273V1.727C24 .774 23.2 0 22.222 0z"
+                />
+              </svg>
+              S&apos;inscrire avec LinkedIn
             </button>
 
             <p className="terms">
