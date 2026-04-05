@@ -272,13 +272,11 @@ export async function POST(req: Request) {
 
       signatureRow: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
+        justifyContent: 'flex-end',
         alignItems: 'flex-start',
-        gap: 18,
         marginTop: 14,
       },
-      signatureClientBlock: { width: '50%', alignItems: 'flex-start' },
-      signatureBlock: { width: '50%', alignItems: 'flex-end' },
+      signatureBlock: { width: '100%', alignItems: 'flex-end' },
       signatureTitle: { fontSize: 10, fontWeight: 700, marginBottom: 6, color: '#111827' },
       signatureBox: {
         width: 300,
@@ -431,39 +429,28 @@ export async function POST(req: Request) {
             )
           ),
 
-          React.createElement(
-            View,
-            { style: styles.signatureRow },
-            // Client signature frame (always displayed)
-            React.createElement(
-              View,
-              { style: styles.signatureClientBlock },
-              React.createElement(Text, { style: styles.signatureTitle }, 'Signature (client)'),
-              React.createElement(View, { style: styles.signatureBox }),
-              React.createElement(Text, { style: styles.signatureLine }, 'Signé le : ____________________'),
-              React.createElement(Text, { style: styles.signatureLine }, 'À : ____________________')
-            ),
-            // Freelancer signature (optional)
-            React.createElement(
-              View,
-              { style: styles.signatureBlock },
-              resolvedSignatureUrl ? React.createElement(Text, { style: styles.signatureTitle }, 'Signature (prestataire)') : null,
-              resolvedSignatureUrl
-                ? React.createElement(
+          // Signature prestataire (optionnelle)
+          resolvedSignatureUrl
+            ? React.createElement(
+                View,
+                { style: styles.signatureRow },
+                React.createElement(
+                  View,
+                  { style: styles.signatureBlock },
+                  React.createElement(Text, { style: styles.signatureTitle }, 'Signature (prestataire)'),
+                  React.createElement(
                     View,
                     { style: styles.signatureBox },
                     React.createElement(Image, { style: styles.signatureImg, src: resolvedSignatureUrl })
-                  )
-                : null,
-              resolvedSignatureUrl
-                ? React.createElement(
+                  ),
+                  React.createElement(
                     Text,
                     { style: styles.signatureMeta },
                     `Signé le ${formatDateFr(String((body as any).signedAt || body.dateIssue || ''))}${(body as any).signedPlace ? ` à ${capitalizePlace(String((body as any).signedPlace))}` : ''}`
                   )
-                : null
-            )
-          ),
+                )
+              )
+            : null,
 
           React.createElement(
             Text,

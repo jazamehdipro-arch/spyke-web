@@ -222,15 +222,6 @@ function usePdfMailModals() {
         open={!!signatureFrame}
         title={signatureFrame?.title || 'Signature électronique'}
         onClose={() => setSignatureFrame(null)}
-        footer={
-          signatureFrame ? (
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-              <button className="btn btn-primary" type="button" onClick={() => setSignatureFrame(null)}>
-                Fermer
-              </button>
-            </div>
-          ) : null
-        }
       >
         {signatureFrame ? (
           <iframe title="yousign-sign" src={signatureFrame.url} style={{ width: '100%', height: '100%', border: 0 }} />
@@ -475,10 +466,6 @@ function usePdfMailModals() {
                   Télécharger
                 </a>
               </div>
-
-              <button className="btn btn-primary" type="button" onClick={() => setPdfPreview(null)}>
-                Fermer
-              </button>
             </div>
           ) : null
         }
