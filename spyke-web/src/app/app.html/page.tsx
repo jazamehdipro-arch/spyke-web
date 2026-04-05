@@ -737,6 +737,19 @@ function DevisV4({
   const [quotes, setQuotes] = useState<any[]>([])
   const [currentQuoteId, setCurrentQuoteId] = useState<string>('')
 
+  // Bulk selection (list mode)
+  const [selectQuotesMode, setSelectQuotesMode] = useState(false)
+  const [selectedQuoteIds, setSelectedQuoteIds] = useState<string[]>([])
+
+  function toggleQuoteSelected(id: string) {
+    setSelectedQuoteIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
+  }
+
+  function clearQuoteSelection() {
+    setSelectedQuoteIds([])
+    setSelectQuotesMode(false)
+  }
+
   const [lines, setLines] = useState<DevisLine[]>(() => [
     {
       id: '0',
@@ -969,7 +982,37 @@ function DevisV4({
         .limit(30)
 
       setQuotes(quotesData || [])
+      setSelectedQuoteIds((prev) => prev.filter((x) => x !== id))
       if (currentQuoteId === id) setCurrentQuoteId('')
+    } catch (e: any) {
+      alert(e?.message || 'Erreur suppression devis')
+    }
+  }
+
+  async function deleteQuotesBulk(ids: string[]) {
+    try {
+      if (!supabase || !userId) return
+      const unique = Array.from(new Set((ids || []).map(String))).filter(Boolean)
+      if (!unique.length) return
+
+      const ok = confirm(`Supprimer ${unique.length} devis ?`)
+      if (!ok) return
+
+      const { error: delLinesErr } = await supabase.from('quote_lines').delete().in('quote_id', unique)
+      if (delLinesErr) throw delLinesErr
+
+      const { error: delQuoteErr } = await supabase.from('quotes').delete().in('id', unique)
+      if (delQuoteErr) throw delQuoteErr
+
+      const { data: quotesData } = await supabase
+        .from('quotes')
+        .select('id,number,title,status,total_ttc,created_at,date_issue,validity_until')
+        .order('created_at', { ascending: false })
+        .limit(30)
+
+      setQuotes(quotesData || [])
+      if (unique.includes(String(currentQuoteId || ''))) setCurrentQuoteId('')
+      clearQuoteSelection()
     } catch (e: any) {
       alert(e?.message || 'Erreur suppression devis')
     }
@@ -2052,6 +2095,37 @@ Réponds uniquement par le texte de la description.`
               <p className="page-subtitle">Consultez vos devis et créez-en un nouveau</p>
             </div>
             <div className="header-actions">
+              {selectQuotesMode ? (
+                <>
+                  <button
+                    className="btn btn-secondary"
+                    type="button"
+                    onClick={() => {
+                      setSelectedQuoteIds(quotes.map((q) => String(q.id)))
+                    }}
+                    disabled={!quotes.length}
+                  >
+                    Tout sélectionner
+                  </button>
+                  <button className="btn btn-secondary" type="button" onClick={clearQuoteSelection}>
+                    Annuler
+                  </button>
+                  <button
+                    className="btn btn-secondary"
+                    type="button"
+                    onClick={() => deleteQuotesBulk(selectedQuoteIds)}
+                    disabled={!selectedQuoteIds.length}
+                    title={!selectedQuoteIds.length ? 'Sélectionne au moins un devis' : undefined}
+                  >
+                    Supprimer ({selectedQuoteIds.length})
+                  </button>
+                </>
+              ) : (
+                <button className="btn btn-secondary" type="button" onClick={() => setSelectQuotesMode(true)}>
+                  Sélectionner
+                </button>
+              )}
+
               <button className="btn btn-primary" type="button" onClick={resetNewQuote}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
                   <line x1="12" y1="5" x2="12" y2="19" />
@@ -2080,6 +2154,18 @@ Réponds uniquement par le texte de la description.`
                   <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                     <thead>
                       <tr style={{ textAlign: 'left', fontSize: 12, color: 'var(--gray-500)' }}>
+                        {selectQuotesMode ? (
+                          <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)', width: 36 }}>
+                            <input
+                              type="checkbox"
+                              checked={selectedQuoteIds.length === quotes.length && quotes.length > 0}
+                              onChange={(e) => {
+                                if (e.target.checked) setSelectedQuoteIds(quotes.map((q) => String(q.id)))
+                                else setSelectedQuoteIds([])
+                              }}
+                            />
+                          </th>
+                        ) : null}
                         <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>N°</th>
                         <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Titre</th>
                         <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Statut</th>
@@ -2090,6 +2176,11 @@ Réponds uniquement par le texte de la description.`
                     <tbody>
                       {quotes.map((q) => (
                         <tr key={q.id}>
+                          {selectQuotesMode ? (
+                            <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>
+                              <input type="checkbox" checked={selectedQuoteIds.includes(String(q.id))} onChange={() => toggleQuoteSelected(String(q.id))} />
+                            </td>
+                          ) : null}
                           <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{q.number}</td>
                           <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{q.title || '-'}</td>
                           <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>
@@ -2145,9 +2236,11 @@ Réponds uniquement par le texte de la description.`
                               >
                                 Facture
                               </button>
-                              <button className="btn btn-secondary" type="button" onClick={() => deleteQuote(String(q.id))}>
-                                Supprimer
-                              </button>
+                              {!selectQuotesMode ? (
+                                <button className="btn btn-secondary" type="button" onClick={() => deleteQuote(String(q.id))}>
+                                  Supprimer
+                                </button>
+                              ) : null}
                             </div>
                           </td>
                         </tr>
@@ -3017,6 +3110,19 @@ function ContratsV1({
   const [selectedContractId, setSelectedContractId] = useState<string>('')
   const selectedContractIdRef = useRef<string>('')
 
+  // Bulk selection (list mode)
+  const [selectContractsMode, setSelectContractsMode] = useState(false)
+  const [selectedContractIds, setSelectedContractIds] = useState<string[]>([])
+
+  function toggleContractSelected(id: string) {
+    setSelectedContractIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
+  }
+
+  function clearContractSelection() {
+    setSelectedContractIds([])
+    setSelectContractsMode(false)
+  }
+
   useEffect(() => {
     selectedContractIdRef.current = String(selectedContractId || '')
   }, [selectedContractId])
@@ -3298,6 +3404,31 @@ function ContratsV1({
         .order('created_at', { ascending: false })
         .limit(50)
       setContracts((cData || []) as any[])
+      setSelectedContractIds((prev) => prev.filter((x) => x !== id))
+    } catch (e: any) {
+      alert(e?.message || 'Erreur suppression contrat')
+    }
+  }
+
+  async function deleteContractsBulk(ids: string[]) {
+    try {
+      if (!supabase) return
+      const unique = Array.from(new Set((ids || []).map(String))).filter(Boolean)
+      if (!unique.length) return
+
+      const ok = confirm(`Supprimer ${unique.length} contrats ?`)
+      if (!ok) return
+
+      const { error } = await supabase.from('contracts').delete().in('id', unique)
+      if (error) throw error
+
+      const { data: cData } = await supabase
+        .from('contracts')
+        .select('id,number,title,status,amount_ht,created_at,client_id,quote_id')
+        .order('created_at', { ascending: false })
+        .limit(50)
+      setContracts((cData || []) as any[])
+      clearContractSelection()
     } catch (e: any) {
       alert(e?.message || 'Erreur suppression contrat')
     }
@@ -4199,6 +4330,38 @@ Contrat généré par Spyke — spykeapp.fr — L’assistant IA des freelances 
           <p className="page-subtitle">Consultez vos contrats et créez-en un nouveau</p>
         </div>
         <div className="header-actions">
+          {mode === 'list' ? (
+            selectContractsMode ? (
+              <>
+                <button
+                  className="btn btn-secondary"
+                  type="button"
+                  onClick={() => {
+                    setSelectedContractIds(contracts.map((c) => String(c.id)))
+                  }}
+                  disabled={!contracts.length}
+                >
+                  Tout sélectionner
+                </button>
+                <button className="btn btn-secondary" type="button" onClick={clearContractSelection}>
+                  Annuler
+                </button>
+                <button
+                  className="btn btn-secondary"
+                  type="button"
+                  onClick={() => deleteContractsBulk(selectedContractIds)}
+                  disabled={!selectedContractIds.length}
+                >
+                  Supprimer ({selectedContractIds.length})
+                </button>
+              </>
+            ) : (
+              <button className="btn btn-secondary" type="button" onClick={() => setSelectContractsMode(true)}>
+                Sélectionner
+              </button>
+            )
+          ) : null}
+
           <button className="btn btn-primary" type="button" onClick={() => setMode('create')}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
               <line x1="12" y1="5" x2="12" y2="19" />
@@ -4227,6 +4390,18 @@ Contrat généré par Spyke — spykeapp.fr — L’assistant IA des freelances 
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
                     <tr style={{ textAlign: 'left', fontSize: 12, color: 'var(--gray-500)' }}>
+                      {selectContractsMode ? (
+                        <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)', width: 36 }}>
+                          <input
+                            type="checkbox"
+                            checked={selectedContractIds.length === contracts.length && contracts.length > 0}
+                            onChange={(e) => {
+                              if (e.target.checked) setSelectedContractIds(contracts.map((c) => String(c.id)))
+                              else setSelectedContractIds([])
+                            }}
+                          />
+                        </th>
+                      ) : null}
                       <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>N°</th>
                       <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Titre</th>
                       <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Statut</th>
@@ -4237,6 +4412,11 @@ Contrat généré par Spyke — spykeapp.fr — L’assistant IA des freelances 
                   <tbody>
                     {contracts.map((c) => (
                       <tr key={c.id}>
+                        {selectContractsMode ? (
+                          <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>
+                            <input type="checkbox" checked={selectedContractIds.includes(String(c.id))} onChange={() => toggleContractSelected(String(c.id))} />
+                          </td>
+                        ) : null}
                         <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{(c as any).number || '-'}</td>
                         <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{c.title || 'Contrat'}</td>
                         <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{c.status || 'draft'}</td>
@@ -4276,9 +4456,11 @@ Contrat généré par Spyke — spykeapp.fr — L’assistant IA des freelances 
                             >
                               PDF
                             </button>
-                            <button className="btn btn-secondary" type="button" onClick={() => deleteContract(String(c.id))}>
-                              Supprimer
-                            </button>
+                            {!selectContractsMode ? (
+                              <button className="btn btn-secondary" type="button" onClick={() => deleteContract(String(c.id))}>
+                                Supprimer
+                              </button>
+                            ) : null}
                           </div>
                         </td>
                       </tr>
@@ -4827,6 +5009,19 @@ function FacturesV1({
   const [selectedQuoteId, setSelectedQuoteId] = useState<string>('')
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string>('')
 
+  // Bulk selection (list mode)
+  const [selectInvoicesMode, setSelectInvoicesMode] = useState(false)
+  const [selectedInvoiceIds, setSelectedInvoiceIds] = useState<string[]>([])
+
+  function toggleInvoiceSelected(id: string) {
+    setSelectedInvoiceIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
+  }
+
+  function clearInvoiceSelection() {
+    setSelectedInvoiceIds([])
+    setSelectInvoicesMode(false)
+  }
+
   const [invoiceDate, setInvoiceDate] = useState(today)
   const [paymentDelayDays, setPaymentDelayDays] = useState(30)
   const [dueDate, setDueDate] = useState(() => addDays(today, 30))
@@ -5090,7 +5285,37 @@ function FacturesV1({
         .limit(50)
       setInvoices((invData || []) as any[])
 
+      setSelectedInvoiceIds((prev) => prev.filter((x) => x !== id))
       if (selectedInvoiceId === id) setSelectedInvoiceId('')
+    } catch (e: any) {
+      alert(e?.message || 'Erreur suppression facture')
+    }
+  }
+
+  async function deleteInvoicesBulk(ids: string[]) {
+    try {
+      if (!supabase) return
+      const unique = Array.from(new Set((ids || []).map(String))).filter(Boolean)
+      if (!unique.length) return
+
+      const ok = confirm(`Supprimer ${unique.length} factures ?`)
+      if (!ok) return
+
+      const { error: delLinesErr } = await supabase.from('invoice_lines').delete().in('invoice_id', unique)
+      if (delLinesErr) throw delLinesErr
+
+      const { error: delInvErr } = await supabase.from('invoices').delete().in('id', unique)
+      if (delInvErr) throw delInvErr
+
+      const { data: invData } = await supabase
+        .from('invoices')
+        .select('id,number,status,paid_at,date_issue,due_date,total_ttc,client_id,created_at')
+        .order('created_at', { ascending: false })
+        .limit(50)
+      setInvoices((invData || []) as any[])
+
+      if (unique.includes(String(selectedInvoiceId || ''))) setSelectedInvoiceId('')
+      clearInvoiceSelection()
     } catch (e: any) {
       alert(e?.message || 'Erreur suppression facture')
     }
@@ -5471,6 +5696,36 @@ function FacturesV1({
               <p className="page-subtitle">Gérez et suivez toutes vos factures</p>
             </div>
             <div className="header-actions">
+              {selectInvoicesMode ? (
+                <>
+                  <button
+                    className="btn btn-secondary"
+                    type="button"
+                    onClick={() => {
+                      setSelectedInvoiceIds(invoices.map((inv) => String((inv as any).id)))
+                    }}
+                    disabled={!invoices.length}
+                  >
+                    Tout sélectionner
+                  </button>
+                  <button className="btn btn-secondary" type="button" onClick={clearInvoiceSelection}>
+                    Annuler
+                  </button>
+                  <button
+                    className="btn btn-secondary"
+                    type="button"
+                    onClick={() => deleteInvoicesBulk(selectedInvoiceIds)}
+                    disabled={!selectedInvoiceIds.length}
+                  >
+                    Supprimer ({selectedInvoiceIds.length})
+                  </button>
+                </>
+              ) : (
+                <button className="btn btn-secondary" type="button" onClick={() => setSelectInvoicesMode(true)}>
+                  Sélectionner
+                </button>
+              )}
+
               <button className="btn btn-primary" type="button" onClick={() => setMode('create')}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
                   <line x1="12" y1="5" x2="12" y2="19" />
@@ -5554,6 +5809,18 @@ function FacturesV1({
                   <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                     <thead>
                       <tr style={{ textAlign: 'left', fontSize: 12, color: 'var(--gray-500)' }}>
+                        {selectInvoicesMode ? (
+                          <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)', width: 36 }}>
+                            <input
+                              type="checkbox"
+                              checked={selectedInvoiceIds.length === invoices.length && invoices.length > 0}
+                              onChange={(e) => {
+                                if (e.target.checked) setSelectedInvoiceIds(invoices.map((inv) => String((inv as any).id)))
+                                else setSelectedInvoiceIds([])
+                              }}
+                            />
+                          </th>
+                        ) : null}
                         <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>N°</th>
                         <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Client</th>
                         <th style={{ padding: '10px 8px', borderBottom: '1px solid var(--gray-200)' }}>Statut</th>
@@ -5566,6 +5833,11 @@ function FacturesV1({
                     <tbody>
                       {invoices.map((inv) => (
                         <tr key={inv.id}>
+                          {selectInvoicesMode ? (
+                            <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>
+                              <input type="checkbox" checked={selectedInvoiceIds.includes(String((inv as any).id))} onChange={() => toggleInvoiceSelected(String((inv as any).id))} />
+                            </td>
+                          ) : null}
                           <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{inv.number}</td>
                           <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>
                             {clients.find((c) => c.id === inv.client_id)?.name || '-'}
@@ -5644,35 +5916,37 @@ function FacturesV1({
                                 </button>
                               )}
 
-                              <button
-                                className="btn btn-secondary"
-                                type="button"
-                                onClick={async () => {
-                                  try {
-                                    if (!supabase) return
-                                    const ok = confirm(`Supprimer la facture ${String((inv as any)?.number || '')} ?`)
-                                    if (!ok) return
+                              {!selectInvoicesMode ? (
+                                <button
+                                  className="btn btn-secondary"
+                                  type="button"
+                                  onClick={async () => {
+                                    try {
+                                      if (!supabase) return
+                                      const ok = confirm(`Supprimer la facture ${String((inv as any)?.number || '')} ?`)
+                                      if (!ok) return
 
-                                    const id = String(inv.id)
-                                    const { error: delLinesErr } = await supabase.from('invoice_lines').delete().eq('invoice_id', id)
-                                    if (delLinesErr) throw delLinesErr
+                                      const id = String(inv.id)
+                                      const { error: delLinesErr } = await supabase.from('invoice_lines').delete().eq('invoice_id', id)
+                                      if (delLinesErr) throw delLinesErr
 
-                                    const { error: delInvErr } = await supabase.from('invoices').delete().eq('id', id)
-                                    if (delInvErr) throw delInvErr
+                                      const { error: delInvErr } = await supabase.from('invoices').delete().eq('id', id)
+                                      if (delInvErr) throw delInvErr
 
-                                    const { data: invData } = await supabase
-                                      .from('invoices')
-                                      .select('id,number,status,paid_at,date_issue,due_date,total_ttc,client_id,created_at')
-                                      .order('created_at', { ascending: false })
-                                      .limit(50)
-                                    setInvoices((invData || []) as any[])
-                                  } catch (e: any) {
-                                    alert(e?.message || 'Erreur suppression facture')
-                                  }
-                                }}
-                              >
-                                Supprimer
-                              </button>
+                                      const { data: invData } = await supabase
+                                        .from('invoices')
+                                        .select('id,number,status,paid_at,date_issue,due_date,total_ttc,client_id,created_at')
+                                        .order('created_at', { ascending: false })
+                                        .limit(50)
+                                      setInvoices((invData || []) as any[])
+                                    } catch (e: any) {
+                                      alert(e?.message || 'Erreur suppression facture')
+                                    }
+                                  }}
+                                >
+                                  Supprimer
+                                </button>
+                              ) : null}
                             </div>
                           </td>
                         </tr>
