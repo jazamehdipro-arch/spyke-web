@@ -656,11 +656,15 @@ export default function ConnexionPage() {
                 try {
                   setLoading(true)
                   const origin = window.location.origin
-                  const provider = ((process.env.NEXT_PUBLIC_LINKEDIN_PROVIDER as any) || 'linkedin') as any
+                  const provider = ((process.env.NEXT_PUBLIC_LINKEDIN_PROVIDER as any) || 'linkedin_oidc') as any
                   const { data, error } = await supabase.auth.signInWithOAuth({
                     provider,
                     options: {
                       redirectTo: `${origin}/auth/callback.html`,
+                      queryParams: {
+                        // OIDC scopes for LinkedIn (Supabase linkedin_oidc)
+                        scope: ['openid', 'profile', 'email'].join(' '),
+                      },
                     },
                   })
                   if (error) throw error
@@ -834,11 +838,15 @@ export default function ConnexionPage() {
                 try {
                   setLoading(true)
                   const origin = window.location.origin
-                  const provider = ((process.env.NEXT_PUBLIC_LINKEDIN_PROVIDER as any) || 'linkedin') as any
+                  const provider = ((process.env.NEXT_PUBLIC_LINKEDIN_PROVIDER as any) || 'linkedin_oidc') as any
                   const { data, error } = await supabase.auth.signInWithOAuth({
                     provider,
                     options: {
                       redirectTo: `${origin}/auth/callback.html`,
+                      queryParams: {
+                        // OIDC scopes for LinkedIn (Supabase linkedin_oidc)
+                        scope: ['openid', 'profile', 'email'].join(' '),
+                      },
                     },
                   })
                   if (error) throw error
