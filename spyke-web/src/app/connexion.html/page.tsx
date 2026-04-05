@@ -661,10 +661,7 @@ export default function ConnexionPage() {
                     provider,
                     options: {
                       redirectTo: `${origin}/auth/callback.html`,
-                      queryParams: {
-                        // OIDC scopes for LinkedIn (Supabase linkedin_oidc)
-                        scope: ['openid', 'profile', 'email'].join(' '),
-                      },
+                      // Scopes are handled by the provider configuration in Supabase/LinkedIn
                     },
                   })
                   if (error) throw error
@@ -843,10 +840,7 @@ export default function ConnexionPage() {
                     provider,
                     options: {
                       redirectTo: `${origin}/auth/callback.html`,
-                      queryParams: {
-                        // OIDC scopes for LinkedIn (Supabase linkedin_oidc)
-                        scope: ['openid', 'profile', 'email'].join(' '),
-                      },
+                      // Scopes are handled by the provider configuration in Supabase/LinkedIn
                     },
                   })
                   if (error) throw error
