@@ -543,58 +543,6 @@ export default function ConnexionPage() {
               }
             }}
           >
-            <div className="form-group">
-              <label className="form-label">Email</label>
-              <input
-                name="email"
-                type="email"
-                className="form-input"
-                placeholder="vous@exemple.com"
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Mot de passe</label>
-              <input
-                name="password"
-                type="password"
-                className="form-input"
-                placeholder="••••••••"
-                required
-              />
-            </div>
-            <div className="form-row">
-              <label className="form-checkbox">
-                <input type="checkbox" />
-                Se souvenir de moi
-              </label>
-              <a
-                href="#"
-                className="form-link"
-                onClick={(e) => {
-                  e.preventDefault()
-                  setForgotOpen(true)
-                  setForgotSent(false)
-                  setForgotError('')
-                  // prefill from login form if available
-                  try {
-                    const form = document.getElementById('formConnexion') as HTMLFormElement | null
-                    const v = String((form?.querySelector('[name="email"]') as HTMLInputElement | null)?.value || '')
-                    if (v) setForgotEmail(v)
-                  } catch {}
-                }}
-              >
-                Mot de passe oublié ?
-              </a>
-            </div>
-            <button type="submit" className="btn btn-primary" disabled={loading}>
-              {loading ? 'Connexion…' : 'Se connecter'}
-            </button>
-
-            <div className="divider">
-              <span>ou</span>
-            </div>
-
             <button type="button" className="btn btn-google"
               onClick={async () => {
                 if (!supabase) {
@@ -681,6 +629,58 @@ export default function ConnexionPage() {
               </svg>
               Continuer avec LinkedIn
             </button>
+
+            <div className="divider">
+              <span>ou</span>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Email</label>
+              <input
+                name="email"
+                type="email"
+                className="form-input"
+                placeholder="vous@exemple.com"
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Mot de passe</label>
+              <input
+                name="password"
+                type="password"
+                className="form-input"
+                placeholder="••••••••"
+                required
+              />
+            </div>
+            <div className="form-row">
+              <label className="form-checkbox">
+                <input type="checkbox" />
+                Se souvenir de moi
+              </label>
+              <a
+                href="#"
+                className="form-link"
+                onClick={(e) => {
+                  e.preventDefault()
+                  setForgotOpen(true)
+                  setForgotSent(false)
+                  setForgotError('')
+                  // prefill from login form if available
+                  try {
+                    const form = document.getElementById('formConnexion') as HTMLFormElement | null
+                    const v = String((form?.querySelector('[name="email"]') as HTMLInputElement | null)?.value || '')
+                    if (v) setForgotEmail(v)
+                  } catch {}
+                }}
+              >
+                Mot de passe oublié ?
+              </a>
+            </div>
+            <button type="submit" className="btn btn-primary" disabled={loading}>
+              {loading ? 'Connexion…' : 'Se connecter'}
+            </button>
           </form>
 
           {/* Inscription */}
@@ -727,53 +727,6 @@ export default function ConnexionPage() {
               }
             }}
           >
-            <div className="form-group">
-              <label className="form-label">Email</label>
-              <input
-                name="email"
-                type="email"
-                className="form-input"
-                placeholder="vous@exemple.com"
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Mot de passe</label>
-              <input
-                name="password"
-                type="password"
-                className="form-input"
-                placeholder="8 caractères minimum"
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Confirmer le mot de passe</label>
-              <input
-                name="passwordConfirm"
-                type="password"
-                className="form-input"
-                placeholder="Répétez le mot de passe"
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label className="form-checkbox">
-                <input type="checkbox" required />
-                J&apos;accepte les <a href="/cgu.html" target="_blank">CGU</a> et la{' '}
-                <a href="/confidentialite.html" target="_blank">
-                  politique de confidentialité
-                </a>
-              </label>
-            </div>
-            <button type="submit" className="btn btn-primary" disabled={loading}>
-              {loading ? 'Inscription…' : 'Créer mon compte'}
-            </button>
-
-            <div className="divider">
-              <span>ou</span>
-            </div>
-
             <button type="button" className="btn btn-google"
               onClick={async () => {
                 if (!supabase) {
@@ -859,6 +812,53 @@ export default function ConnexionPage() {
                 />
               </svg>
               S&apos;inscrire avec LinkedIn
+            </button>
+
+            <div className="divider">
+              <span>ou</span>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Email</label>
+              <input
+                name="email"
+                type="email"
+                className="form-input"
+                placeholder="vous@exemple.com"
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Mot de passe</label>
+              <input
+                name="password"
+                type="password"
+                className="form-input"
+                placeholder="8 caractères minimum"
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Confirmer le mot de passe</label>
+              <input
+                name="passwordConfirm"
+                type="password"
+                className="form-input"
+                placeholder="Répétez le mot de passe"
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-checkbox">
+                <input type="checkbox" required />
+                J&apos;accepte les <a href="/cgu.html" target="_blank">CGU</a> et la{' '}
+                <a href="/confidentialite.html" target="_blank">
+                  politique de confidentialité
+                </a>
+              </label>
+            </div>
+            <button type="submit" className="btn btn-primary" disabled={loading}>
+              {loading ? 'Inscription…' : 'Créer mon compte'}
             </button>
 
             <p className="terms">
