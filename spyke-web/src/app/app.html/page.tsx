@@ -148,6 +148,24 @@ function usePdfMailModals() {
     setPdfPreview({ url, filename, actions })
   }
 
+  function openPdfPreviewFromUrl(
+    url: string,
+    filename: string,
+    actions?: {
+      kind: 'devis' | 'facture' | 'contrat'
+      contractId?: string
+      to: string
+      subject: string
+      text: string
+      getBlob: () => Promise<{ blob: Blob; token: string }>
+      getSignedBlob?: (opts: { signedAt: string; signedPlace: string }) => Promise<{ blob: Blob; token: string }>
+      filename: string
+      getSignaturePreview?: () => Promise<{ signaturePath: string; url?: string }>
+    }
+  ) {
+    setPdfPreview({ url, filename, actions })
+  }
+
   async function openMailComposeWithAttachment(opts: {
     kind: 'devis' | 'contrat' | 'facture'
     to: string
@@ -3067,7 +3085,7 @@ function ContratsV1({
     }
   }, [])
 
-  const { openPdfPreviewFromBlob, openMailComposeWithAttachment, openMailComposePlain, openSignatureFrame, modals } = usePdfMailModals()
+  const { openPdfPreviewFromBlob, openPdfPreviewFromUrl, openMailComposeWithAttachment, openMailComposePlain, openSignatureFrame, modals } = usePdfMailModals()
 
   const [signatureMissing, setSignatureMissing] = useState(false)
   useEffect(() => {
@@ -3103,6 +3121,9 @@ function ContratsV1({
 
   const [contractFromQuoteId, setContractFromQuoteId] = useState<string>('')
   const [quotes, setQuotes] = useState<any[]>([])
+
+  const [currentContractStatus, setCurrentContractStatus] = useState<string>('draft')
+  const [currentContractSignedPdfPath, setCurrentContractSignedPdfPath] = useState<string>('')
 
   const [mode, setMode] = useState<'list' | 'create'>('list')
   const [showContracts, setShowContracts] = useState(false)
@@ -3248,7 +3269,7 @@ function ContratsV1({
             .limit(50),
           supabase
             .from('contracts')
-            .select('id,number,title,status,amount_ht,created_at,client_id,quote_id')
+            .select('id,number,title,status,amount_ht,created_at,client_id,quote_id,signed_pdf_path,signed_at')
             .order('created_at', { ascending: false })
             .limit(50),
         ])
@@ -3329,10 +3350,13 @@ function ContratsV1({
 
     const { data: c } = await supabase
       .from('contracts')
-      .select('id,number,client_id,quote_id,title,status,contract_text,mission_start,mission_end,amount_ht,tva_regime,buyer_snapshot,seller_snapshot')
+      .select('id,number,client_id,quote_id,title,status,signed_pdf_path,signed_at,contract_text,mission_start,mission_end,amount_ht,tva_regime,buyer_snapshot,seller_snapshot')
       .eq('id', id)
       .maybeSingle()
     if (!c) return
+
+    setCurrentContractStatus(String((c as any).status || 'draft'))
+    setCurrentContractSignedPdfPath(String((c as any).signed_pdf_path || ''))
 
     if ((c as any).number) {
       setContractNumber(String((c as any).number || ''))
@@ -4073,6 +4097,43 @@ Contrat généré par Spyke — spykeapp.fr — L’assistant IA des freelances 
   async function generateContractPdf() {
     try {
       if (!supabase) throw new Error('Supabase non initialisé')
+
+      // If the contract is already fully signed and we have a stored signed PDF, show it instead of regenerating.
+      if (String(currentContractStatus || '') === 'signed' && String(currentContractSignedPdfPath || '')) {
+        try {
+          const path = String(currentContractSignedPdfPath || '')
+          const { data: signed } = await supabase.storage.from('signed_contracts').createSignedUrl(path, 60 * 10)
+          const signedUrl = String((signed as any)?.signedUrl || '')
+          if (!signedUrl) throw new Error('PDF signé indisponible')
+
+          const to = String(clientEmail || '')
+          const signedFilename = `Contrat-${String(contractNumber || 'Spyke')}-signé.pdf`
+
+          openPdfPreviewFromUrl(signedUrl, signedFilename, {
+            kind: 'contrat',
+            contractId: String(selectedContractIdRef.current || selectedContractId || ''),
+            to,
+            subject: `Contrat ${String(contractNumber || '').trim() || 'Spyke'}`,
+            text: `Bonjour,\n\nVeuillez trouver ci-joint le contrat signé.\n\nCordialement,\n${userFullName || ''}`.trim(),
+            getBlob: async () => {
+              const { data: sessionData } = await supabase.auth.getSession()
+              const token = sessionData?.session?.access_token
+              if (!token) throw new Error('Non connecté')
+              const { data: u } = await supabase.storage.from('signed_contracts').createSignedUrl(path, 60 * 10)
+              const url = String((u as any)?.signedUrl || '')
+              if (!url) throw new Error('PDF signé indisponible')
+              const res = await fetch(url)
+              if (!res.ok) throw new Error('Téléchargement du PDF signé échoué')
+              const blob = await res.blob()
+              return { blob, token }
+            },
+            filename: signedFilename,
+          })
+          return
+        } catch {
+          // fall through to regeneration
+        }
+      }
 
       // Free quota (per month): 3 contrats
       if (planCode !== 'pro' && userId) {

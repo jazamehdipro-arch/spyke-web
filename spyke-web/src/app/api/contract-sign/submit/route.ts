@@ -169,11 +169,14 @@ export async function POST(req: Request) {
       } as any)
       .eq('token', parsed.token)
 
-    // Update contract status (best-effort)
+    // Update contract status + store signed PDF path (best-effort)
     try {
-      await supabaseAdmin.from('contracts').update({ status: 'signed' } as any).eq('id', contractId)
+      await supabaseAdmin
+        .from('contracts')
+        .update({ status: 'signed', signed_pdf_path: signedPath, signed_at: signedAtIso } as any)
+        .eq('id', contractId)
     } catch {
-      // ignore
+      // ignore (column may not exist)
     }
 
     const { data: signedUrlData } = await supabaseAdmin.storage.from('signed_contracts').createSignedUrl(signedPath, 60 * 10)
