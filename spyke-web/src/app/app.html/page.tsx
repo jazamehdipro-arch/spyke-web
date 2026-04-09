@@ -574,6 +574,7 @@ function usePdfMailModals() {
 
   return {
     openPdfPreviewFromBlob,
+    openPdfPreviewFromUrl,
     openMailComposeWithAttachment,
     openMailComposePlain,
     openSignatureFrame,
