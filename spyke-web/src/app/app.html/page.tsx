@@ -1726,6 +1726,10 @@ Réponds uniquement par le texte de la description.`
               } catch {}
             }
             setQuotes(quotesData || [])
+            // Also refresh the main dashboard widgets immediately
+            try {
+              window.dispatchEvent(new CustomEvent('spyke:refreshDashboard'))
+            } catch {}
           } else {
             alert('PDF généré, mais sauvegarde en base impossible: aucun identifiant devis retourné')
           }
@@ -7771,6 +7775,22 @@ export default function AppHtmlPage() {
       // ignore
     }
   }
+
+  // Allow child tabs/components to request a dashboard refresh after DB writes.
+  useEffect(() => {
+    const handler = () => {
+      refreshDashboardData()
+    }
+    try {
+      window.addEventListener('spyke:refreshDashboard', handler as any)
+    } catch {}
+    return () => {
+      try {
+        window.removeEventListener('spyke:refreshDashboard', handler as any)
+      } catch {}
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [supabase, userId])
 
   async function refreshClientStats() {
     if (!supabase) return
