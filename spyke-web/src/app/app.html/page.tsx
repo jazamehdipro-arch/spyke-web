@@ -11216,7 +11216,7 @@ CONTEXTE UTILISATEUR :
           <div className="page-header">
             <div>
               <h1 className="page-title">Analyseur de projet</h1>
-              <p className="page-subtitle">Analysez un brief client pour évaluer sa faisabilité</p>
+              <p className="page-subtitle">Analysez un brief client pour évaluer sa faisabilité selon ton profil et ton expérience</p>
             </div>
           </div>
 
