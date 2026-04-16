@@ -5194,7 +5194,7 @@ function FacturesV1({
             .limit(50),
           supabase
             .from('invoices')
-            .select('id,number,status,paid_at,date_issue,due_date,total_ttc,client_id,created_at')
+            .select('id,number,status,paid_at,date_issue,due_date,total_ttc,client_id,buyer_snapshot,created_at')
             .order('created_at', { ascending: false })
             .limit(50),
         ])
@@ -5346,7 +5346,7 @@ function FacturesV1({
       // refresh list
       const { data: invData } = await supabase
         .from('invoices')
-        .select('id,number,status,paid_at,date_issue,due_date,total_ttc,client_id,created_at')
+        .select('id,number,status,paid_at,date_issue,due_date,total_ttc,client_id,buyer_snapshot,created_at')
         .order('created_at', { ascending: false })
         .limit(50)
       setInvoices((invData || []) as any[])
@@ -5375,7 +5375,7 @@ function FacturesV1({
 
       const { data: invData } = await supabase
         .from('invoices')
-        .select('id,number,status,paid_at,date_issue,due_date,total_ttc,client_id,created_at')
+        .select('id,number,status,paid_at,date_issue,due_date,total_ttc,client_id,buyer_snapshot,created_at')
         .order('created_at', { ascending: false })
         .limit(50)
       setInvoices((invData || []) as any[])
@@ -5596,6 +5596,12 @@ function FacturesV1({
         }
       }
 
+      // Block 0€ invoices
+      if (Number((totals as any)?.totalTtc || 0) <= 0) {
+        alert('Le total TTC doit être supérieur à 0€')
+        return
+      }
+
       const payload = {
         invoiceNumber,
         dateIssue: invoiceDate,
@@ -5707,7 +5713,7 @@ function FacturesV1({
           try {
             const { data: invData } = await supabase
               .from('invoices')
-              .select('id,number,status,paid_at,date_issue,due_date,total_ttc,client_id,created_at')
+              .select('id,number,status,paid_at,date_issue,due_date,total_ttc,client_id,buyer_snapshot,created_at')
               .order('created_at', { ascending: false })
               .limit(50)
             setInvoices((invData || []) as any[])
@@ -5906,7 +5912,7 @@ function FacturesV1({
                           ) : null}
                           <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>{inv.number}</td>
                           <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>
-                            {clients.find((c) => c.id === inv.client_id)?.name || '-'}
+                            {clients.find((c) => c.id === inv.client_id)?.name || String((inv as any)?.buyer_snapshot?.name || '-')}
                           </td>
                           <td style={{ padding: '12px 8px', borderBottom: '1px solid var(--gray-100)' }}>
                             {(() => {
@@ -5943,7 +5949,7 @@ function FacturesV1({
 
                                       const { data: invData } = await supabase
                                         .from('invoices')
-                                        .select('id,number,status,paid_at,date_issue,due_date,total_ttc,client_id,created_at')
+                                        .select('id,number,status,paid_at,date_issue,due_date,total_ttc,client_id,buyer_snapshot,created_at')
                                         .order('created_at', { ascending: false })
                                         .limit(50)
                                       setInvoices((invData || []) as any[])
@@ -5969,7 +5975,7 @@ function FacturesV1({
 
                                       const { data: invData } = await supabase
                                         .from('invoices')
-                                        .select('id,number,status,paid_at,date_issue,due_date,total_ttc,client_id,created_at')
+                                        .select('id,number,status,paid_at,date_issue,due_date,total_ttc,client_id,buyer_snapshot,created_at')
                                         .order('created_at', { ascending: false })
                                         .limit(50)
                                       setInvoices((invData || []) as any[])
@@ -6001,7 +6007,7 @@ function FacturesV1({
 
                                       const { data: invData } = await supabase
                                         .from('invoices')
-                                        .select('id,number,status,paid_at,date_issue,due_date,total_ttc,client_id,created_at')
+                                        .select('id,number,status,paid_at,date_issue,due_date,total_ttc,client_id,buyer_snapshot,created_at')
                                         .order('created_at', { ascending: false })
                                         .limit(50)
                                       setInvoices((invData || []) as any[])
@@ -6066,7 +6072,7 @@ function FacturesV1({
 
                                   const { data: invData } = await supabase
                                     .from('invoices')
-                                    .select('id,number,status,paid_at,date_issue,due_date,total_ttc,client_id,created_at')
+                                    .select('id,number,status,paid_at,date_issue,due_date,total_ttc,client_id,buyer_snapshot,created_at')
                                     .order('created_at', { ascending: false })
                                     .limit(50)
                                   setInvoices((invData || []) as any[])
@@ -6092,7 +6098,7 @@ function FacturesV1({
 
                                   const { data: invData } = await supabase
                                     .from('invoices')
-                                    .select('id,number,status,paid_at,date_issue,due_date,total_ttc,client_id,created_at')
+                                    .select('id,number,status,paid_at,date_issue,due_date,total_ttc,client_id,buyer_snapshot,created_at')
                                     .order('created_at', { ascending: false })
                                     .limit(50)
                                   setInvoices((invData || []) as any[])
@@ -6122,7 +6128,7 @@ function FacturesV1({
 
                                 const { data: invData } = await supabase
                                   .from('invoices')
-                                  .select('id,number,status,paid_at,date_issue,due_date,total_ttc,client_id,created_at')
+                                  .select('id,number,status,paid_at,date_issue,due_date,total_ttc,client_id,buyer_snapshot,created_at')
                                   .order('created_at', { ascending: false })
                                   .limit(50)
                                 setInvoices((invData || []) as any[])

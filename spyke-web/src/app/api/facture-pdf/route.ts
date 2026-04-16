@@ -50,7 +50,13 @@ const BodySchema = z.object({
 })
 
 function formatMoney(amount: number) {
-  return (amount || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'
+  // react-pdf sometimes renders narrow no-break spaces as a "/" with the default font.
+  // Force a normal space for thousands separators.
+  return (
+    (amount || 0)
+      .toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+      .replace(/[\u00A0\u202F]/g, ' ') + ' €'
+  )
 }
 
 function formatDateFr(dateStr: string) {
