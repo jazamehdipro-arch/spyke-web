@@ -6705,7 +6705,7 @@ export default function AppHtmlPage() {
     }
   >(null)
 
-  // Assistant IA: history + client insights
+  // Assistant mail: history + client insights
   useEffect(() => {
     try {
       const raw = localStorage.getItem('spyke_assistant_history_v1')
@@ -6840,7 +6840,7 @@ export default function AppHtmlPage() {
         {
           tab: 'assistant' as Tab,
           target: 'assistant',
-          title: 'Assistant IA',
+          title: 'Assistant mail',
           body: 'Génère des emails pro (réponse, relance, négociation…) à partir du contexte.',
         },
         {
@@ -7951,7 +7951,7 @@ export default function AppHtmlPage() {
       const metier = userJob || 'Freelance'
       const tonPrefere = userDefaultTone || 'professionnel'
 
-      const system = `Tu es l'assistant email de Spyke, un outil pour freelances français.
+      const system = `Tu es l'assistant mail de Spyke, un outil pour freelances français.
 
 Tu génères des emails professionnels en français.
 
@@ -7959,8 +7959,11 @@ RÈGLES :
 - Sois concis, pas de blabla inutile
 - Adapte le ton selon ce qui est demandé (professionnel, chaleureux, formel, décontracté)
 - Utilise le nom du client si fourni
-- Ne mets jamais de placeholders comme [Nom] ou [Date], écris directement
+- Si des infos factuelles sont fournies (montant, n° de devis/facture, échéance), intègre-les
 - Termine toujours par une formule de politesse adaptée au ton
+- Termine toujours par une action attendue claire (ex: "Peux-tu me confirmer…", "Peux-tu régler…", "Dis-moi si…")
+- N'invente jamais des chiffres, des dates, ou un numéro de document : si absent, reste générique
+- Ne mets jamais de placeholders comme [Nom] ou [Date]
 - Ne mets pas d'objet sauf si demandé
 - Écris uniquement l'email, rien d'autre (pas d'explication, pas de commentaire)
 - Ne signe jamais "Spyke" ou "Spyke assistance IA". La signature doit être celle du freelance.
@@ -7998,13 +8001,41 @@ CONTEXTE UTILISATEUR :
         return ''
       })()
 
+      const facts = (() => {
+        const ins = assistantClientInsights
+        const inv = ins?.unpaidInvoices?.[0]
+        const quote = ins?.pendingQuotes?.[0]
+        const c = ins?.activeContracts?.[0]
+
+        const lines: string[] = []
+        if (client?.name) lines.push(`Nom client: ${client.name}`)
+        if (client?.email) lines.push(`Email client: ${client.email}`)
+
+        if (template === 'Relance' && inv) {
+          lines.push(`Facture impayée: n° ${inv.number || '-'}, montant ${formatMoney(Number(inv.total_ttc || 0))}`)
+          if (inv.due_date) lines.push(`Échéance: ${formatDateFr(String(inv.due_date).slice(0, 10))}`)
+        }
+        if (template === 'Facture' && inv) {
+          lines.push(`Facture: n° ${inv.number || '-'}, montant ${formatMoney(Number(inv.total_ttc || 0))}`)
+          if (inv.due_date) lines.push(`Échéance: ${formatDateFr(String(inv.due_date).slice(0, 10))}`)
+        }
+        if (template === 'Relance devis' && quote) {
+          lines.push(`Devis: n° ${quote.number || '-'}, montant ${formatMoney(Number(quote.total_ttc || 0))}`)
+        }
+        if (template === 'Réponse' && c) {
+          lines.push(`Contrat: ${c.number || ''} ${c.title ? `(${c.title})` : ''}`.trim())
+        }
+
+        return lines.filter(Boolean).join('\n')
+      })()
+
       const prompt = [
         `Type d'email: ${template}`,
         `Ton: ${toneLabel}`,
-        client ? `Client: ${client.name}${client.email ? ` (${client.email})` : ''}` : '',
-        `Contexte: ${autoContext || '(vide)'}`,
+        facts ? `Infos factuelles:\n${facts}` : '',
+        `Contexte utilisateur: ${autoContext || '(vide)'}`,
         '',
-        "Rédige l'email final.",
+        "Rédige l'email final. Il doit contenir au moins une phrase d'action attendue.",
       ]
         .filter(Boolean)
         .join('\n')
@@ -9971,7 +10002,7 @@ CONTEXTE UTILISATEUR :
             <svg viewBox="0 0 24 24">
               <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
             </svg>
-            Assistant IA
+            Assistant mail
           </button>
 
           <button data-tour="devis" className={`nav-item ${tab === 'devis' ? 'active' : ''}`} onClick={() => goTab('devis')}>
@@ -10352,7 +10383,7 @@ CONTEXTE UTILISATEUR :
                 <div className="quick-action" onClick={() => goTab('assistant')}>
                   <div className="quick-action-icon">✉️</div>
                   <div className="quick-action-text">
-                    <h4>Assistant IA</h4>
+                    <h4>Assistant mail</h4>
                     <p>Emails & relances</p>
                   </div>
                 </div>
@@ -10934,7 +10965,7 @@ CONTEXTE UTILISATEUR :
                 <span className="assistant-hero-bolt">⚡</span>
               </div>
               <div>
-                <h1 className="page-title" style={{ marginBottom: 4 }}>Assistant IA</h1>
+                <h1 className="page-title" style={{ marginBottom: 4 }}>Assistant mail</h1>
                 <p className="page-subtitle" style={{ marginTop: 0 }}>Votre copilote pour les emails clients</p>
               </div>
             </div>
@@ -11141,6 +11172,23 @@ CONTEXTE UTILISATEUR :
                   )}
 
                   <div className="output-actions">
+                    {!gmailConnected ? (
+                      <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.55)', marginBottom: 8, width: '100%' }}>
+                        Gmail non connecté : utilise <b>Copier</b>, <b>Ouvrir dans Mail</b> ou <b>Export .eml</b>, ou connecte Gmail dans <b>Paramètres → Gmail</b>.
+                        <button
+                          type="button"
+                          className="btn btn-secondary"
+                          style={{ marginLeft: 10, padding: '6px 10px', fontSize: 12 }}
+                          onClick={() => {
+                            setTab('settings')
+                            setSettingsTab('gmail')
+                          }}
+                        >
+                          Connecter Gmail
+                        </button>
+                      </div>
+                    ) : null}
+
                     <button
                       type="button"
                       className="btn btn-secondary"
@@ -11165,17 +11213,77 @@ CONTEXTE UTILISATEUR :
 
                     <button
                       type="button"
+                      className="btn btn-secondary"
+                      onClick={() => {
+                        try {
+                          const to = encodeURIComponent(String(assistantTo || '').trim())
+                          const subject = encodeURIComponent(String(assistantSubject || '').trim())
+                          const body = encodeURIComponent(String(assistantOutput || '').trim())
+                          const url = `mailto:${to}?subject=${subject}&body=${body}`
+                          window.location.href = url
+                        } catch {
+                          alert('Impossible d\'ouvrir votre client mail')
+                        }
+                      }}
+                      disabled={!assistantOutput || !assistantSubject.trim()}
+                      title={!assistantOutput ? 'Génère un email avant' : 'Ouvrir dans votre client mail'}
+                    >
+                      Ouvrir dans Mail
+                    </button>
+
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={() => {
+                        try {
+                          const to = String(assistantTo || '').trim()
+                          const subject = String(assistantSubject || '').trim()
+                          const body = String(assistantOutput || '').trim()
+                          if (!subject || !body) return
+
+                          const eml = [
+                            `To: ${to}`,
+                            'Content-Type: text/plain; charset=UTF-8',
+                            'Content-Transfer-Encoding: 8bit',
+                            `Subject: ${subject}`,
+                            '',
+                            body,
+                            '',
+                          ].join('\n')
+
+                          const blob = new Blob([eml], { type: 'message/rfc822;charset=utf-8' })
+                          const a = document.createElement('a')
+                          a.href = URL.createObjectURL(blob)
+                          a.download = `email-${Date.now()}.eml`
+                          document.body.appendChild(a)
+                          a.click()
+                          a.remove()
+                          try {
+                            URL.revokeObjectURL(a.href)
+                          } catch {}
+                        } catch {
+                          alert('Export .eml impossible')
+                        }
+                      }}
+                      disabled={!assistantOutput || !assistantSubject.trim()}
+                      title={!assistantOutput ? 'Génère un email avant' : 'Télécharger un fichier .eml'}
+                    >
+                      Export .eml
+                    </button>
+
+                    <button
+                      type="button"
                       className="btn btn-primary"
                       onClick={() => setAssistantSendPreviewOpen(true)}
-                      disabled={assistantSending || !assistantOutput}
-                      title={!assistantOutput ? 'Génère un email avant' : 'Aperçu avant envoi'}
+                      disabled={assistantSending || !assistantOutput || !gmailConnected}
+                      title={!assistantOutput ? 'Génère un email avant' : !gmailConnected ? 'Connecte Gmail dans Paramètres → Gmail' : 'Aperçu avant envoi'}
                     >
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
                         <path d="M4 4h16v16H4z" opacity="0" />
                         <path d="M4 4h16v16H4z" />
                         <path d="M22 6l-10 7L2 6" />
                       </svg>
-                      {assistantSending ? 'Envoi…' : 'Envoyer par mail'}
+                      {assistantSending ? 'Envoi…' : 'Envoyer via Gmail'}
                     </button>
                   </div>
                 </div>
@@ -12218,7 +12326,7 @@ CONTEXTE UTILISATEUR :
                   { key: 'devis', label: 'Devis' },
                   { key: 'facture', label: 'Factures' },
                   { key: 'contrat', label: 'Contrats' },
-                  { key: 'assistant', label: 'Assistant IA' },
+                  { key: 'assistant', label: 'Assistant mail' },
                   { key: 'juriste', label: 'Question juriste' },
                 ] as const
               ).map((t) => (
