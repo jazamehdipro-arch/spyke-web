@@ -57,6 +57,10 @@ export default function SeoFacturePage() {
   const [sellerCountry, setSellerCountry] = useState('France')
   const [sellerIban, setSellerIban] = useState('')
   const [sellerBic, setSellerBic] = useState('')
+  const [sellerBankName, setSellerBankName] = useState('')
+  const [sellerBankAccount, setSellerBankAccount] = useState('')
+
+  const [logoDataUrl, setLogoDataUrl] = useState<string>('')
 
   const [buyerName, setBuyerName] = useState('')
   const [buyerAddress, setBuyerAddress] = useState('')
@@ -100,6 +104,24 @@ export default function SeoFacturePage() {
     window.location.href = '/connexion.html'
   }
 
+  async function onPickLogo(file: File | null) {
+    try {
+      if (!file) {
+        setLogoDataUrl('')
+        return
+      }
+      const reader = new FileReader()
+      const dataUrl: string = await new Promise((resolve, reject) => {
+        reader.onerror = () => reject(new Error('Lecture fichier impossible'))
+        reader.onload = () => resolve(String(reader.result || ''))
+        reader.readAsDataURL(file)
+      })
+      setLogoDataUrl(dataUrl)
+    } catch {
+      setLogoDataUrl('')
+    }
+  }
+
   async function generatePdf() {
     try {
       if (!sellerName.trim()) throw new Error('Renseigne ton nom / raison sociale')
@@ -122,14 +144,15 @@ export default function SeoFacturePage() {
         invoiceNumber,
         dateIssue,
         dueDate,
+        logoUrl: logoDataUrl || '',
         seller: {
           name: sellerName,
           addressLines: sellerAddressLines,
           siret: sellerSiret,
           iban: sellerIban,
           bic: sellerBic,
-          bankName: '',
-          bankAccount: '',
+          bankName: sellerBankName,
+          bankAccount: sellerBankAccount,
         },
         buyer: {
           name: buyerName,
@@ -363,6 +386,23 @@ export default function SeoFacturePage() {
             <div className="seo-group">
               <label className="seo-label">BIC (optionnel)</label>
               <input className="seo-input" value={sellerBic} onChange={(e) => setSellerBic(e.target.value)} />
+            </div>
+            <div className="seo-group">
+              <label className="seo-label">Banque (optionnel)</label>
+              <input className="seo-input" value={sellerBankName} onChange={(e) => setSellerBankName(e.target.value)} />
+            </div>
+            <div className="seo-group">
+              <label className="seo-label">Compte / Intitulé (optionnel)</label>
+              <input className="seo-input" value={sellerBankAccount} onChange={(e) => setSellerBankAccount(e.target.value)} />
+            </div>
+            <div className="seo-group full">
+              <label className="seo-label">Logo (optionnel)</label>
+              <input
+                type="file"
+                accept="image/*"
+                className="seo-input"
+                onChange={(e) => onPickLogo(e.target.files?.[0] || null)}
+              />
             </div>
           </div>
         </div>

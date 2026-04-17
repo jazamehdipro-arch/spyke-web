@@ -80,6 +80,8 @@ export default function SeoDevisPage() {
   const [sellerIban, setSellerIban] = useState('')
   const [sellerBic, setSellerBic] = useState('')
 
+  const [logoDataUrl, setLogoDataUrl] = useState<string>('')
+
   const [buyerName, setBuyerName] = useState('')
   const [buyerSiret, setBuyerSiret] = useState('')
   const [buyerAddress, setBuyerAddress] = useState('')
@@ -136,6 +138,24 @@ export default function SeoDevisPage() {
     window.location.href = '/connexion.html'
   }
 
+  async function onPickLogo(file: File | null) {
+    try {
+      if (!file) {
+        setLogoDataUrl('')
+        return
+      }
+      const reader = new FileReader()
+      const dataUrl: string = await new Promise((resolve, reject) => {
+        reader.onerror = () => reject(new Error('Lecture fichier impossible'))
+        reader.onload = () => resolve(String(reader.result || ''))
+        reader.readAsDataURL(file)
+      })
+      setLogoDataUrl(dataUrl)
+    } catch {
+      setLogoDataUrl('')
+    }
+  }
+
   async function generatePdf() {
     try {
       if (!sellerName.trim()) throw new Error('Renseigne ton nom / raison sociale')
@@ -160,6 +180,7 @@ export default function SeoDevisPage() {
         title,
         dateIssue,
         validityUntil,
+        logoUrl: logoDataUrl || '',
         seller: {
           name: sellerName,
           addressLines: sellerAddressLines,
@@ -423,6 +444,15 @@ export default function SeoDevisPage() {
             <div className="seo-group">
               <label className="seo-label">BIC (optionnel)</label>
               <input className="seo-input" value={sellerBic} onChange={(e) => setSellerBic(e.target.value)} />
+            </div>
+            <div className="seo-group full">
+              <label className="seo-label">Logo (optionnel)</label>
+              <input
+                type="file"
+                accept="image/*"
+                className="seo-input"
+                onChange={(e) => onPickLogo(e.target.files?.[0] || null)}
+              />
             </div>
           </div>
         </div>
