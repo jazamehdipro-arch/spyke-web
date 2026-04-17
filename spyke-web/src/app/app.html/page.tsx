@@ -6528,6 +6528,13 @@ export default function AppHtmlPage() {
   const goTab = (t: Tab) => {
     setTab(t)
     setMobileNavOpen(false)
+
+    // When returning to dashboard, refresh computed widgets (counts, recent docs)
+    if (t === 'dashboard') {
+      try {
+        window.dispatchEvent(new CustomEvent('spyke:refreshDashboard'))
+      } catch {}
+    }
   }
 
   // Allow nested modals/components (e.g. PDF preview) to redirect user to signature settings.
@@ -12597,6 +12604,10 @@ CONTEXTE UTILISATEUR :
                     if (error) throw error
                     setModal(null)
                     await refreshClients()
+                    // Ensure dashboard widgets (client count) are up-to-date immediately
+                    try {
+                      window.dispatchEvent(new CustomEvent('spyke:refreshDashboard'))
+                    } catch {}
                   } catch (e: any) {
                     alert(e?.message || 'Erreur ajout client')
                   } finally {
