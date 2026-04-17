@@ -1,0 +1,35 @@
+import { PDFDocument, StandardFonts, rgb, degrees } from 'pdf-lib'
+
+export async function addPdfWatermark(params: {
+  pdfBytes: Uint8Array
+  text: string
+  // 0..1
+  opacity?: number
+}) {
+  const { pdfBytes, text } = params
+  const opacity = typeof params.opacity === 'number' ? params.opacity : 0.12
+
+  const doc = await PDFDocument.load(pdfBytes)
+  const font = await doc.embedFont(StandardFonts.HelveticaBold)
+
+  const pages = doc.getPages()
+  for (const page of pages) {
+    const { width, height } = page.getSize()
+
+    const fontSize = Math.max(42, Math.floor(Math.min(width, height) * 0.11))
+    const textWidth = font.widthOfTextAtSize(text, fontSize)
+
+    // Centered watermark with a diagonal rotation
+    page.drawText(text, {
+      x: (width - textWidth) / 2,
+      y: height / 2,
+      size: fontSize,
+      font,
+      color: rgb(0, 0, 0),
+      rotate: degrees(-25),
+      opacity,
+    })
+  }
+
+  return await doc.save()
+}

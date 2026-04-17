@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
+import { addPdfWatermark } from '@/lib/pdfWatermark'
 
 export const runtime = 'nodejs'
 
@@ -356,7 +357,9 @@ export async function POST(req: Request) {
     const instance = pdf(React.createElement(Doc))
     const buffer = await instance.toBuffer()
 
-    return new NextResponse(buffer as any, {
+    const watermarked = await addPdfWatermark({ pdfBytes: new Uint8Array(buffer as any), text: 'Spyke' })
+
+    return new NextResponse(watermarked as any, {
       status: 200,
       headers: {
         'content-type': 'application/pdf',

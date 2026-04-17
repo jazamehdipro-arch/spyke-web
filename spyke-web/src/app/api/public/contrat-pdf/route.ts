@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { fillContractTemplatePdf } from '@/lib/fillContractTemplate'
+import { addPdfWatermark } from '@/lib/pdfWatermark'
 
 export const runtime = 'nodejs'
 
@@ -132,7 +133,9 @@ export async function POST(req: Request) {
       replacements,
     })
 
-    return new NextResponse(filledRes.bytes as any, {
+    const watermarked = await addPdfWatermark({ pdfBytes: filledRes.bytes, text: 'Spyke Pro' })
+
+    return new NextResponse(watermarked as any, {
       status: 200,
       headers: {
         'content-type': 'application/pdf',

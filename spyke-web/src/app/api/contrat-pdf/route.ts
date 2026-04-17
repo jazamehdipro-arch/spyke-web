@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js'
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { fillContractTemplatePdf } from '@/lib/fillContractTemplate'
+import { addPdfWatermark } from '@/lib/pdfWatermark'
 
 export const runtime = 'nodejs'
 
@@ -111,6 +112,15 @@ export async function POST(req: Request) {
     const json = await req.json()
     const body = BodySchema.parse(json)
 
+    // Determine plan (best-effort). Free accounts get a watermark "Spyke Pro".
+    let plan: 'free' | 'pro' = 'free'
+    try {
+      const { data: p } = await supabase.from('profiles').select('plan').eq('id', data.user.id).maybeSingle()
+      plan = String((p as any)?.plan || 'free') === 'pro' ? 'pro' : 'free'
+    } catch {
+      plan = 'free'
+    }
+
     // NOTE: Contracts should NOT be auto-signed by the freelancer inside Spyke.
     // The signature is handled via the public signing link flow (client signs), so we never embed a freelancer signature here.
 
@@ -203,8 +213,18 @@ export async function POST(req: Request) {
         replacements,
       })
 
-      const filled = filledRes.bytes
+      let filled = filledRes.bytes
       const replacedCount = Number(filledRes.replaced || 0)
+
+      // Free plan: watermark
+      try {
+        if (plan !== 'pro') {
+          const w = await addPdfWatermark({ pdfBytes: filled, text: 'Spyke Pro' })
+          filled = new Uint8Array(w)
+        }
+      } catch {
+        // ignore watermark failures
+      }
 
       // If we didn't replace anything, the coordinate map most likely doesn't match the template in production.
       // Throw to trigger the React-PDF fallback so the user still gets a filled contract.
@@ -248,7 +268,7 @@ export async function POST(req: Request) {
 
       const { renderContractPdfReact } = await import('@/lib/renderContractPdfReact')
 
-      const buf = await renderContractPdfReact({
+      let buf = await renderContractPdfReact({
         title: body.title,
         date: body.date,
         logoUrl: body.logoUrl,
@@ -260,7 +280,17 @@ export async function POST(req: Request) {
         signatureDataUrl,
       })
 
-      return new NextResponse(buf as any, {
+      // Free plan: watermark
+      try {
+        if (plan !== 'pro') {
+          const w = await addPdfWatermark({ pdfBytes: new Uint8Array(buf as any), text: 'Spyke Pro' })
+          buf = w as any
+        }
+      } catch {
+        // ignore
+      }
+
+      return new NextResponse(buf as any, { 
         status: 200,
         headers: {
           'content-type': 'application/pdf',

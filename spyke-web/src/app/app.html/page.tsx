@@ -1673,6 +1673,18 @@ Réponds uniquement par le texte de la description.`
             const { error: updErr } = await supabase.from('quotes').update(row).eq('id', quoteId)
             if (updErr) throw updErr
           } else {
+            // Free quota (lifetime): 2 quotes
+            if (planCode !== 'pro') {
+              const { count, error: cErr } = await supabase
+                .from('quotes')
+                .select('id', { count: 'exact', head: true })
+                .eq('user_id', userId)
+              if (cErr) throw cErr
+              if (Number(count || 0) >= 2) {
+                throw new Error('Limite du compte gratuit atteinte : 2 devis maximum. Passe Pro pour illimité.')
+              }
+            }
+
             const { data: qRow, error: insErr } = await supabase.from('quotes').insert(row).select('id').single()
             if (insErr) throw insErr
             if (qRow?.id) quoteId = String(qRow.id)
@@ -5687,6 +5699,18 @@ function FacturesV1({
             if (updErr) throw updErr
             invoiceId = String(existing.id)
           } else {
+            // Free quota (lifetime): 2 invoices
+            if (planCode !== 'pro') {
+              const { count, error: cErr } = await supabase
+                .from('invoices')
+                .select('id', { count: 'exact', head: true })
+                .eq('user_id', userId)
+              if (cErr) throw cErr
+              if (Number(count || 0) >= 2) {
+                throw new Error('Limite du compte gratuit atteinte : 2 factures maximum. Passe Pro pour illimité.')
+              }
+            }
+
             const { data: inv, error: invErr } = await supabase.from('invoices').insert(row).select('id').single()
             if (invErr) throw invErr
             if (inv?.id) invoiceId = String(inv.id)
@@ -7921,27 +7945,21 @@ export default function AppHtmlPage() {
 
   async function generateAssistantEmail() {
     try {
-      // Free quota: 10 emails / month
+      // Free quota (lifetime): 3 assistant mails
       if (planCode !== 'pro') {
         if (!supabase || !userId) {
           alert('Session manquante')
           return
         }
 
-        const start = new Date()
-        start.setDate(1)
-        start.setHours(0, 0, 0, 0)
-        const startStr = start.toISOString()
-
         const { count, error } = await supabase
           .from('assistant_generations')
           .select('id', { count: 'exact', head: true })
           .eq('user_id', userId)
-          .gte('created_at', startStr)
 
         if (error) throw error
-        if (Number(count || 0) >= 10) {
-          alert('Limite du plan Free atteinte : 10 emails IA / mois. Passe Pro pour illimité.')
+        if (Number(count || 0) >= 3) {
+          alert('Limite du compte gratuit atteinte : 3 emails Assistant mail. Passe Pro pour illimité.')
           return
         }
       }
