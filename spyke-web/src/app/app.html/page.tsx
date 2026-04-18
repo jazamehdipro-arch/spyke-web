@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { getSupabase } from '@/lib/supabaseClient'
+import PdfInlineViewer from '@/components/PdfInlineViewer'
 
 function ModalShell({
   open,
@@ -497,25 +498,7 @@ function usePdfMailModals() {
         }
       >
         {pdfPreview ? (
-          isMobile ? (
-            <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div style={{ fontSize: 13, color: 'rgba(0,0,0,0.65)' }}>
-                Sur mobile, l’aperçu PDF intégré peut être tronqué (limitation navigateur). Ouvre le PDF en plein écran :
-              </div>
-              <a
-                className="btn btn-primary"
-                href={pdfPreview.url}
-                target="_blank"
-                rel="noreferrer"
-                style={{ width: 'fit-content' }}
-              >
-                Ouvrir le PDF
-              </a>
-              <div style={{ flex: 1 }} />
-            </div>
-          ) : (
-            <iframe title="pdf-preview" src={pdfPreview.url} style={{ width: '100%', height: '100%', border: 0 }} />
-          )
+          <PdfInlineViewer url={pdfPreview.url} />
         ) : null}
       </ModalShell>
 
