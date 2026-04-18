@@ -2661,16 +2661,7 @@ Réponds uniquement par le texte de la description.`
               <div className="mobile-accordion-body">
 
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
-                <button
-                  className="btn btn-secondary"
-                  type="button"
-                  onClick={async () => {
-                    setShowCatalog(true)
-                    await refreshCatalog()
-                  }}
-                >
-                  + Depuis le catalogue
-                </button>
+                {/* Catalogue button removed */}
                 <button
                   className="btn btn-secondary"
                   type="button"
@@ -2946,10 +2937,7 @@ Réponds uniquement par le texte de la description.`
             {catalogItems.length === 0 ? (
               <div style={{ color: 'var(--gray-600)', fontSize: 13, lineHeight: 1.6 }}>
                 <b>Aucune prestation trouvée.</b>
-                <div style={{ marginTop: 6 }}>
-                  Si c'est la première fois : exécute le SQL dans <code>spyke-web/docs/supabase-devis-extensions.sql</code> (table{' '}
-                  <code>service_items</code>).
-                </div>
+                {/* setup hint hidden */}
               </div>
             ) : (
               <div style={{ display: 'grid', gap: 8 }}>
@@ -3036,10 +3024,7 @@ Réponds uniquement par le texte de la description.`
             {templates.length === 0 ? (
               <div style={{ color: 'var(--gray-600)', fontSize: 13, lineHeight: 1.6 }}>
                 <b>Aucun template.</b>
-                <div style={{ marginTop: 6 }}>
-                  Si c'est la première fois : exécute le SQL dans <code>spyke-web/docs/supabase-devis-extensions.sql</code> (tables{' '}
-                  <code>quote_templates</code> / <code>quote_template_lines</code>).
-                </div>
+                {/* setup hint hidden */}
               </div>
             ) : (
               <div style={{ display: 'grid', gap: 8 }}>
