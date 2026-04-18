@@ -11199,7 +11199,7 @@ CONTEXTE UTILISATEUR :
                   <div className="output-actions">
                     {!gmailConnected ? (
                       <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.55)', marginBottom: 8, width: '100%' }}>
-                        Gmail non connecté : utilise <b>Copier</b>, <b>Ouvrir dans Mail</b> ou <b>Export .eml</b>, ou connecte Gmail dans <b>Paramètres → Gmail</b>.
+                        Gmail non connecté : utilise <b>Copier</b> ou <b>Ouvrir dans Mail</b>, ou connecte Gmail dans <b>Paramètres → Gmail</b>.
                         <button
                           type="button"
                           className="btn btn-secondary"
@@ -11256,45 +11256,7 @@ CONTEXTE UTILISATEUR :
                       Ouvrir dans Mail
                     </button>
 
-                    <button
-                      type="button"
-                      className="btn btn-secondary"
-                      onClick={() => {
-                        try {
-                          const to = String(assistantTo || '').trim()
-                          const subject = String(assistantSubject || '').trim()
-                          const body = String(assistantOutput || '').trim()
-                          if (!subject || !body) return
-
-                          const eml = [
-                            `To: ${to}`,
-                            'Content-Type: text/plain; charset=UTF-8',
-                            'Content-Transfer-Encoding: 8bit',
-                            `Subject: ${subject}`,
-                            '',
-                            body,
-                            '',
-                          ].join('\n')
-
-                          const blob = new Blob([eml], { type: 'message/rfc822;charset=utf-8' })
-                          const a = document.createElement('a')
-                          a.href = URL.createObjectURL(blob)
-                          a.download = `email-${Date.now()}.eml`
-                          document.body.appendChild(a)
-                          a.click()
-                          a.remove()
-                          try {
-                            URL.revokeObjectURL(a.href)
-                          } catch {}
-                        } catch {
-                          alert('Export .eml impossible')
-                        }
-                      }}
-                      disabled={!assistantOutput || !assistantSubject.trim()}
-                      title={!assistantOutput ? 'Génère un email avant' : 'Télécharger un fichier .eml'}
-                    >
-                      Export .eml
-                    </button>
+                    {/* Export .eml removed */}
 
                     <button
                       type="button"
