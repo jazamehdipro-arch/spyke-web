@@ -21,6 +21,8 @@ export default function PdfInlineViewer({ url }: PdfInlineViewerProps) {
 
   useEffect(() => {
     let cancelled = false
+    let revokeObjectUrl: string | null = null
+    let workerToTerminate: Worker | null = null
 
     ;(async () => {
       try {
@@ -31,16 +33,39 @@ export default function PdfInlineViewer({ url }: PdfInlineViewerProps) {
         if (!el) return
         el.innerHTML = ''
 
-        // pdf.js (legacy build for maximum compatibility)
+        // Lazy-load pdf.js
+        // Note: with Next + ESM, use dynamic import.
+        // Use legacy build for maximum compatibility across browsers.
         const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs')
 
-        // Local worker (avoids CDN blocks)
-        // File: public/vendor/pdfjs/pdf.worker.min.mjs
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        pdfjs.GlobalWorkerOptions.workerSrc = `/vendor/pdfjs/pdf.worker.min.mjs`
+        // Prefer bundler-managed module worker (most reliable across browsers)
+        // Fallback to public/ worker if Worker+module isn't available.
+        try {
+          if (typeof Worker !== 'undefined') {
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            workerToTerminate = new Worker(new URL('pdfjs-dist/legacy/build/pdf.worker.min.mjs', import.meta.url), { type: 'module' })
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            pdfjs.GlobalWorkerOptions.workerPort = workerToTerminate
+          } else {
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            pdfjs.GlobalWorkerOptions.workerSrc = `/vendor/pdfjs/pdf.worker.min.mjs`
+          }
+        } catch {
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore
+          pdfjs.GlobalWorkerOptions.workerSrc = `/vendor/pdfjs/pdf.worker.min.mjs`
+        }
 
-        const res = await fetch(url)
+        // Fetch PDF bytes ourselves to avoid CORS surprises and to support blob: URLs.
+        let pdfUrl = url
+        if (pdfUrl.startsWith('blob:')) {
+          // ok
+        }
+
+        const res = await fetch(pdfUrl)
         if (!res.ok) throw new Error(`PDF fetch failed (${res.status})`)
         const ab = await res.arrayBuffer()
 
@@ -49,10 +74,12 @@ export default function PdfInlineViewer({ url }: PdfInlineViewerProps) {
         const loadingTask = pdfjs.getDocument({ data: ab })
         const doc = await loadingTask.promise
 
+        // Render pages
         for (let pageNum = 1; pageNum <= doc.numPages; pageNum++) {
           if (cancelled) return
           const page = await doc.getPage(pageNum)
 
+          // Choose a scale that fits mobile but remains readable.
           const viewport = page.getViewport({ scale: isMobile ? 1.15 : 1.4 })
           const canvas = document.createElement('canvas')
           const context = canvas.getContext('2d')
@@ -93,17 +120,27 @@ export default function PdfInlineViewer({ url }: PdfInlineViewerProps) {
 
     return () => {
       cancelled = true
+      try {
+        if (revokeObjectUrl) URL.revokeObjectURL(revokeObjectUrl)
+      } catch {}
+      try {
+        workerToTerminate?.terminate?.()
+      } catch {}
     }
   }, [url, isMobile])
 
   return (
     <div style={{ width: '100%', height: '100%', overflow: 'auto', padding: 14 }}>
-      {loading ? <div style={{ padding: 18, color: 'rgba(0,0,0,0.6)', fontSize: 13 }}>Chargement du PDF…</div> : null}
+      {loading ? (
+        <div style={{ padding: 18, color: 'rgba(0,0,0,0.6)', fontSize: 13 }}>Chargement du PDF…</div>
+      ) : null}
 
       {error ? (
         <div style={{ padding: 18, color: '#b91c1c', fontSize: 13 }}>
           <div>Aperçu PDF impossible: {error}</div>
-          <div style={{ marginTop: 10, color: 'rgba(0,0,0,0.65)' }}>Tu peux quand même ouvrir/télécharger le PDF :</div>
+          <div style={{ marginTop: 10, color: 'rgba(0,0,0,0.65)' }}>
+            En attendant, tu peux ouvrir/télécharger le PDF ici :
+          </div>
           <div style={{ marginTop: 10, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             <a className="btn btn-secondary" href={url} target="_blank" rel="noreferrer">
               Ouvrir le PDF
