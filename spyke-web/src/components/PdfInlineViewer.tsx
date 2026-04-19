@@ -34,7 +34,7 @@ export default function PdfInlineViewer({ url }: PdfInlineViewerProps) {
 
         // Lazy-load pdf.js
         // Note: with Next + ESM, use dynamic import.
-        const pdfjs = await import('pdfjs-dist')
+        const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs')
 
         // Set worker locally (same pdf.js version) to satisfy pdf.js even if the worker is disabled.
         // This avoids CDN fetches and fixes "No GlobalWorkerOptions.workerSrc specified".
