@@ -22,7 +22,6 @@ export default function PdfInlineViewer({ url }: PdfInlineViewerProps) {
   useEffect(() => {
     let cancelled = false
     let revokeObjectUrl: string | null = null
-    let workerToTerminate: Worker | null = null
 
     ;(async () => {
       try {
@@ -37,26 +36,12 @@ export default function PdfInlineViewer({ url }: PdfInlineViewerProps) {
         // Note: with Next + ESM, use dynamic import.
         const pdfjs = await import('pdfjs-dist')
 
-        // Prefer bundler-managed module worker (most reliable across browsers)
-        // Fallback to public/ worker if Worker+module isn't available.
-        try {
-          if (typeof Worker !== 'undefined') {
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
-            workerToTerminate = new Worker(new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url), { type: 'module' })
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
-            pdfjs.GlobalWorkerOptions.workerPort = workerToTerminate
-          } else {
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
-            pdfjs.GlobalWorkerOptions.workerSrc = `/vendor/pdfjs/pdf.worker.min.mjs`
-          }
-        } catch {
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore
-          pdfjs.GlobalWorkerOptions.workerSrc = `/vendor/pdfjs/pdf.worker.min.mjs`
-        }
+        // Set worker locally (avoid CDN blocks/CSP/adblock issues)
+        // NOTE: copied from node_modules/pdfjs-dist/build/pdf.worker.min.mjs
+        // into public/vendor/pdfjs/pdf.worker.min.mjs
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        pdfjs.GlobalWorkerOptions.workerSrc = `/vendor/pdfjs/pdf.worker.min.mjs`
 
         // Fetch PDF bytes ourselves to avoid CORS surprises and to support blob: URLs.
         let pdfUrl = url
@@ -121,9 +106,6 @@ export default function PdfInlineViewer({ url }: PdfInlineViewerProps) {
       cancelled = true
       try {
         if (revokeObjectUrl) URL.revokeObjectURL(revokeObjectUrl)
-      } catch {}
-      try {
-        workerToTerminate?.terminate?.()
       } catch {}
     }
   }, [url, isMobile])
