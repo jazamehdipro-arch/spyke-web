@@ -117,9 +117,16 @@ export default function PdfInlineViewer({ url }: PdfInlineViewerProps) {
       {loading ? (
         <div style={{ padding: 18, color: 'rgba(0,0,0,0.6)', fontSize: 13 }}>Chargement du PDF…</div>
       ) : null}
+
       {error ? (
         <div style={{ padding: 18, color: '#b91c1c', fontSize: 13 }}>
-          Aperçu PDF impossible: {error}
+          <div>Aperçu PDF impossible: {error}</div>
+          <div style={{ marginTop: 10, color: 'rgba(0,0,0,0.65)' }}>
+            Affichage du PDF via le viewer du navigateur (les boutons en bas restent disponibles).
+          </div>
+          <div style={{ marginTop: 12, borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(0,0,0,0.10)', background: '#fff', height: 'min(70vh, 820px)' }}>
+            <iframe title="Aperçu PDF" src={url} style={{ width: '100%', height: '100%', border: 0 }} />
+          </div>
         </div>
       ) : null}
 
