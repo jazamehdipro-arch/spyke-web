@@ -4195,18 +4195,29 @@ Contrat généré par Spyke — spykeapp.fr — L’assistant IA des freelances 
               ? Number(pricingAmount || 0)
               : Number(pricingAmount || 0) * Number(pricingDays || 0)
 
-          // Uniqueness check: number must be unique per user
-          const { data: existing, error: existingErr } = await supabase
-            .from('contracts')
-            .select('id')
-            .eq('user_id', userId)
-            .eq('number', contractNumber)
-            .maybeSingle()
-          if (existingErr) throw existingErr
-
           const currentId = String(selectedContractIdRef.current || selectedContractId || '')
-          if (existing?.id && String(existing.id) !== currentId) {
-            throw new Error('Numéro de contrat déjà utilisé')
+
+          // Uniqueness check: number must be unique per user.
+          // IMPORTANT: when reopening an existing contract, always update by id (do not create a new row).
+          if (currentId) {
+            const { data: clash, error: clashErr } = await supabase
+              .from('contracts')
+              .select('id')
+              .eq('user_id', userId)
+              .eq('number', contractNumber)
+              .neq('id', currentId)
+              .maybeSingle()
+            if (clashErr) throw clashErr
+            if (clash?.id) throw new Error('Numéro de contrat déjà utilisé')
+          } else {
+            const { data: existing, error: existingErr } = await supabase
+              .from('contracts')
+              .select('id')
+              .eq('user_id', userId)
+              .eq('number', contractNumber)
+              .maybeSingle()
+            if (existingErr) throw existingErr
+            if (existing?.id) throw new Error('Numéro de contrat déjà utilisé')
           }
 
           const row = {
@@ -4237,8 +4248,8 @@ Contrat généré par Spyke — spykeapp.fr — L’assistant IA des freelances 
             },
           } as any
 
-          if (existing?.id) {
-            const { error: updErr } = await supabase.from('contracts').update(row).eq('id', existing.id)
+          if (currentId) {
+            const { error: updErr } = await supabase.from('contracts').update(row).eq('id', currentId)
             if (updErr) throw updErr
           } else {
             const { data: insData, error: insErr } = await supabase.from('contracts').insert(row).select('id').single()
