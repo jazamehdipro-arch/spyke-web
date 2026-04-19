@@ -6846,7 +6846,6 @@ export default function AppHtmlPage() {
 
   // Settings UI
   const [settingsTab, setSettingsTab] = useState<'abonnement' | 'profil' | 'gmail' | 'signature' | 'feedback' | 'compte'>('profil')
-  const [settingsQuery, setSettingsQuery] = useState<string>('')
 
   const tourSteps = useMemo(
     () =>
@@ -11693,16 +11692,7 @@ CONTEXTE UTILISATEUR :
               <div style={{ position: 'sticky', top: 14, alignSelf: 'start' }}>
                 {/* Mobile selector */}
                 <div style={{ display: 'none' }} className="settings-mobile-only">
-                  <label style={{ fontSize: 12, color: 'var(--gray-600)', fontWeight: 800 }}>Rechercher</label>
-                  <input
-                    className="form-input"
-                    value={settingsQuery}
-                    onChange={(e) => setSettingsQuery(e.target.value)}
-                    placeholder="Ex: Gmail, signature, abonnement…"
-                    style={{ marginTop: 6 }}
-                  />
-
-                  <label style={{ fontSize: 12, color: 'var(--gray-600)', fontWeight: 800, marginTop: 12, display: 'block' }}>Section</label>
+                  <label style={{ fontSize: 12, color: 'var(--gray-600)', fontWeight: 800 }}>Section</label>
                   <select
                     className="form-select"
                     value={settingsTab}
@@ -11719,41 +11709,21 @@ CONTEXTE UTILISATEUR :
                 </div>
 
                 {/* Desktop nav */}
-                <div className="settings-desktop-only" style={{ display: 'grid', gap: 10 }}>
-                  <div>
-                    <div style={{ fontSize: 12, color: 'var(--gray-600)', fontWeight: 900, marginBottom: 6 }}>Rechercher</div>
-                    <input
-                      className="form-input"
-                      value={settingsQuery}
-                      onChange={(e) => setSettingsQuery(e.target.value)}
-                      placeholder="Ex: profil, Gmail, signature, Stripe…"
-                    />
-                  </div>
-
+                <div className="settings-desktop-only" style={{ display: 'grid', gap: 8 }}>
                   {(
                     [
-                      { key: 'profil', label: 'Profil', desc: 'Identité, entreprise, préférences', keywords: ['nom', 'prénom', 'adresse', 'siret', 'tva', 'iban', 'bic', 'email'] },
-                      { key: 'gmail', label: 'Emails', desc: 'Connexion Gmail & envoi depuis Spyke', keywords: ['gmail', 'email', 'smtp', 'envoi'] },
-                      { key: 'signature', label: 'Documents', desc: 'Signature & éléments de tes PDF', keywords: ['signature', 'pdf', 'facture', 'devis', 'contrat'] },
-                      { key: 'abonnement', label: 'Abonnement', desc: 'Plan, facturation, Stripe', keywords: ['stripe', 'plan', 'paiement', 'facturation', 'pro'] },
-                      { key: 'feedback', label: 'Aide & feedback', desc: 'Guide, idées, bugs', keywords: ['aide', 'guide', 'bug', 'idée', 'feedback'] },
-                      { key: 'compte', label: 'Compte', desc: 'Sécurité, déconnexion', keywords: ['déconnexion', 'logout', 'sécurité', 'compte'] },
-                    ] as Array<{ key: typeof settingsTab; label: string; desc: string; keywords: string[] }>
-                  )
-                    .filter((t) => {
-                      const q = String(settingsQuery || '').trim().toLowerCase()
-                      if (!q) return true
-                      const hay = `${t.label} ${t.desc} ${(t.keywords || []).join(' ')}`.toLowerCase()
-                      return hay.includes(q)
-                    })
-                    .map((t) => (
+                      { key: 'profil', label: 'Profil', desc: 'Identité, entreprise, préférences' },
+                      { key: 'gmail', label: 'Emails', desc: 'Connexion Gmail & envoi depuis Spyke' },
+                      { key: 'signature', label: 'Documents', desc: 'Signature & éléments de tes PDF' },
+                      { key: 'abonnement', label: 'Abonnement', desc: 'Plan, facturation, Stripe' },
+                      { key: 'feedback', label: 'Aide & feedback', desc: 'Guide, idées, bugs' },
+                      { key: 'compte', label: 'Compte', desc: 'Sécurité, déconnexion' },
+                    ] as Array<{ key: typeof settingsTab; label: string; desc: string }>
+                  ).map((t) => (
                     <button
                       key={t.key}
                       type="button"
-                      onClick={() => {
-                        setSettingsTab(t.key)
-                        if (settingsQuery) setSettingsQuery('')
-                      }}
+                      onClick={() => setSettingsTab(t.key)}
                       style={{
                         textAlign: 'left',
                         padding: '12px 12px',
@@ -12193,116 +12163,89 @@ CONTEXTE UTILISATEUR :
                 Ces informations servent à pré-remplir automatiquement tes documents et personnaliser les recommandations.
               </div>
 
-              <details open style={{ marginTop: 12, border: '1px solid rgba(0,0,0,0.08)', borderRadius: 16, padding: 12, background: '#fff' }}>
-                <summary style={{ cursor: 'pointer', fontWeight: 950, listStyle: 'none' }}>Identité</summary>
-                <div style={{ marginTop: 12 }}>
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label className="form-label">Prénom</label>
-                      <input className="form-input" value={settingsFirstName} onChange={(e) => setSettingsFirstName(e.target.value)} />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">Nom</label>
-                      <input className="form-input" value={settingsLastName} onChange={(e) => setSettingsLastName(e.target.value)} />
-                    </div>
-                  </div>
-
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label className="form-label">Ton email par défaut</label>
-                      <input className="form-input" value={settingsEmailTone} onChange={(e) => setSettingsEmailTone(e.target.value)} placeholder="professionnel / chaleureux / formel" />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">Métier</label>
-                      <input className="form-input" value={settingsJob} onChange={(e) => setSettingsJob(e.target.value)} placeholder="Ex: Développeur" />
-                    </div>
-                  </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label">Prénom</label>
+                  <input className="form-input" value={settingsFirstName} onChange={(e) => setSettingsFirstName(e.target.value)} />
                 </div>
-              </details>
-
-              <details style={{ marginTop: 12, border: '1px solid rgba(0,0,0,0.08)', borderRadius: 16, padding: 12, background: '#fff' }}>
-                <summary style={{ cursor: 'pointer', fontWeight: 950, listStyle: 'none' }}>Activité</summary>
-                <div style={{ marginTop: 12 }}>
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label className="form-label">Entreprise (optionnel)</label>
-                      <input className="form-input" value={settingsCompanyName} onChange={(e) => setSettingsCompanyName(e.target.value)} placeholder="Nom de l'entreprise" />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">Expérience (années)</label>
-                      <input className="form-input" value={settingsExperienceYears} onChange={(e) => setSettingsExperienceYears(e.target.value)} placeholder="Ex: 5" />
-                    </div>
-                  </div>
-
-                  <div className="form-row single">
-                    <div className="form-group">
-                      <label className="form-label">Compétences</label>
-                      <input className="form-input" value={settingsSkills} onChange={(e) => setSettingsSkills(e.target.value)} placeholder="Ex: React, Next.js, Stripe" />
-                    </div>
-                  </div>
+                <div className="form-group">
+                  <label className="form-label">Nom</label>
+                  <input className="form-input" value={settingsLastName} onChange={(e) => setSettingsLastName(e.target.value)} />
                 </div>
-              </details>
+              </div>
 
-              <details style={{ marginTop: 12, border: '1px solid rgba(0,0,0,0.08)', borderRadius: 16, padding: 12, background: '#fff' }}>
-                <summary style={{ cursor: 'pointer', fontWeight: 950, listStyle: 'none' }}>Coordonnées</summary>
-                <div style={{ marginTop: 12 }}>
-                  <div className="form-row single">
-                    <div className="form-group">
-                      <label className="form-label">Adresse</label>
-                      <input className="form-input" value={settingsAddress} onChange={(e) => setSettingsAddress(e.target.value)} placeholder="12 rue de la Paix" />
-                    </div>
-                  </div>
-
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label className="form-label">Code postal</label>
-                      <input className="form-input" value={settingsPostalCode} onChange={(e) => setSettingsPostalCode(e.target.value)} placeholder="75000" />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">Ville</label>
-                      <input className="form-input" value={settingsCity} onChange={(e) => setSettingsCity(e.target.value)} placeholder="Paris" />
-                    </div>
-                  </div>
-
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label className="form-label">Pays</label>
-                      <input className="form-input" value={settingsCountry} onChange={(e) => setSettingsCountry(e.target.value)} placeholder="France" />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">SIRET</label>
-                      <input className="form-input" value={settingsSiret} onChange={(e) => setSettingsSiret(e.target.value)} placeholder="" />
-                    </div>
-                  </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label">Entreprise (optionnel)</label>
+                  <input className="form-input" value={settingsCompanyName} onChange={(e) => setSettingsCompanyName(e.target.value)} placeholder="Nom de l'entreprise" />
                 </div>
-              </details>
-
-              <details style={{ marginTop: 12, border: '1px solid rgba(0,0,0,0.08)', borderRadius: 16, padding: 12, background: '#fff' }}>
-                <summary style={{ cursor: 'pointer', fontWeight: 950, listStyle: 'none' }}>Paiement & facturation</summary>
-                <div style={{ marginTop: 12 }}>
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label className="form-label">N° TVA (optionnel)</label>
-                      <input className="form-input" value={settingsVatNumber} onChange={(e) => setSettingsVatNumber(e.target.value)} placeholder="FR…" />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">IBAN (optionnel)</label>
-                      <input className="form-input" value={settingsIban} onChange={(e) => setSettingsIban(e.target.value)} placeholder="" />
-                    </div>
-                  </div>
-
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label className="form-label">BIC (optionnel)</label>
-                      <input className="form-input" value={settingsBic} onChange={(e) => setSettingsBic(e.target.value)} placeholder="" />
-                    </div>
-                    <div className="form-group">
-                      <div style={{ fontSize: 12, color: 'var(--gray-500)', fontWeight: 800, marginTop: 4 }}> </div>
-                      <div style={{ fontSize: 12, color: 'var(--gray-500)' }}>Ces infos peuvent apparaître sur tes documents (selon le modèle).</div>
-                    </div>
-                  </div>
+                <div className="form-group">
+                  <label className="form-label">Métier</label>
+                  <input className="form-input" value={settingsJob} onChange={(e) => setSettingsJob(e.target.value)} placeholder="Ex: Développeur" />
                 </div>
-              </details>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label">Expérience (années)</label>
+                  <input className="form-input" value={settingsExperienceYears} onChange={(e) => setSettingsExperienceYears(e.target.value)} placeholder="Ex: 5" />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Compétences</label>
+                  <input className="form-input" value={settingsSkills} onChange={(e) => setSettingsSkills(e.target.value)} placeholder="Ex: React, Next.js, Stripe" />
+                </div>
+              </div>
+
+              <div className="form-row single">
+                <div className="form-group">
+                  <label className="form-label">Adresse</label>
+                  <input className="form-input" value={settingsAddress} onChange={(e) => setSettingsAddress(e.target.value)} placeholder="12 rue de la Paix" />
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label">Code postal</label>
+                  <input className="form-input" value={settingsPostalCode} onChange={(e) => setSettingsPostalCode(e.target.value)} placeholder="75000" />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Ville</label>
+                  <input className="form-input" value={settingsCity} onChange={(e) => setSettingsCity(e.target.value)} placeholder="Paris" />
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label">Pays</label>
+                  <input className="form-input" value={settingsCountry} onChange={(e) => setSettingsCountry(e.target.value)} placeholder="France" />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">SIRET</label>
+                  <input className="form-input" value={settingsSiret} onChange={(e) => setSettingsSiret(e.target.value)} placeholder="" />
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label">N° TVA (optionnel)</label>
+                  <input className="form-input" value={settingsVatNumber} onChange={(e) => setSettingsVatNumber(e.target.value)} placeholder="FR…" />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Ton email par défaut</label>
+                  <input className="form-input" value={settingsEmailTone} onChange={(e) => setSettingsEmailTone(e.target.value)} placeholder="professionnel / chaleureux / formel" />
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label">IBAN (optionnel)</label>
+                  <input className="form-input" value={settingsIban} onChange={(e) => setSettingsIban(e.target.value)} placeholder="" />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">BIC (optionnel)</label>
+                  <input className="form-input" value={settingsBic} onChange={(e) => setSettingsBic(e.target.value)} placeholder="" />
+                </div>
+              </div>
 
               <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 12 }}>
                 <button
