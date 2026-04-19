@@ -36,9 +36,14 @@ export default function PdfInlineViewer({ url }: PdfInlineViewerProps) {
         // Note: with Next + ESM, use dynamic import.
         const pdfjs = await import('pdfjs-dist')
 
-        // Intentionally do NOT set pdf.js workerSrc.
-        // Worker fetching can be blocked (CSP/adblock/CDN), and we run with disableWorker=true below.
-        // Keeping this empty avoids any attempt to fetch from a CDN.
+        // Set worker (CDN). This avoids bundling worker hassles.
+        // Version must match installed pdfjs-dist version.
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        const version = (pdfjs as any)?.version || '5.4.624'
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${version}/pdf.worker.min.js`
 
         // Fetch PDF bytes ourselves to avoid CORS surprises and to support blob: URLs.
         let pdfUrl = url
