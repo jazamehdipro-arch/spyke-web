@@ -9194,11 +9194,6 @@ CONTEXTE UTILISATEUR :
           .assistant-history-list {
             grid-template-columns: 1fr;
           }
-
-          /* Settings responsive */
-          .settings-desktop-only { display: none !important; }
-          .settings-mobile-only { display: block !important; }
-          .settings-layout { grid-template-columns: 1fr !important; }
         }
 
         .assistant-main {
@@ -11694,7 +11689,7 @@ CONTEXTE UTILISATEUR :
           </div>
           <div className="card">
             {/* Settings layout (modern) */}
-            <div className="settings-layout" style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: 16, padding: 14 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: 16, padding: 14 }}>
               <div style={{ position: 'sticky', top: 14, alignSelf: 'start' }}>
                 {/* Mobile selector */}
                 <div style={{ display: 'none' }} className="settings-mobile-only">
@@ -11774,6 +11769,13 @@ CONTEXTE UTILISATEUR :
                   ))}
                 </div>
 
+                <style jsx>{`
+                  @media (max-width: 900px) {
+                    .settings-desktop-only { display: none !important; }
+                    .settings-mobile-only { display: block !important; }
+                    div[style*="grid-template-columns: 260px 1fr"] { grid-template-columns: 1fr !important; }
+                  }
+                `}</style>
               </div>
 
               <div style={{ minWidth: 0 }}>
