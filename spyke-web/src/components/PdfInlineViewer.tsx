@@ -34,10 +34,10 @@ export default function PdfInlineViewer({ url }: PdfInlineViewerProps) {
 
         // Lazy-load pdf.js
         // Note: with Next + ESM, use dynamic import.
-        const pdfjs = await import('pdfjs-dist')
+        const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs')
 
         // Set worker locally to avoid CDN blocks / CSP / adblock issues.
-        // File copied from node_modules/pdfjs-dist/build/pdf.worker.min.mjs
+        // File copied from node_modules/pdfjs-dist/legacy/build/pdf.worker.min.mjs
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
         pdfjs.GlobalWorkerOptions.workerSrc = `/vendor/pdfjs/pdf.worker.min.mjs`
