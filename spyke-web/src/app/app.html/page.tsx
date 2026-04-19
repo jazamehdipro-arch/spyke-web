@@ -74,7 +74,7 @@ function ModalShell({
           </button>
         </div>
 
-        <div style={{ flex: 1, background: '#f8fafc' }}>{children}</div>
+        <div style={{ flex: 1, minHeight: 0, background: '#f8fafc' }}>{children}</div>
 
         {footer ? (
           <div style={{ padding: 12, borderTop: '1px solid rgba(0,0,0,0.08)', background: '#fff' }}>{footer}</div>
