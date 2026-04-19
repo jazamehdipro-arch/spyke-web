@@ -11687,35 +11687,69 @@ CONTEXTE UTILISATEUR :
             </div>
           </div>
           <div className="card">
-            {/* Settings tabs */}
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', padding: '14px 14px 0' }}>
-              {(
-                [
-                  { key: 'abonnement', label: 'Abonnement' },
-                  { key: 'profil', label: 'Profil' },
-                  { key: 'gmail', label: 'Gmail' },
-                  { key: 'signature', label: 'Signature' },
-                  { key: 'feedback', label: 'Feedback' },
-                  { key: 'compte', label: 'Compte' },
-                ] as Array<{ key: typeof settingsTab; label: string }>
-              ).map((t) => (
-                <button
-                  key={t.key}
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={() => setSettingsTab(t.key)}
-                  style={{
-                    padding: '10px 12px',
-                    borderRadius: 999,
-                    border: settingsTab === t.key ? '2px solid rgba(0,0,0,0.18)' : '2px solid rgba(0,0,0,0.12)',
-                    background: settingsTab === t.key ? 'var(--gray-100)' : 'var(--white)',
-                    fontWeight: 900,
-                  }}
-                >
-                  {t.label}
-                </button>
-              ))}
-            </div>
+            {/* Settings layout (modern) */}
+            <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: 16, padding: 14 }}>
+              <div style={{ position: 'sticky', top: 14, alignSelf: 'start' }}>
+                {/* Mobile selector */}
+                <div style={{ display: 'none' }} className="settings-mobile-only">
+                  <label style={{ fontSize: 12, color: 'var(--gray-600)', fontWeight: 800 }}>Section</label>
+                  <select
+                    className="form-select"
+                    value={settingsTab}
+                    onChange={(e) => setSettingsTab(e.target.value as any)}
+                    style={{ marginTop: 6 }}
+                  >
+                    <option value="profil">Profil</option>
+                    <option value="gmail">Emails (Gmail)</option>
+                    <option value="signature">Documents</option>
+                    <option value="abonnement">Abonnement</option>
+                    <option value="feedback">Aide & feedback</option>
+                    <option value="compte">Compte</option>
+                  </select>
+                </div>
+
+                {/* Desktop nav */}
+                <div className="settings-desktop-only" style={{ display: 'grid', gap: 8 }}>
+                  {(
+                    [
+                      { key: 'profil', label: 'Profil', desc: 'Identité, entreprise, préférences' },
+                      { key: 'gmail', label: 'Emails', desc: 'Connexion Gmail & envoi depuis Spyke' },
+                      { key: 'signature', label: 'Documents', desc: 'Signature & éléments de tes PDF' },
+                      { key: 'abonnement', label: 'Abonnement', desc: 'Plan, facturation, Stripe' },
+                      { key: 'feedback', label: 'Aide & feedback', desc: 'Guide, idées, bugs' },
+                      { key: 'compte', label: 'Compte', desc: 'Sécurité, déconnexion' },
+                    ] as Array<{ key: typeof settingsTab; label: string; desc: string }>
+                  ).map((t) => (
+                    <button
+                      key={t.key}
+                      type="button"
+                      onClick={() => setSettingsTab(t.key)}
+                      style={{
+                        textAlign: 'left',
+                        padding: '12px 12px',
+                        borderRadius: 14,
+                        border: settingsTab === t.key ? '2px solid rgba(0,0,0,0.18)' : '1px solid rgba(0,0,0,0.10)',
+                        background: settingsTab === t.key ? 'var(--gray-50)' : '#fff',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <div style={{ fontWeight: 950, fontSize: 14 }}>{t.label}</div>
+                      <div style={{ marginTop: 2, fontSize: 12, color: 'var(--gray-600)', lineHeight: 1.35 }}>{t.desc}</div>
+                    </button>
+                  ))}
+                </div>
+
+                <style jsx>{`
+                  @media (max-width: 900px) {
+                    .settings-desktop-only { display: none !important; }
+                    .settings-mobile-only { display: block !important; }
+                    div[style*="grid-template-columns: 260px 1fr"] { grid-template-columns: 1fr !important; }
+                  }
+                `}</style>
+              </div>
+
+              <div style={{ minWidth: 0 }}>
+
             {settingsTab === 'abonnement' ? (
             <div className="form-section" style={{ marginTop: 14 }}>
               <div className="form-section-title">Abonnement</div>
@@ -11845,7 +11879,9 @@ CONTEXTE UTILISATEUR :
                 )}
               </div>
               <div style={{ marginTop: 14, fontSize: 13, color: 'var(--gray-500)' }}>
-                Free : 10 emails IA / mois, 3 devis / mois, 3 factures / mois, 3 contrats / mois, 3 clients max.
+                Compte gratuit : <b>3</b> emails Assistant mail, <b>2</b> devis, <b>2</b> factures (quotas à vie).
+                <br />
+                Contrats : génération possible en gratuit mais avec filigrane <b>Spyke Pro</b>.
                 <br />
                 Pro : illimité.
               </div>
@@ -12280,6 +12316,8 @@ CONTEXTE UTILISATEUR :
             ) : null}
           </div>
         </div>
+      </div>
+    </div>
       </main>
 
       {/* Feedback survey modal */}
