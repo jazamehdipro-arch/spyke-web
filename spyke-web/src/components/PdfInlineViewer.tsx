@@ -57,7 +57,9 @@ export default function PdfInlineViewer({ url }: PdfInlineViewerProps) {
 
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
-        const loadingTask = pdfjs.getDocument({ data: ab })
+        // Disable worker to avoid workerSrc fetch failures (CDN/CSP/adblock) while keeping the same UI.
+        // This runs pdf.js on the main thread; acceptable for small docs and avoids regressions.
+        const loadingTask = pdfjs.getDocument({ data: ab, disableWorker: true })
         const doc = await loadingTask.promise
 
         // Render pages
