@@ -35,7 +35,8 @@ export default function PdfInlineViewer({ url }: PdfInlineViewerProps) {
 
         // Lazy-load pdf.js
         // Note: with Next + ESM, use dynamic import.
-        const pdfjs = await import('pdfjs-dist')
+        // Use legacy build for maximum compatibility across browsers.
+        const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs')
 
         // Prefer bundler-managed module worker (most reliable across browsers)
         // Fallback to public/ worker if Worker+module isn't available.
@@ -43,7 +44,7 @@ export default function PdfInlineViewer({ url }: PdfInlineViewerProps) {
           if (typeof Worker !== 'undefined') {
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
-            workerToTerminate = new Worker(new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url), { type: 'module' })
+            workerToTerminate = new Worker(new URL('pdfjs-dist/legacy/build/pdf.worker.min.mjs', import.meta.url), { type: 'module' })
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
             pdfjs.GlobalWorkerOptions.workerPort = workerToTerminate
@@ -138,16 +139,12 @@ export default function PdfInlineViewer({ url }: PdfInlineViewerProps) {
         <div style={{ padding: 18, color: '#b91c1c', fontSize: 13 }}>
           <div>Aperçu PDF impossible: {error}</div>
           <div style={{ marginTop: 10, color: 'rgba(0,0,0,0.65)' }}>
-            On affiche un aperçu compatible (viewer du navigateur).
+            En attendant, tu peux ouvrir/télécharger le PDF ici :
           </div>
           <div style={{ marginTop: 10, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             <a className="btn btn-secondary" href={url} target="_blank" rel="noreferrer">
               Ouvrir le PDF
             </a>
-          </div>
-
-          <div style={{ marginTop: 14, borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(0,0,0,0.10)', background: '#fff', height: 'min(70vh, 820px)' }}>
-            <iframe title="Aperçu PDF" src={url} style={{ width: '100%', height: '100%', border: 0 }} />
           </div>
         </div>
       ) : null}
