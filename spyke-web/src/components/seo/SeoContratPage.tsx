@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import PdfInlineViewer from '@/components/PdfInlineViewer'
+import { buildCanonicalContractText } from '@/lib/buildCanonicalContractText'
 
 function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob)
@@ -31,69 +32,92 @@ function writeCount(key: string, value: number) {
   }
 }
 
-function buildContractText(params: {
-  title: string
-  date: string
-  contractNumber: string
-  sellerName: string
-  sellerSiret: string
-  sellerAddress: string
-  buyerName: string
-  buyerSiret: string
-  buyerAddress: string
-  missionDescription: string
-  deliverables: string
-  pricingType: string
-  pricingAmount: string
-  paymentSchedule: string
-  paymentDelay: string
-  termination: string
-}) {
-  const p = params
-  const safe = (s: string) => String(s || '').trim()
+function formatDateFr(d: string) {
+  const s = String(d || '').trim()
+  // Input from <input type="date"> is YYYY-MM-DD
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+  if (m) return `${m[3]}/${m[2]}/${m[1]}`
+  return s
+}
 
-  return [
-    'CONTRAT DE PRESTATION DE SERVICES',
-    '',
-    safe(p.title) ? `Titre : ${safe(p.title)}` : null,
-    safe(p.contractNumber) ? `Numéro : ${safe(p.contractNumber)}` : null,
-    safe(p.date) ? `Date : ${safe(p.date)}` : null,
-    '',
-    'Entre les soussignés :',
-    `- Prestataire : ${safe(p.sellerName) || 'Le prestataire'}${safe(p.sellerSiret) ? ` (SIRET : ${safe(p.sellerSiret)})` : ''}${safe(p.sellerAddress) ? `, ${safe(p.sellerAddress)}` : ''}`,
-    `- Client : ${safe(p.buyerName) || 'Le client'}${safe(p.buyerSiret) ? ` (SIRET : ${safe(p.buyerSiret)})` : ''}${safe(p.buyerAddress) ? `, ${safe(p.buyerAddress)}` : ''}`,
-    '',
-    '1. Objet',
-    "Le présent contrat a pour objet la réalisation des prestations décrites ci-dessous.",
-    '',
-    '2. Prestations',
-    safe(p.missionDescription) ? safe(p.missionDescription) : 'Décrire la mission, le périmètre, les modalités et les délais.',
-    safe(p.deliverables) ? `\nLivrables attendus :\n${safe(p.deliverables)}` : null,
-    '',
-    '3. Prix et paiement',
-    safe(p.pricingType) || safe(p.pricingAmount)
-      ? `Prix : ${[safe(p.pricingType), safe(p.pricingAmount)].filter(Boolean).join(' - ')}`
-      : 'Prix : À définir',
-    safe(p.paymentSchedule) ? `Échéancier : ${safe(p.paymentSchedule)}` : null,
-    safe(p.paymentDelay) ? `Délai de paiement : ${safe(p.paymentDelay)}` : null,
-    '',
-    '4. Propriété intellectuelle',
-    'Préciser les droits cédés, les conditions et le périmètre de cession (le cas échéant).',
-    '',
-    '5. Confidentialité',
-    "Chaque partie s'engage à garder confidentielles les informations échangées.",
-    '',
-    '6. Résiliation',
-    safe(p.termination) ? safe(p.termination) : 'Préciser les conditions de résiliation et ses conséquences (facturation, restitution, etc.).',
-    '',
-    'Fait à ________, le ________.',
-    '',
-    'Signatures :',
-    'Prestataire : ____________________',
-    'Client : ____________________',
-  ]
-    .filter((x) => x !== null)
-    .join('\n')
+function buildContractText() {
+  // Must match the canonical contract text used in the app tool.
+  // We only replace bracket placeholders (filled in the PDF template engine).
+  return `SPYKE
+CONTRAT DE PRESTATION DE SERVICES
+N° [NUMÉRO DU CONTRAT]
+ENTRE LES SOUSSIGNÉS :
+LE PRESTATAIRE
+[Madame/Monsieur] [PRÉNOM NOM],
+inscrit(e) à l’INSEE sous le numéro SIRET
+[NUMÉRO SIRET], dont le domicile
+professionnel est situé au [ADRESSE
+PRESTATAIRE].
+Ci-après dénommé(e) « le PRESTATAIRE »
+LE CLIENT
+[Forme sociale (SARL, SAS, etc.)], au
+capital de [MONTANT] euros, immatriculée
+au RCS de [VILLE RCS] sous le numéro
+[NUMÉRO RCS], dont le siège social est
+situé au [ADRESSE CLIENT], représentée
+par [Madame/Monsieur PRÉNOM NOM], en
+qualité de [FONCTION], dûment habilité(e) à
+cet effet.
+Ci-après dénommé(e) « le CLIENT »
+Ensemble dénommées les « PARTIES » ou individuellement la « PARTIE ».
+ARTICLE 1 — PRÉAMBULE
+Le texte ci-dessous est un exemple de préambule. Lors de la génération du contrat, ce paragraphe sera remplacé par
+le contexte réel de la mission.
+Dans le cadre de [DÉCRIRE LE PROJET DU CLIENT], le CLIENT souhaite faire appel à un prestataire
+indépendant afin de [DÉCRIRE L'OBJECTIF DE LA MISSION].
+Le PRESTATAIRE a déclaré disposer des compétences particulières requises pour répondre aux
+besoins du CLIENT et qu’il intervient régulièrement et de manière significative auprès de nombreuses
+entreprises dont les besoins et les exigences sont similaires à ceux du CLIENT.
+Les PARTIES ont eu l’occasion d’échanger sur le sujet et de poser toutes les questions utiles, en ont
+obtenu toutes les réponses et ont ainsi pu s’assurer des éléments déterminants attendus du CLIENT.
+C’est dans ce contexte que les Parties se sont réunies afin de préciser au sein du présent contrat,
+ci-après le « Contrat », les conditions dans lesquelles le PRESTATAIRE fournira ses prestations au
+CLIENT.
+ARTICLE 2 — DURÉE DU CONTRAT
+Le Contrat prendra effet le [DATE DÉBUT] et se terminera de plein droit le [DATE FIN], ci-après la «
+Période Contractuelle ».
+À l’expiration de la Période Contractuelle, le Contrat prendra fin automatiquement sans qu’aucune
+formalité ne soit nécessaire, sauf accord écrit des deux Parties pour son renouvellement.
+ARTICLE 3 — OBLIGATIONS DU PRESTATAIRE
+3.1 — Prestations
+En contrepartie du prix ferme et certain visé à l’article 4, le PRESTATAIRE s’engage à effectuer les
+prestations visées dans le devis et/ou la proposition commerciale figurant à l’annexe 1 des présentes,
+comprenant notamment :
+- [Description de la prestation 1]
+- [Description de la prestation 2]
+- [Description de la prestation 3]
+Le PRESTATAIRE inclut [NOMBRE] tour(s) de révisions dans le cadre de la présente mission ; toute
+demande de modification supplémentaire au-delà de ce nombre fera l’objet d’un devis complémentaire
+accepté par le CLIENT préalablement à sa réalisation.
+ARTICLE 4 — CONDITIONS FINANCIÈRES
+4.1 — Prix
+En contrepartie de la réalisation des prestations visées à l’article 3 des présentes, le CLIENT s’engage à
+verser une somme forfaitaire au profit du PRESTATAIRE dont le montant s’élève inconditionnellement et
+invariablement à [MONTANT] € HT ([PRIX EN LETTRES] euros hors taxe), ci-après le « Prix ».
+4.2 — Modalités de paiement
+Le PRESTATAIRE facturera le CLIENT selon les conditions financières suivantes :
+Échéance % du Prix Montant HT Date
+Acompte [%] [MONTANT] € [DATE]
+Solde [%] [MONTANT] € [DATE]
+La facture sera réglée par le CLIENT par virement bancaire sur le compte du PRESTATAIRE à [30
+JOURS / 45 JOURS / 60 JOURS] fin de mois à compter de la date d’émission de la facture originale
+conforme envoyée par le PRESTATAIRE.
+Adresse de facturation : [ADRESSE DE FACTURATION DU PRESTATAIRE]
+ARTICLE 5 — PROPRIÉTÉ INTELLECTUELLE
+[CESSION APRÈS PAIEMENT / LICENCE D'UTILISATION / CESSION TOTALE]
+ARTICLE 6 — CONFIDENTIALITÉ
+[OUI / NON]
+ARTICLE 7 — RÉSILIATION
+[PRÉAVIS 15 JOURS / 30 JOURS / SANS PRÉAVIS]
+Fait à ____________________, le ____________________.
+Signatures :
+Le PRESTATAIRE : ____________________
+Le CLIENT : ____________________`
 }
 
 export default function SeoContratPage() {
@@ -102,7 +126,7 @@ export default function SeoContratPage() {
 
   const [pdfCount, setPdfCount] = useState(0)
 
-  const [title, setTitle] = useState('Contrat de prestation de services')
+  const [title, setTitle] = useState('Contrat de prestation de service')
   const [date, setDate] = useState(today)
   const [contractNumber, setContractNumber] = useState('')
 
@@ -153,41 +177,55 @@ export default function SeoContratPage() {
 
   useEffect(() => {
     setContractText(
-      buildContractText({
-        title,
-        date,
+      buildCanonicalContractText({
         contractNumber,
-        sellerName,
-        sellerSiret,
-        sellerAddress,
-        buyerName,
-        buyerSiret,
-        buyerAddress,
-        missionDescription,
-        deliverables: missionDeliverables,
-        pricingType,
-        pricingAmount,
+        seller: {
+          name: sellerName,
+          siret: sellerSiret,
+          address: sellerAddress,
+          activity: sellerActivity,
+          email: sellerEmail,
+        },
+        buyer: {
+          name: buyerName,
+          representant: buyerRepresentant,
+          address: buyerAddress,
+        },
+        mission: {
+          startDate: formatDateFr(missionStartDate) || missionStartDate,
+          endDate: formatDateFr(missionEndDate) || missionEndDate,
+          description: missionDescription,
+          deliverables: missionDeliverables,
+          revisions: missionRevisions,
+        },
+        pricing: { amount: pricingAmount },
         paymentSchedule,
         paymentDelay,
+        ipClause,
+        confidentiality,
         termination,
       })
     )
   }, [
-    title,
-    date,
     contractNumber,
     sellerName,
     sellerSiret,
     sellerAddress,
+    sellerActivity,
+    sellerEmail,
     buyerName,
-    buyerSiret,
+    buyerRepresentant,
     buyerAddress,
+    missionStartDate,
+    missionEndDate,
     missionDescription,
     missionDeliverables,
-    pricingType,
+    missionRevisions,
     pricingAmount,
     paymentSchedule,
     paymentDelay,
+    ipClause,
+    confidentiality,
     termination,
   ])
 
@@ -240,23 +278,78 @@ export default function SeoContratPage() {
           email: buyerEmail,
         },
         mission: {
-          startDate: missionStartDate,
-          endDate: missionEndDate,
-          location: missionLocation,
-          revisions: missionRevisions,
+          startDate: formatDateFr(missionStartDate) || missionStartDate,
+          endDate: formatDateFr(missionEndDate) || missionEndDate,
+          location: (() => {
+            const v = String(missionLocation || '').toLowerCase().trim()
+            if (v === 'distance' || v.includes('distance')) return 'À DISTANCE'
+            if (v === 'client' || v.includes('site')) return 'SUR SITE'
+            if (v === 'mixte') return 'MIXTE'
+            return missionLocation
+          })(),
+          revisions: missionRevisions === 'illimite' ? 'ILLIMITÉES' : missionRevisions,
           description: missionDescription,
           deliverables: missionDeliverables,
         },
         pricing: {
-          type: pricingType,
-          amount: pricingAmount,
+          type: (() => {
+            const v = String(pricingType || '').toLowerCase().trim()
+            if (v === 'forfait') return 'FORFAIT'
+            if (v === 'tjm') return 'TJM'
+            if (v === 'horaire' || v === 'heure' || v === 'taux horaire') return 'TAUX HORAIRE'
+            return pricingType
+          })(),
+          amount: (() => {
+            const n = Number(String(pricingAmount || '').replace(',', '.'))
+            if (!Number.isFinite(n) || !n) return pricingAmount
+            const v = String(pricingType || '').toLowerCase().trim()
+            if (v === 'tjm') return n.toFixed(2) + ' € HT / jour'
+            if (v === 'horaire' || v === 'heure' || v === 'taux horaire') return n.toFixed(2) + ' € HT / heure'
+            return n.toFixed(2) + ' € HT'
+          })(),
         },
-        vatRegime,
-        paymentSchedule,
-        paymentDelay,
-        ipClause,
-        confidentiality,
-        termination,
+        vatRegime: (() => {
+          const v = String(vatRegime || '').toLowerCase().trim()
+          if (v === 'franchise') return 'FRANCHISE EN BASE'
+          if (v === 'assujetti') return 'ASSUJETTI'
+          return vatRegime
+        })(),
+        paymentSchedule: (() => {
+          const v = String(paymentSchedule || '').toLowerCase().trim()
+          if (v === '30') return '30/70'
+          if (v === '50') return '50/50'
+          if (v === 'fin') return '100% FIN'
+          return v ? 'PERSONNALISÉ' : ''
+        })(),
+        paymentDelay: (() => {
+          const d = String(paymentDelay || '').trim()
+          if (d === '30') return '30 JOURS'
+          if (d === '45') return '45 JOURS'
+          if (d === '60') return '60 JOURS'
+          if (d === '15') return '15 JOURS'
+          if (d === 'reception') return 'À RÉCEPTION'
+          return paymentDelay
+        })(),
+        ipClause: (() => {
+          const v = String(ipClause || '').toLowerCase().trim()
+          if (v === 'cession') return 'CESSION APRÈS PAIEMENT'
+          if (v === 'licence') return "LICENCE D'UTILISATION"
+          if (v === 'totale') return 'CESSION TOTALE'
+          return ipClause
+        })(),
+        confidentiality: (() => {
+          const v = String(confidentiality || '').toLowerCase().trim()
+          if (v === 'oui') return 'OUI'
+          if (v === 'non') return 'NON'
+          return confidentiality
+        })(),
+        termination: (() => {
+          const v = String(termination || '').trim()
+          if (v === '15') return 'PRÉAVIS 15 JOURS'
+          if (v === '30') return 'PRÉAVIS 30 JOURS'
+          if (v === 'sans') return 'SANS PRÉAVIS'
+          return termination
+        })(),
       }
 
       const res = await fetch('/api/public/contrat-pdf', {
