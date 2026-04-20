@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import PdfInlineViewer from '@/components/PdfInlineViewer'
 
 function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob)
@@ -140,6 +141,11 @@ export default function SeoContratPage() {
   const [showEmailModal, setShowEmailModal] = useState(false)
   const [email, setEmail] = useState('')
 
+  const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string>('')
+  const pdfPreviewFilenameRef = useRef<string>('')
+
+  const [lockedHint, setLockedHint] = useState<null | string>(null)
+
   useEffect(() => {
     setPdfCount(readCount(pdfCountKey))
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -268,13 +274,20 @@ export default function SeoContratPage() {
         throw new Error(msg)
       }
 
-      downloadBlob(blob, `Contrat-${contractNumber || 'spyke'}.pdf`)
+      // Show the same kind of PDF preview modal as in the app (buttons locked on SEO page).
+      try {
+        if (pdfPreviewUrl) URL.revokeObjectURL(pdfPreviewUrl)
+      } catch {}
+      const nextUrl = URL.createObjectURL(blob)
+      setPdfPreviewUrl(nextUrl)
+      pdfPreviewFilenameRef.current = `Contrat-${contractNumber || 'spyke'}.pdf`
 
       const nextCount = pdfCount + 1
       setPdfCount(nextCount)
       writeCount(pdfCountKey, nextCount)
 
-      setShowEmailModal(true)
+      // optional lead-capture can still be shown later; keep disabled for now
+      // setShowEmailModal(true)
     } catch (e: any) {
       alert(e?.message || 'Erreur PDF')
     }
@@ -284,6 +297,146 @@ export default function SeoContratPage() {
 
   return (
     <div className="seo-tool">
+      {/* PDF Preview modal (SEO): same UI pattern as the app, but actions are locked */}
+      {pdfPreviewUrl ? (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.55)',
+            zIndex: 500,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 16,
+          }}
+          onClick={(e) => {
+            if (e.target !== e.currentTarget) return
+            try {
+              if (pdfPreviewUrl) URL.revokeObjectURL(pdfPreviewUrl)
+            } catch {}
+            setPdfPreviewUrl('')
+          }}
+        >
+          <div
+            style={{
+              background: '#fff',
+              borderRadius: 16,
+              width: 'min(1100px, 96vw)',
+              height: 'min(86vh, 900px)',
+              overflow: 'hidden',
+              boxShadow: '0 30px 90px rgba(0,0,0,0.35)',
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
+            <div
+              style={{
+                padding: '12px 14px',
+                borderBottom: '1px solid rgba(0,0,0,0.08)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 12,
+              }}
+            >
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'rgba(0,0,0,0.85)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {pdfPreviewFilenameRef.current || 'Contrat.pdf'}
+              </div>
+              <button
+                className="btn btn-secondary"
+                type="button"
+                onClick={() => {
+                  try {
+                    if (pdfPreviewUrl) URL.revokeObjectURL(pdfPreviewUrl)
+                  } catch {}
+                  setPdfPreviewUrl('')
+                }}
+              >
+                Fermer
+              </button>
+            </div>
+
+            <div style={{ flex: 1, minHeight: 0, background: '#f8fafc' }}>
+              <PdfInlineViewer url={pdfPreviewUrl} />
+            </div>
+
+            <div style={{ padding: 12, borderTop: '1px solid rgba(0,0,0,0.08)', background: '#fff' }}>
+              {lockedHint ? (
+                <div
+                  style={{
+                    marginBottom: 10,
+                    padding: '10px 12px',
+                    borderRadius: 12,
+                    background: 'rgba(250, 204, 21, 0.18)',
+                    border: '1px solid rgba(250, 204, 21, 0.35)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 10,
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  <div style={{ fontSize: 13, fontWeight: 800, color: 'rgba(0,0,0,0.85)' }}>{lockedHint}</div>
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <button className="btn btn-secondary" type="button" onClick={() => setLockedHint(null)}>
+                      Fermer
+                    </button>
+                    <button className="btn btn-primary" type="button" onClick={goSignup}>
+                      Connexion
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                  <button
+                    className="btn btn-secondary"
+                    type="button"
+                    aria-disabled="true"
+                    title="Crée un compte gratuit pour utiliser cette fonction"
+                    onClick={() => setLockedHint('Créer un compte gratuit pour utiliser ces fonctions (signature, envoi mail, envoi pour signature).')}
+                    style={{ opacity: 0.55, cursor: 'not-allowed' }}
+                  >
+                    Signer 🔒
+                  </button>
+                  <button
+                    className="btn btn-secondary"
+                    type="button"
+                    aria-disabled="true"
+                    title="Crée un compte gratuit pour utiliser cette fonction"
+                    onClick={() => setLockedHint('Créer un compte gratuit pour utiliser ces fonctions (signature, envoi mail, envoi pour signature).')}
+                    style={{ opacity: 0.55, cursor: 'not-allowed' }}
+                  >
+                    Envoyer par mail 🔒
+                  </button>
+                  <button
+                    className="btn btn-secondary"
+                    type="button"
+                    aria-disabled="true"
+                    title="Crée un compte gratuit pour utiliser cette fonction"
+                    onClick={() => setLockedHint('Créer un compte gratuit pour utiliser ces fonctions (signature, envoi mail, envoi pour signature).')}
+                    style={{ opacity: 0.55, cursor: 'not-allowed' }}
+                  >
+                    Envoyer pour signature 🔒
+                  </button>
+                </div>
+
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                  <a className="btn btn-secondary" href={pdfPreviewUrl} download={pdfPreviewFilenameRef.current || 'contrat.pdf'}>
+                    Télécharger
+                  </a>
+                  <button className="btn btn-primary" type="button" onClick={goSignup}>
+                    Créer un compte gratuit
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <style jsx global>{`
         * { box-sizing: border-box; }
         .seo-tool {
