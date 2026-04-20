@@ -229,7 +229,55 @@ export default function SeoContratPage() {
     termination,
   ])
 
+  function persistSeoDraft() {
+    try {
+      const key = 'spyke_seo_contract_draft_v1'
+      const draft = {
+        createdAt: new Date().toISOString(),
+        kind: 'contrat',
+        contractNumber,
+        seller: {
+          name: sellerName,
+          siret: sellerSiret,
+          address: sellerAddress,
+          activity: sellerActivity,
+          email: sellerEmail,
+        },
+        buyer: {
+          name: buyerName,
+          siret: buyerSiret,
+          representant: buyerRepresentant,
+          address: buyerAddress,
+          email: buyerEmail,
+        },
+        mission: {
+          startDate: missionStartDate,
+          endDate: missionEndDate,
+          location: missionLocation,
+          revisions: missionRevisions,
+          description: missionDescription,
+          deliverables: missionDeliverables,
+        },
+        pricing: {
+          type: pricingType,
+          amount: pricingAmount,
+        },
+        vatRegime,
+        paymentSchedule,
+        paymentDelay,
+        ipClause,
+        confidentiality,
+        termination,
+        contractText,
+      }
+      window.localStorage.setItem(key, JSON.stringify(draft))
+    } catch {
+      // ignore
+    }
+  }
+
   function goSignup() {
+    persistSeoDraft()
     window.location.href = '/connexion.html'
   }
 

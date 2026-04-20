@@ -355,7 +355,29 @@ export async function POST(req: Request) {
       )
 
     const instance = pdf(React.createElement(Doc))
-    const buffer = await instance.toBuffer()
+    const out: any = await instance.toBuffer()
+
+    // react-pdf can return different output shapes depending on runtime.
+    const toBuf = async (x: any): Promise<Buffer> => {
+      if (Buffer.isBuffer(x)) return x
+      if (x instanceof Uint8Array) return Buffer.from(x)
+      if (x instanceof ArrayBuffer) return Buffer.from(new Uint8Array(x))
+      if (x && typeof x.on === 'function') {
+        return await new Promise<Buffer>((resolve, reject) => {
+          const chunks: Buffer[] = []
+          x.on('data', (c: any) => {
+            try {
+              chunks.push(Buffer.isBuffer(c) ? c : Buffer.from(c))
+            } catch {}
+          })
+          x.on('end', () => resolve(Buffer.concat(chunks)))
+          x.on('error', reject)
+        })
+      }
+      return Buffer.from([])
+    }
+
+    const buffer = await toBuf(out)
 
     const watermarked = await addPdfWatermark({ pdfBytes: new Uint8Array(buffer as any), text: 'Spyke' })
 

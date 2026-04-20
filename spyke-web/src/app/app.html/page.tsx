@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { getSupabase } from '@/lib/supabaseClient'
 import PdfInlineViewer from '@/components/PdfInlineViewer'
+import { buildCanonicalContractText } from '@/lib/buildCanonicalContractText'
 
 function ModalShell({
   open,
@@ -7046,6 +7047,114 @@ export default function AppHtmlPage() {
       setUserId(data.session.user.id)
     })()
   }, [supabase])
+
+  // Import SEO contract draft (Option A): if the user created a contract on the SEO page before signup,
+  // attach it to their new account right after login.
+  useEffect(() => {
+    ;(async () => {
+      try {
+        if (!supabase || !userId) return
+
+        const key = 'spyke_seo_contract_draft_v1'
+        const raw = window.localStorage.getItem(key)
+        if (!raw) return
+
+        let draft: any = null
+        try {
+          draft = JSON.parse(raw)
+        } catch {
+          draft = null
+        }
+        if (!draft || draft.kind !== 'contrat') return
+
+        const seller = draft.seller || {}
+        const buyer = draft.buyer || {}
+        const mission = draft.mission || {}
+        const pricing = draft.pricing || {}
+
+        const amount_ht = (() => {
+          const n = Number(String(pricing.amount || '').replace(',', '.'))
+          return Number.isFinite(n) ? n : null
+        })()
+
+        const finalText = String(draft.contractText || '').trim() ||
+          buildCanonicalContractText({
+            contractNumber: String(draft.contractNumber || '').trim(),
+            seller: {
+              name: String(seller.name || '').trim(),
+              siret: String(seller.siret || '').trim(),
+              address: String(seller.address || '').trim(),
+              activity: String(seller.activity || '').trim(),
+              email: String(seller.email || '').trim(),
+            },
+            buyer: {
+              name: String(buyer.name || '').trim(),
+              representant: String(buyer.representant || '').trim(),
+              address: String(buyer.address || '').trim(),
+            },
+            mission: {
+              startDate: String(mission.startDate || '').trim(),
+              endDate: String(mission.endDate || '').trim(),
+              description: String(mission.description || '').trim(),
+              deliverables: String(mission.deliverables || '').trim(),
+              revisions: String(mission.revisions || '').trim(),
+            },
+            pricing: { amount: String(pricing.amount || '').trim() },
+            paymentSchedule: String(draft.paymentSchedule || '').trim(),
+            paymentDelay: String(draft.paymentDelay || '').trim(),
+            ipClause: String(draft.ipClause || '').trim(),
+            confidentiality: String(draft.confidentiality || '').trim(),
+            termination: String(draft.termination || '').trim(),
+          })
+
+        const row: any = {
+          user_id: userId,
+          client_id: null,
+          quote_id: null,
+          number: String(draft.contractNumber || '').trim(),
+          title: 'Contrat de prestation de service',
+          status: 'draft',
+          contract_text: finalText,
+          mission_start: mission.startDate || null,
+          mission_end: mission.endDate || null,
+          amount_ht,
+          tva_regime: String(draft.vatRegime || '').trim() || null,
+          buyer_snapshot: {
+            name: String(buyer.name || '').trim(),
+            email: String(buyer.email || '').trim(),
+            siret: String(buyer.siret || '').trim(),
+            addressLines: String(buyer.address || '')
+              .split(',')
+              .map((x: string) => x.trim())
+              .filter(Boolean),
+            representant: String(buyer.representant || '').trim(),
+          },
+          seller_snapshot: {
+            name: String(seller.name || '').trim(),
+            email: String(seller.email || '').trim(),
+            siret: String(seller.siret || '').trim(),
+            addressLines: String(seller.address || '')
+              .split(',')
+              .map((x: string) => x.trim())
+              .filter(Boolean),
+            activity: String(seller.activity || '').trim(),
+          },
+        }
+
+        const { error: insErr } = await supabase.from('contracts').insert(row)
+        if (insErr) throw insErr
+
+        window.localStorage.removeItem(key)
+
+        // Note: we don't force-refresh UI lists here (depends on which tab is mounted).
+      } catch (e) {
+        // Don't block the app.
+        try {
+          console.error('SEO contract import failed', e)
+        } catch {}
+      }
+    })()
+  }, [supabase, userId])
 
   async function loadHelpHistory() {
     try {
