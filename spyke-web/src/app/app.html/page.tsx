@@ -1282,34 +1282,6 @@ Réponds uniquement par le texte de la description.`
     return 'Aucun client sélectionné'
   }, [clientChoice, clients])
 
-  async function checkFreePdfQuotaOrThrow(kind: 'devis' | 'facture' | 'contrat') {
-    if (planCode === 'pro') return
-    if (!supabase || !userId) throw new Error('Session manquante')
-
-    const start = new Date()
-    start.setDate(1)
-    start.setHours(0, 0, 0, 0)
-    const startStr = start.toISOString()
-
-    const { count, error } = await supabase
-      .from('pdf_generations')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', userId)
-      .gte('created_at', startStr)
-
-    if (error) throw error
-    if (Number(count || 0) >= 3) {
-      throw new Error('Limite du plan Free atteinte : 3 documents / mois. Passe Pro pour illimité.')
-    }
-
-    // reserve a slot (best-effort)
-    try {
-      await supabase.from('pdf_generations').insert({ user_id: userId, kind })
-    } catch {
-      // ignore
-    }
-  }
-
   async function generateDevisPdfBlob(opts?: { includeSignature?: boolean; signedAt?: string; signedPlace?: string }) {
     if (!supabase) throw new Error('Supabase non initialisé')
 
@@ -1484,12 +1456,6 @@ Réponds uniquement par le texte de la description.`
   }
 
   async function generatePdf() {
-    try {
-      await checkFreePdfQuotaOrThrow('devis')
-    } catch (e: any) {
-      alert(e?.message || 'Limite atteinte')
-      return
-    }
     try {
       if (!supabase) throw new Error('Supabase non initialisé')
 
