@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { getSupabase } from '@/lib/supabaseClient'
+import { buildCanonicalContractText } from '@/lib/buildCanonicalContractText'
 
 type TvaChoice = 'oui' | 'non'
 
@@ -41,6 +42,186 @@ export default function OnboardingPage() {
       if (!data.session) {
         // must be logged in to complete onboarding
         window.location.href = 'connexion.html'
+        return
+      }
+
+      // Import SEO drafts during onboarding as well (user may land here right after signup).
+      const userId = data.session.user.id
+
+      // ---- Contract ----
+      try {
+        const key = 'spyke_seo_contract_draft_v1'
+        const raw = window.localStorage.getItem(key)
+        if (raw) {
+          const draft = JSON.parse(raw || 'null')
+          if (draft && draft.kind === 'contrat') {
+            const seller = draft.seller || {}
+            const buyer = draft.buyer || {}
+            const mission = draft.mission || {}
+            const pricing = draft.pricing || {}
+
+            const amount_ht = (() => {
+              const n = Number(String(pricing.amount || '').replace(',', '.'))
+              return Number.isFinite(n) ? n : null
+            })()
+
+            const finalText = String(draft.contractText || '').trim() ||
+              buildCanonicalContractText({
+                contractNumber: String(draft.contractNumber || '').trim(),
+                seller: {
+                  name: String(seller.name || '').trim(),
+                  siret: String(seller.siret || '').trim(),
+                  address: String(seller.address || '').trim(),
+                  activity: String(seller.activity || '').trim(),
+                  email: String(seller.email || '').trim(),
+                },
+                buyer: {
+                  name: String(buyer.name || '').trim(),
+                  representant: String(buyer.representant || '').trim(),
+                  address: String(buyer.address || '').trim(),
+                },
+                mission: {
+                  startDate: String(mission.startDate || '').trim(),
+                  endDate: String(mission.endDate || '').trim(),
+                  description: String(mission.description || '').trim(),
+                  deliverables: String(mission.deliverables || '').trim(),
+                  revisions: String(mission.revisions || '').trim(),
+                },
+                pricing: { amount: String(pricing.amount || '').trim() },
+                paymentSchedule: String(draft.paymentSchedule || '').trim(),
+                paymentDelay: String(draft.paymentDelay || '').trim(),
+                ipClause: String(draft.ipClause || '').trim(),
+                confidentiality: String(draft.confidentiality || '').trim(),
+                termination: String(draft.termination || '').trim(),
+              })
+
+            const row: any = {
+              user_id: userId,
+              client_id: null,
+              quote_id: null,
+              number: String(draft.contractNumber || '').trim(),
+              title: 'Contrat de prestation de service',
+              status: 'draft',
+              contract_text: finalText,
+              mission_start: mission.startDate || null,
+              mission_end: mission.endDate || null,
+              amount_ht,
+              tva_regime: String(draft.vatRegime || '').trim() || null,
+              buyer_snapshot: {
+                name: String(buyer.name || '').trim(),
+                email: String(buyer.email || '').trim(),
+                siret: String(buyer.siret || '').trim(),
+                addressLines: String(buyer.address || '').split(',').map((x: string) => x.trim()).filter(Boolean),
+                representant: String(buyer.representant || '').trim(),
+              },
+              seller_snapshot: {
+                name: String(seller.name || '').trim(),
+                email: String(seller.email || '').trim(),
+                siret: String(seller.siret || '').trim(),
+                addressLines: String(seller.address || '').split(',').map((x: string) => x.trim()).filter(Boolean),
+                activity: String(seller.activity || '').trim(),
+              },
+            }
+
+            const { error: insErr } = await supabase.from('contracts').insert(row)
+            if (!insErr) window.localStorage.removeItem(key)
+          }
+        }
+      } catch (e) {
+        try { console.error('SEO contract import (onboarding) failed', e) } catch {}
+      }
+
+      // ---- Quote ----
+      try {
+        const key = 'spyke_seo_quote_draft_v1'
+        const raw = window.localStorage.getItem(key)
+        if (raw) {
+          const draft = JSON.parse(raw || 'null')
+          if (draft && draft.kind === 'devis') {
+            const row: any = {
+              user_id: userId,
+              client_id: null,
+              number: String(draft.quoteNumber || '').trim(),
+              title: String(draft.title || '').trim() || null,
+              status: 'draft',
+              date_issue: String(draft.dateIssue || '').trim() || null,
+              validity_until: String(draft.validityUntil || '').trim() || null,
+              notes: String(draft.notes || '').trim() || null,
+              total_ht: Number(draft?.totals?.totalHt || 0),
+              total_tva: Number(draft?.totals?.totalTva || 0),
+              total_ttc: Number(draft?.totals?.totalTtc || 0),
+              buyer_snapshot: draft.buyer || {},
+              seller_snapshot: draft.seller || {},
+            }
+            const { data: qRow, error: insErr } = await supabase.from('quotes').insert(row).select('id').single()
+            if (!insErr) {
+              const quoteId = String((qRow as any)?.id || '')
+              const lines = Array.isArray(draft.lines) ? draft.lines : []
+              if (quoteId && lines.length) {
+                await supabase.from('quote_lines').insert(
+                  lines.map((l: any, idx: number) => ({
+                    quote_id: quoteId,
+                    position: idx,
+                    label: String(l.label || ''),
+                    description: String(l.description || ''),
+                    qty: Number(l.qty || 0),
+                    unit_price_ht: Number(l.unitPriceHt || 0),
+                    vat_rate: Number(l.vatRate || 0),
+                  })) as any
+                )
+              }
+              window.localStorage.removeItem(key)
+            }
+          }
+        }
+      } catch (e) {
+        try { console.error('SEO quote import (onboarding) failed', e) } catch {}
+      }
+
+      // ---- Invoice ----
+      try {
+        const key = 'spyke_seo_invoice_draft_v1'
+        const raw = window.localStorage.getItem(key)
+        if (raw) {
+          const draft = JSON.parse(raw || 'null')
+          if (draft && draft.kind === 'facture') {
+            const row: any = {
+              user_id: userId,
+              client_id: null,
+              quote_id: null,
+              number: String(draft.invoiceNumber || '').trim(),
+              status: 'draft',
+              date_issue: String(draft.dateIssue || '').trim() || null,
+              due_date: String(draft.dueDate || '').trim() || null,
+              payment_terms_days: null,
+              notes: null,
+              total_ht: Number(draft?.totals?.totalHt || 0),
+              total_tva: Number(draft?.totals?.totalTva || 0),
+              total_ttc: Number(draft?.totals?.totalTtc || 0),
+              buyer_snapshot: draft.buyer || {},
+              seller_snapshot: draft.seller || {},
+            }
+            const { data: inv, error: invErr } = await supabase.from('invoices').insert(row).select('id').single()
+            if (!invErr) {
+              const invoiceId = String((inv as any)?.id || '')
+              const lines = Array.isArray(draft.lines) ? draft.lines : []
+              if (invoiceId && lines.length) {
+                await supabase.from('invoice_lines').insert(
+                  lines.map((l: any, idx: number) => ({
+                    invoice_id: invoiceId,
+                    position: idx,
+                    description: String(l.description || ''),
+                    qty: Number(l.qty || 0),
+                    unit_price: Number(l.unitPrice || 0),
+                  })) as any
+                )
+              }
+              window.localStorage.removeItem(key)
+            }
+          }
+        }
+      } catch (e) {
+        try { console.error('SEO invoice import (onboarding) failed', e) } catch {}
       }
     })()
   }, [supabase])

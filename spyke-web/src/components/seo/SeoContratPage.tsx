@@ -232,10 +232,11 @@ export default function SeoContratPage() {
   function persistSeoDraft() {
     try {
       const key = 'spyke_seo_contract_draft_v1'
+      const fallbackNumber = contractNumber?.trim() ? contractNumber : `SEO-${new Date().toISOString().slice(0, 10)}-${String(Date.now()).slice(-5)}`
       const draft = {
         createdAt: new Date().toISOString(),
         kind: 'contrat',
-        contractNumber,
+        contractNumber: fallbackNumber,
         seller: {
           name: sellerName,
           siret: sellerSiret,
