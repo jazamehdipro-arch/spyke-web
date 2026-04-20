@@ -280,6 +280,49 @@ export default function ConfidentialitePage() {
           <li>Stripe (paiements)</li>
         </ul>
 
+        <h2>Accès Gmail (envoi d’emails)</h2>
+        <p>
+          <b>FR :</b> Spyke peut accéder à votre compte Gmail <b>uniquement</b> si vous choisissez de
+          connecter votre Gmail afin d’envoyer des documents (devis, factures, contrats) depuis Spyke.
+        </p>
+        <ul>
+          <li>
+            Le scope OAuth utilisé est <b>gmail.send</b> et il sert <b>exclusivement</b> à envoyer des emails en
+            votre nom.
+          </li>
+          <li>
+            Spyke <b>ne lit pas</b>, <b>ne stocke pas</b> et <b>ne traite pas</b> le contenu de vos emails ou de votre
+            boîte Gmail.
+          </li>
+          <li>
+            Vous pouvez révoquer cet accès à tout moment depuis les paramètres de votre compte Google.
+          </li>
+          <li>
+            Les données Gmail ne sont <b>jamais</b> partagées avec des tiers.
+          </li>
+        </ul>
+
+        <p>
+          <b>EN :</b> Spyke may access your Gmail account <b>only</b> if you choose to connect Gmail in order
+          to send documents (quotes, invoices, contracts) from Spyke.
+        </p>
+        <ul>
+          <li>
+            The OAuth scope used is <b>gmail.send</b> and it is used <b>exclusively</b> to send emails on your
+            behalf.
+          </li>
+          <li>
+            Spyke <b>does not read</b>, <b>store</b>, or <b>process</b> the content of your emails or your Gmail
+            inbox.
+          </li>
+          <li>
+            You can revoke this access at any time from your Google Account settings.
+          </li>
+          <li>
+            Gmail data is <b>never</b> shared with third parties.
+          </li>
+        </ul>
+
         <h2>Conservation</h2>
         <p>Vos données sont conservées jusqu&apos;à la suppression de votre compte.</p>
 
