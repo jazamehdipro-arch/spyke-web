@@ -9,7 +9,15 @@ export async function addPdfWatermark(params: {
   const { pdfBytes, text } = params
   const opacity = typeof params.opacity === 'number' ? params.opacity : 0.12
 
-  const doc = await PDFDocument.load(pdfBytes)
+  // Best-effort: if watermarking fails, return the original PDF bytes.
+  // This prevents public PDF endpoints from breaking when pdf-lib can't parse the buffer.
+  let doc: PDFDocument
+  try {
+    doc = await PDFDocument.load(pdfBytes)
+  } catch {
+    return pdfBytes
+  }
+
   const font = await doc.embedFont(StandardFonts.HelveticaBold)
 
   const pages = doc.getPages()
