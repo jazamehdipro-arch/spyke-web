@@ -379,7 +379,7 @@ export async function POST(req: Request) {
 
     const buffer = await toBuf(out)
 
-    const watermarked = await addPdfWatermark({ pdfBytes: new Uint8Array(buffer as any), text: 'Spyke' })
+    const watermarked = await addPdfWatermark({ pdfBytes: new Uint8Array(buffer as any), text: 'Spyke', scale: 0.18, opacity: 0.14 })
 
     return new NextResponse(watermarked as any, {
       status: 200,

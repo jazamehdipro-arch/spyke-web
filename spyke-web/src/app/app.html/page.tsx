@@ -7156,6 +7156,119 @@ export default function AppHtmlPage() {
     })()
   }, [supabase, userId])
 
+  // Import SEO quote + invoice drafts (Option A)
+  useEffect(() => {
+    ;(async () => {
+      try {
+        if (!supabase || !userId) return
+
+        // ---- Quote ----
+        try {
+          const key = 'spyke_seo_quote_draft_v1'
+          const raw = window.localStorage.getItem(key)
+          if (raw) {
+            const draft = JSON.parse(raw || 'null')
+            if (draft && draft.kind === 'devis') {
+              const row: any = {
+                user_id: userId,
+                client_id: null,
+                number: String(draft.quoteNumber || '').trim(),
+                title: String(draft.title || '').trim() || null,
+                status: 'draft',
+                date_issue: String(draft.dateIssue || '').trim() || null,
+                validity_until: String(draft.validityUntil || '').trim() || null,
+                notes: String(draft.notes || '').trim() || null,
+                total_ht: Number(draft?.totals?.totalHt || 0),
+                total_tva: Number(draft?.totals?.totalTva || 0),
+                total_ttc: Number(draft?.totals?.totalTtc || 0),
+                buyer_snapshot: draft.buyer || {},
+                seller_snapshot: draft.seller || {},
+              }
+
+              const { data: qRow, error: insErr } = await supabase.from('quotes').insert(row).select('id').single()
+              if (insErr) throw insErr
+              const quoteId = String((qRow as any)?.id || '')
+
+              // Lines
+              const lines = Array.isArray(draft.lines) ? draft.lines : []
+              if (quoteId && lines.length) {
+                await supabase.from('quote_lines').insert(
+                  lines.map((l: any, idx: number) => ({
+                    quote_id: quoteId,
+                    position: idx,
+                    label: String(l.label || ''),
+                    description: String(l.description || ''),
+                    qty: Number(l.qty || 0),
+                    unit_price_ht: Number(l.unitPriceHt || 0),
+                    vat_rate: Number(l.vatRate || 0),
+                  })) as any
+                )
+              }
+
+              window.localStorage.removeItem(key)
+            }
+          }
+        } catch (e) {
+          try {
+            console.error('SEO quote import failed', e)
+          } catch {}
+        }
+
+        // ---- Invoice ----
+        try {
+          const key = 'spyke_seo_invoice_draft_v1'
+          const raw = window.localStorage.getItem(key)
+          if (raw) {
+            const draft = JSON.parse(raw || 'null')
+            if (draft && draft.kind === 'facture') {
+              const row: any = {
+                user_id: userId,
+                client_id: null,
+                quote_id: null,
+                number: String(draft.invoiceNumber || '').trim(),
+                status: 'draft',
+                date_issue: String(draft.dateIssue || '').trim() || null,
+                due_date: String(draft.dueDate || '').trim() || null,
+                payment_terms_days: null,
+                notes: null,
+                total_ht: Number(draft?.totals?.totalHt || 0),
+                total_tva: Number(draft?.totals?.totalTva || 0),
+                total_ttc: Number(draft?.totals?.totalTtc || 0),
+                buyer_snapshot: draft.buyer || {},
+                seller_snapshot: draft.seller || {},
+              }
+
+              const { data: inv, error: invErr } = await supabase.from('invoices').insert(row).select('id').single()
+              if (invErr) throw invErr
+              const invoiceId = String((inv as any)?.id || '')
+
+              const lines = Array.isArray(draft.lines) ? draft.lines : []
+              if (invoiceId && lines.length) {
+                await supabase.from('invoice_lines').insert(
+                  lines.map((l: any, idx: number) => ({
+                    invoice_id: invoiceId,
+                    position: idx,
+                    description: String(l.description || ''),
+                    qty: Number(l.qty || 0),
+                    unit_price: Number(l.unitPrice || 0),
+                  })) as any
+                )
+              }
+
+              window.localStorage.removeItem(key)
+            }
+          }
+        } catch (e) {
+          try {
+            console.error('SEO invoice import failed', e)
+          } catch {}
+        }
+      } catch {
+        // ignore
+      }
+    })()
+  }, [supabase, userId])
+
   async function loadHelpHistory() {
     try {
       setHelpError('')

@@ -5,9 +5,12 @@ export async function addPdfWatermark(params: {
   text: string
   // 0..1
   opacity?: number
+  // relative size factor (default ~11% of page min dimension)
+  scale?: number
 }) {
   const { pdfBytes, text } = params
   const opacity = typeof params.opacity === 'number' ? params.opacity : 0.12
+  const scale = typeof params.scale === 'number' && params.scale > 0 ? params.scale : 0.11
 
   // Best-effort: if watermarking fails, return the original PDF bytes.
   // This prevents public PDF endpoints from breaking when pdf-lib can't parse the buffer.
@@ -24,7 +27,7 @@ export async function addPdfWatermark(params: {
   for (const page of pages) {
     const { width, height } = page.getSize()
 
-    const fontSize = Math.max(42, Math.floor(Math.min(width, height) * 0.11))
+    const fontSize = Math.max(42, Math.floor(Math.min(width, height) * scale))
     const textWidth = font.widthOfTextAtSize(text, fontSize)
 
     // Centered watermark with a diagonal rotation

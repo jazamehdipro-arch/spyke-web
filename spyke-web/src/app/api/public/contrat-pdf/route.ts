@@ -162,7 +162,7 @@ export async function POST(req: Request) {
         throw new Error('Template placeholders not found (map/template mismatch)')
       }
 
-      const watermarked = await addPdfWatermark({ pdfBytes: filledRes.bytes, text: 'Spyke Pro' })
+      const watermarked = await addPdfWatermark({ pdfBytes: filledRes.bytes, text: 'Spyke Pro', scale: 0.18, opacity: 0.14 })
 
       return new NextResponse(watermarked as any, {
         status: 200,
@@ -189,7 +189,7 @@ export async function POST(req: Request) {
         signatureDataUrl: '',
       })
 
-      const watermarked = await addPdfWatermark({ pdfBytes: new Uint8Array(buf as any), text: 'Spyke Pro' })
+      const watermarked = await addPdfWatermark({ pdfBytes: new Uint8Array(buf as any), text: 'Spyke Pro', scale: 0.18, opacity: 0.14 })
 
       return new NextResponse(watermarked as any, {
         status: 200,
