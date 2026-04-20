@@ -72,78 +72,136 @@ export async function POST(req: Request) {
     const json = await req.json()
     const body = BodySchema.parse(json)
 
-    const templatePath = join(process.cwd(), 'public', 'templates', 'contrat-template.pdf')
-    const templateBytes = await readFile(templatePath)
-
     const sellerName = body.seller?.name || body.parties?.sellerName || ''
     const buyerName = body.buyer?.name || body.parties?.buyerName || ''
 
-    const replacements: Record<string, string> = {
-      '[NUMÉRO DU CONTRAT]': body.contractNumber || '',
-      '[DATE]': body.date || '',
+    // Use the same engine strategy as the main Spyke tool so SEO + app PDFs match.
+    // By default we try the template engine (if enabled), otherwise we generate via React-PDF.
+    const engine = String(process.env.SPYKE_CONTRACT_PDF_ENGINE || '').trim().toLowerCase()
+    const useTemplate = process.env.SPYKE_CONTRACT_TEMPLATE === '1' || engine === 'template'
 
-      '[NOM PRESTATAIRE]': sellerName,
-      '[NOM\nPRESTATAIRE]': sellerName,
-      '[PRÉNOM      NOM]': sellerName,
-      '[PRÉNOM NOM]': sellerName,
-      '[NUMÉRO     SIRET]': body.seller?.siret || '',
-      '[NUMÉRO SIRET]': body.seller?.siret || '',
-      '[SIRET PRESTATAIRE]': body.seller?.siret || '',
-      '[ADRESSE PRESTATAIRE]': body.seller?.address || '',
-      '[ACTIVITÉ]': body.seller?.activity || '',
-      '[EMAIL PRESTATAIRE]': body.seller?.email || '',
+    try {
+      if (!useTemplate) {
+        throw new Error('Contract template disabled')
+      }
 
-      '[NOM CLIENT]': buyerName,
-      '[SIRET CLIENT]': body.buyer?.siret || '',
-      '[REPRÉSENTANT]': body.buyer?.representant || '',
-      '[ADRESSE CLIENT]': body.buyer?.address || '',
-      '[EMAIL CLIENT]': body.buyer?.email || '',
+      const templatePath = join(process.cwd(), 'public', 'templates', 'contrat-template.pdf')
+      const templateBytes = await readFile(templatePath)
 
-      "[DÉCRIRE L'OBJECTIF DE LA MISSION]": body.mission?.description || '',
-      'DESCRIPTION DÉTAILLÉE DE LA MISSION': body.mission?.description || '',
-      'LIVRABLES ATTENDUS': body.mission?.deliverables || '',
+      const replacements: Record<string, string> = {
+        '[NUMÉRO DU CONTRAT]': body.contractNumber || '',
+        '[DATE]': body.date || '',
 
-      '[DATE DÉBUT]': body.mission?.startDate || '',
-      '[DATE FIN]': body.mission?.endDate || '',
-      '[À DISTANCE / SUR SITE / MIXTE]': body.mission?.location || '',
-      '[NOMBRE  DE  RÉVISIONS]': body.mission?.revisions || '',
+        // Seller (prestataire)
+        '[NOM PRESTATAIRE]': sellerName,
+        '[NOM\nPRESTATAIRE]': sellerName,
+        '[PRÉNOM      NOM]': sellerName,
+        '[PRÉNOM NOM]': sellerName,
+        '[PRÉNOM NOM],': sellerName ? `${sellerName},` : '',
+        '[PRÉNOM      NOM],': sellerName ? `${sellerName},` : '',
+        '[NUMÉRO     SIRET]': body.seller?.siret || '',
+        '[NUMÉRO SIRET]': body.seller?.siret || '',
+        '[NUMÉRO     SIRET],': body.seller?.siret ? `${body.seller?.siret},` : '',
+        '[NUMÉRO SIRET],': body.seller?.siret ? `${body.seller?.siret},` : '',
+        '[NUMÉRO     SIRET],    ': body.seller?.siret ? `${body.seller?.siret},` : '',
+        '[SIRET PRESTATAIRE]': body.seller?.siret || '',
+        '[NUMÉRO DU SIRET]': body.seller?.siret || '',
+        '[ADRESSE PRESTATAIRE]': body.seller?.address || '',
+        '[ADRESSE PRESTATAIRE].': body.seller?.address ? `${body.seller?.address}.` : '',
+        '[ACTIVITÉ]': body.seller?.activity || '',
+        '[EMAIL PRESTATAIRE]': body.seller?.email || '',
 
-      '[FORFAIT / TJM / TAUX HORAIRE]': body.pricing?.type || '',
-      '[MONTANT]': body.pricing?.amount || '',
-      '[FRANCHISE EN BASE / ASSUJETTI]': body.vatRegime || '',
-      '[30/70 / 50/50 / 100% FIN / PERSONNALISÉ]': body.paymentSchedule || '',
-      '[30 JOURS / 45 JOURS / 60 JOURS]': body.paymentDelay || '',
-      "[CESSION APRÈS PAIEMENT / LICENCE D'UTILISATION / CESSION TOTALE]": body.ipClause || '',
-      '[OUI / NON]': body.confidentiality || '',
-      '[PRÉAVIS 15 JOURS / 30 JOURS / SANS PRÉAVIS]': body.termination || '',
+        // Buyer (client)
+        '[NOM CLIENT]': buyerName,
+        '[SIRET CLIENT]': body.buyer?.siret || '',
+        '[ADRESSE CLIENT]': body.buyer?.address || '',
+        '[ADRESSE CLIENT],': body.buyer?.address ? `${body.buyer?.address},` : '',
+        '[REPRÉSENTANT]': body.buyer?.representant || '',
+        '[EMAIL CLIENT]': body.buyer?.email || '',
 
-      '[Madame/Monsieur]': '',
-      '[Forme   sociale   (SARL,   SAS,   etc.)]': '',
-      '[VILLE  RCS]': '',
-      '[NUMÉRO  RCS]': '',
-      '[FONCTION]': '',
-      '[DÉCRIRE LE PROJET DU CLIENT]': '',
-      '[NOMBRE]': '',
-      '[PRIX EN LETTRES]': '',
-      '[ADRESSE DE FACTURATION DU PRESTATAIRE]': '',
+        // Mission
+        "[DÉCRIRE L'OBJECTIF DE LA MISSION]": body.mission?.description || '',
+        'DESCRIPTION DÉTAILLÉE DE LA MISSION': body.mission?.description || '',
+        'LIVRABLES ATTENDUS': body.mission?.deliverables || '',
+        '[DATE DÉBUT]': body.mission?.startDate || '',
+        '[DATE FIN]': body.mission?.endDate || '',
+        '[À DISTANCE / SUR SITE / MIXTE]': body.mission?.location || '',
+        '[NOMBRE  DE  RÉVISIONS]': body.mission?.revisions || '',
+
+        // Pricing
+        '[FORFAIT / TJM / TAUX HORAIRE]': body.pricing?.type || '',
+        '[MONTANT]': body.pricing?.amount || '',
+        '[FRANCHISE EN BASE / ASSUJETTI]': body.vatRegime || '',
+        '[30/70 / 50/50 / 100% FIN / PERSONNALISÉ]': body.paymentSchedule || '',
+        '[30 JOURS / 45 JOURS / 60 JOURS]': body.paymentDelay || '',
+        "[CESSION APRÈS PAIEMENT / LICENCE D'UTILISATION / CESSION TOTALE]": body.ipClause || '',
+        '[OUI / NON]': body.confidentiality || '',
+        '[PRÉAVIS 15 JOURS / 30 JOURS / SANS PRÉAVIS]': body.termination || '',
+
+        // Clean common template placeholders we don't fill yet
+        '[Madame/Monsieur]': '',
+        '[Madame/Monsieur  PRÉNOM  NOM]': '',
+        '[Forme   sociale   (SARL,   SAS,   etc.)]': '',
+        '[MONTANT] euros': '',
+        '[VILLE  RCS]': '',
+        '[NUMÉRO  RCS]': '',
+        '[FONCTION]': '',
+        '[DÉCRIRE LE PROJET DU CLIENT]': '',
+        '[NOMBRE]': '',
+        '[PRIX EN LETTRES]': '',
+        '[ADRESSE DE FACTURATION DU PRESTATAIRE]': '',
+      }
+
+      const filledRes = await fillContractTemplatePdf({
+        templateBytes: new Uint8Array(templateBytes),
+        replacements,
+      })
+
+      const replacedCount = Number(filledRes.replaced || 0)
+      if (replacedCount <= 0) {
+        throw new Error('Template placeholders not found (map/template mismatch)')
+      }
+
+      const watermarked = await addPdfWatermark({ pdfBytes: filledRes.bytes, text: 'Spyke Pro' })
+
+      return new NextResponse(watermarked as any, {
+        status: 200,
+        headers: {
+          'content-type': 'application/pdf',
+          'content-disposition': `attachment; filename="Contrat-${new Date().toISOString().slice(0, 10)}.pdf"`,
+          'cache-control': 'no-store',
+          'x-spyke-contract-template-replaced': String(replacedCount || 0),
+        },
+      })
+    } catch (err: any) {
+      const templateErrMsg = String(err?.message || err || '').slice(0, 160)
+      const { renderContractPdfReact } = await import('@/lib/renderContractPdfReact')
+
+      let buf = await renderContractPdfReact({
+        title: body.title,
+        date: body.date,
+        logoUrl: body.logoUrl,
+        contractNumber: body.contractNumber,
+        contractText: body.contractText,
+        seller: body.seller,
+        buyer: body.buyer,
+        includeSignature: false,
+        signatureDataUrl: '',
+      })
+
+      const watermarked = await addPdfWatermark({ pdfBytes: new Uint8Array(buf as any), text: 'Spyke Pro' })
+
+      return new NextResponse(watermarked as any, {
+        status: 200,
+        headers: {
+          'content-type': 'application/pdf',
+          'content-disposition': `attachment; filename="Contrat-${new Date().toISOString().slice(0, 10)}.pdf"`,
+          'cache-control': 'no-store',
+          'x-spyke-contract-fallback': '1',
+          'x-spyke-contract-template-error': templateErrMsg,
+        },
+      })
     }
-
-    const filledRes = await fillContractTemplatePdf({
-      templateBytes: new Uint8Array(templateBytes),
-      replacements,
-    })
-
-    const watermarked = await addPdfWatermark({ pdfBytes: filledRes.bytes, text: 'Spyke Pro' })
-
-    return new NextResponse(watermarked as any, {
-      status: 200,
-      headers: {
-        'content-type': 'application/pdf',
-        'content-disposition': `attachment; filename="Contrat.pdf"`,
-        'cache-control': 'no-store',
-        'x-spyke-contract-template-replaced': String(filledRes.replaced || 0),
-      },
-    })
 
     /*
     const React = (await import('react')).default
