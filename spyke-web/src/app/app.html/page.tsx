@@ -594,7 +594,7 @@ function usePdfMailModals() {
 
 type DevisClientChoice =
   | { mode: 'existing'; id: string }
-  | { mode: 'new'; name: string; siret?: string; address?: string; postalCode?: string; city?: string }
+  | { mode: 'new'; name: string; email?: string; siret?: string; address?: string; postalCode?: string; city?: string }
   | { mode: 'none' }
 
 type DevisLine = {
@@ -2574,6 +2574,18 @@ Réponds uniquement par le texte de la description.`
                       />
                     </div>
                     <div className="form-group">
+                      <label className="form-label">Email (optionnel)</label>
+                      <input
+                        type="email"
+                        className="form-input"
+                        value={(clientChoice as any).email || ''}
+                        onChange={(e) => setClientChoice({ ...clientChoice, email: e.target.value })}
+                        placeholder="client@exemple.com"
+                      />
+                    </div>
+                  </div>
+                  <div className="form-row">
+                    <div className="form-group">
                       <label className="form-label">SIRET (optionnel)</label>
                       <input
                         type="text"
@@ -2583,6 +2595,7 @@ Réponds uniquement par le texte de la description.`
                         placeholder="123 456 789 00012"
                       />
                     </div>
+                    <div className="form-group" />
                   </div>
                   <div className="form-row single">
                     <div className="form-group">
