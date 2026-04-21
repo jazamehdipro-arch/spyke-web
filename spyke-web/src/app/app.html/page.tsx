@@ -244,6 +244,31 @@ function usePdfMailModals() {
     }
   }
 
+  useEffect(() => {
+    const handler = async (evt: any) => {
+      try {
+        if (!manualSignModal) return
+        if (manualSignModal.signaturePath) return
+        const a = pdfPreview?.actions
+        if (!a?.getSignaturePreview) return
+        const prev = await a.getSignaturePreview()
+        const signaturePath = String(prev?.signaturePath || '')
+        const url = String(prev?.url || '')
+        if (!signaturePath) return
+        setManualSignModal((p) => (p ? { ...p, signaturePath, signaturePreviewUrl: url || p.signaturePreviewUrl } : p))
+      } catch {
+        // ignore
+      }
+    }
+    try {
+      window.addEventListener('spyke:signatureSaved', handler as any)
+      return () => window.removeEventListener('spyke:signatureSaved', handler as any)
+    } catch {
+      return
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [manualSignModal, pdfPreview])
+
   const modals = (
     <>
       <ModalShell
@@ -371,9 +396,9 @@ function usePdfMailModals() {
                   onClick={() => {
                     setManualSignModal(null)
                     try {
-                      window.dispatchEvent(new CustomEvent('spyke:goToSignatureSettings'))
+                      window.dispatchEvent(new CustomEvent('spyke:openSignatureQuickAdd'))
                     } catch {
-                      alert('Va dans Paramètres > Signature, puis reviens signer le document.')
+                      alert('Impossible d’ouvrir l’ajout de signature. Va dans Paramètres > Signature, puis reviens signer le document.')
                     }
                   }}
                 >
@@ -3079,6 +3104,14 @@ function ContratsV1({
   const { openPdfPreviewFromBlob, openPdfPreviewFromUrl, openMailComposeWithAttachment, openMailComposePlain, openSignatureFrame, modals } = usePdfMailModals()
 
   const [signatureMissing, setSignatureMissing] = useState(false)
+  const [signatureQuickAddOpen, setSignatureQuickAddOpen] = useState(false)
+  const signatureQuickCanvasRef = useRef<HTMLCanvasElement | null>(null)
+  const signatureQuickDrawingRef = useRef(false)
+  const signatureQuickHasInkRef = useRef(false)
+  const signatureQuickLastPointRef = useRef<null | { x: number; y: number }>(null)
+  const [signatureQuickSaving, setSignatureQuickSaving] = useState(false)
+  const [signatureQuickError, setSignatureQuickError] = useState('')
+
   useEffect(() => {
     ;(async () => {
       try {
@@ -3091,6 +3124,152 @@ function ContratsV1({
       }
     })()
   }, [supabase, userId])
+
+  function signatureQuickEnsureCanvasSize() {
+    const canvas = signatureQuickCanvasRef.current
+    if (!canvas) return
+
+    const dpr = Math.max(1, window.devicePixelRatio || 1)
+    const rect = canvas.getBoundingClientRect()
+    const w = Math.max(1, Math.round(rect.width * dpr))
+    const h = Math.max(1, Math.round(rect.height * dpr))
+
+    if (canvas.width !== w || canvas.height !== h) {
+      canvas.width = w
+      canvas.height = h
+      const ctx = canvas.getContext('2d')
+      if (ctx) {
+        ctx.setTransform(1, 0, 0, 1, 0, 0)
+        ctx.scale(dpr, dpr)
+        ctx.fillStyle = '#ffffff'
+        ctx.fillRect(0, 0, rect.width, rect.height)
+        ctx.lineCap = 'round'
+        ctx.lineJoin = 'round'
+        ctx.strokeStyle = '#0a0a0a'
+        ctx.lineWidth = 2.2
+      }
+    }
+  }
+
+  function signatureQuickClear() {
+    setSignatureQuickError('')
+    const canvas = signatureQuickCanvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    ctx.fillStyle = '#ffffff'
+    ctx.fillRect(0, 0, canvas.width, canvas.height)
+    signatureQuickHasInkRef.current = false
+    signatureQuickLastPointRef.current = null
+  }
+
+  function signatureQuickPointFromEvent(e: any) {
+    const canvas = signatureQuickCanvasRef.current
+    if (!canvas) return null
+    const rect = canvas.getBoundingClientRect()
+    const clientX = e?.clientX ?? (e?.touches?.[0]?.clientX ?? 0)
+    const clientY = e?.clientY ?? (e?.touches?.[0]?.clientY ?? 0)
+    return { x: clientX - rect.left, y: clientY - rect.top }
+  }
+
+  function signatureQuickStart(e: any) {
+    setSignatureQuickError('')
+    signatureQuickEnsureCanvasSize()
+    signatureQuickDrawingRef.current = true
+    signatureQuickLastPointRef.current = signatureQuickPointFromEvent(e)
+  }
+
+  function signatureQuickMove(e: any) {
+    if (!signatureQuickDrawingRef.current) return
+    const canvas = signatureQuickCanvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
+    const p = signatureQuickPointFromEvent(e)
+    const last = signatureQuickLastPointRef.current
+    if (!p || !last) return
+
+    ctx.beginPath()
+    ctx.moveTo(last.x, last.y)
+    ctx.lineTo(p.x, p.y)
+    ctx.stroke()
+
+    signatureQuickLastPointRef.current = p
+    signatureQuickHasInkRef.current = true
+  }
+
+  function signatureQuickEnd() {
+    signatureQuickDrawingRef.current = false
+    signatureQuickLastPointRef.current = null
+  }
+
+  async function signatureQuickSave() {
+    try {
+      setSignatureQuickError('')
+      if (!signatureQuickHasInkRef.current) {
+        setSignatureQuickError("Signe dans la zone avant d'enregistrer.")
+        return
+      }
+      if (!supabase) throw new Error('Supabase non initialisé')
+      const { data: s } = await supabase.auth.getSession()
+      const token = s.session?.access_token
+      if (!token) throw new Error('Non connecté')
+
+      const canvas = signatureQuickCanvasRef.current
+      if (!canvas) throw new Error('Canvas signature introuvable')
+
+      setSignatureQuickSaving(true)
+
+      const blob: Blob = await new Promise((resolve, reject) => {
+        canvas.toBlob(
+          (b) => {
+            if (!b) reject(new Error('Export image échoué'))
+            else resolve(b)
+          },
+          'image/png',
+          1
+        )
+      })
+
+      const fd = new FormData()
+      fd.set('file', new File([blob], 'signature.png', { type: 'image/png' }))
+
+      const res = await fetch('/api/upload-signature', {
+        method: 'POST',
+        headers: { authorization: `Bearer ${token}` },
+        body: fd,
+      })
+      const json = await res.json().catch(() => null)
+      if (!res.ok) throw new Error(json?.error || `Upload signature échoué (${res.status})`)
+
+      setSignatureMissing(false)
+      signatureQuickClear()
+      setSignatureQuickAddOpen(false)
+      try {
+        window.dispatchEvent(new CustomEvent('spyke:signatureSaved', { detail: { path: String(json?.path || '') } }))
+      } catch {}
+    } catch (e: any) {
+      setSignatureQuickError(e?.message || 'Erreur signature')
+    } finally {
+      setSignatureQuickSaving(false)
+    }
+  }
+
+  useEffect(() => {
+    const handler = () => {
+      setSignatureQuickAddOpen(true)
+      setTimeout(() => signatureQuickEnsureCanvasSize(), 30)
+    }
+    try {
+      window.addEventListener('spyke:openSignatureQuickAdd', handler as any)
+      return () => window.removeEventListener('spyke:openSignatureQuickAdd', handler as any)
+    } catch {
+      return
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const today = useMemo(() => {
     const d = new Date()
@@ -5064,6 +5243,81 @@ Contrat généré par Spyke — spykeapp.fr — L’assistant IA des freelances 
       </div>
         </>
       )}
+
+    {signatureQuickAddOpen ? (
+      <div
+        role="dialog"
+        aria-label="Ajouter une signature"
+        style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 10000,
+          background: 'rgba(0,0,0,0.35)',
+          display: 'flex',
+          alignItems: 'flex-start',
+          justifyContent: 'center',
+          padding: 18,
+        }}
+        onClick={(e) => {
+          if (e.target === e.currentTarget) setSignatureQuickAddOpen(false)
+        }}
+      >
+        <div
+          style={{
+            width: 'min(520px, 100%)',
+            marginTop: 40,
+            background: '#fff',
+            borderRadius: 16,
+            border: '1px solid rgba(0,0,0,0.08)',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.25)',
+            overflow: 'hidden',
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px', borderBottom: '1px solid var(--gray-200)' }}>
+            <div style={{ fontWeight: 800 }}>Ajouter une signature</div>
+            <button className="btn btn-secondary" type="button" onClick={() => setSignatureQuickAddOpen(false)} style={{ padding: '8px 10px', fontSize: 12 }}>
+              Fermer
+            </button>
+          </div>
+
+          <div style={{ padding: 14 }}>
+            <div style={{ fontSize: 12, color: 'var(--gray-500)', marginBottom: 8 }}>Dessine ta signature</div>
+            <div style={{ width: '100%', height: 120, border: '1px solid rgba(0,0,0,0.10)', borderRadius: 10, overflow: 'hidden' }}>
+              <canvas
+                ref={signatureQuickCanvasRef}
+                style={{ width: '100%', height: '100%', touchAction: 'none', display: 'block', background: '#fff' }}
+                onPointerDown={(e) => {
+                  try {
+                    ;(e.target as any)?.setPointerCapture?.(e.pointerId)
+                  } catch {}
+                  signatureQuickStart(e)
+                }}
+                onPointerMove={(e) => signatureQuickMove(e)}
+                onPointerUp={() => signatureQuickEnd()}
+                onPointerCancel={() => signatureQuickEnd()}
+                onPointerLeave={() => signatureQuickEnd()}
+              />
+            </div>
+
+            {signatureQuickError ? <div style={{ marginTop: 10, color: '#b91c1c', fontSize: 13 }}>{signatureQuickError}</div> : null}
+
+            <div style={{ display: 'flex', gap: 12, marginTop: 12, flexWrap: 'wrap' }}>
+              <button className="btn btn-secondary" type="button" onClick={signatureQuickClear} disabled={signatureQuickSaving}>
+                Effacer
+              </button>
+              <button className="btn btn-primary" type="button" onClick={signatureQuickSave} disabled={signatureQuickSaving}>
+                {signatureQuickSaving ? 'Enregistrement…' : 'Enregistrer'}
+              </button>
+            </div>
+
+            <div style={{ marginTop: 10, fontSize: 12, color: 'var(--gray-500)' }}>
+              Astuce : sur mobile, signe avec le doigt. Sur desktop, signe à la souris.
+            </div>
+          </div>
+        </div>
+      </div>
+    ) : null}
+
     {modals}
     </div>
   )
@@ -5091,6 +5345,14 @@ function FacturesV1({
   const { openPdfPreviewFromBlob, openMailComposeWithAttachment, openSignatureFrame, modals } = usePdfMailModals()
 
   const [signatureMissing, setSignatureMissing] = useState(false)
+  const [signatureQuickAddOpen, setSignatureQuickAddOpen] = useState(false)
+  const signatureQuickCanvasRef = useRef<HTMLCanvasElement | null>(null)
+  const signatureQuickDrawingRef = useRef(false)
+  const signatureQuickHasInkRef = useRef(false)
+  const signatureQuickLastPointRef = useRef<null | { x: number; y: number }>(null)
+  const [signatureQuickSaving, setSignatureQuickSaving] = useState(false)
+  const [signatureQuickError, setSignatureQuickError] = useState('')
+
   useEffect(() => {
     ;(async () => {
       try {
@@ -5103,6 +5365,152 @@ function FacturesV1({
       }
     })()
   }, [supabase, userId])
+
+  function signatureQuickEnsureCanvasSize() {
+    const canvas = signatureQuickCanvasRef.current
+    if (!canvas) return
+
+    const dpr = Math.max(1, window.devicePixelRatio || 1)
+    const rect = canvas.getBoundingClientRect()
+    const w = Math.max(1, Math.round(rect.width * dpr))
+    const h = Math.max(1, Math.round(rect.height * dpr))
+
+    if (canvas.width !== w || canvas.height !== h) {
+      canvas.width = w
+      canvas.height = h
+      const ctx = canvas.getContext('2d')
+      if (ctx) {
+        ctx.setTransform(1, 0, 0, 1, 0, 0)
+        ctx.scale(dpr, dpr)
+        ctx.fillStyle = '#ffffff'
+        ctx.fillRect(0, 0, rect.width, rect.height)
+        ctx.lineCap = 'round'
+        ctx.lineJoin = 'round'
+        ctx.strokeStyle = '#0a0a0a'
+        ctx.lineWidth = 2.2
+      }
+    }
+  }
+
+  function signatureQuickClear() {
+    setSignatureQuickError('')
+    const canvas = signatureQuickCanvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    ctx.fillStyle = '#ffffff'
+    ctx.fillRect(0, 0, canvas.width, canvas.height)
+    signatureQuickHasInkRef.current = false
+    signatureQuickLastPointRef.current = null
+  }
+
+  function signatureQuickPointFromEvent(e: any) {
+    const canvas = signatureQuickCanvasRef.current
+    if (!canvas) return null
+    const rect = canvas.getBoundingClientRect()
+    const clientX = e?.clientX ?? (e?.touches?.[0]?.clientX ?? 0)
+    const clientY = e?.clientY ?? (e?.touches?.[0]?.clientY ?? 0)
+    return { x: clientX - rect.left, y: clientY - rect.top }
+  }
+
+  function signatureQuickStart(e: any) {
+    setSignatureQuickError('')
+    signatureQuickEnsureCanvasSize()
+    signatureQuickDrawingRef.current = true
+    signatureQuickLastPointRef.current = signatureQuickPointFromEvent(e)
+  }
+
+  function signatureQuickMove(e: any) {
+    if (!signatureQuickDrawingRef.current) return
+    const canvas = signatureQuickCanvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
+    const p = signatureQuickPointFromEvent(e)
+    const last = signatureQuickLastPointRef.current
+    if (!p || !last) return
+
+    ctx.beginPath()
+    ctx.moveTo(last.x, last.y)
+    ctx.lineTo(p.x, p.y)
+    ctx.stroke()
+
+    signatureQuickLastPointRef.current = p
+    signatureQuickHasInkRef.current = true
+  }
+
+  function signatureQuickEnd() {
+    signatureQuickDrawingRef.current = false
+    signatureQuickLastPointRef.current = null
+  }
+
+  async function signatureQuickSave() {
+    try {
+      setSignatureQuickError('')
+      if (!signatureQuickHasInkRef.current) {
+        setSignatureQuickError("Signe dans la zone avant d'enregistrer.")
+        return
+      }
+      if (!supabase) throw new Error('Supabase non initialisé')
+      const { data: s } = await supabase.auth.getSession()
+      const token = s.session?.access_token
+      if (!token) throw new Error('Non connecté')
+
+      const canvas = signatureQuickCanvasRef.current
+      if (!canvas) throw new Error('Canvas signature introuvable')
+
+      setSignatureQuickSaving(true)
+
+      const blob: Blob = await new Promise((resolve, reject) => {
+        canvas.toBlob(
+          (b) => {
+            if (!b) reject(new Error('Export image échoué'))
+            else resolve(b)
+          },
+          'image/png',
+          1
+        )
+      })
+
+      const fd = new FormData()
+      fd.set('file', new File([blob], 'signature.png', { type: 'image/png' }))
+
+      const res = await fetch('/api/upload-signature', {
+        method: 'POST',
+        headers: { authorization: `Bearer ${token}` },
+        body: fd,
+      })
+      const json = await res.json().catch(() => null)
+      if (!res.ok) throw new Error(json?.error || `Upload signature échoué (${res.status})`)
+
+      setSignatureMissing(false)
+      signatureQuickClear()
+      setSignatureQuickAddOpen(false)
+      try {
+        window.dispatchEvent(new CustomEvent('spyke:signatureSaved', { detail: { path: String(json?.path || '') } }))
+      } catch {}
+    } catch (e: any) {
+      setSignatureQuickError(e?.message || 'Erreur signature')
+    } finally {
+      setSignatureQuickSaving(false)
+    }
+  }
+
+  useEffect(() => {
+    const handler = () => {
+      setSignatureQuickAddOpen(true)
+      setTimeout(() => signatureQuickEnsureCanvasSize(), 30)
+    }
+    try {
+      window.addEventListener('spyke:openSignatureQuickAdd', handler as any)
+      return () => window.removeEventListener('spyke:openSignatureQuickAdd', handler as any)
+    } catch {
+      return
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const today = useMemo(() => {
     const d = new Date()
@@ -6563,6 +6971,81 @@ function FacturesV1({
           </div>
         </>
       )}
+
+    {signatureQuickAddOpen ? (
+      <div
+        role="dialog"
+        aria-label="Ajouter une signature"
+        style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 10000,
+          background: 'rgba(0,0,0,0.35)',
+          display: 'flex',
+          alignItems: 'flex-start',
+          justifyContent: 'center',
+          padding: 18,
+        }}
+        onClick={(e) => {
+          if (e.target === e.currentTarget) setSignatureQuickAddOpen(false)
+        }}
+      >
+        <div
+          style={{
+            width: 'min(520px, 100%)',
+            marginTop: 40,
+            background: '#fff',
+            borderRadius: 16,
+            border: '1px solid rgba(0,0,0,0.08)',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.25)',
+            overflow: 'hidden',
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px', borderBottom: '1px solid var(--gray-200)' }}>
+            <div style={{ fontWeight: 800 }}>Ajouter une signature</div>
+            <button className="btn btn-secondary" type="button" onClick={() => setSignatureQuickAddOpen(false)} style={{ padding: '8px 10px', fontSize: 12 }}>
+              Fermer
+            </button>
+          </div>
+
+          <div style={{ padding: 14 }}>
+            <div style={{ fontSize: 12, color: 'var(--gray-500)', marginBottom: 8 }}>Dessine ta signature</div>
+            <div style={{ width: '100%', height: 120, border: '1px solid rgba(0,0,0,0.10)', borderRadius: 10, overflow: 'hidden' }}>
+              <canvas
+                ref={signatureQuickCanvasRef}
+                style={{ width: '100%', height: '100%', touchAction: 'none', display: 'block', background: '#fff' }}
+                onPointerDown={(e) => {
+                  try {
+                    ;(e.target as any)?.setPointerCapture?.(e.pointerId)
+                  } catch {}
+                  signatureQuickStart(e)
+                }}
+                onPointerMove={(e) => signatureQuickMove(e)}
+                onPointerUp={() => signatureQuickEnd()}
+                onPointerCancel={() => signatureQuickEnd()}
+                onPointerLeave={() => signatureQuickEnd()}
+              />
+            </div>
+
+            {signatureQuickError ? <div style={{ marginTop: 10, color: '#b91c1c', fontSize: 13 }}>{signatureQuickError}</div> : null}
+
+            <div style={{ display: 'flex', gap: 12, marginTop: 12, flexWrap: 'wrap' }}>
+              <button className="btn btn-secondary" type="button" onClick={signatureQuickClear} disabled={signatureQuickSaving}>
+                Effacer
+              </button>
+              <button className="btn btn-primary" type="button" onClick={signatureQuickSave} disabled={signatureQuickSaving}>
+                {signatureQuickSaving ? 'Enregistrement…' : 'Enregistrer'}
+              </button>
+            </div>
+
+            <div style={{ marginTop: 10, fontSize: 12, color: 'var(--gray-500)' }}>
+              Astuce : sur mobile, signe avec le doigt. Sur desktop, signe à la souris.
+            </div>
+          </div>
+        </div>
+      </div>
+    ) : null}
+
     {modals}
 
     {/* Feedback modal: handled in AppHtmlPage */}
@@ -7995,6 +8478,11 @@ export default function AppHtmlPage() {
       // reset pad after save + close editor
       signatureClear()
       setSignatureEditOpen(false)
+
+      // Notify other UI parts (e.g. PDF preview sign modal) that a signature is now available.
+      try {
+        window.dispatchEvent(new CustomEvent('spyke:signatureSaved', { detail: { path, previewUrl: signaturePreviewUrl } }))
+      } catch {}
     } catch (e: any) {
       setSignatureError(e?.message || 'Erreur signature')
     } finally {
