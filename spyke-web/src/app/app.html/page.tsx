@@ -5392,7 +5392,7 @@ function FacturesV1({
     }
   }, [])
 
-  const { openPdfPreviewFromBlob, openMailComposeWithAttachment, openSignatureFrame, modals } = usePdfMailModals()
+  const { openPdfPreviewFromBlob, openMailComposeWithAttachment, openMailComposePlain, openSignatureFrame, modals } = usePdfMailModals()
 
   const [signatureMissing, setSignatureMissing] = useState(false)
   const [signatureQuickAddOpen, setSignatureQuickAddOpen] = useState(false)
@@ -5574,6 +5574,7 @@ function FacturesV1({
 
   const [quotes, setQuotes] = useState<any[]>([])
   const [invoices, setInvoices] = useState<any[]>([])
+  const [creditNotes, setCreditNotes] = useState<any[]>([])
   const [selectedQuoteId, setSelectedQuoteId] = useState<string>('')
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string>('')
 
@@ -5689,7 +5690,7 @@ function FacturesV1({
           }
         } catch {}
 
-        const [{ data, error }, { data: invData }] = await Promise.all([
+        const [{ data, error }, { data: invData }, { data: cnData }] = await Promise.all([
           supabase
             .from('quotes')
             .select('id,number,title,date_issue,total_ttc')
@@ -5700,11 +5701,17 @@ function FacturesV1({
             .select('id,number,status,paid_at,date_issue,due_date,total_ttc,client_id,buyer_snapshot,created_at')
             .order('created_at', { ascending: false })
             .limit(50),
+          supabase
+            .from('credit_notes')
+            .select('id,number,date_issue,reference_invoice_number,total_ttc,invoice_id,client_id,buyer_snapshot,created_at')
+            .order('created_at', { ascending: false })
+            .limit(50),
         ])
 
         if (error) throw error
         setQuotes((data || []) as any[])
         setInvoices((invData || []) as any[])
+        setCreditNotes((cnData || []) as any[])
       } catch {
         setQuotes([])
       }
@@ -5831,6 +5838,191 @@ function FacturesV1({
       setMode('create')
     } catch {
       // ignore
+    }
+  }
+
+  function genCreditNoteNumberFromInvoice(invoiceNo: string, existingCount: number) {
+    // "Base facture": keep the original invoice number, with an AV suffix.
+    // Example: 2026-001 -> 2026-001-AV1
+    const base = String(invoiceNo || '').trim() || 'FACTURE'
+    const n = Math.max(1, Number(existingCount || 0) + 1)
+    return `${base}-AV${n}`
+  }
+
+  async function createCreditNoteFromInvoice(invoiceId: string) {
+    try {
+      if (!supabase || !invoiceId) return
+
+      const ok = confirm('Créer un avoir à partir de cette facture ?')
+      if (!ok) return
+
+      const { data: sessionData } = await supabase.auth.getSession()
+      const token = sessionData?.session?.access_token
+      if (!token) throw new Error('Non connecté')
+
+      const inv = invoices.find((x) => String((x as any).id) === String(invoiceId)) as any
+      if (!inv) throw new Error('Facture introuvable')
+
+      const invNo = String(inv.number || '')
+
+      // count existing credit notes for this invoice
+      const { count: cnCount } = await supabase
+        .from('credit_notes')
+        .select('id', { count: 'exact', head: true })
+        .eq('invoice_id', invoiceId)
+
+      const creditNoteNumber = genCreditNoteNumberFromInvoice(invNo, Number(cnCount || 0))
+
+      // lines
+      const { data: invLines, error: linesErr } = await supabase
+        .from('invoice_lines')
+        .select('description,qty,unit_price,position')
+        .eq('invoice_id', invoiceId)
+        .order('position', { ascending: true })
+      if (linesErr) throw linesErr
+
+      const lines = (invLines || []).map((l: any) => ({
+        description: String(l.description || ''),
+        qty: Number(l.qty || 0),
+        unitPrice: Number(l.unit_price || 0),
+      }))
+      if (!lines.length) throw new Error('Aucune ligne de facture')
+
+      const totalHt = lines.reduce((acc: number, l: any) => acc + Number(l.qty || 0) * Number(l.unitPrice || 0), 0)
+      const totals = {
+        totalHt,
+        totalTva: 0,
+        totalTtc: Number(inv.total_ttc || 0) || totalHt,
+      }
+
+      // Seller info from profile (best-effort)
+      let seller: any = {
+        name: userFullName || 'Votre entreprise',
+        addressLines: [],
+        siret: '',
+        iban: '',
+        bic: '',
+        bankName: '',
+        bankAccount: '',
+        logoUrl: '',
+      }
+
+      if (userId) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('full_name,company_name,logo_path,address,postal_code,city,country,siret,iban,bic,bank_name,bank_account')
+          .eq('id', userId)
+          .maybeSingle()
+
+        const companyName = (profile as any)?.company_name || (profile as any)?.full_name || userFullName
+        const addressLines: string[] = []
+        const addr = (profile as any)?.address
+        const pc = (profile as any)?.postal_code
+        const city = (profile as any)?.city
+        const country = (profile as any)?.country
+        if (addr) addressLines.push(String(addr))
+        const cityLine = [pc, city].filter(Boolean).join(' ')
+        if (cityLine) addressLines.push(cityLine)
+        if (country) addressLines.push(String(country))
+
+        const logoPath = String((profile as any)?.logo_path || '')
+        let logoUrl = ''
+        if (logoPath) {
+          const pub = supabase.storage.from('logos').getPublicUrl(logoPath)
+          logoUrl = String(pub?.data?.publicUrl || '')
+        }
+
+        seller = {
+          ...seller,
+          name: companyName || seller.name,
+          addressLines,
+          siret: String((profile as any)?.siret || ''),
+          iban: String((profile as any)?.iban || ''),
+          bic: String((profile as any)?.bic || ''),
+          bankName: String((profile as any)?.bank_name || ''),
+          bankAccount: String((profile as any)?.bank_account || ''),
+          logoUrl,
+        }
+      }
+
+      const buyerSnap: any = inv.buyer_snapshot || null
+      const buyer = {
+        name: String(buyerSnap?.name || ''),
+        addressLines: Array.isArray(buyerSnap?.addressLines) ? buyerSnap.addressLines : [],
+        siret: String(buyerSnap?.siret || ''),
+      }
+
+      // persist
+      if (!userId) throw new Error('Utilisateur manquant')
+      const { data: cn, error: cnErr } = await supabase
+        .from('credit_notes')
+        .insert({
+          user_id: userId,
+          invoice_id: invoiceId,
+          number: creditNoteNumber,
+          date_issue: String(inv.date_issue || today),
+          reference_invoice_number: invNo,
+          client_id: inv.client_id || null,
+          buyer_snapshot: buyerSnap,
+          seller_snapshot: seller,
+          total_ht: totals.totalHt,
+          total_tva: totals.totalTva,
+          total_ttc: totals.totalTtc,
+        } as any)
+        .select('id,number,date_issue,reference_invoice_number,total_ttc,invoice_id,client_id,buyer_snapshot,created_at')
+        .maybeSingle()
+      if (cnErr) throw cnErr
+
+      const cnId = String((cn as any)?.id || '')
+      if (cnId) {
+        const payloadLines = lines.map((l: any) => ({
+          credit_note_id: cnId,
+          description: l.description,
+          qty: l.qty,
+          unit_price: l.unitPrice,
+          total: Number(l.qty || 0) * Number(l.unitPrice || 0),
+        }))
+        await supabase.from('credit_note_lines').insert(payloadLines as any)
+      }
+
+      // generate PDF
+      const res = await fetch('/api/avoir-pdf', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', authorization: 'Bearer ' + token },
+        body: JSON.stringify({
+          creditNoteNumber,
+          dateIssue: String(inv.date_issue || today),
+          referenceInvoiceNumber: invNo,
+          logoUrl: String(seller.logoUrl || ''),
+          seller,
+          buyer,
+          lines,
+          totals,
+        }),
+      })
+      const blob = await res.blob()
+      if (!res.ok) throw new Error((await blob.text()) || 'Erreur génération PDF')
+
+      openPdfPreviewFromBlob(blob, `Avoir-${creditNoteNumber}.pdf`, {
+        kind: 'facture',
+        to: String(buyerSnap?.email || ''),
+        subject: `Avoir ${creditNoteNumber}`,
+        text: `Bonjour,\n\nVeuillez trouver ci-joint l’avoir ${creditNoteNumber} (réf. facture ${invNo}).\n\nCordialement,\n${userFullName || ''}`.trim(),
+        getBlob: async () => ({ blob, token }),
+        filename: `Avoir-${creditNoteNumber}.pdf`,
+      })
+
+      // refresh list
+      try {
+        const { data: cnData } = await supabase
+          .from('credit_notes')
+          .select('id,number,date_issue,reference_invoice_number,total_ttc,invoice_id,client_id,buyer_snapshot,created_at')
+          .order('created_at', { ascending: false })
+          .limit(50)
+        setCreditNotes((cnData || []) as any[])
+      } catch {}
+    } catch (e: any) {
+      alert(e?.message || 'Erreur création avoir')
     }
   }
 
@@ -6450,6 +6642,34 @@ function FacturesV1({
                               <button className="btn btn-secondary" type="button" onClick={() => duplicateInvoice(String(inv.id))}>
                                 Dupliquer
                               </button>
+                              <button className="btn btn-secondary" type="button" onClick={() => createCreditNoteFromInvoice(String(inv.id))}>
+                                Créer un avoir
+                              </button>
+                              <button
+                                className="btn btn-secondary"
+                                type="button"
+                                onClick={async () => {
+                                  try {
+                                    if (!supabase) throw new Error('Supabase non initialisé')
+                                    const { data: s } = await supabase.auth.getSession()
+                                    const token = s.session?.access_token
+                                    if (!token) throw new Error('Connecte-toi à Spyke')
+
+                                    const buyerSnap: any = (inv as any)?.buyer_snapshot || null
+                                    const to = String(buyerSnap?.email || '')
+                                    if (!to) throw new Error('Email client manquant')
+
+                                    const subject = `Relance facture ${String((inv as any)?.number || '').trim()}`.trim()
+                                    const text = `Bonjour,\n\nJe me permets de vous relancer concernant la facture ${String((inv as any)?.number || '')} (montant ${formatMoney(Number((inv as any)?.total_ttc || 0) || 0)}), arrivée à échéance le ${String((inv as any)?.due_date ? formatDateFr(String((inv as any)?.due_date)) : '—')}.\n\nPouvez-vous me confirmer la date de règlement ?\n\nMerci,\n${userFullName || ''}`
+
+                                    openMailComposePlain({ to, subject, text, token })
+                                  } catch (e: any) {
+                                    alert(e?.message || 'Erreur relance')
+                                  }
+                                }}
+                              >
+                                Relancer
+                              </button>
                               {!(inv as any)?.paid_at ? (
                                 <button
                                   className="btn btn-secondary"
@@ -6573,6 +6793,32 @@ function FacturesV1({
                         <div className="mobile-card-actions">
                           <button className="btn btn-secondary" type="button" onClick={() => openInvoice(String(inv.id))}>Ouvrir</button>
                           <button className="btn btn-secondary" type="button" onClick={() => duplicateInvoice(String(inv.id))}>Dupliquer</button>
+                          <button className="btn btn-secondary" type="button" onClick={() => createCreditNoteFromInvoice(String(inv.id))}>Créer un avoir</button>
+                          <button
+                            className="btn btn-secondary"
+                            type="button"
+                            onClick={async () => {
+                              try {
+                                if (!supabase) throw new Error('Supabase non initialisé')
+                                const { data: s } = await supabase.auth.getSession()
+                                const token = s.session?.access_token
+                                if (!token) throw new Error('Connecte-toi à Spyke')
+
+                                const buyerSnap: any = (inv as any)?.buyer_snapshot || null
+                                const to = String(buyerSnap?.email || '')
+                                if (!to) throw new Error('Email client manquant')
+
+                                const subject = `Relance facture ${String((inv as any)?.number || '').trim()}`.trim()
+                                const text = `Bonjour,\n\nJe me permets de vous relancer concernant la facture ${String((inv as any)?.number || '')} (montant ${formatMoney(Number((inv as any)?.total_ttc || 0) || 0)}), arrivée à échéance le ${String((inv as any)?.due_date ? formatDateFr(String((inv as any)?.due_date)) : '—')}.\n\nPouvez-vous me confirmer la date de règlement ?\n\nMerci,\n${userFullName || ''}`
+
+                                openMailComposePlain({ to, subject, text, token })
+                              } catch (e: any) {
+                                alert(e?.message || 'Erreur relance')
+                              }
+                            }}
+                          >
+                            Relancer
+                          </button>
                           {!paidAt ? (
                             <button
                               className="btn btn-secondary"
