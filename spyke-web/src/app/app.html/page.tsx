@@ -9008,12 +9008,16 @@ CONTEXTE UTILISATEUR :
           height: 24px;
           border-radius: 999px;
           border: 2px solid var(--gray-300);
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
+
+          /* Use grid to hard-center the glyph */
+          display: inline-grid;
+          place-items: center;
+
           font-weight: 900;
           font-size: 14px;
-          line-height: 1;
+          line-height: 24px;
+          text-align: center;
+
           color: var(--gray-800);
           background: var(--gray-100);
           cursor: help;
