@@ -111,6 +111,7 @@ function usePdfMailModals() {
     previewUrl?: string
   }>(null)
   const [mailSending, setMailSending] = useState(false)
+  const [mailError, setMailError] = useState<string>('')
   const [signatureFrame, setSignatureFrame] = useState<null | { url: string; title?: string }>(null)
 
   const [manualSignModal, setManualSignModal] = useState<null | {
@@ -200,6 +201,7 @@ function usePdfMailModals() {
     const url = String((json as any)?.url || '')
     if (!url) throw new Error('Lien de partage vide')
 
+    setMailError('')
     setMailCompose({
       to: opts.to,
       subject: opts.subject,
@@ -212,12 +214,14 @@ function usePdfMailModals() {
   }
 
   function openMailComposePlain(opts: { to: string; subject: string; text: string; token: string }) {
+    setMailError('')
     setMailCompose({ to: opts.to, subject: opts.subject, text: opts.text, token: opts.token })
   }
 
   async function sendMailNow() {
     if (!mailCompose) return
     try {
+      setMailError('')
       setMailSending(true)
       const res = await fetch('/api/gmail/send', {
         method: 'POST',
@@ -239,14 +243,9 @@ function usePdfMailModals() {
       setMailCompose(null)
     } catch (e: any) {
       const msg = String(e?.message || 'Erreur envoi Gmail')
-      // Offer a direct shortcut to connect Gmail.
+      // When Gmail is not connected, show a friendly inline CTA in the modal.
       if (/gmail|connect/i.test(msg)) {
-        const ok = confirm(`${msg}\n\nAller dans Paramètres > Gmail ?`)
-        if (ok) {
-          try {
-            window.dispatchEvent(new CustomEvent('spyke:goToGmailSettings'))
-          } catch {}
-        }
+        setMailError(msg)
         return
       }
       alert(msg)
@@ -542,7 +541,10 @@ function usePdfMailModals() {
       <ModalShell
         open={!!mailCompose}
         title={mailCompose ? `Envoyer par email` : 'Envoyer par email'}
-        onClose={() => setMailCompose(null)}
+        onClose={() => {
+          setMailError('')
+          setMailCompose(null)
+        }}
         footer={
           mailCompose ? (
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
@@ -559,6 +561,29 @@ function usePdfMailModals() {
         {mailCompose ? (
           <div className="mail-compose-grid">
             <div className="mail-compose-form">
+              {mailError ? (
+                <div style={{ marginBottom: 12, padding: 12, borderRadius: 12, background: 'rgba(250, 204, 21, 0.18)', border: '1px solid rgba(250, 204, 21, 0.35)' }}>
+                  <div style={{ fontWeight: 800, marginBottom: 4 }}>Connexion Gmail requise</div>
+                  <div style={{ fontSize: 13, color: 'rgba(0,0,0,0.75)' }}>{mailError}</div>
+                  <div style={{ display: 'flex', gap: 10, marginTop: 10, flexWrap: 'wrap' }}>
+                    <button
+                      className="btn btn-primary"
+                      type="button"
+                      onClick={() => {
+                        try {
+                          window.dispatchEvent(new CustomEvent('spyke:goToGmailSettings'))
+                          setMailCompose(null)
+                        } catch {}
+                      }}
+                    >
+                      Connecter Gmail
+                    </button>
+                    <button className="btn btn-secondary" type="button" onClick={() => setMailError('')}>
+                      Fermer
+                    </button>
+                  </div>
+                </div>
+              ) : null}
               <label style={{ fontSize: 12, color: 'rgba(0,0,0,0.7)' }}>
                 À
                 <input
