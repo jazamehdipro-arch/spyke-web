@@ -10370,8 +10370,6 @@ CONTEXTE UTILISATEUR :
             onClick={() => {
               if (planCode !== 'pro') {
                 notify('Question juriste : réservé au plan Pro.', 'info')
-                goTab('settings')
-                return
               }
               goTab('juriste')
             }}
