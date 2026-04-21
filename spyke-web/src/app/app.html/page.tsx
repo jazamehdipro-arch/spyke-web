@@ -3140,6 +3140,7 @@ function ContratsV1({
   }, [selectedContractId])
 
   const [clientId, setClientId] = useState('')
+  const [clientMode, setClientMode] = useState<'none' | 'existing' | 'new'>('none')
   const [clientName, setClientName] = useState('')
   const [clientSiret, setClientSiret] = useState('')
   const [clientAddress, setClientAddress] = useState('')
@@ -4775,55 +4776,95 @@ Contrat généré par Spyke — spykeapp.fr — L’assistant IA des freelances 
               <div className="mobile-accordion-body">
                 <div className="form-row">
             <div className="form-group">
-              <label className="form-label">Importer depuis vos clients</label>
-              <select className="form-select" value={clientId} onChange={(e) => selectClient(e.target.value)}>
-                <option value="">Choisir…</option>
+              <label className="form-label">Sélectionner un client</label>
+              <select
+                className="form-select"
+                value={clientMode === 'existing' ? clientId : clientMode === 'new' ? 'new' : ''}
+                onChange={(e) => {
+                  const v = e.target.value
+                  if (v === 'new') {
+                    setClientMode('new')
+                    setClientId('')
+                    // keep current values (user may have started typing)
+                  } else if (v) {
+                    setClientMode('existing')
+                    selectClient(v)
+                  } else {
+                    setClientMode('none')
+                    setClientId('')
+                  }
+                }}
+              >
+                <option value="">-- Choisir un client existant --</option>
                 {clients.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
                   </option>
                 ))}
+                <option value="new">✍️ Remplir à la main</option>
               </select>
             </div>
-            <div className="form-group">
-              <label className="form-label">Nom / Raison sociale</label>
-              <input className="form-input" value={clientName} onChange={(e) => setClientName(e.target.value)} />
-            </div>
           </div>
-          <div className="form-row">
-            <div className="form-group">
-              <label className="form-label">SIRET client</label>
-              <input
-                className="form-input"
-                inputMode="numeric"
-                placeholder="14 chiffres"
-                value={clientSiret}
-                onChange={(e) => {
-                  const v = e.target.value.replace(/\D/g, '').slice(0, 14)
-                  setClientSiret(v)
-                }}
-              />
-              {clientSiret && clientSiret.replace(/\D/g, '').length !== 14 ? (
-                <div style={{ marginTop: 6, fontSize: 12, color: 'var(--red)' }}>Le SIRET doit contenir 14 chiffres.</div>
-              ) : null}
-            </div>
-            <div className="form-group">
-              <label className="form-label">Représentant du client</label>
-              <input className="form-input" value={clientRepresentant} onChange={(e) => setClientRepresentant(e.target.value)} placeholder="Jean Martin, Directeur" />
-            </div>
-          </div>
-          <div className="form-row single">
-            <div className="form-group">
-              <label className="form-label">Adresse du client</label>
-              <input className="form-input" value={clientAddress} onChange={(e) => setClientAddress(e.target.value)} />
-            </div>
-          </div>
-          <div className="form-row single">
-            <div className="form-group">
-              <label className="form-label">Email du client</label>
-              <input className="form-input" type="email" value={clientEmail} onChange={(e) => setClientEmail(e.target.value)} />
-            </div>
-          </div>
+
+          {clientMode === 'existing' ? (
+            (() => {
+              const c: any = clients.find((x) => x.id === clientId)
+              const addressLine = [c?.address, [c?.postal_code, c?.city].filter(Boolean).join(' '), c?.country]
+                .filter(Boolean)
+                .join(', ')
+              return (
+                <div className="card" style={{ background: 'var(--gray-50)', border: '1px dashed var(--gray-200)', marginTop: 12 }}>
+                  <div style={{ fontSize: 13, color: 'var(--gray-500)' }}>
+                    <div><b>Email</b> : {c?.email || '-'}</div>
+                    <div><b>SIRET</b> : {c?.siret || '-'}</div>
+                    <div><b>Adresse</b> : {addressLine || '-'}</div>
+                  </div>
+                </div>
+              )
+            })()
+          ) : clientMode === 'new' ? (
+            <>
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label">Nom / Raison sociale</label>
+                  <input className="form-input" value={clientName} onChange={(e) => setClientName(e.target.value)} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Email du client</label>
+                  <input className="form-input" type="email" value={clientEmail} onChange={(e) => setClientEmail(e.target.value)} />
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label">SIRET client</label>
+                  <input
+                    className="form-input"
+                    inputMode="numeric"
+                    placeholder="14 chiffres"
+                    value={clientSiret}
+                    onChange={(e) => {
+                      const v = e.target.value.replace(/\D/g, '').slice(0, 14)
+                      setClientSiret(v)
+                    }}
+                  />
+                  {clientSiret && clientSiret.replace(/\D/g, '').length !== 14 ? (
+                    <div style={{ marginTop: 6, fontSize: 12, color: 'var(--red)' }}>Le SIRET doit contenir 14 chiffres.</div>
+                  ) : null}
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Représentant du client</label>
+                  <input className="form-input" value={clientRepresentant} onChange={(e) => setClientRepresentant(e.target.value)} placeholder="Jean Martin, Directeur" />
+                </div>
+              </div>
+              <div className="form-row single">
+                <div className="form-group">
+                  <label className="form-label">Adresse du client</label>
+                  <input className="form-input" value={clientAddress} onChange={(e) => setClientAddress(e.target.value)} />
+                </div>
+              </div>
+            </>
+          ) : null}
               </div>
             </details>
 
@@ -5092,6 +5133,7 @@ function FacturesV1({
   const [invoiceNumberDirty, setInvoiceNumberDirty] = useState(false)
 
   const [buyer, setBuyer] = useState<any>({ name: '', email: '', siret: '', addressLines: [] })
+  const [buyerMode, setBuyerMode] = useState<'none' | 'existing' | 'new'>('none')
   const [clientId, setClientId] = useState('')
   const [lines, setLines] = useState<InvoiceLine[]>(() => [
     { id: '0', description: '', qty: 1, unitPrice: 0 },
@@ -5207,6 +5249,7 @@ function FacturesV1({
 
   async function selectClient(id: string) {
     setClientId(id)
+    setBuyerMode(id ? 'existing' : 'none')
     if (!supabase || !id) return
     const { data: c } = await supabase
       .from('clients')
@@ -6304,14 +6347,32 @@ function FacturesV1({
                 </div>
               </div>
               <div className="form-group">
-                <label className="form-label">Ou sélectionner un client</label>
-                <select className="form-select" value={clientId} onChange={(e) => selectClient(e.target.value)}>
-                  <option value="">Choisir…</option>
+                <label className="form-label">Sélectionner un client</label>
+                <select
+                  className="form-select"
+                  value={buyerMode === 'existing' ? clientId : buyerMode === 'new' ? 'new' : ''}
+                  onChange={(e) => {
+                    const v = e.target.value
+                    if (v === 'new') {
+                      setBuyerMode('new')
+                      setClientId('')
+                      setBuyer({ name: '', email: '', siret: '', addressLines: [] })
+                    } else if (v) {
+                      setBuyerMode('existing')
+                      selectClient(v)
+                    } else {
+                      setBuyerMode('none')
+                      setClientId('')
+                    }
+                  }}
+                >
+                  <option value="">-- Choisir un client existant --</option>
                   {clients.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.name}
                     </option>
                   ))}
+                  <option value="new">✍️ Remplir à la main</option>
                 </select>
               </div>
               <div className="form-group">
@@ -6342,42 +6403,58 @@ function FacturesV1({
                 <label className="form-label">Échéance</label>
                 <input className="form-input" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
               </div>
-              <div className="form-group">
-                <label className="form-label">Destinataire (nom)</label>
-                <input className="form-input" value={buyer?.name || ''} onChange={(e) => setBuyer({ ...buyer, name: e.target.value })} />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">SIRET client (optionnel)</label>
-                <input
-                  className="form-input"
-                  inputMode="numeric"
-                  placeholder="14 chiffres"
-                  value={buyer?.siret || ''}
-                  onChange={(e) => {
-                    const v = e.target.value.replace(/\D/g, '').slice(0, 14)
-                    setBuyer({ ...buyer, siret: v })
-                  }}
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Email (optionnel)</label>
-                <input className="form-input" value={buyer?.email || ''} onChange={(e) => setBuyer({ ...buyer, email: e.target.value })} />
-              </div>
+              <div className="form-group" />
             </div>
 
-            <div className="form-row single">
-              <div className="form-group">
-                <label className="form-label">Adresse du client</label>
-                <textarea
-                  className="form-textarea"
-                  placeholder="Adresse (une ligne par champ)"
-                  value={(buyer?.addressLines || []).join('\n')}
-                  onChange={(e) => setBuyer({ ...buyer, addressLines: e.target.value.split('\n').map((x) => x.trim()).filter(Boolean) })}
-                />
+            {buyerMode === 'existing' ? (
+              <div className="card" style={{ background: 'var(--gray-50)', border: '1px dashed var(--gray-200)', marginTop: 12 }}>
+                <div style={{ fontSize: 13, color: 'var(--gray-500)' }}>
+                  <div><b>Email</b> : {buyer?.email || '-'}</div>
+                  <div><b>SIRET</b> : {buyer?.siret || '-'}</div>
+                  <div><b>Adresse</b> : {(buyer?.addressLines || []).join(', ') || '-'}</div>
+                </div>
               </div>
-            </div>
+            ) : buyerMode === 'new' ? (
+              <>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label className="form-label">Destinataire (nom)</label>
+                    <input className="form-input" value={buyer?.name || ''} onChange={(e) => setBuyer({ ...buyer, name: e.target.value })} />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">SIRET client (optionnel)</label>
+                    <input
+                      className="form-input"
+                      inputMode="numeric"
+                      placeholder="14 chiffres"
+                      value={buyer?.siret || ''}
+                      onChange={(e) => {
+                        const v = e.target.value.replace(/\D/g, '').slice(0, 14)
+                        setBuyer({ ...buyer, siret: v })
+                      }}
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Email (optionnel)</label>
+                    <input className="form-input" value={buyer?.email || ''} onChange={(e) => setBuyer({ ...buyer, email: e.target.value })} />
+                  </div>
+                </div>
+
+                <div className="form-row single">
+                  <div className="form-group">
+                    <label className="form-label">Adresse du client</label>
+                    <textarea
+                      className="form-textarea"
+                      placeholder="Adresse (une ligne par champ)"
+                      value={(buyer?.addressLines || []).join('\n')}
+                      onChange={(e) => setBuyer({ ...buyer, addressLines: e.target.value.split('\n').map((x) => x.trim()).filter(Boolean) })}
+                    />
+                  </div>
+                </div>
+              </>
+            ) : null}
               </div>
             </details>
 
