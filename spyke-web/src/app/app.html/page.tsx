@@ -238,7 +238,18 @@ function usePdfMailModals() {
       alert('Email envoyé')
       setMailCompose(null)
     } catch (e: any) {
-      alert(e?.message || 'Erreur envoi Gmail')
+      const msg = String(e?.message || 'Erreur envoi Gmail')
+      // Offer a direct shortcut to connect Gmail.
+      if (/gmail|connect/i.test(msg)) {
+        const ok = confirm(`${msg}\n\nAller dans Paramètres > Gmail ?`)
+        if (ok) {
+          try {
+            window.dispatchEvent(new CustomEvent('spyke:goToGmailSettings'))
+          } catch {}
+        }
+        return
+      }
+      alert(msg)
     } finally {
       setMailSending(false)
     }
@@ -7103,9 +7114,9 @@ export default function AppHtmlPage() {
     }
   }
 
-  // Allow nested modals/components (e.g. PDF preview) to redirect user to signature settings.
+  // Allow nested modals/components (e.g. PDF preview) to redirect user to settings.
   useEffect(() => {
-    const handler = () => {
+    const handlerSignature = () => {
       try {
         setTab('settings')
         try {
@@ -7124,9 +7135,29 @@ export default function AppHtmlPage() {
         } catch {}
       } catch {}
     }
+
+    const handlerGmail = () => {
+      try {
+        setTab('settings')
+        try {
+          setSettingsTab('gmail')
+        } catch {}
+        try {
+          setTimeout(() => {
+            const el = document.getElementById('gmail-settings')
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          }, 50)
+        } catch {}
+      } catch {}
+    }
+
     try {
-      window.addEventListener('spyke:goToSignatureSettings', handler as any)
-      return () => window.removeEventListener('spyke:goToSignatureSettings', handler as any)
+      window.addEventListener('spyke:goToSignatureSettings', handlerSignature as any)
+      window.addEventListener('spyke:goToGmailSettings', handlerGmail as any)
+      return () => {
+        window.removeEventListener('spyke:goToSignatureSettings', handlerSignature as any)
+        window.removeEventListener('spyke:goToGmailSettings', handlerGmail as any)
+      }
     } catch {
       return
     }
@@ -12656,7 +12687,7 @@ CONTEXTE UTILISATEUR :
             ) : null}
 
             {settingsTab === 'gmail' ? (
-            <div className="form-section" style={{ marginTop: 14 }}>
+            <div id="gmail-settings" className="form-section" style={{ marginTop: 14 }}>
               <div className="form-section-title">Connexion Gmail</div>
               <p style={{ marginBottom: 12, color: 'var(--gray-600)' }}>
                 Connectez votre boîte Gmail pour pouvoir envoyer des devis/factures/contrats directement depuis Spyke.
