@@ -4090,6 +4090,12 @@ Contrat généré par Spyke — spykeapp.fr — L’assistant IA des freelances 
     try {
       if (!supabase) throw new Error('Supabase non initialisé')
 
+      // Require a client before generating the contract PDF.
+      if (!String(clientId || '').trim() && !String(clientName || '').trim()) {
+        alert('Veuillez renseigner un client avant de générer le PDF.')
+        return
+      }
+
       // If the contract is already fully signed and we have a stored signed PDF, show it instead of regenerating.
       if (String(currentContractStatus || '') === 'signed' && String(currentContractSignedPdfPath || '')) {
         try {
