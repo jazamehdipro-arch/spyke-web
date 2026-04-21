@@ -39,7 +39,7 @@ export async function renderContractPdfReact(input: ContractPdfInput): Promise<B
       color: '#111827',
       lineHeight: 1.45,
     },
-    topBrand: { fontSize: 11, fontWeight: 700, textAlign: 'center', marginBottom: 10 },
+    // Removed top "SPYKE" label for cleaner client-facing contract PDFs.
     mainTitle: { fontSize: 20, fontWeight: 800, textAlign: 'center', marginBottom: 6 },
     contractNo: { fontSize: 11, textAlign: 'center', color: '#374151', marginBottom: 16 },
     sectionTitle: { fontSize: 11, fontWeight: 700, marginBottom: 8 },
@@ -112,7 +112,6 @@ export async function renderContractPdfReact(input: ContractPdfInput): Promise<B
       React.createElement(
         Page,
         { size: 'A4', style: styles.page },
-        React.createElement(Text, { style: styles.topBrand }, 'SPYKE'),
         React.createElement(Text, { style: styles.mainTitle }, 'CONTRAT DE PRESTATION DE SERVICES'),
         React.createElement(Text, { style: styles.contractNo }, `N° ${norm(input.contractNumber) || ''}`.trim()),
         React.createElement(Text, { style: styles.sectionTitle }, 'ENTRE LES SOUSSIGNÉS :'),
