@@ -110,6 +110,7 @@ function usePdfMailModals() {
     attachmentFilename?: string
     previewUrl?: string
   }>(null)
+  const [mailPreparing, setMailPreparing] = useState<null | { label?: string }>(null)
   const [mailSending, setMailSending] = useState(false)
   const [mailError, setMailError] = useState<string>('')
   const [signatureFrame, setSignatureFrame] = useState<null | { url: string; title?: string }>(null)
@@ -289,6 +290,20 @@ function usePdfMailModals() {
         {signatureFrame ? (
           <iframe title="yousign-sign" src={signatureFrame.url} style={{ width: '100%', height: '100%', border: 0 }} />
         ) : null}
+      </ModalShell>
+
+      <ModalShell
+        open={!!mailPreparing}
+        title="Préparation"
+        onClose={() => setMailPreparing(null)}
+        footer={null}
+      >
+        <div style={{ padding: 16, color: 'var(--gray-700)', fontSize: 14, lineHeight: 1.6 }}>
+          {mailPreparing?.label || 'Préparation…'}
+          <div style={{ marginTop: 10, fontSize: 12, color: 'var(--gray-500)' }}>
+            Génération du PDF + création de la pièce jointe.
+          </div>
+        </div>
       </ModalShell>
 
       {manualSignModal ? (
@@ -479,8 +494,14 @@ function usePdfMailModals() {
                       try {
                         const a = pdfPreview.actions
                         if (!a) return
-                        // Close preview first for UX
+
+                        // Generating + uploading the PDF can take a few seconds.
+                        // Show an immediate loader modal so the user gets feedback.
+                        setMailPreparing({ label: 'Préparation de l’email…' })
+
+                        // Close preview first for UX (keep it snappy on mobile)
                         setPdfPreview(null)
+
                         await openMailComposeWithAttachment({
                           kind: a.kind,
                           to: a.to,
@@ -491,6 +512,8 @@ function usePdfMailModals() {
                         })
                       } catch (e: any) {
                         alert(e?.message || 'Erreur envoi mail')
+                      } finally {
+                        setMailPreparing(null)
                       }
                     }}
                   >
