@@ -5230,16 +5230,7 @@ Contrat généré par Spyke — spykeapp.fr — L’assistant IA des freelances 
               {/* Bouton “Envoyer pour signature” supprimé ici : disponible dans le pop-up PDF */}
             </div>
 
-        {contractText ? (
-          <details className="mobile-preview" open>
-            <summary className="mobile-accordion-summary">Aperçu du contrat</summary>
-            <div className="mobile-accordion-body">
-              <div className="output-box" style={{ whiteSpace: 'pre-wrap', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' }}>
-                {contractText}
-              </div>
-            </div>
-          </details>
-        ) : null}
+        {/* Contract text preview removed (was confusing under the PDF buttons). */}
       </div>
         </>
       )}
