@@ -6957,7 +6957,7 @@ export default function AppHtmlPage() {
         {
           tab: 'analyseur' as Tab,
           target: 'analyseur',
-          title: 'Analyseur de projet',
+          title: 'Analyse de brief',
           body: 'Colle un brief : analyse rapide + recommandation selon ton profil.',
         },
         {
@@ -10355,7 +10355,7 @@ CONTEXTE UTILISATEUR :
               <circle cx="11" cy="11" r="8" />
               <path d="M21 21l-4.35-4.35" />
             </svg>
-            Analyseur de projet
+            Analyse de brief
           </button>
 
           <button
@@ -11623,7 +11623,7 @@ CONTEXTE UTILISATEUR :
         <div id="tab-analyseur" className={`tab-content ${tab === 'analyseur' ? 'active' : ''}`}>
           <div className="page-header">
             <div>
-              <h1 className="page-title">Analyseur de projet</h1>
+              <h1 className="page-title">Analyse de brief</h1>
               <p className="page-subtitle">Analysez un brief client pour évaluer sa faisabilité selon ton profil et ton expérience</p>
             </div>
           </div>

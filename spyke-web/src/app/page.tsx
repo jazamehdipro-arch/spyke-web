@@ -44,7 +44,7 @@ const TESTIMONIALS: Testimonial[] = [
     initials: 'NB',
     name: 'Nicolas Bernard',
     role: 'Consultant data',
-    text: "L’analyseur de projet m’aide à cadrer vite (questions à poser + risques). Je parais beaucoup plus structuré face au client.",
+    text: "L’analyse de brief m’aide à cadrer vite (questions à poser + risques). Je parais beaucoup plus structuré face au client.",
   },
   {
     initials: 'LP',

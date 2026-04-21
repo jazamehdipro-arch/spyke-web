@@ -830,7 +830,7 @@ export default function FonctionnalitesPage() {
                 <circle cx="11" cy="11" r="8" />
                 <path d="M21 21l-4.35-4.35" />
               </svg>
-              Analyseur de projet
+              Analyse de brief
             </div>
             <h2>Évaluez vos projets avant de vous engager</h2>
             <p>
@@ -870,7 +870,7 @@ export default function FonctionnalitesPage() {
           <div className="feature-visual">
             <img
               src="/feature-gonogo-preview.jpg"
-              alt="Analyseur de projet"
+              alt="Analyse de brief"
               className="feature-image"
             />
             <div className="feature-floating-card card-1">
