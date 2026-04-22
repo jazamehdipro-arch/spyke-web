@@ -6640,9 +6640,93 @@ function FacturesV1({
                                 Ouvrir
                               </button>
 
+                              <button className="btn btn-secondary" type="button" onClick={() => createCreditNoteFromInvoice(String(inv.id))}>
+                                Créer un avoir
+                              </button>
+
+                              <button
+                                className="btn btn-secondary"
+                                type="button"
+                                onClick={async () => {
+                                  try {
+                                    if (!supabase) throw new Error('Supabase non initialisé')
+                                    const { data: s } = await supabase.auth.getSession()
+                                    const token = s.session?.access_token
+                                    if (!token) throw new Error('Connecte-toi à Spyke')
+
+                                    const buyerSnap: any = (inv as any)?.buyer_snapshot || null
+                                    const to = String(buyerSnap?.email || '')
+                                    if (!to) throw new Error('Email client manquant')
+
+                                    const subject = `Relance facture ${String((inv as any)?.number || '').trim()}`.trim()
+                                    const text = `Bonjour,\n\nJe me permets de vous relancer concernant la facture ${String((inv as any)?.number || '')} (montant ${formatMoney(Number((inv as any)?.total_ttc || 0) || 0)}), arrivée à échéance le ${String((inv as any)?.due_date ? formatDateFr(String((inv as any)?.due_date)) : '—')}.\n\nPouvez-vous me confirmer la date de règlement ?\n\nMerci,\n${userFullName || ''}`
+
+                                    openMailComposePlain({ to, subject, text, token })
+                                  } catch (e: any) {
+                                    alert(e?.message || 'Erreur relance')
+                                  }
+                                }}
+                              >
+                                Relancer
+                              </button>
+
+                              {!(inv as any)?.paid_at ? (
+                                <button
+                                  className="btn btn-secondary"
+                                  type="button"
+                                  onClick={async () => {
+                                    try {
+                                      if (!supabase) return
+                                      const { error } = await supabase
+                                        .from('invoices')
+                                        .update({ paid_at: new Date().toISOString(), status: 'paid' } as any)
+                                        .eq('id', String(inv.id))
+                                      if (error) throw error
+
+                                      const { data: invData } = await supabase
+                                        .from('invoices')
+                                        .select('id,number,status,paid_at,date_issue,due_date,total_ttc,client_id,buyer_snapshot,created_at')
+                                        .order('created_at', { ascending: false })
+                                        .limit(50)
+                                      setInvoices((invData || []) as any[])
+                                    } catch (e: any) {
+                                      alert(e?.message || 'Erreur mise à jour facture')
+                                    }
+                                  }}
+                                >
+                                  Marquer payé
+                                </button>
+                              ) : (
+                                <button
+                                  className="btn btn-secondary"
+                                  type="button"
+                                  onClick={async () => {
+                                    try {
+                                      if (!supabase) return
+                                      const { error } = await supabase
+                                        .from('invoices')
+                                        .update({ paid_at: null, status: 'pending' } as any)
+                                        .eq('id', String(inv.id))
+                                      if (error) throw error
+
+                                      const { data: invData } = await supabase
+                                        .from('invoices')
+                                        .select('id,number,status,paid_at,date_issue,due_date,total_ttc,client_id,buyer_snapshot,created_at')
+                                        .order('created_at', { ascending: false })
+                                        .limit(50)
+                                      setInvoices((invData || []) as any[])
+                                    } catch (e: any) {
+                                      alert(e?.message || 'Erreur mise à jour facture')
+                                    }
+                                  }}
+                                >
+                                  Démarquer payé
+                                </button>
+                              )}
+
                               <details style={{ position: 'relative' }}>
                                 <summary className="btn btn-secondary" style={{ listStyle: 'none', cursor: 'pointer' }}>
-                                  Actions ▾
+                                  Plus ▾
                                 </summary>
                                 <div
                                   style={{
@@ -6662,88 +6746,6 @@ function FacturesV1({
                                     <button className="btn btn-secondary" type="button" onClick={() => duplicateInvoice(String(inv.id))}>
                                       Dupliquer
                                     </button>
-                                    <button className="btn btn-secondary" type="button" onClick={() => createCreditNoteFromInvoice(String(inv.id))}>
-                                      Créer un avoir
-                                    </button>
-                                    <button
-                                      className="btn btn-secondary"
-                                      type="button"
-                                      onClick={async () => {
-                                        try {
-                                          if (!supabase) throw new Error('Supabase non initialisé')
-                                          const { data: s } = await supabase.auth.getSession()
-                                          const token = s.session?.access_token
-                                          if (!token) throw new Error('Connecte-toi à Spyke')
-
-                                          const buyerSnap: any = (inv as any)?.buyer_snapshot || null
-                                          const to = String(buyerSnap?.email || '')
-                                          if (!to) throw new Error('Email client manquant')
-
-                                          const subject = `Relance facture ${String((inv as any)?.number || '').trim()}`.trim()
-                                          const text = `Bonjour,\n\nJe me permets de vous relancer concernant la facture ${String((inv as any)?.number || '')} (montant ${formatMoney(Number((inv as any)?.total_ttc || 0) || 0)}), arrivée à échéance le ${String((inv as any)?.due_date ? formatDateFr(String((inv as any)?.due_date)) : '—')}.\n\nPouvez-vous me confirmer la date de règlement ?\n\nMerci,\n${userFullName || ''}`
-
-                                          openMailComposePlain({ to, subject, text, token })
-                                        } catch (e: any) {
-                                          alert(e?.message || 'Erreur relance')
-                                        }
-                                      }}
-                                    >
-                                      Relancer
-                                    </button>
-
-                                    {!(inv as any)?.paid_at ? (
-                                      <button
-                                        className="btn btn-secondary"
-                                        type="button"
-                                        onClick={async () => {
-                                          try {
-                                            if (!supabase) return
-                                            const { error } = await supabase
-                                              .from('invoices')
-                                              .update({ paid_at: new Date().toISOString(), status: 'paid' } as any)
-                                              .eq('id', String(inv.id))
-                                            if (error) throw error
-
-                                            const { data: invData } = await supabase
-                                              .from('invoices')
-                                              .select('id,number,status,paid_at,date_issue,due_date,total_ttc,client_id,buyer_snapshot,created_at')
-                                              .order('created_at', { ascending: false })
-                                              .limit(50)
-                                            setInvoices((invData || []) as any[])
-                                          } catch (e: any) {
-                                            alert(e?.message || 'Erreur mise à jour facture')
-                                          }
-                                        }}
-                                      >
-                                        Marquer payé
-                                      </button>
-                                    ) : (
-                                      <button
-                                        className="btn btn-secondary"
-                                        type="button"
-                                        onClick={async () => {
-                                          try {
-                                            if (!supabase) return
-                                            const { error } = await supabase
-                                              .from('invoices')
-                                              .update({ paid_at: null, status: 'pending' } as any)
-                                              .eq('id', String(inv.id))
-                                            if (error) throw error
-
-                                            const { data: invData } = await supabase
-                                              .from('invoices')
-                                              .select('id,number,status,paid_at,date_issue,due_date,total_ttc,client_id,buyer_snapshot,created_at')
-                                              .order('created_at', { ascending: false })
-                                              .limit(50)
-                                            setInvoices((invData || []) as any[])
-                                          } catch (e: any) {
-                                            alert(e?.message || 'Erreur mise à jour facture')
-                                          }
-                                        }}
-                                      >
-                                        Démarquer payé
-                                      </button>
-                                    )}
 
                                     {!selectInvoicesMode ? (
                                       <button
