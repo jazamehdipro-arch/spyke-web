@@ -7159,6 +7159,13 @@ function FacturesV1({
                   </div>
 
                   <div className="form-group">
+                    <label className="form-label">Email (optionnel)</label>
+                    <input className="form-input" type="email" value={buyer?.email || ''} onChange={(e) => setBuyer({ ...buyer, email: e.target.value })} />
+                  </div>
+                </div>
+
+                <div className="form-row">
+                  <div className="form-group">
                     <label className="form-label">SIRET client (optionnel)</label>
                     <input
                       className="form-input"
@@ -7171,11 +7178,7 @@ function FacturesV1({
                       }}
                     />
                   </div>
-
-                  <div className="form-group">
-                    <label className="form-label">Email (optionnel)</label>
-                    <input className="form-input" value={buyer?.email || ''} onChange={(e) => setBuyer({ ...buyer, email: e.target.value })} />
-                  </div>
+                  <div className="form-group" />
                 </div>
 
                 <div className="form-row single">
