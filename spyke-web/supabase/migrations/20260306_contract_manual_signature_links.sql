@@ -34,47 +34,73 @@ create index if not exists contract_sign_links_token_idx on public.contract_sign
 alter table public.contract_sign_links enable row level security;
 
 -- Owners can list their links
-create policy "contract_sign_links_select_owner" on public.contract_sign_links
-for select
-using (
-  exists (
-    select 1 from public.contracts c
-    where c.id = contract_sign_links.contract_id
-      and c.user_id = auth.uid()
-  )
-);
+-- Postgres doesn't support "create policy if not exists". Make it idempotent.
+do $$
+begin
+  create policy "contract_sign_links_select_owner" on public.contract_sign_links
+  for select
+  using (
+    exists (
+      select 1 from public.contracts c
+      where c.id = contract_sign_links.contract_id
+        and c.user_id = auth.uid()
+    )
+  );
+exception
+  when duplicate_object then
+    null;
+end $$;
 
 -- Owners can insert links for their contracts
-create policy "contract_sign_links_insert_owner" on public.contract_sign_links
-for insert
-with check (
-  exists (
-    select 1 from public.contracts c
-    where c.id = contract_sign_links.contract_id
-      and c.user_id = auth.uid()
-  )
-);
+do $$
+begin
+  create policy "contract_sign_links_insert_owner" on public.contract_sign_links
+  for insert
+  with check (
+    exists (
+      select 1 from public.contracts c
+      where c.id = contract_sign_links.contract_id
+        and c.user_id = auth.uid()
+    )
+  );
+exception
+  when duplicate_object then
+    null;
+end $$;
 
--- Owners can update/delete their links
-create policy "contract_sign_links_update_owner" on public.contract_sign_links
-for update
-using (
-  exists (
-    select 1 from public.contracts c
-    where c.id = contract_sign_links.contract_id
-      and c.user_id = auth.uid()
-  )
-);
+-- Owners can update their links
+do $$
+begin
+  create policy "contract_sign_links_update_owner" on public.contract_sign_links
+  for update
+  using (
+    exists (
+      select 1 from public.contracts c
+      where c.id = contract_sign_links.contract_id
+        and c.user_id = auth.uid()
+    )
+  );
+exception
+  when duplicate_object then
+    null;
+end $$;
 
-create policy "contract_sign_links_delete_owner" on public.contract_sign_links
-for delete
-using (
-  exists (
-    select 1 from public.contracts c
-    where c.id = contract_sign_links.contract_id
-      and c.user_id = auth.uid()
-  )
-);
+-- Owners can delete their links
+do $$
+begin
+  create policy "contract_sign_links_delete_owner" on public.contract_sign_links
+  for delete
+  using (
+    exists (
+      select 1 from public.contracts c
+      where c.id = contract_sign_links.contract_id
+        and c.user_id = auth.uid()
+    )
+  );
+exception
+  when duplicate_object then
+    null;
+end $$;
 
 -- Note: public access to signing links is handled server-side in Next API routes via service role,
 -- not via RLS, so we keep RLS strict.
