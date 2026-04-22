@@ -117,6 +117,7 @@ export async function POST(req: Request) {
       totalsLabel: { fontSize: 10, color: GRAY, fontWeight: 700 },
       totalsValue: { fontSize: 10, color: BLACK, fontWeight: 700 },
       footer: { position: 'absolute', left: 40, right: 40, bottom: 18, fontSize: 9, color: GRAY, flexDirection: 'row', justifyContent: 'space-between' },
+      footerRight: { color: '#ffffff', fontWeight: 700 },
     })
 
     const Doc = () =>
@@ -226,7 +227,7 @@ export async function POST(req: Request) {
             View,
             { style: styles.footer },
             React.createElement(Text, null, 'Document généré par Spyke'),
-            React.createElement(Text, null, new Date().toLocaleDateString('fr-FR'))
+            React.createElement(Text, { style: styles.footerRight }, new Date().toLocaleDateString('fr-FR'))
           )
         )
       )
