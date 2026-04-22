@@ -11,10 +11,17 @@ create table if not exists public.feedback_surveys (
 alter table public.feedback_surveys enable row level security;
 
 -- Allow users to insert their own survey
-create policy if not exists "feedback_surveys_insert_own" on public.feedback_surveys
-  for insert
-  to authenticated
-  with check (auth.uid() = user_id);
+-- Postgres doesn't support "create policy if not exists".
+do $$
+begin
+  create policy "feedback_surveys_insert_own" on public.feedback_surveys
+    for insert
+    to authenticated
+    with check (auth.uid() = user_id);
+exception
+  when duplicate_object then
+    null;
+end $$;
 
 -- profile flags
 alter table public.profiles
