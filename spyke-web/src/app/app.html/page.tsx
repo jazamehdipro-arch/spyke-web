@@ -6732,7 +6732,7 @@ function FacturesV1({
                                   style={{
                                     position: 'absolute',
                                     right: 0,
-                                    top: 'calc(100% + 6px)',
+                                    bottom: 'calc(100% + 6px)',
                                     minWidth: 220,
                                     background: '#fff',
                                     border: '1px solid var(--gray-200)',
