@@ -1130,7 +1130,7 @@ export default function OnboardingPage() {
                   </div>
                 ) : (
                   <div className="logo-preview active" id="logoPreview">
-                    <img src={logoPreviewUrl} alt="Logo" id="logoPreviewImg" />
+                    <img src={logoPreviewUrl} alt="Logo" id="logoPreviewImg" width={220} height={60} style={{ width: 220, height: 60, objectFit: 'contain' }} />
                     <div className="logo-preview-info">
                       <h4 id="logoPreviewName">{logoPreviewName}</h4>
                       <p id="logoPreviewSize">{logoPreviewSize}</p>

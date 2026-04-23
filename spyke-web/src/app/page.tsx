@@ -274,6 +274,14 @@ export default function Home() {
           width: 100%;
         }
 
+        /* Help the browser keep animations composited */
+        .hero-content,
+        .hero-visual,
+        .hero-card,
+        .hero-social-proof {
+          will-change: transform, opacity;
+        }
+
         .hero-content {
           position: relative;
           z-index: 2;
@@ -407,6 +415,7 @@ export default function Home() {
           width: 100%;
           height: auto;
           display: block;
+          aspect-ratio: 16 / 9;
           border-radius: 24px;
           box-shadow: 0 40px 80px rgba(0, 0, 0, 0.15);
           border: 1px solid rgba(0, 0, 0, 0.06);
@@ -1290,10 +1299,10 @@ export default function Home() {
 
             <div className="hero-social-proof">
               <div className="avatars">
-                <img src="https://i.pravatar.cc/80?img=1" alt="User" />
-                <img src="https://i.pravatar.cc/80?img=2" alt="User" />
-                <img src="https://i.pravatar.cc/80?img=3" alt="User" />
-                <img src="https://i.pravatar.cc/80?img=4" alt="User" />
+                <img src="https://i.pravatar.cc/80?img=1" alt="User" width={40} height={40} loading="lazy" decoding="async" />
+                <img src="https://i.pravatar.cc/80?img=2" alt="User" width={40} height={40} loading="lazy" decoding="async" />
+                <img src="https://i.pravatar.cc/80?img=3" alt="User" width={40} height={40} loading="lazy" decoding="async" />
+                <img src="https://i.pravatar.cc/80?img=4" alt="User" width={40} height={40} loading="lazy" decoding="async" />
               </div>
               <p>
                 <strong>50+ freelances</strong> nous font déjà confiance
@@ -1302,7 +1311,7 @@ export default function Home() {
           </div>
 
           <div className="hero-visual">
-            <img className="hero-visual-img" src="/hero-dashboard.jpg" alt="Aperçu du dashboard Spyke" />
+            <img className="hero-visual-img" src="/hero-dashboard.jpg" alt="Aperçu du dashboard Spyke" width={1200} height={675} loading="eager" decoding="async" />
 
             <div className="hero-card hero-card-1">
               <div className="hero-card-icon">
