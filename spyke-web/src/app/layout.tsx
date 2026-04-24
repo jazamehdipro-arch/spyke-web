@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { DM_Sans, Syne } from 'next/font/google'
 import './globals.css'
+import PageViewTracker from './PageViewTracker'
 
 const dmSans = DM_Sans({
   variable: '--font-dm-sans',
@@ -48,7 +49,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr">
-      <body className={`${dmSans.variable} ${syne.variable} antialiased`}>{children}</body>
+      <body className={`${dmSans.variable} ${syne.variable} antialiased`}>
+        <PageViewTracker />
+        {children}
+      </body>
     </html>
   )
 }
