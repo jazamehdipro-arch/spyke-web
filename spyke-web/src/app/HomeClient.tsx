@@ -1,6 +1,7 @@
 "use client"
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { track } from '@/lib/analytics'
 
 type Testimonial = {
   initials: string
@@ -94,6 +95,10 @@ export default function HomeClient() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [testimonialIndex, setTestimonialIndex] = useState(0)
   const [testimonialAnimKey, setTestimonialAnimKey] = useState(0)
+
+  useEffect(() => {
+    track('page_view', { path: '/' })
+  }, [])
 
   const perView = 3
   const totalSlides = TESTIMONIALS.length
