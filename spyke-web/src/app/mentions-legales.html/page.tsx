@@ -3,7 +3,7 @@
 export default function MentionsLegalesPage() {
   return (
     <>
-      <style jsx global>{`
+      <style>{`
         * {
           margin: 0;
           padding: 0;

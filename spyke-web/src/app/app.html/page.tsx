@@ -1838,7 +1838,7 @@ Réponds uniquement par le texte de la description.`
 
   return (
     <div className="devis-v4">
-      <style jsx global>{`
+      <style>{`
         .devis-v4 {
           --black: #0a0a0a;
           --white: #ffffff;
@@ -9253,7 +9253,7 @@ CONTEXTE UTILISATEUR :
 
   return (
     <>
-      <style jsx global>{`
+      <style>{`
         * {
           margin: 0;
           padding: 0;

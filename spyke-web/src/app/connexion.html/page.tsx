@@ -35,7 +35,7 @@ export default function ConnexionPage() {
 
   return (
     <>
-      <style jsx global>{`
+      <style>{`
         * {
           margin: 0;
           padding: 0;

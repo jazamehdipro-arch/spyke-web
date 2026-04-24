@@ -350,7 +350,7 @@ export default function OnboardingPage() {
 
   return (
     <>
-      <style jsx global>{`
+      <style>{`
         * {
           margin: 0;
           padding: 0;

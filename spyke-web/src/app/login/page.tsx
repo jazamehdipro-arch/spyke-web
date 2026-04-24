@@ -342,7 +342,7 @@ export default function LoginPage() {
         <p>Spyke © 2025 – Votre assistant freelance intelligent</p>
       </footer>
 
-      <style jsx global>{`
+      <style>{`
         :root {
           --black: #000000;
           --white: #ffffff;

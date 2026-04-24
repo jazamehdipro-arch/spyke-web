@@ -36,7 +36,7 @@ export default function CommentCaMarchePage() {
 
   return (
     <>
-      <style jsx global>{`
+      <style>{`
         * {
           margin: 0;
           padding: 0;
