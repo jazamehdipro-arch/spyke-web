@@ -24,7 +24,8 @@ export async function POST(req: Request) {
     })
 
     const url = new URL(req.url)
-    const path = (props && typeof props.path === 'string' && props.path) || url.searchParams.get('path') || null
+    const rawPath = (props && typeof props.path === 'string' && props.path) || url.searchParams.get('path') || null
+    const path = rawPath ? String(rawPath).split('?')[0] : null
 
     await supabaseAdmin.from('analytics_events').insert({
       event_name: eventName,
