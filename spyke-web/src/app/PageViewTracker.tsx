@@ -9,6 +9,7 @@ export default function PageViewTracker() {
 
   useEffect(() => {
     if (typeof window === 'undefined') return
+    if (pathname.startsWith('/admin')) return
 
     const search = window.location.search || ''
     const sp = new URLSearchParams(search)
