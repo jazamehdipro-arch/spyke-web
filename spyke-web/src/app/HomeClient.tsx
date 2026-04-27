@@ -526,8 +526,8 @@ export default function HomeClient() {
         <div className="cta-container">
           <h2>Prêt à écrire plus vite ?</h2>
           <p>Rejoignez les freelances qui ont adopté l&apos;IA pour leurs emails et documents (devis, factures, contrats).</p>
-          <a href="/tarifs.html" className="cta-btn">
-            Voir les tarifs →
+          <a href="/connexion.html" className="cta-btn">
+            Créer un compte gratuit →
           </a>
         </div>
       </section>
