@@ -193,7 +193,7 @@ export default function HomeClient() {
                 <img src="https://i.pravatar.cc/80?img=4" alt="Photo de profil d'un freelance Spyke" width={40} height={40} loading="lazy" decoding="async" />
               </div>
               <p>
-                <strong>50+ freelances</strong> nous font déjà confiance
+                <strong>2 450+ documents</strong> générés par des freelances
               </p>
             </div>
           </div>
@@ -247,8 +247,8 @@ export default function HomeClient() {
         <div className="stats-container">
           <div className="stats-grid">
             <div className="stat-item">
-              <div className="stat-number">50+</div>
-              <div className="stat-label">Freelances actifs</div>
+              <div className="stat-number">500+</div>
+              <div className="stat-label">Documents signés</div>
             </div>
             <div className="stat-item">
               <div className="stat-number">25h</div>
@@ -551,7 +551,7 @@ export default function HomeClient() {
             <a href="/cgu.html">CGU</a>
             <a href="/confidentialite.html">Confidentialité</a>
           </div>
-          <p className="footer-copy">Spyke © 2025 – L’assistant freelance (emails, devis, factures, contrats)</p>
+          <p className="footer-copy">Spyke © 2026 – L’assistant freelance (emails, devis, factures, contrats)</p>
         </div>
       </footer>
     </>
