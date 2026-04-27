@@ -197,7 +197,7 @@ export default function BlogTjmPage() {
         @keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
       `}</style>
 
-      <nav>
+      <nav aria-label="Navigation principale">
         <div className="nav-inner">
           <a href="/" className="nav-logo"><div className="nav-logo-icon">⚡</div>Spyke</a>
           <ul className="nav-links">
@@ -210,7 +210,7 @@ export default function BlogTjmPage() {
       </nav>
 
       <header className="article-hero">
-        <div className="breadcrumb">
+        <div className="breadcrumb" role="navigation" aria-label="Fil d'ariane">
           <a href="/">Spyke</a><span>›</span><a href="/blog">Blog</a><span>›</span><span>Calculer son TJM</span>
         </div>
         <div className="article-tag-top">💰 Gestion</div>
@@ -557,7 +557,7 @@ export default function BlogTjmPage() {
       <div className="toc-drawer" data-toc-drawer>
         <div className="toc-drawer-head">
           <div className="toc-drawer-title">Sommaire</div>
-          <button type="button" className="toc-drawer-close" data-toc-close>
+          <button type="button" className="toc-drawer-close" aria-label="Fermer le sommaire" data-toc-close>
             Fermer
           </button>
         </div>
@@ -646,7 +646,7 @@ export default function BlogTjmPage() {
         dangerouslySetInnerHTML={{
           __html: JSON.stringify({
             '@context': 'https://schema.org',
-            '@type': 'Article',
+            '@type': 'BlogPosting',
             headline: 'Calculer son TJM Freelance : la Méthode Pas à Pas',
             description: 'Comment calculer son TJM freelance en 2026. Méthode complète avec simulateur intégré.',
             datePublished: '2026-02-16',
