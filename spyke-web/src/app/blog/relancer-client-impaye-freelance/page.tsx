@@ -510,7 +510,7 @@ export default function BlogRelanceImpayePage() {
         }
       `}</style>
 
-      <nav>
+      <nav aria-label="Navigation principale">
         <div className="nav-inner">
           <a href="/" className="nav-logo">
             <div className="nav-logo-icon">⚡</div>
@@ -526,7 +526,7 @@ export default function BlogRelanceImpayePage() {
       </nav>
 
       <header className="article-hero">
-        <div className="breadcrumb">
+        <div className="breadcrumb" role="navigation" aria-label="Fil d'ariane">
           <a href="/">Spyke</a>
           <span>›</span>
           <a href="/blog">Blog</a>
@@ -696,7 +696,7 @@ Cordialement,
       <div className="toc-drawer" data-toc-drawer>
         <div className="toc-drawer-head">
           <div className="toc-drawer-title">Sommaire</div>
-          <button type="button" className="toc-drawer-close" data-toc-close>
+          <button type="button" className="toc-drawer-close" aria-label="Fermer le sommaire" data-toc-close>
             Fermer
           </button>
         </div>
@@ -783,7 +783,7 @@ Cordialement,
         dangerouslySetInnerHTML={{
           __html: JSON.stringify({
             '@context': 'https://schema.org',
-            '@type': 'Article',
+            '@type': 'BlogPosting',
             headline: 'Comment relancer un client qui ne paye pas (sans ruiner la relation)',
             description:
               "3 templates d'emails de relance testés et approuvés. Du rappel amical à la mise en demeure, avec le bon timing pour chaque étape.",

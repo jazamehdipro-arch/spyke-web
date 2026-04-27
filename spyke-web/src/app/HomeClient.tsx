@@ -109,7 +109,7 @@ export default function HomeClient() {
   return (
     <>
       {/* Navigation */}
-      <nav>
+      <nav aria-label="Navigation principale">
         <a href="/" className="logo" onClick={() => setMobileMenuOpen(false)}>
           <div className="logo-icon">
             <svg viewBox="0 0 24 24">
@@ -187,10 +187,10 @@ export default function HomeClient() {
 
             <div className="hero-social-proof">
               <div className="avatars">
-                <img src="https://i.pravatar.cc/80?img=1" alt="User" width={40} height={40} loading="lazy" decoding="async" />
-                <img src="https://i.pravatar.cc/80?img=2" alt="User" width={40} height={40} loading="lazy" decoding="async" />
-                <img src="https://i.pravatar.cc/80?img=3" alt="User" width={40} height={40} loading="lazy" decoding="async" />
-                <img src="https://i.pravatar.cc/80?img=4" alt="User" width={40} height={40} loading="lazy" decoding="async" />
+                <img src="https://i.pravatar.cc/80?img=1" alt="Photo de profil d'un freelance Spyke" width={40} height={40} loading="lazy" decoding="async" />
+                <img src="https://i.pravatar.cc/80?img=2" alt="Photo de profil d'un freelance Spyke" width={40} height={40} loading="lazy" decoding="async" />
+                <img src="https://i.pravatar.cc/80?img=3" alt="Photo de profil d'un freelance Spyke" width={40} height={40} loading="lazy" decoding="async" />
+                <img src="https://i.pravatar.cc/80?img=4" alt="Photo de profil d'un freelance Spyke" width={40} height={40} loading="lazy" decoding="async" />
               </div>
               <p>
                 <strong>50+ freelances</strong> nous font déjà confiance
@@ -533,7 +533,7 @@ export default function HomeClient() {
       </section>
 
       {/* Footer */}
-      <footer>
+      <footer aria-label="Pied de page">
         <div className="footer-container">
           <div className="footer-logo">
             <div className="logo-icon">

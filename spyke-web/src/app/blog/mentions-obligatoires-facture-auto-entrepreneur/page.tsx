@@ -606,7 +606,7 @@ export default function BlogFactureMentionsPage() {
         @keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
       `}</style>
 
-      <nav>
+      <nav aria-label="Navigation principale">
         <div className="nav-inner">
           <a href="/" className="nav-logo">
             <div className="nav-logo-icon">⚡</div>
@@ -622,7 +622,7 @@ export default function BlogFactureMentionsPage() {
       </nav>
 
       <header className="article-hero">
-        <div className="breadcrumb">
+        <div className="breadcrumb" role="navigation" aria-label="Fil d'ariane">
           <a href="/">Spyke</a>
           <span>›</span>
           <a href="/blog">Blog</a>
@@ -894,7 +894,7 @@ export default function BlogFactureMentionsPage() {
       <div className="toc-drawer" data-toc-drawer>
         <div className="toc-drawer-head">
           <div className="toc-drawer-title">Sommaire</div>
-          <button type="button" className="toc-drawer-close" data-toc-close>
+          <button type="button" className="toc-drawer-close" aria-label="Fermer le sommaire" data-toc-close>
             Fermer
           </button>
         </div>
@@ -984,7 +984,7 @@ export default function BlogFactureMentionsPage() {
         dangerouslySetInnerHTML={{
           __html: JSON.stringify({
             '@context': 'https://schema.org',
-            '@type': 'Article',
+            '@type': 'BlogPosting',
             headline: 'Facture Auto-Entrepreneur : les 7 Mentions Obligatoires en 2026',
             description:
               'Les 7 mentions obligatoires sur une facture auto-entrepreneur en 2026. Guide complet avec exemples et générateur gratuit.',

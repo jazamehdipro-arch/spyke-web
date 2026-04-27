@@ -188,7 +188,7 @@ export default function BlogContratClausesPage() {
       `}</style>
 
       {/* NAV */}
-      <nav>
+      <nav aria-label="Navigation principale">
         <div className="nav-inner">
           <a href="/" className="nav-logo">
             <div className="nav-logo-icon">⚡</div>
@@ -205,7 +205,7 @@ export default function BlogContratClausesPage() {
 
       {/* HERO */}
       <header className="article-hero">
-        <div className="breadcrumb">
+        <div className="breadcrumb" role="navigation" aria-label="Fil d'ariane">
           <a href="/">Spyke</a><span>›</span><a href="/blog">Blog</a><span>›</span><span>Contrat prestation freelance</span>
         </div>
         <div className="article-tag-top">📋 Contrats</div>
@@ -604,7 +604,7 @@ export default function BlogContratClausesPage() {
       <div className="toc-drawer" data-toc-drawer>
         <div className="toc-drawer-head">
           <div className="toc-drawer-title">Sommaire</div>
-          <button type="button" className="toc-drawer-close" data-toc-close>
+          <button type="button" className="toc-drawer-close" aria-label="Fermer le sommaire" data-toc-close>
             Fermer
           </button>
         </div>
@@ -695,7 +695,7 @@ export default function BlogContratClausesPage() {
         dangerouslySetInnerHTML={{
           __html: JSON.stringify({
             '@context': 'https://schema.org',
-            '@type': 'Article',
+            '@type': 'BlogPosting',
             headline: 'Contrat de Prestation Freelance : les 10 Clauses Indispensables',
             description: "Les 10 clauses essentielles d'un contrat de prestation freelance en 2026.",
             datePublished: '2026-02-16',

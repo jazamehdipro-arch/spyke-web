@@ -682,6 +682,17 @@ export default async function BlogPage({
               name: 'Spyke',
               url: 'https://www.spykeapp.fr',
             },
+            blogPost: posts.map((p) => ({
+              '@type': 'BlogPosting',
+              headline: p.title,
+              description: p.excerpt,
+              url: `https://www.spykeapp.fr${p.href}`,
+              datePublished: '2026-02-16',
+              dateModified: '2026-02-16',
+              author: { '@type': 'Organization', name: 'Spyke' },
+              publisher: { '@type': 'Organization', name: 'Spyke', url: 'https://www.spykeapp.fr' },
+              articleSection: p.category,
+            })),
           }),
         }}
       />

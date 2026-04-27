@@ -11,7 +11,7 @@ export function MarketingNav(props: {
   const pricingHref = props.pricingHref || '/tarifs.html'
 
   return (
-    <nav>
+    <nav aria-label="Navigation principale">
       <div className="nav-inner">
         <a href="/" className="nav-logo" onClick={() => setOpen(false)}>
           <div className="nav-logo-icon">⚡</div>
