@@ -118,6 +118,9 @@ export async function POST(req: Request) {
       .order('created_at', { ascending: true })
       .limit(BATCH_SIZE)
 
+    console.log('[outreach] fetchError:', fetchError)
+    console.log('[outreach] contacts found:', contacts?.length ?? 0, JSON.stringify(contacts))
+
     if (fetchError) throw fetchError
     if (!contacts || contacts.length === 0)
       return NextResponse.json({ ok: true, sent: 0, message: 'Aucun contact en attente' })
