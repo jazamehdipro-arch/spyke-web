@@ -15,8 +15,12 @@ function requireEnv(name: string): string {
   return v
 }
 
-function buildEmailHtml(name: string | null): string {
-  const firstName = name?.split(' ')[0] || 'vous'
+function buildEmailHtml(name: string | null, jobTitle: string | null): string {
+  const firstName = name?.split(' ')[0] || null
+  const greeting = firstName ? `Bonjour ${firstName},` : 'Bonjour,'
+  const titleLine = jobTitle
+    ? `En tant que <strong>${jobTitle}</strong>, vous passez probablement plus de temps que vous ne le souhaitez sur vos devis, factures et contrats.`
+    : `Vous passez probablement plus de temps que vous ne le souhaitez sur vos devis, factures et contrats.`
   return `<!DOCTYPE html>
 <html lang="fr">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
@@ -31,32 +35,32 @@ function buildEmailHtml(name: string | null): string {
         </tr>
         <tr>
           <td style="padding:40px 40px 32px">
-            <p style="margin:0 0 20px;font-size:16px;color:#333;line-height:1.6">Bonjour ${firstName},</p>
-            <p style="margin:0 0 20px;font-size:16px;color:#333;line-height:1.6">
-              Je me permets de vous contacter car je pense que <strong>Spyke</strong> peut vraiment vous simplifier la vie en tant que freelance.
-            </p>
-            <p style="margin:0 0 20px;font-size:16px;color:#333;line-height:1.6">
-              Spyke, c'est la plateforme tout-en-un qui vous permet de :
-            </p>
+            <p style="margin:0 0 20px;font-size:16px;color:#333;line-height:1.6">${greeting}</p>
+            <p style="margin:0 0 20px;font-size:16px;color:#333;line-height:1.6">${titleLine}</p>
+            <p style="margin:0 0 16px;font-size:16px;color:#333;line-height:1.6">J'ai créé Spyke exactement pour ça.</p>
+            <p style="margin:0 0 16px;font-size:16px;color:#333;line-height:1.6">Spyke vous permet de :</p>
             <table cellpadding="0" cellspacing="0" style="margin:0 0 24px">
-              <tr><td style="padding:6px 0;font-size:15px;color:#333">✅ &nbsp;Créer vos <strong>devis et factures</strong> en 30 secondes</td></tr>
-              <tr><td style="padding:6px 0;font-size:15px;color:#333">✅ &nbsp;Générer des <strong>contrats professionnels</strong> adaptés à votre activité</td></tr>
+              <tr><td style="padding:6px 0;font-size:15px;color:#333">✅ &nbsp;Générer un <strong>devis ou une facture</strong> en 30 secondes</td></tr>
+              <tr><td style="padding:6px 0;font-size:15px;color:#333">✅ &nbsp;Créer des <strong>contrats professionnels</strong> adaptés à votre activité</td></tr>
               <tr><td style="padding:6px 0;font-size:15px;color:#333">✅ &nbsp;Obtenir des <strong>conseils juridiques</strong> personnalisés</td></tr>
-              <tr><td style="padding:6px 0;font-size:15px;color:#333">✅ &nbsp;Gérer toute votre <strong>admin freelance</strong> au même endroit</td></tr>
+              <tr><td style="padding:6px 0;font-size:15px;color:#333">✅ &nbsp;Centraliser toute votre <strong>admin freelance</strong> au même endroit</td></tr>
             </table>
+            <p style="margin:0 0 20px;font-size:16px;color:#333;line-height:1.6">
+              <strong>C'est gratuit pour commencer</strong> — aucune carte bancaire requise.
+            </p>
             <p style="margin:0 0 32px;font-size:16px;color:#333;line-height:1.6">
               Des centaines de freelances l'utilisent déjà pour gagner du temps et se concentrer sur leur vrai travail.
             </p>
             <table cellpadding="0" cellspacing="0" style="margin:0 auto 32px">
               <tr>
                 <td align="center" style="background:#1a1a2e;border-radius:8px;padding:14px 32px">
-                  <a href="https://spyke.fr" style="color:#ffffff;font-size:16px;font-weight:700;text-decoration:none">Essayer Spyke gratuitement →</a>
+                  <a href="https://spykeapp.fr" style="color:#ffffff;font-size:16px;font-weight:700;text-decoration:none">Essayer Spyke gratuitement →</a>
                 </td>
               </tr>
             </table>
             <p style="margin:0;font-size:15px;color:#666;line-height:1.6">
               À très bientôt,<br>
-              <strong>Mehdi</strong> — Fondateur de Spyke
+              <strong>Robin</strong> — Co-Fondateur de Spyke
             </p>
           </td>
         </tr>
@@ -113,7 +117,7 @@ export async function POST(req: Request) {
     // Fetch next BATCH_SIZE pending contacts
     const { data: contacts, error: fetchError } = await supabaseAdmin
       .from('outreach_contacts')
-      .select('id, email, name')
+      .select('id, email, name, job_title')
       .eq('status', 'pending')
       .order('created_at', { ascending: true })
       .limit(BATCH_SIZE)
@@ -132,9 +136,9 @@ export async function POST(req: Request) {
         await transporter.sendMail({
           from: `${FROM_NAME} <${FROM_EMAIL}>`,
           to: contact.email,
-          subject: '⚡ Simplifiez votre admin freelance avec Spyke',
-          text: 'Bonjour,\n\nJe vous contacte au sujet de Spyke, la plateforme tout-en-un pour freelances.\n\nEssayez Spyke gratuitement sur https://spyke.fr\n\nCordialement,\nMehdi — Fondateur de Spyke',
-          html: buildEmailHtml(contact.name),
+          subject: 'Gagnez du temps sur votre admin freelance',
+          text: `Bonjour${contact.name ? ' ' + contact.name.split(' ')[0] : ''},\n\nEn tant que ${contact.job_title || 'freelance'}, vous passez probablement plus de temps que vous ne le souhaitez sur vos devis, factures et contrats.\n\nJ'ai créé Spyke exactement pour ça.\n\nEssayez Spyke gratuitement : https://spykeapp.fr\n\nÀ très bientôt,\nRobin — Co-Fondateur de Spyke`,
+          html: buildEmailHtml(contact.name, contact.job_title),
         })
 
         await supabaseAdmin
