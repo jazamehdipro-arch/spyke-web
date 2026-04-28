@@ -1,4 +1,18 @@
+import type { Metadata } from 'next'
 import TarifsClient from './TarifsClient'
+
+export const metadata: Metadata = {
+  title: 'Tarifs Spyke — Gratuit & Pro pour les freelances',
+  description:
+    'Découvrez les offres Spyke : plan Gratuit pour démarrer, plan Pro à 19,90€/mois pour automatiser devis, factures, contrats et relances grâce à l\'IA.',
+  alternates: { canonical: 'https://www.spykeapp.fr/tarifs.html' },
+  openGraph: {
+    title: 'Tarifs Spyke — Gratuit & Pro',
+    description: 'Plan Gratuit pour démarrer. Plan Pro à 19,90€/mois pour automatiser votre gestion freelance grâce à l\'IA.',
+    url: 'https://www.spykeapp.fr/tarifs.html',
+    type: 'website',
+  },
+}
 
 export default function TarifsPage() {
   return (

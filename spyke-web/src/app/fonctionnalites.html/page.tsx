@@ -1,4 +1,18 @@
+import type { Metadata } from 'next'
 import FonctionnalitesClient from './FonctionnalitesClient'
+
+export const metadata: Metadata = {
+  title: 'Fonctionnalités Spyke — Devis, Factures, Contrats et Relances par IA',
+  description:
+    'Spyke génère vos devis, factures et contrats freelance en quelques clics grâce à l\'IA. Signez en ligne, relancez les impayés automatiquement. Découvrez toutes les fonctionnalités.',
+  alternates: { canonical: 'https://www.spykeapp.fr/fonctionnalites.html' },
+  openGraph: {
+    title: 'Fonctionnalités Spyke — L\'IA pour les freelances',
+    description: 'Devis, factures, contrats, e-signature et relances automatiques. Tout ce qu\'il faut pour gérer votre activité freelance.',
+    url: 'https://www.spykeapp.fr/fonctionnalites.html',
+    type: 'website',
+  },
+}
 
 export default function FonctionnalitesPage() {
   return (

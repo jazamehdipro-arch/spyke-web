@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import SeoDevisPage from '@/components/seo/SeoDevisPage'
 import { ConversionBanner, FaqAccordion, OtherTools } from '@/components/seo/SeoBlocks'
+import { SEO_TOOL_CSS } from '@/components/seo/seo-tool-styles'
 
 export const metadata: Metadata = {
   title: 'Générateur de Devis Freelance Gratuit en Ligne — Spyke',
@@ -62,6 +63,7 @@ export default function Page() {
 
   return (
     <>
+      <style>{SEO_TOOL_CSS}</style>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(appJsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
 

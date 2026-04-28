@@ -109,7 +109,7 @@ export default function HomeClient() {
   return (
     <>
       {/* Navigation */}
-      <nav>
+      <nav aria-label="Navigation principale">
         <a href="/" className="logo" onClick={() => setMobileMenuOpen(false)}>
           <div className="logo-icon">
             <svg viewBox="0 0 24 24">
@@ -187,13 +187,13 @@ export default function HomeClient() {
 
             <div className="hero-social-proof">
               <div className="avatars">
-                <img src="https://i.pravatar.cc/80?img=1" alt="User" width={40} height={40} loading="lazy" decoding="async" />
-                <img src="https://i.pravatar.cc/80?img=2" alt="User" width={40} height={40} loading="lazy" decoding="async" />
-                <img src="https://i.pravatar.cc/80?img=3" alt="User" width={40} height={40} loading="lazy" decoding="async" />
-                <img src="https://i.pravatar.cc/80?img=4" alt="User" width={40} height={40} loading="lazy" decoding="async" />
+                <img src="https://i.pravatar.cc/80?img=1" alt="Photo de profil d'un freelance Spyke" width={40} height={40} loading="lazy" decoding="async" />
+                <img src="https://i.pravatar.cc/80?img=2" alt="Photo de profil d'un freelance Spyke" width={40} height={40} loading="lazy" decoding="async" />
+                <img src="https://i.pravatar.cc/80?img=3" alt="Photo de profil d'un freelance Spyke" width={40} height={40} loading="lazy" decoding="async" />
+                <img src="https://i.pravatar.cc/80?img=4" alt="Photo de profil d'un freelance Spyke" width={40} height={40} loading="lazy" decoding="async" />
               </div>
               <p>
-                <strong>50+ freelances</strong> nous font déjà confiance
+                <strong>2 450+ documents</strong> générés par des freelances
               </p>
             </div>
           </div>
@@ -247,8 +247,8 @@ export default function HomeClient() {
         <div className="stats-container">
           <div className="stats-grid">
             <div className="stat-item">
-              <div className="stat-number">50+</div>
-              <div className="stat-label">Freelances actifs</div>
+              <div className="stat-number">500+</div>
+              <div className="stat-label">Documents signés</div>
             </div>
             <div className="stat-item">
               <div className="stat-number">25h</div>
@@ -526,14 +526,14 @@ export default function HomeClient() {
         <div className="cta-container">
           <h2>Prêt à écrire plus vite ?</h2>
           <p>Rejoignez les freelances qui ont adopté l&apos;IA pour leurs emails et documents (devis, factures, contrats).</p>
-          <a href="/tarifs.html" className="cta-btn">
-            Voir les tarifs →
+          <a href="/connexion.html" className="cta-btn">
+            Créer un compte gratuit →
           </a>
         </div>
       </section>
 
       {/* Footer */}
-      <footer>
+      <footer aria-label="Pied de page">
         <div className="footer-container">
           <div className="footer-logo">
             <div className="logo-icon">
@@ -551,7 +551,7 @@ export default function HomeClient() {
             <a href="/cgu.html">CGU</a>
             <a href="/confidentialite.html">Confidentialité</a>
           </div>
-          <p className="footer-copy">Spyke © 2025 – L’assistant freelance (emails, devis, factures, contrats)</p>
+          <p className="footer-copy">Spyke © 2026 – L’assistant freelance (emails, devis, factures, contrats)</p>
         </div>
       </footer>
     </>

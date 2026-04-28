@@ -23,7 +23,16 @@ export default function BlogContratClausesPage() {
         .nav-links a:hover { color: var(--white); text-decoration: none; }
         .nav-cta { background: var(--yellow); color: var(--black); padding: 8px 18px; border-radius: 8px; font-weight: 600; font-size: 0.88rem; transition: background 0.2s; }
         .nav-cta:hover { background: var(--yellow-dark); text-decoration: none; }
-        @media (max-width: 768px) { .nav-links { display: none; } }
+        .mobile-menu-btn { display: none; background: transparent; border: 1px solid rgba(255,255,255,0.15); color: var(--white); border-radius: 10px; padding: 9px 11px; cursor: pointer; align-items: center; justify-content: center; }
+        .mobile-menu-btn svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; }
+        @media (max-width: 768px) {
+          .mobile-menu-btn { display: inline-flex; }
+          .nav-links { display: none; position: fixed; top: 64px; left: 12px; right: 12px; flex-direction: column; gap: 4px; background: rgba(10,10,10,0.98); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 12px; z-index: 200; box-shadow: 0 20px 40px rgba(0,0,0,0.5); }
+          .nav-links.open { display: flex; }
+          .nav-links a { font-size: 0.95rem; padding: 12px 14px; border-radius: 10px; color: var(--gray-300); border: 1px solid rgba(255,255,255,0.06); }
+          .nav-links a:hover { color: var(--white); background: rgba(255,255,255,0.04); }
+          .nav-cta { background: var(--yellow) !important; color: var(--black) !important; border-color: var(--yellow) !important; display: flex; justify-content: center; }
+        }
 
         .article-hero { max-width: 800px; margin: 0 auto; padding: 64px 24px 40px; animation: fadeUp 0.7s ease-out; }
         .breadcrumb { display: flex; align-items: center; gap: 8px; font-size: 0.82rem; color: var(--gray-500); margin-bottom: 28px; flex-wrap: wrap; }
@@ -188,12 +197,15 @@ export default function BlogContratClausesPage() {
       `}</style>
 
       {/* NAV */}
-      <nav>
+      <nav aria-label="Navigation principale">
         <div className="nav-inner">
           <a href="/" className="nav-logo">
             <div className="nav-logo-icon">⚡</div>
             Spyke
           </a>
+          <button type="button" className="mobile-menu-btn" aria-label="Ouvrir le menu" aria-expanded="false" data-mobile-nav-toggle>
+            <svg viewBox="0 0 24 24"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/></svg>
+          </button>
           <ul className="nav-links">
             <li><a href="/fonctionnalites.html">Fonctionnalités</a></li>
             <li><a href="/blog">Blog</a></li>
@@ -205,7 +217,7 @@ export default function BlogContratClausesPage() {
 
       {/* HERO */}
       <header className="article-hero">
-        <div className="breadcrumb">
+        <div className="breadcrumb" role="navigation" aria-label="Fil d'ariane">
           <a href="/">Spyke</a><span>›</span><a href="/blog">Blog</a><span>›</span><span>Contrat prestation freelance</span>
         </div>
         <div className="article-tag-top">📋 Contrats</div>
@@ -604,7 +616,7 @@ export default function BlogContratClausesPage() {
       <div className="toc-drawer" data-toc-drawer>
         <div className="toc-drawer-head">
           <div className="toc-drawer-title">Sommaire</div>
-          <button type="button" className="toc-drawer-close" data-toc-close>
+          <button type="button" className="toc-drawer-close" aria-label="Fermer le sommaire" data-toc-close>
             Fermer
           </button>
         </div>
@@ -695,7 +707,7 @@ export default function BlogContratClausesPage() {
         dangerouslySetInnerHTML={{
           __html: JSON.stringify({
             '@context': 'https://schema.org',
-            '@type': 'Article',
+            '@type': 'BlogPosting',
             headline: 'Contrat de Prestation Freelance : les 10 Clauses Indispensables',
             description: "Les 10 clauses essentielles d'un contrat de prestation freelance en 2026.",
             datePublished: '2026-02-16',
@@ -742,6 +754,29 @@ export default function BlogContratClausesPage() {
               },
             ],
           }),
+        }}
+      />
+
+      <script
+        defer
+        dangerouslySetInnerHTML={{
+          __html: `
+            (function(){
+              var btn = document.querySelector('[data-mobile-nav-toggle]');
+              var links = document.querySelector('.nav-links');
+              if (!btn || !links) return;
+              btn.addEventListener('click', function(){
+                var open = links.classList.toggle('open');
+                btn.setAttribute('aria-expanded', String(open));
+              });
+              document.addEventListener('click', function(e){
+                if (!btn.contains(e.target) && !links.contains(e.target)) {
+                  links.classList.remove('open');
+                  btn.setAttribute('aria-expanded', 'false');
+                }
+              });
+            })();
+          `,
         }}
       />
     </>
