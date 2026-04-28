@@ -82,6 +82,16 @@ export default function OutreachPage() {
     }
   }
 
+  async function handleDelete(id: string) {
+    if (!confirm('Supprimer ce contact ?')) return
+    const { error } = await supabase.from('outreach_contacts').delete().eq('id', id)
+    if (error) {
+      setMessage({ type: 'error', text: 'Erreur suppression : ' + error.message })
+    } else {
+      await loadStats()
+    }
+  }
+
   async function handleSendBatch() {
     setSending(true)
     setMessage(null)
@@ -175,7 +185,7 @@ export default function OutreachPage() {
           <table style={styles.table}>
             <thead>
               <tr>
-                {['Nom', 'Email', 'Poste', 'Statut', 'Envoyé le'].map(h => (
+                {['Nom', 'Email', 'Poste', 'Statut', 'Envoyé le', ''].map(h => (
                   <th key={h} style={styles.th}>
                     {h}
                   </th>
@@ -192,6 +202,9 @@ export default function OutreachPage() {
                     <span style={{ ...styles.badge, ...badgeColor(c.status) }}>{c.status}</span>
                   </td>
                   <td style={styles.td}>{c.sent_at ? new Date(c.sent_at).toLocaleDateString('fr-FR') : '—'}</td>
+                  <td style={styles.td}>
+                    <button onClick={() => handleDelete(c.id)} style={styles.deleteBtn}>✕</button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -257,4 +270,5 @@ const styles: Record<string, React.CSSProperties> = {
   tr: {},
   td: { padding: '12px 16px', fontSize: 14, color: '#333', borderBottom: '1px solid #f3f3f3' },
   badge: { display: 'inline-block', borderRadius: 6, padding: '2px 10px', fontSize: 12, fontWeight: 600 },
+  deleteBtn: { background: 'none', border: 'none', color: '#ef4444', fontSize: 16, cursor: 'pointer', padding: '2px 6px', borderRadius: 4 },
 }
