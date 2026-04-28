@@ -147,6 +147,16 @@ export default function ConfidentialitePage() {
           text-decoration: underline;
         }
 
+        .google-disclosure {
+          background: #fefce8;
+          border: 1px solid #fde047;
+          border-radius: 8px;
+          padding: 12px 16px;
+          color: #713f12;
+          font-style: italic;
+          margin-bottom: 12px;
+        }
+
         footer {
           padding: 60px 48px;
           background: var(--gray-900);
@@ -281,6 +291,9 @@ export default function ConfidentialitePage() {
         </ul>
 
         <h2>Accès Gmail (envoi d’emails)</h2>
+        <p className="google-disclosure">
+          The use of raw or derived user data received from Workspace APIs will adhere to the Google User Data Policy, including the Limited Use requirements.
+        </p>
         <p>
           <b>FR :</b> Spyke peut accéder à votre compte Gmail <b>uniquement</b> si vous choisissez de
           connecter votre Gmail afin d’envoyer des documents (devis, factures, contrats) depuis Spyke.
@@ -356,7 +369,7 @@ export default function ConfidentialitePage() {
             <a href="/confidentialite.html">Confidentialité</a>
           </div>
 
-          <p className="footer-copy">Spyke © 2025</p>
+          <p className="footer-copy">Spyke © 2026</p>
         </div>
       </footer>
     </>
