@@ -71,14 +71,13 @@ export async function POST(req: Request) {
     })
 
     // Upsert — skip duplicates
-    const { error: insertError, count } = await supabaseAdmin
+    const { error: insertError } = await supabaseAdmin
       .from('outreach_contacts')
       .upsert(contacts, { onConflict: 'email', ignoreDuplicates: true })
-      .select('id', { count: 'exact', head: true })
 
     if (insertError) throw insertError
 
-    return NextResponse.json({ ok: true, imported: contacts.length, new: count ?? 0 })
+    return NextResponse.json({ ok: true, imported: contacts.length })
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : 'Erreur interne'
     return NextResponse.json({ error: msg }, { status: 500 })
