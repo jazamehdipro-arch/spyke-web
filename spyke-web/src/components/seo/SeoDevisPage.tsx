@@ -273,8 +273,7 @@ export default function SeoDevisPage() {
       setPdfCount(nextCount)
       writeCount(pdfCountKey, nextCount)
 
-      // Keep email capture disabled on SEO preview flow (locked actions instead)
-      // setShowEmailModal(true)
+      setShowEmailModal(true)
     } catch (e: any) {
       alert(e?.message || 'Erreur PDF')
     }
@@ -773,22 +772,10 @@ export default function SeoDevisPage() {
       >
         <div className="seo-modal">
           <h3>Votre devis est prêt !</h3>
-          <p>Voulez-vous aussi le recevoir par email ?</p>
-          <div className="seo-modal-form">
-            <input className="seo-input" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="votre@email.com" />
-            <button
-              type="button"
-              onClick={() => {
-                if (!email.trim()) return
-                alert("Envoi email : à brancher (prochaine étape)")
-                setShowEmailModal(false)
-              }}
-            >
-              Envoyer
-            </button>
-          </div>
+          <p>Créez un compte gratuit pour envoyer vos devis par email, les faire signer et les retrouver à tout moment.</p>
+          <button type="button" style={{ width: '100%', padding: '14px', background: '#0a0a0a', color: '#fff', border: 'none', borderRadius: 12, fontWeight: 900, fontSize: 15, cursor: 'pointer', marginBottom: 10 }} onClick={goSignup}>Créer un compte gratuit</button>
           <button className="seo-modal-skip" type="button" onClick={() => setShowEmailModal(false)}>
-            Non merci, c'est tout
+            Non merci, juste télécharger
           </button>
         </div>
       </div>
