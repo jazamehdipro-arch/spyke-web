@@ -435,7 +435,7 @@ export default function SeoContratPage() {
     }
   }
 
-  const showSoftSignupNudge = pdfCount >= 2
+  const showSoftSignupNudge = pdfCount >= 1
 
   return (
     <div className="seo-tool">
@@ -631,6 +631,9 @@ export default function SeoContratPage() {
         .seo-hero h1 { font-size: 40px; font-weight: 900; color: var(--white); letter-spacing: -1.4px; line-height: 1.15; max-width: 760px; margin: 0 auto 14px; position: relative; z-index: 1; }
         .seo-hero h1 span { color: var(--yellow); }
         .seo-hero-sub { font-size: 16px; color: var(--gray-400); max-width: 620px; margin: 0 auto; line-height: 1.7; position: relative; z-index: 1; }
+        .seo-hero-trust { display: flex; align-items: center; justify-content: center; gap: 24px; margin-top: 24px; position: relative; z-index: 1; flex-wrap: wrap; }
+        .seo-hero-trust-item { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--gray-500); }
+        .seo-hero-trust-item svg { width: 16px; height: 16px; stroke: var(--green); fill: none; stroke-width: 2.5; }
 
         .seo-soft-nudge { max-width: 900px; margin: 12px auto 0; padding: 0 40px; }
         .seo-soft-nudge-card { background: rgba(250, 204, 21, 0.12); border: 1px solid rgba(250, 204, 21, 0.25); border-radius: 14px; padding: 14px 16px; display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
@@ -692,7 +695,7 @@ export default function SeoContratPage() {
 
       <section className="seo-hero">
         <div className="seo-hero-badge">
-          <span className="seo-hero-badge-dot" /> Outil 100% gratuit (version test)
+          <span className="seo-hero-badge-dot" /> Outil 100% gratuit
         </div>
         <h1>
           Créez votre <span>contrat freelance</span> en 2 minutes
@@ -700,6 +703,12 @@ export default function SeoContratPage() {
         <p className="seo-hero-sub">
           Remplissez les champs essentiels, puis téléchargez un PDF. <b>Gratuit, sans inscription</b>.
         </p>
+        <div className="seo-hero-trust">
+          <span className="seo-hero-trust-item"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>2 450+ documents générés</span>
+          <span className="seo-hero-trust-item"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>Sans inscription</span>
+          <span className="seo-hero-trust-item"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>PDF pro</span>
+          <span className="seo-hero-trust-item"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>Conforme au droit français</span>
+        </div>
       </section>
 
       {showSoftSignupNudge ? (

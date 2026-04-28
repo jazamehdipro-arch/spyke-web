@@ -239,7 +239,7 @@ export default function SeoFacturePage() {
     }
   }
 
-  const showSoftSignupNudge = pdfCount >= 2
+  const showSoftSignupNudge = pdfCount >= 1
 
   return (
     <div className="seo-tool">
@@ -501,9 +501,10 @@ export default function SeoFacturePage() {
         <h1>Créez votre <span>facture</span> en 2 minutes</h1>
         <p className="seo-hero-sub">Remplissez le formulaire, téléchargez votre facture en PDF. <b>Gratuit, sans inscription</b>.</p>
         <div className="seo-hero-trust">
+          <span className="seo-hero-trust-item"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>2 450+ documents générés</span>
           <span className="seo-hero-trust-item"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>Sans inscription</span>
           <span className="seo-hero-trust-item"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>PDF pro</span>
-          <span className="seo-hero-trust-item"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>Clair et pro</span>
+          <span className="seo-hero-trust-item"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>Mentions légales incluses</span>
         </div>
       </section>
 
@@ -675,12 +676,9 @@ export default function SeoFacturePage() {
       <div className={showEmailModal ? 'seo-modal-overlay active' : 'seo-modal-overlay'} onClick={(e) => e.target === e.currentTarget && setShowEmailModal(false)}>
         <div className="seo-modal">
           <h3>Votre facture est prête !</h3>
-          <p>Voulez-vous aussi la recevoir par email ?</p>
-          <div className="seo-modal-form">
-            <input className="seo-input" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="votre@email.com" />
-            <button type="button" onClick={() => { if (!email.trim()) return; alert('Envoi email : à brancher'); setShowEmailModal(false) }}>Envoyer</button>
-          </div>
-          <button className="seo-modal-skip" type="button" onClick={() => setShowEmailModal(false)}>Non merci, c'est tout</button>
+          <p>Créez un compte gratuit pour envoyer vos factures par email, les signer et les retrouver à tout moment.</p>
+          <button type="button" style={{ width: '100%', padding: '14px', background: '#0a0a0a', color: '#fff', border: 'none', borderRadius: 12, fontWeight: 900, fontSize: 15, cursor: 'pointer', marginBottom: 10 }} onClick={goSignup}>Créer un compte gratuit</button>
+          <button className="seo-modal-skip" type="button" onClick={() => setShowEmailModal(false)}>Non merci, juste télécharger</button>
         </div>
       </div>
     </div>

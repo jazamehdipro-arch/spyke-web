@@ -280,7 +280,7 @@ export default function SeoDevisPage() {
     }
   }
 
-  const showSoftSignupNudge = pdfCount >= 2
+  const showSoftSignupNudge = pdfCount >= 1
 
   return (
     <div className="seo-tool">
@@ -558,6 +558,7 @@ export default function SeoDevisPage() {
         <h1>Créez votre <span>devis freelance</span> en 2 minutes</h1>
         <p className="seo-hero-sub">Remplissez le formulaire, téléchargez votre devis en PDF professionnel. <b>Gratuit, sans inscription</b>, conforme aux obligations légales.</p>
         <div className="seo-hero-trust">
+          <span className="seo-hero-trust-item"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>2 450+ documents générés</span>
           <span className="seo-hero-trust-item"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>Sans inscription</span>
           <span className="seo-hero-trust-item"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>PDF pro</span>
           <span className="seo-hero-trust-item"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>TVA/HT/TTC</span>
