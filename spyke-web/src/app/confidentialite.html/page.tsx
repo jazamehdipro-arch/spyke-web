@@ -147,6 +147,16 @@ export default function ConfidentialitePage() {
           text-decoration: underline;
         }
 
+        .google-disclosure {
+          background: #fefce8;
+          border: 1px solid #fde047;
+          border-radius: 8px;
+          padding: 12px 16px;
+          color: #713f12;
+          font-style: italic;
+          margin-bottom: 12px;
+        }
+
         footer {
           padding: 60px 48px;
           background: var(--gray-900);
@@ -281,7 +291,7 @@ export default function ConfidentialitePage() {
         </ul>
 
         <h2>Accès Gmail (envoi d’emails)</h2>
-        <p style={{ background: ‘#fefce8’, border: ‘1px solid #fde047’, borderRadius: 8, padding: ‘12px 16px’, color: ‘#713f12’, fontStyle: ‘italic’ }}>
+        <p className="google-disclosure">
           The use of raw or derived user data received from Workspace APIs will adhere to the Google User Data Policy, including the Limited Use requirements.
         </p>
         <p>
