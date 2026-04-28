@@ -1,24 +1,18 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { OAuth2Client } from 'google-auth-library'
+import nodemailer from 'nodemailer'
 
 export const runtime = 'nodejs'
 
 const ADMIN_EMAIL = 'Jazamehdi.pro@gmail.com'
+const FROM_EMAIL = 'contact@spykeapp.fr'
+const FROM_NAME = 'Mehdi de Spyke'
 const BATCH_SIZE = 20
 
 function requireEnv(name: string): string {
   const v = process.env[name]
   if (!v) throw new Error(`Missing env: ${name}`)
   return v
-}
-
-function encodeMessage(raw: string) {
-  return Buffer.from(raw)
-    .toString('base64')
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=+$/g, '')
 }
 
 function buildEmailHtml(name: string | null): string {
@@ -81,30 +75,6 @@ function buildEmailHtml(name: string | null): string {
 </html>`
 }
 
-function buildMime(to: string, subject: string, html: string, fromName: string): string {
-  const boundary = `spyke_${Math.random().toString(16).slice(2)}`
-  return [
-    `From: ${fromName} <${ADMIN_EMAIL}>`,
-    `To: ${to}`,
-    `Subject: ${subject}`,
-    'MIME-Version: 1.0',
-    `Content-Type: multipart/alternative; boundary="${boundary}"`,
-    '',
-    `--${boundary}`,
-    'Content-Type: text/plain; charset="UTF-8"',
-    '',
-    'Bonjour,\n\nJe vous contacte au sujet de Spyke, la plateforme tout-en-un pour freelances.\n\nEssayez Spyke gratuitement sur https://spyke.fr\n\nCordialement,\nMehdi — Fondateur de Spyke',
-    '',
-    `--${boundary}`,
-    'Content-Type: text/html; charset="UTF-8"',
-    '',
-    html,
-    '',
-    `--${boundary}--`,
-    '',
-  ].join('\r\n')
-}
-
 export async function POST(req: Request) {
   try {
     const supabaseUrl = requireEnv('NEXT_PUBLIC_SUPABASE_URL')
@@ -129,25 +99,16 @@ export async function POST(req: Request) {
       auth: { persistSession: false, autoRefreshToken: false },
     })
 
-    // Get admin's Gmail token
-    const { data: tokenRow, error: tokenError } = await supabaseAdmin
-      .from('google_gmail_tokens')
-      .select('refresh_token')
-      .eq('user_id', userData.user.id)
-      .maybeSingle()
-
-    if (tokenError) throw tokenError
-    if (!tokenRow?.refresh_token)
-      return NextResponse.json({ error: 'Gmail non connecté. Connectez Gmail dans votre profil.' }, { status: 400 })
-
-    const oauth2 = new OAuth2Client({
-      clientId: requireEnv('GOOGLE_CLIENT_ID'),
-      clientSecret: requireEnv('GOOGLE_CLIENT_SECRET'),
-      redirectUri: requireEnv('GMAIL_REDIRECT_URI'),
+    // SMTP Infomaniak
+    const transporter = nodemailer.createTransport({
+      host: 'mail.infomaniak.com',
+      port: 465,
+      secure: true,
+      auth: {
+        user: requireEnv('INFOMANIAK_SMTP_USER'),
+        pass: requireEnv('INFOMANIAK_SMTP_PASSWORD'),
+      },
     })
-    oauth2.setCredentials({ refresh_token: tokenRow.refresh_token })
-    const { token: accessToken } = await oauth2.getAccessToken()
-    if (!accessToken) throw new Error('Impossible d\'obtenir le token Google')
 
     // Fetch next BATCH_SIZE pending contacts
     const { data: contacts, error: fetchError } = await supabaseAdmin
@@ -164,27 +125,23 @@ export async function POST(req: Request) {
     const results = { sent: 0, errors: 0 }
 
     for (const contact of contacts) {
-      const html = buildEmailHtml(contact.name)
-      const mime = buildMime(contact.email, '⚡ Simplifiez votre admin freelance avec Spyke', html, 'Mehdi de Spyke')
+      try {
+        await transporter.sendMail({
+          from: `${FROM_NAME} <${FROM_EMAIL}>`,
+          to: contact.email,
+          subject: '⚡ Simplifiez votre admin freelance avec Spyke',
+          text: 'Bonjour,\n\nJe vous contacte au sujet de Spyke, la plateforme tout-en-un pour freelances.\n\nEssayez Spyke gratuitement sur https://spyke.fr\n\nCordialement,\nMehdi — Fondateur de Spyke',
+          html: buildEmailHtml(contact.name),
+        })
 
-      const gmailRes = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ raw: encodeMessage(mime) }),
-      })
-
-      if (gmailRes.ok) {
         await supabaseAdmin
           .from('outreach_contacts')
           .update({ status: 'sent', sent_at: new Date().toISOString(), error_msg: null })
           .eq('id', contact.id)
+
         results.sent++
-      } else {
-        const errJson = await gmailRes.json().catch(() => null)
-        const errMsg = errJson?.error?.message || `Gmail error ${gmailRes.status}`
+      } catch (sendErr: unknown) {
+        const errMsg = sendErr instanceof Error ? sendErr.message : 'SMTP error'
         await supabaseAdmin
           .from('outreach_contacts')
           .update({ status: 'error', error_msg: errMsg })
