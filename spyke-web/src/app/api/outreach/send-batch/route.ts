@@ -6,7 +6,7 @@ export const runtime = 'nodejs'
 
 const ADMIN_EMAIL = 'Jazamehdi.pro@gmail.com'
 const FROM_EMAIL = 'contact@spykeapp.fr'
-const FROM_NAME = 'Mehdi de Spyke'
+const FROM_NAME = 'Robin de Spyke'
 const BATCH_SIZE = 20
 
 function requireEnv(name: string): string {
