@@ -15,12 +15,9 @@ function requireEnv(name: string): string {
   return v
 }
 
-function buildEmailHtml(name: string | null, jobTitle: string | null): string {
+function buildEmailHtml(name: string | null): string {
   const firstName = name?.split(' ')[0] || null
   const greeting = firstName ? `Bonjour ${firstName},` : 'Bonjour,'
-  const titleLine = jobTitle
-    ? `En tant que <strong>${jobTitle}</strong>, vous passez probablement plus de temps que vous ne le souhaitez sur vos devis, factures et contrats.`
-    : `Vous passez probablement plus de temps que vous ne le souhaitez sur vos devis, factures et contrats.`
   return `<!DOCTYPE html>
 <html lang="fr">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
@@ -36,7 +33,7 @@ function buildEmailHtml(name: string | null, jobTitle: string | null): string {
         <tr>
           <td style="padding:40px 40px 32px">
             <p style="margin:0 0 20px;font-size:16px;color:#333;line-height:1.6">${greeting}</p>
-            <p style="margin:0 0 20px;font-size:16px;color:#333;line-height:1.6">${titleLine}</p>
+            <p style="margin:0 0 16px;font-size:16px;color:#333;line-height:1.6">Vous passez probablement plus de temps que vous ne le souhaitez sur vos devis, factures et contrats.</p>
             <p style="margin:0 0 16px;font-size:16px;color:#333;line-height:1.6">J'ai créé Spyke exactement pour ça.</p>
             <p style="margin:0 0 16px;font-size:16px;color:#333;line-height:1.6">Spyke vous permet de :</p>
             <table cellpadding="0" cellspacing="0" style="margin:0 0 24px">
@@ -138,7 +135,7 @@ export async function POST(req: Request) {
           to: contact.email,
           subject: 'Gagnez du temps sur votre admin freelance',
           text: `Bonjour${contact.name ? ' ' + contact.name.split(' ')[0] : ''},\n\nEn tant que ${contact.job_title || 'freelance'}, vous passez probablement plus de temps que vous ne le souhaitez sur vos devis, factures et contrats.\n\nJ'ai créé Spyke exactement pour ça.\n\nEssayez Spyke gratuitement : https://spykeapp.fr\n\nÀ très bientôt,\nRobin — Co-Fondateur de Spyke`,
-          html: buildEmailHtml(contact.name, contact.job_title),
+          html: buildEmailHtml(contact.name),
         })
 
         await supabaseAdmin
