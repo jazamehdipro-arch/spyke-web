@@ -337,6 +337,15 @@ export default function SeoFacturePage() {
                 </div>
               ) : null}
 
+              <div style={{ marginBottom: 10, padding: '10px 14px', borderRadius: 10, background: '#fff7ed', border: '1px solid #fed7aa', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 13, color: '#92400e', fontWeight: 600 }}>
+                  ⚠️ Ce PDF contient un filigrane Spyke — créez un compte gratuit pour le supprimer.
+                </span>
+                <button className="btn btn-primary" type="button" onClick={goSignup} style={{ fontSize: 12, padding: '6px 16px', flexShrink: 0 }}>
+                  Supprimer le filigrane →
+                </button>
+              </div>
+
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
                 <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                   <button
