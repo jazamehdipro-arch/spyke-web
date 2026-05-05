@@ -49,7 +49,10 @@ export default function AdminDashboardPage() {
         return
       }
 
-      const [{ data: dailyRows }, { data: groupedRows }, { data: topRows }, { data: pdfRows }] = await Promise.all([
+      const { data: sessionData } = await supabase.auth.getSession()
+      const token = sessionData.session?.access_token
+
+      const [{ data: dailyRows }, { data: groupedRows }, { data: topRows }] = await Promise.all([
         supabase.from('analytics_daily_metrics').select('*').limit(90),
         supabase.from('analytics_page_views_daily_grouped').select('day,page_group,page_views').limit(2700),
         supabase
@@ -59,15 +62,7 @@ export default function AdminDashboardPage() {
           .gte('created_at', new Date(Date.now() - 30 * 86400000).toISOString())
           .not('path', 'is', null)
           .limit(5000),
-        supabase
-          .from('analytics_events')
-          .select('created_at, path, properties')
-          .eq('event_name', 'pdf_generated')
-          .order('created_at', { ascending: false })
-          .limit(50),
       ])
-
-      console.log('[dashboard] pdfRows:', pdfRows, 'error from analytics_events pdf query checked separately')
 
       setDaily((dailyRows ?? []) as DailyMetric[])
       setGrouped((groupedRows ?? []) as GroupedRow[])
@@ -82,7 +77,17 @@ export default function AdminDashboardPage() {
         .sort((a, b) => b.page_views - a.page_views)
         .slice(0, 20)
       setTopPages(sorted)
-      setPdfEvents((pdfRows ?? []) as PdfEvent[])
+
+      if (token) {
+        const pdfRes = await fetch('/api/analytics/pdf-events', {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        if (pdfRes.ok) {
+          const pdfJson = await pdfRes.json()
+          setPdfEvents((pdfJson.events ?? []) as PdfEvent[])
+        }
+      }
+
       setStatus('ready')
     })()
   }, [supabase])
