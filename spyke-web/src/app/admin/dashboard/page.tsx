@@ -67,6 +67,8 @@ export default function AdminDashboardPage() {
           .limit(50),
       ])
 
+      console.log('[dashboard] pdfRows:', pdfRows, 'error from analytics_events pdf query checked separately')
+
       setDaily((dailyRows ?? []) as DailyMetric[])
       setGrouped((groupedRows ?? []) as GroupedRow[])
 
@@ -264,7 +266,7 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* PDF events */}
-      {pdfEvents.length > 0 && (
+      {(
         <div style={s.card}>
           <h2 style={s.sectionTitle}>📄 Derniers PDF générés ({pdfEvents.length})</h2>
           <div style={{ overflowX: 'auto' }}>
@@ -277,6 +279,9 @@ export default function AdminDashboardPage() {
                 </tr>
               </thead>
               <tbody>
+                {pdfEvents.length === 0 && (
+                  <tr><td colSpan={4} style={{ ...s.td, color: '#94a3b8', textAlign: 'center', padding: 24 }}>Aucun PDF généré trouvé (event_name = pdf_generated)</td></tr>
+                )}
                 {pdfEvents.map((e, i) => {
                   const props = e.properties || {}
                   const type = (props.type || props.kind || props.document_type || e.path?.split('/')[1] || '—') as string
