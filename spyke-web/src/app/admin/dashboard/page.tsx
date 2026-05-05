@@ -25,6 +25,12 @@ type GroupedRow = {
 
 type TopPage = { path: string; page_views: number }
 
+type PdfEvent = {
+  created_at: string
+  path: string | null
+  properties: Record<string, unknown>
+}
+
 export default function AdminDashboardPage() {
   const supabase = useMemo(() => getSupabase(), [])
   const [status, setStatus] = useState<'loading' | 'forbidden' | 'ready'>('loading')
@@ -32,6 +38,7 @@ export default function AdminDashboardPage() {
   const [daily, setDaily] = useState<DailyMetric[]>([])
   const [grouped, setGrouped] = useState<GroupedRow[]>([])
   const [topPages, setTopPages] = useState<TopPage[]>([])
+  const [pdfEvents, setPdfEvents] = useState<PdfEvent[]>([])
 
   useEffect(() => {
     ;(async () => {
@@ -42,7 +49,7 @@ export default function AdminDashboardPage() {
         return
       }
 
-      const [{ data: dailyRows }, { data: groupedRows }, { data: topRows }] = await Promise.all([
+      const [{ data: dailyRows }, { data: groupedRows }, { data: topRows }, { data: pdfRows }] = await Promise.all([
         supabase.from('analytics_daily_metrics').select('*').limit(90),
         supabase.from('analytics_page_views_daily_grouped').select('day,page_group,page_views').limit(2700),
         supabase
@@ -52,6 +59,12 @@ export default function AdminDashboardPage() {
           .gte('created_at', new Date(Date.now() - 30 * 86400000).toISOString())
           .not('path', 'is', null)
           .limit(5000),
+        supabase
+          .from('analytics_events')
+          .select('created_at, path, properties')
+          .eq('event_name', 'pdf_generated')
+          .order('created_at', { ascending: false })
+          .limit(50),
       ])
 
       setDaily((dailyRows ?? []) as DailyMetric[])
@@ -67,6 +80,7 @@ export default function AdminDashboardPage() {
         .sort((a, b) => b.page_views - a.page_views)
         .slice(0, 20)
       setTopPages(sorted)
+      setPdfEvents((pdfRows ?? []) as PdfEvent[])
       setStatus('ready')
     })()
   }, [supabase])
@@ -249,6 +263,52 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
+      {/* PDF events */}
+      {pdfEvents.length > 0 && (
+        <div style={s.card}>
+          <h2 style={s.sectionTitle}>📄 Derniers PDF générés ({pdfEvents.length})</h2>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={s.table}>
+              <thead>
+                <tr>
+                  {['Date & heure', 'Type', 'Détails', 'Page'].map(h => (
+                    <th key={h} style={s.th}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {pdfEvents.map((e, i) => {
+                  const props = e.properties || {}
+                  const type = (props.type || props.kind || props.document_type || e.path?.split('/')[1] || '—') as string
+                  const details = Object.entries(props)
+                    .filter(([k]) => !['type', 'kind', 'document_type', 'path'].includes(k))
+                    .map(([k, v]) => `${k}: ${v}`)
+                    .join(' · ') || '—'
+                  return (
+                    <tr key={i}>
+                      <td style={s.td}>
+                        {new Date(e.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}
+                        {' '}
+                        <span style={{ color: '#94a3b8', fontSize: 12 }}>
+                          {new Date(e.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </td>
+                      <td style={s.td}>
+                        <span style={{ ...s.badge, background: typeBg(type), color: typeColor(type) }}>
+                          {type}
+                        </span>
+                      </td>
+                      <td style={{ ...s.td, fontSize: 12, color: '#64748b', maxWidth: 300 }}>{details}</td>
+                      <td style={{ ...s.td, fontSize: 12, color: '#94a3b8' }}>{e.path || '—'}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {/* Daily table */}
       <div style={s.card}>
         <h2 style={s.sectionTitle}>Détail journalier</h2>
@@ -281,6 +341,19 @@ export default function AdminDashboardPage() {
       </div>
     </div>
   )
+}
+
+function typeBg(type: string) {
+  if (type.includes('devis') || type.includes('quote')) return '#ede9fe'
+  if (type.includes('facture') || type.includes('invoice')) return '#d1fae5'
+  if (type.includes('contrat') || type.includes('contract')) return '#fef3c7'
+  return '#f1f5f9'
+}
+function typeColor(type: string) {
+  if (type.includes('devis') || type.includes('quote')) return '#7c3aed'
+  if (type.includes('facture') || type.includes('invoice')) return '#065f46'
+  if (type.includes('contrat') || type.includes('contract')) return '#92400e'
+  return '#475569'
 }
 
 function BarChart({ days }: { days: { day: string; page_views: number }[] }) {
@@ -367,4 +440,5 @@ const s: Record<string, React.CSSProperties> = {
   th: { textAlign: 'left', padding: '10px 12px', borderBottom: '2px solid #f1f5f9', fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' },
   td: { padding: '10px 12px', borderBottom: '1px solid #f8fafc', color: '#334155' },
   tdNum: { textAlign: 'right' },
+  badge: { display: 'inline-block', borderRadius: 6, padding: '2px 10px', fontSize: 12, fontWeight: 600 },
 }
