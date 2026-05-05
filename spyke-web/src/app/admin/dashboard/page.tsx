@@ -39,6 +39,7 @@ export default function AdminDashboardPage() {
   const [grouped, setGrouped] = useState<GroupedRow[]>([])
   const [topPages, setTopPages] = useState<TopPage[]>([])
   const [pdfEvents, setPdfEvents] = useState<PdfEvent[]>([])
+  const [pdfError, setPdfError] = useState<string | null>(null)
 
   useEffect(() => {
     ;(async () => {
@@ -82,10 +83,14 @@ export default function AdminDashboardPage() {
         const pdfRes = await fetch('/api/analytics/pdf-events', {
           headers: { Authorization: `Bearer ${token}` },
         })
+        const pdfJson = await pdfRes.json()
         if (pdfRes.ok) {
-          const pdfJson = await pdfRes.json()
           setPdfEvents((pdfJson.events ?? []) as PdfEvent[])
+        } else {
+          setPdfError(`Erreur ${pdfRes.status}: ${pdfJson.error ?? 'inconnue'}`)
         }
+      } else {
+        setPdfError('Token de session introuvable')
       }
 
       setStatus('ready')
@@ -284,8 +289,11 @@ export default function AdminDashboardPage() {
                 </tr>
               </thead>
               <tbody>
-                {pdfEvents.length === 0 && (
-                  <tr><td colSpan={4} style={{ ...s.td, color: '#94a3b8', textAlign: 'center', padding: 24 }}>Aucun PDF généré trouvé (event_name = pdf_generated)</td></tr>
+                {pdfError && (
+                  <tr><td colSpan={4} style={{ ...s.td, color: '#ef4444', textAlign: 'center', padding: 24 }}>{pdfError}</td></tr>
+                )}
+                {!pdfError && pdfEvents.length === 0 && (
+                  <tr><td colSpan={4} style={{ ...s.td, color: '#94a3b8', textAlign: 'center', padding: 24 }}>Aucun PDF généré trouvé</td></tr>
                 )}
                 {pdfEvents.map((e, i) => {
                   const props = e.properties || {}
