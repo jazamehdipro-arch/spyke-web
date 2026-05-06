@@ -31,6 +31,13 @@ type PdfEvent = {
   properties: Record<string, unknown>
 }
 
+type AppStats = {
+  users: { cur: number; prev: number; daily: { day: string; count: number }[] }
+  quotes: { cur: number; prev: number; daily: { day: string; count: number }[] }
+  invoices: { cur: number; prev: number; daily: { day: string; count: number }[] }
+  contracts: { cur: number; prev: number; daily: { day: string; count: number }[] }
+}
+
 export default function AdminDashboardPage() {
   const supabase = useMemo(() => getSupabase(), [])
   const [status, setStatus] = useState<'loading' | 'forbidden' | 'ready'>('loading')
@@ -40,6 +47,7 @@ export default function AdminDashboardPage() {
   const [topPages, setTopPages] = useState<TopPage[]>([])
   const [pdfEvents, setPdfEvents] = useState<PdfEvent[]>([])
   const [pdfError, setPdfError] = useState<string | null>(null)
+  const [appStats, setAppStats] = useState<AppStats | null>(null)
 
   useEffect(() => {
     ;(async () => {
@@ -80,14 +88,18 @@ export default function AdminDashboardPage() {
       setTopPages(sorted)
 
       if (token) {
-        const pdfRes = await fetch('/api/analytics/pdf-events', {
-          headers: { Authorization: `Bearer ${token}` },
-        })
+        const [pdfRes, appRes] = await Promise.all([
+          fetch('/api/analytics/pdf-events', { headers: { Authorization: `Bearer ${token}` } }),
+          fetch(`/api/analytics/app-stats?days=30`, { headers: { Authorization: `Bearer ${token}` } }),
+        ])
         const pdfJson = await pdfRes.json()
         if (pdfRes.ok) {
           setPdfEvents((pdfJson.events ?? []) as PdfEvent[])
         } else {
           setPdfError(`Erreur ${pdfRes.status}: ${pdfJson.error ?? 'inconnue'}`)
+        }
+        if (appRes.ok) {
+          setAppStats(await appRes.json())
         }
       } else {
         setPdfError('Token de session introuvable')
@@ -275,6 +287,50 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
+      {/* App stats — comptes + documents */}
+      {appStats && (() => {
+        const pick = (stat: { cur: number; prev: number; daily: { day: string; count: number }[] }) => {
+          if (period === '30d') return { cur: stat.cur, prev: stat.prev }
+          const days = period === 'today' ? 1 : 7
+          const cutoff = new Date(today)
+          cutoff.setDate(cutoff.getDate() - days)
+          const cur = stat.daily.filter(d => new Date(d.day) >= cutoff).reduce((a, d) => a + d.count, 0)
+          const cutoffPrev = new Date(today)
+          cutoffPrev.setDate(cutoffPrev.getDate() - days * 2)
+          const prev = stat.daily.filter(d => new Date(d.day) >= cutoffPrev && new Date(d.day) < cutoff).reduce((a, d) => a + d.count, 0)
+          return { cur, prev }
+        }
+        const appKpis = [
+          { label: 'Nouveaux comptes', icon: '👤', color: '#0ea5e9', ...pick(appStats.users) },
+          { label: 'Devis créés', icon: '📋', color: '#6366f1', ...pick(appStats.quotes) },
+          { label: 'Factures créées', icon: '🧾', color: '#10b981', ...pick(appStats.invoices) },
+          { label: 'Contrats créés', icon: '📝', color: '#f59e0b', ...pick(appStats.contracts) },
+        ]
+        return (
+          <div style={s.card}>
+            <h2 style={s.sectionTitle}>🛠 Outil Spyke — activité utilisateurs</h2>
+            <div style={s.kpiRow}>
+              {appKpis.map(k => {
+                const d = k.prev === 0 ? null : Math.round(((k.cur - k.prev) / k.prev) * 100)
+                return (
+                  <div key={k.label} style={{ ...s.kpiCard, borderTop: `4px solid ${k.color}` }}>
+                    <div style={s.kpiIcon}>{k.icon}</div>
+                    <div style={s.kpiValue}>{k.cur.toLocaleString('fr-FR')}</div>
+                    <div style={s.kpiLabel}>{k.label}</div>
+                    {d !== null && (
+                      <div style={{ ...s.kpiDelta, color: d >= 0 ? '#10b981' : '#ef4444' }}>
+                        {d >= 0 ? '↑' : '↓'} {Math.abs(d)}% vs période préc.
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+            <AppSignupsChart daily={appStats.users.daily} period={period} today={today} />
+          </div>
+        )
+      })()}
+
       {/* PDF events */}
       {(
         <div style={s.card}>
@@ -357,6 +413,54 @@ export default function AdminDashboardPage() {
           </table>
         </div>
       </div>
+    </div>
+  )
+}
+
+function AppSignupsChart({
+  daily,
+  period,
+  today,
+}: {
+  daily: { day: string; count: number }[]
+  period: string
+  today: Date
+}) {
+  const days = period === 'today' ? 1 : period === '7d' ? 7 : 30
+  const cutoff = new Date(today)
+  cutoff.setDate(cutoff.getDate() - days)
+  const filtered = daily
+    .filter(d => new Date(d.day) >= cutoff)
+    .sort((a, b) => (a.day < b.day ? -1 : 1))
+
+  if (filtered.length === 0) return null
+
+  const max = Math.max(...filtered.map(d => d.count), 1)
+  const H = 80
+  const barW = Math.max(6, Math.min(32, Math.floor(560 / filtered.length) - 2))
+
+  return (
+    <div style={{ marginTop: 16, overflowX: 'auto' }}>
+      <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 6 }}>Nouveaux comptes / jour</div>
+      <svg width="100%" viewBox={`0 0 ${Math.max(400, filtered.length * (barW + 4))} ${H + 28}`} style={{ display: 'block' }}>
+        {filtered.map((d, i) => {
+          const h = Math.max(2, Math.round((d.count / max) * H))
+          const x = i * (barW + 4)
+          return (
+            <g key={d.day}>
+              <rect x={x} y={H - h} width={barW} height={h} rx={3} fill="#0ea5e9" opacity={0.8} />
+              {d.count > 0 && (
+                <text x={x + barW / 2} y={H - h - 3} textAnchor="middle" fontSize={9} fill="#0ea5e9" fontWeight="700">
+                  {d.count}
+                </text>
+              )}
+              <text x={x + barW / 2} y={H + 16} textAnchor="middle" fontSize={8} fill="#94a3b8">
+                {new Date(d.day).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}
+              </text>
+            </g>
+          )
+        })}
+      </svg>
     </div>
   )
 }
