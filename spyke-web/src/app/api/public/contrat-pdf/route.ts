@@ -4,8 +4,17 @@ import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { fillContractTemplatePdf } from '@/lib/fillContractTemplate'
 import { addPdfWatermark } from '@/lib/pdfWatermark'
+import { createClient } from '@supabase/supabase-js'
 
 export const runtime = 'nodejs'
+
+function trackPdfEvent(type: string) {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!url || !key) return
+  const db = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } })
+  db.from('analytics_events').insert({ event_name: 'pdf_generated', path: '/contrat', properties: { type } }).then(() => {})
+}
 
 const BodySchema = z.object({
   title: z.string().default('Contrat'),
@@ -164,6 +173,8 @@ export async function POST(req: Request) {
 
       const watermarked = await addPdfWatermark({ pdfBytes: filledRes.bytes, text: 'Spyke Pro', scale: 0.18, opacity: 0.14 })
 
+      trackPdfEvent('contrat')
+
       return new NextResponse(watermarked as any, {
         status: 200,
         headers: {
@@ -190,6 +201,8 @@ export async function POST(req: Request) {
       })
 
       const watermarked = await addPdfWatermark({ pdfBytes: new Uint8Array(buf as any), text: 'Spyke Pro', scale: 0.18, opacity: 0.14 })
+
+      trackPdfEvent('contrat')
 
       return new NextResponse(watermarked as any, {
         status: 200,
