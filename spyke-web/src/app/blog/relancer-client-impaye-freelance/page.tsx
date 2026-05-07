@@ -1,3 +1,16 @@
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Comment relancer un client qui ne paie pas (sans ruiner la relation) — Spyke',
+  description:
+    "Les meilleures techniques pour relancer un client impayé : timing, ton, modèles d'e-mails et recours juridiques. Récupérez vos paiements freelance.",
+  openGraph: {
+    title: 'Relancer un client impayé freelance : guide complet 2026',
+    description: "Comment relancer un client qui ne paie pas. Techniques, modèles d'e-mails et recours.",
+    url: 'https://www.spykeapp.fr/blog/relancer-client-impaye-freelance',
+  },
+}
+
 export default function BlogRelanceImpayePage() {
   return (
     <>

@@ -1,3 +1,16 @@
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Comment faire un devis freelance professionnel en 2026 (guide complet) — Spyke',
+  description:
+    "Tout ce qu'il faut pour créer un devis freelance professionnel : mentions obligatoires, modèle PDF gratuit, conseils pratiques et erreurs à éviter.",
+  openGraph: {
+    title: 'Comment faire un devis freelance professionnel en 2026',
+    description: 'Guide complet : mentions obligatoires, modèle gratuit et conseils pour un devis freelance réussi.',
+    url: 'https://www.spykeapp.fr/blog/comment-faire-devis-freelance',
+  },
+}
+
 export default function BlogDevisGuidePage() {
   return (
     <>

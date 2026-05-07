@@ -1,3 +1,16 @@
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Facture auto-entrepreneur : les 7 mentions obligatoires en 2026 — Spyke',
+  description:
+    'Les 7 mentions légales obligatoires sur une facture auto-entrepreneur en 2026. Évitez les erreurs, les amendes et les litiges clients.',
+  openGraph: {
+    title: 'Facture auto-entrepreneur : 7 mentions obligatoires en 2026',
+    description: 'Les mentions légales obligatoires sur une facture auto-entrepreneur. Guide complet 2026.',
+    url: 'https://www.spykeapp.fr/blog/mentions-obligatoires-facture-auto-entrepreneur',
+  },
+}
+
 export default function BlogFactureMentionsPage() {
   return (
     <>

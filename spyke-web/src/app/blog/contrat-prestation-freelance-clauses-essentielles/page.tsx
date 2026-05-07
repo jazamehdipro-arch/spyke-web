@@ -1,3 +1,16 @@
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Contrat de prestation freelance : les 10 clauses indispensables — Spyke',
+  description:
+    "Les 10 clauses essentielles d'un contrat de prestation freelance en 2026. Protégez-vous juridiquement et sécurisez chaque mission.",
+  openGraph: {
+    title: 'Contrat de prestation freelance : les 10 clauses indispensables',
+    description: "Protégez-vous avec les 10 clauses essentielles d'un contrat freelance en 2026.",
+    url: 'https://www.spykeapp.fr/blog/contrat-prestation-freelance-clauses-essentielles',
+  },
+}
+
 export default function BlogContratClausesPage() {
   return (
     <>
