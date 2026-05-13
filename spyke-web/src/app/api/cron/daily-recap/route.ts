@@ -60,10 +60,10 @@ export async function GET(req: Request) {
     const seoPdfs = seoPdfsRes.count ?? 0
     const appDocs = newQuotes + newInvoices + newContracts
 
-    const smtpUser = process.env.SMTP_USER
-    const smtpPass = process.env.SMTP_PASS
+    const smtpUser = process.env.INFOMANIAK_SMTP_USER
+    const smtpPass = process.env.INFOMANIAK_SMTP_PASS
     if (!smtpUser || !smtpPass) {
-      return NextResponse.json({ error: 'SMTP env vars manquants', stats: { pageViews, newAccounts, appDocs, seoPdfs } }, { status: 500 })
+      return NextResponse.json({ error: 'SMTP env vars manquants (INFOMANIAK_SMTP_USER / INFOMANIAK_SMTP_PASS)', stats: { pageViews, newAccounts, appDocs, seoPdfs } }, { status: 500 })
     }
 
     const transporter = nodemailer.createTransport({
