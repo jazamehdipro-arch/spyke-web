@@ -51,6 +51,11 @@ export default function AdminDashboardPage() {
   const [sources, setSources] = useState<Source[]>([])
   const [pdfError, setPdfError] = useState<string | null>(null)
   const [appStats, setAppStats] = useState<AppStats | null>(null)
+  const [showReport, setShowReport] = useState(false)
+  const [reportFrom, setReportFrom] = useState(() => {
+    const d = new Date(); d.setDate(d.getDate() - 30); return d.toISOString().split('T')[0]
+  })
+  const [reportTo, setReportTo] = useState(() => new Date().toISOString().split('T')[0])
 
   useEffect(() => {
     ;(async () => {
@@ -116,6 +121,65 @@ export default function AdminDashboardPage() {
     })()
   }, [supabase])
 
+  function downloadReport() {
+    const from = new Date(reportFrom)
+    const to = new Date(reportTo)
+    to.setHours(23, 59, 59, 999)
+
+    const filtered = daily
+      .filter(r => { const d = new Date(r.day); return d >= from && d <= to })
+      .sort((a, b) => (a.day < b.day ? -1 : 1))
+
+    const userMap: Record<string, number> = {}
+    const quoteMap: Record<string, number> = {}
+    const invoiceMap: Record<string, number> = {}
+    const contractMap: Record<string, number> = {}
+    if (appStats) {
+      for (const d of appStats.users.daily) userMap[d.day] = d.count
+      for (const d of appStats.quotes.daily) quoteMap[d.day] = d.count
+      for (const d of appStats.invoices.daily) invoiceMap[d.day] = d.count
+      for (const d of appStats.contracts.daily) contractMap[d.day] = d.count
+    }
+
+    const headers = ['Date', 'Pages vues', 'PDF générés', 'PDF échoués', 'Emails', 'Nouveaux comptes', 'Devis', 'Factures', 'Contrats']
+    const rows = filtered.map(r => [
+      new Date(r.day).toLocaleDateString('fr-FR'),
+      r.page_views, r.pdf_generated, r.pdf_failed, r.email_sent,
+      userMap[r.day] ?? '', quoteMap[r.day] ?? '', invoiceMap[r.day] ?? '', contractMap[r.day] ?? '',
+    ])
+
+    const totals = ['TOTAL',
+      rows.reduce((a, r) => a + (Number(r[1]) || 0), 0),
+      rows.reduce((a, r) => a + (Number(r[2]) || 0), 0),
+      rows.reduce((a, r) => a + (Number(r[3]) || 0), 0),
+      rows.reduce((a, r) => a + (Number(r[4]) || 0), 0),
+      rows.reduce((a, r) => a + (Number(r[5]) || 0), 0),
+      rows.reduce((a, r) => a + (Number(r[6]) || 0), 0),
+      rows.reduce((a, r) => a + (Number(r[7]) || 0), 0),
+      rows.reduce((a, r) => a + (Number(r[8]) || 0), 0),
+    ]
+
+    const fromLabel = new Date(reportFrom).toLocaleDateString('fr-FR')
+    const toLabel = new Date(reportTo).toLocaleDateString('fr-FR')
+    const csv = [
+      [`"Compte rendu d'activité Spyke — du ${fromLabel} au ${toLabel}"`],
+      [],
+      headers,
+      ...rows,
+      [],
+      totals,
+    ].map(row => row.join(';')).join('\n')
+
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `spyke-rapport-${reportFrom}-${reportTo}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+    setShowReport(false)
+  }
+
   if (status === 'loading') return <div style={s.center}>Chargement…</div>
   if (status === 'forbidden') return <div style={s.center}>Accès refusé.</div>
 
@@ -169,6 +233,8 @@ export default function AdminDashboardPage() {
     <div style={s.page}>
       <div style={s.header}>
         <h1 style={s.title}>Dashboard Analytics</h1>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+        <button onClick={() => setShowReport(true)} style={s.reportBtn}>📥 Compte rendu</button>
         <div style={s.tabs}>
           {(['today', '7d', '30d'] as Period[]).map(p => (
             <button key={p} onClick={() => setPeriod(p)} style={{ ...s.tab, ...(period === p ? s.tabActive : {}) }}>
@@ -176,7 +242,33 @@ export default function AdminDashboardPage() {
             </button>
           ))}
         </div>
+        </div>
       </div>
+
+      {showReport && (
+        <div style={s.modalOverlay} onClick={() => setShowReport(false)}>
+          <div style={s.modalBox} onClick={e => e.stopPropagation()}>
+            <h3 style={{ margin: '0 0 20px', fontSize: 17, fontWeight: 700, color: '#1e293b' }}>📥 Compte rendu d&apos;activité</h3>
+            <div style={{ display: 'flex', gap: 16, marginBottom: 16, flexWrap: 'wrap' }}>
+              <label style={{ flex: 1 }}>
+                <div style={{ fontSize: 12, color: '#64748b', marginBottom: 6, fontWeight: 600 }}>Du</div>
+                <input type="date" value={reportFrom} onChange={e => setReportFrom(e.target.value)} style={s.dateInput} />
+              </label>
+              <label style={{ flex: 1 }}>
+                <div style={{ fontSize: 12, color: '#64748b', marginBottom: 6, fontWeight: 600 }}>Au</div>
+                <input type="date" value={reportTo} onChange={e => setReportTo(e.target.value)} style={s.dateInput} />
+              </label>
+            </div>
+            <p style={{ fontSize: 12, color: '#94a3b8', margin: '0 0 20px', lineHeight: 1.5 }}>
+              Le fichier CSV inclut : pages vues, PDF générés, emails, nouveaux comptes et documents (limités aux 30 derniers jours pour les données utilisateurs).
+            </p>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button onClick={() => setShowReport(false)} style={s.cancelBtn}>Annuler</button>
+              <button onClick={downloadReport} style={s.dlBtn}>⬇ Télécharger CSV</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div style={s.kpiRow}>
         {kpis.map(k => {
@@ -524,4 +616,10 @@ const s: Record<string, React.CSSProperties> = {
   td: { padding: '10px 12px', borderBottom: '1px solid #f8fafc', color: '#334155' },
   tdNum: { textAlign: 'right' },
   badge: { display: 'inline-block', borderRadius: 6, padding: '2px 10px', fontSize: 12, fontWeight: 600 },
+  reportBtn: { background: '#1e293b', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' },
+  modalOverlay: { position: 'fixed' as const, inset: 0, background: 'rgba(15,23,42,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 },
+  modalBox: { background: '#fff', borderRadius: 14, padding: '28px 28px 24px', boxShadow: '0 8px 32px rgba(0,0,0,0.18)', width: '100%', maxWidth: 460 },
+  dateInput: { width: '100%', border: '1px solid #e2e8f0', borderRadius: 8, padding: '8px 12px', fontSize: 14, color: '#1e293b', outline: 'none', boxSizing: 'border-box' as const },
+  cancelBtn: { background: '#f1f5f9', color: '#475569', border: 'none', borderRadius: 8, padding: '9px 18px', fontSize: 13, fontWeight: 600, cursor: 'pointer' },
+  dlBtn: { background: '#6366f1', color: '#fff', border: 'none', borderRadius: 8, padding: '9px 20px', fontSize: 13, fontWeight: 600, cursor: 'pointer' },
 }
