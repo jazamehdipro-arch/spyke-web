@@ -4,13 +4,13 @@ export const SEO_TOOL_CSS = `
   .seo-tool {
     --black: #0a0a0a;
     --white: #ffffff;
-    --bg: #f5f5f7;
-    --border: #e5e7eb;
+    --bg: #f4f4f8;
+    --border: #e4e4ec;
     --text: #0f172a;
     --muted: #6b7280;
-    --accent: #6366f1;
-    --accent-light: rgba(99,102,241,0.1);
-    --yellow: #facc15;
+    --accent: #6d28d9;
+    --accent-mid: #7c3aed;
+    --accent-light: rgba(109,40,217,0.1);
     --green: #10b981;
     --red: #ef4444;
     --shadow-sm: 0 1px 2px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04);
@@ -38,11 +38,11 @@ export const SEO_TOOL_CSS = `
   .seo-nav-logo { display: flex; align-items: center; gap: 8px; text-decoration: none; flex-shrink: 0; }
   .seo-nav-logo-icon {
     width: 28px; height: 28px;
-    background: rgba(250,204,21,0.12);
+    background: rgba(109,40,217,0.18);
     border-radius: 7px;
     display: flex; align-items: center; justify-content: center;
   }
-  .seo-nav-logo-icon svg { width: 15px; height: 15px; fill: var(--yellow); }
+  .seo-nav-logo-icon svg { width: 15px; height: 15px; fill: #a78bfa; }
   .seo-nav-logo-text { font-weight: 800; font-size: 18px; color: #fff; letter-spacing: -0.4px; }
   .seo-nav-tools { display: flex; gap: 2px; }
   .seo-nav-tool {
@@ -52,10 +52,10 @@ export const SEO_TOOL_CSS = `
     transition: color 0.15s, background 0.15s;
   }
   .seo-nav-tool:hover { color: #fff; background: rgba(255,255,255,0.08); }
-  .seo-nav-tool.active { color: var(--yellow); background: rgba(250,204,21,0.08); }
+  .seo-nav-tool.active { color: #a78bfa; background: rgba(109,40,217,0.12); }
   .seo-nav-cta {
     padding: 8px 16px;
-    background: var(--yellow); color: var(--black);
+    background: var(--accent); color: #fff;
     border-radius: 8px;
     font-size: 13px; font-weight: 700; text-decoration: none;
     white-space: nowrap; flex-shrink: 0;
@@ -74,26 +74,26 @@ export const SEO_TOOL_CSS = `
   .seo-hero::before {
     content: '';
     position: absolute; inset: 0;
-    background: radial-gradient(ellipse 70% 60% at 50% -10%, rgba(250,204,21,0.07), transparent 70%);
+    background: radial-gradient(ellipse 70% 60% at 50% -10%, rgba(109,40,217,0.18), transparent 70%);
     pointer-events: none;
   }
   .seo-hero-badge {
     display: inline-flex; align-items: center; gap: 6px;
-    background: rgba(250,204,21,0.07);
-    border: 1px solid rgba(250,204,21,0.15);
-    color: var(--yellow);
+    background: rgba(109,40,217,0.12);
+    border: 1px solid rgba(167,139,250,0.25);
+    color: #c4b5fd;
     font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px;
     padding: 5px 14px; border-radius: 999px;
     margin-bottom: 22px; position: relative; z-index: 1;
   }
-  .seo-hero-badge-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--yellow); }
+  .seo-hero-badge-dot { width: 5px; height: 5px; border-radius: 50%; background: #a78bfa; }
   .seo-hero h1 {
     font-size: 56px; font-weight: 900; color: #fff;
     letter-spacing: -2.5px; line-height: 1.05;
     max-width: 760px; margin: 0 auto 18px;
     position: relative; z-index: 1;
   }
-  .seo-hero h1 span { color: var(--yellow); }
+  .seo-hero h1 span { color: #a78bfa; }
   .seo-hero-sub {
     font-size: 17px; color: rgba(255,255,255,0.5);
     max-width: 540px; margin: 0 auto; line-height: 1.7;
@@ -145,13 +145,13 @@ export const SEO_TOOL_CSS = `
   .seo-ai-sub { font-size: 11px; color: var(--muted); margin-top: 1px; }
   .seo-ai-btn {
     padding: 7px 14px;
-    background: var(--text); color: #fff;
+    background: var(--accent); color: #fff;
     border: none; border-radius: 7px;
     font-size: 12px; font-weight: 700; cursor: pointer;
     white-space: nowrap; flex-shrink: 0;
     transition: opacity 0.15s;
   }
-  .seo-ai-btn:hover { opacity: 0.8; }
+  .seo-ai-btn:hover { opacity: 0.88; }
 
   /* ── WORKSPACE ───────────────────────────────────── */
   .seo-workspace {
@@ -180,7 +180,7 @@ export const SEO_TOOL_CSS = `
   }
   .seo-section-num {
     width: 24px; height: 24px;
-    background: var(--text); color: #fff;
+    background: var(--accent); color: #fff;
     border-radius: 7px;
     display: flex; align-items: center; justify-content: center;
     font-size: 11px; font-weight: 800; flex-shrink: 0;
@@ -276,15 +276,16 @@ export const SEO_TOOL_CSS = `
   .seo-summary-actions { padding: 18px 22px; display: flex; flex-direction: column; gap: 10px; }
   .seo-btn-generate {
     width: 100%; padding: 15px;
-    background: var(--text); color: #fff;
+    background: var(--accent); color: #fff;
     border: none; border-radius: 12px;
     font-size: 15px; font-weight: 800; cursor: pointer;
     display: flex; align-items: center; justify-content: center; gap: 8px;
     transition: all 0.15s;
     letter-spacing: -0.2px;
+    box-shadow: 0 4px 14px rgba(109,40,217,0.35);
   }
-  .seo-btn-generate:hover { background: #000; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(0,0,0,0.2); }
-  .seo-btn-generate:active { transform: translateY(0); box-shadow: none; }
+  .seo-btn-generate:hover { background: var(--accent-mid); transform: translateY(-1px); box-shadow: 0 8px 24px rgba(109,40,217,0.4); }
+  .seo-btn-generate:active { transform: translateY(0); box-shadow: 0 2px 8px rgba(109,40,217,0.3); }
   .seo-summary-note {
     text-align: center; font-size: 11px; color: var(--muted);
     display: flex; align-items: center; justify-content: center; gap: 6px;
@@ -293,20 +294,20 @@ export const SEO_TOOL_CSS = `
   .seo-summary-nudge {
     margin: 0 22px 20px;
     padding: 14px 16px;
-    background: linear-gradient(135deg, rgba(250,204,21,0.06), rgba(250,204,21,0.12));
-    border: 1px solid rgba(250,204,21,0.2);
+    background: linear-gradient(135deg, rgba(109,40,217,0.05), rgba(109,40,217,0.10));
+    border: 1px solid rgba(109,40,217,0.15);
     border-radius: 12px;
   }
   .seo-summary-nudge-title { font-size: 12px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
   .seo-summary-nudge-text { font-size: 11px; color: var(--muted); margin-bottom: 10px; line-height: 1.55; }
   .seo-summary-nudge-btn {
     width: 100%; padding: 9px;
-    background: var(--text); color: #fff;
+    background: var(--accent); color: #fff;
     border: none; border-radius: 8px;
     font-size: 12px; font-weight: 700; cursor: pointer;
     transition: opacity 0.15s;
   }
-  .seo-summary-nudge-btn:hover { opacity: 0.85; }
+  .seo-summary-nudge-btn:hover { opacity: 0.88; }
 
   /* Mini tools widget */
   .seo-mini-tools {
@@ -348,10 +349,11 @@ export const SEO_TOOL_CSS = `
   .seo-mobile-bar-amount { font-size: 20px; font-weight: 900; color: var(--text); letter-spacing: -0.5px; }
   .seo-mobile-bar-btn {
     padding: 12px 24px;
-    background: var(--text); color: #fff;
+    background: var(--accent); color: #fff;
     border: none; border-radius: 10px;
     font-size: 14px; font-weight: 800; cursor: pointer;
     white-space: nowrap; flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(109,40,217,0.3);
   }
 
   /* ── MODAL ───────────────────────────────────────── */
@@ -368,8 +370,8 @@ export const SEO_TOOL_CSS = `
 
   /* ── MODAL BUTTONS (PDF preview) ────────────────── */
   .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 18px; border-radius: 9px; font-size: 13px; font-weight: 700; cursor: pointer; border: none; transition: all 0.15s; white-space: nowrap; }
-  .btn-primary { background: var(--text); color: #fff; }
-  .btn-primary:hover { opacity: 0.85; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { opacity: 0.88; }
   .btn-secondary { background: #f3f4f6; color: var(--text); border: 1px solid var(--border); }
   .btn-secondary:hover { background: #e9eaec; }
 
