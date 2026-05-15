@@ -38,6 +38,8 @@ type AppStats = {
   contracts: { cur: number; prev: number; daily: { day: string; count: number }[] }
 }
 
+type Source = { source: string; views: number }
+
 export default function AdminDashboardPage() {
   const supabase = useMemo(() => getSupabase(), [])
   const [status, setStatus] = useState<'loading' | 'forbidden' | 'ready'>('loading')
@@ -46,6 +48,7 @@ export default function AdminDashboardPage() {
   const [grouped, setGrouped] = useState<GroupedRow[]>([])
   const [topPages, setTopPages] = useState<TopPage[]>([])
   const [pdfEvents, setPdfEvents] = useState<PdfEvent[]>([])
+  const [sources, setSources] = useState<Source[]>([])
   const [pdfError, setPdfError] = useState<string | null>(null)
   const [appStats, setAppStats] = useState<AppStats | null>(null)
 
@@ -76,7 +79,6 @@ export default function AdminDashboardPage() {
       setDaily((dailyRows ?? []) as DailyMetric[])
       setGrouped((groupedRows ?? []) as GroupedRow[])
 
-      // Aggregate top pages client-side
       const pathCount: Record<string, number> = {}
       for (const r of (topRows ?? []) as { path: string }[]) {
         if (r.path) pathCount[r.path] = (pathCount[r.path] || 0) + 1
@@ -88,9 +90,10 @@ export default function AdminDashboardPage() {
       setTopPages(sorted)
 
       if (token) {
-        const [pdfRes, appRes] = await Promise.all([
+        const [pdfRes, appRes, srcRes] = await Promise.all([
           fetch('/api/analytics/pdf-events', { headers: { Authorization: `Bearer ${token}` } }),
-          fetch(`/api/analytics/app-stats?days=30`, { headers: { Authorization: `Bearer ${token}` } }),
+          fetch('/api/analytics/app-stats?days=30', { headers: { Authorization: `Bearer ${token}` } }),
+          fetch('/api/analytics/sources?days=30', { headers: { Authorization: `Bearer ${token}` } }),
         ])
         const pdfJson = await pdfRes.json()
         if (pdfRes.ok) {
@@ -100,6 +103,10 @@ export default function AdminDashboardPage() {
         }
         if (appRes.ok) {
           setAppStats(await appRes.json())
+        }
+        if (srcRes.ok) {
+          const srcJson = await srcRes.json()
+          setSources(srcJson.sources ?? [])
         }
       } else {
         setPdfError('Token de session introuvable')
@@ -135,37 +142,12 @@ export default function AdminDashboardPage() {
   const delta = (a: number, b: number) => (b === 0 ? null : Math.round(((a - b) / b) * 100))
 
   const kpis = [
-    {
-      label: 'Page vues',
-      cur: sum(cur, 'page_views'),
-      prev: sum(prev, 'page_views'),
-      color: '#6366f1',
-      icon: '👁',
-    },
-    {
-      label: 'PDF générés',
-      cur: sum(cur, 'pdf_generated'),
-      prev: sum(prev, 'pdf_generated'),
-      color: '#10b981',
-      icon: '📄',
-    },
-    {
-      label: 'Emails envoyés',
-      cur: sum(cur, 'email_sent'),
-      prev: sum(prev, 'email_sent'),
-      color: '#f59e0b',
-      icon: '✉️',
-    },
-    {
-      label: 'Événements total',
-      cur: sum(cur, 'total_events'),
-      prev: sum(prev, 'total_events'),
-      color: '#8b5cf6',
-      icon: '⚡',
-    },
+    { label: 'Page vues', cur: sum(cur, 'page_views'), prev: sum(prev, 'page_views'), color: '#6366f1', icon: '👁' },
+    { label: 'PDF générés', cur: sum(cur, 'pdf_generated'), prev: sum(prev, 'pdf_generated'), color: '#10b981', icon: '📄' },
+    { label: 'Emails envoyés', cur: sum(cur, 'email_sent'), prev: sum(prev, 'email_sent'), color: '#f59e0b', icon: '✉️' },
+    { label: 'Événements total', cur: sum(cur, 'total_events'), prev: sum(prev, 'total_events'), color: '#8b5cf6', icon: '⚡' },
   ]
 
-  // Chart data — last periodDays days of page_views
   const chartDays = daily
     .filter(r => {
       const d = new Date(r.day)
@@ -175,37 +157,27 @@ export default function AdminDashboardPage() {
     })
     .sort((a, b) => (a.day < b.day ? -1 : 1))
 
-  // Grouped totals for current period
   const groupCur = grouped.filter(r => inPeriod(r.day, 0))
   const groupTotals: Record<string, number> = {}
   for (const r of groupCur) {
     groupTotals[r.page_group] = (groupTotals[r.page_group] || 0) + r.page_views
   }
 
-  // Top pages for selected period
-  const topPagesFiltered = period === '30d'
-    ? topPages
-    : topPages.slice(0, 15)
+  const topPagesFiltered = period === '30d' ? topPages : topPages.slice(0, 15)
 
   return (
     <div style={s.page}>
-      {/* Header */}
       <div style={s.header}>
         <h1 style={s.title}>Dashboard Analytics</h1>
         <div style={s.tabs}>
           {(['today', '7d', '30d'] as Period[]).map(p => (
-            <button
-              key={p}
-              onClick={() => setPeriod(p)}
-              style={{ ...s.tab, ...(period === p ? s.tabActive : {}) }}
-            >
+            <button key={p} onClick={() => setPeriod(p)} style={{ ...s.tab, ...(period === p ? s.tabActive : {}) }}>
               {p === 'today' ? "Aujourd'hui" : p === '7d' ? '7 jours' : '30 jours'}
             </button>
           ))}
         </div>
       </div>
 
-      {/* KPI cards */}
       <div style={s.kpiRow}>
         {kpis.map(k => {
           const d = delta(k.cur, k.prev)
@@ -224,7 +196,6 @@ export default function AdminDashboardPage() {
         })}
       </div>
 
-      {/* Bar chart */}
       {chartDays.length > 0 && (
         <div style={s.card}>
           <h2 style={s.sectionTitle}>Vues journalières</h2>
@@ -232,9 +203,7 @@ export default function AdminDashboardPage() {
         </div>
       )}
 
-      {/* Category breakdown + Top pages */}
       <div style={s.twoCol}>
-        {/* Category breakdown */}
         <div style={s.card}>
           <h2 style={s.sectionTitle}>Par catégorie</h2>
           {[
@@ -263,7 +232,6 @@ export default function AdminDashboardPage() {
           })}
         </div>
 
-        {/* Top pages */}
         <div style={s.card}>
           <h2 style={s.sectionTitle}>Top pages (30j)</h2>
           <div style={{ overflowY: 'auto', maxHeight: 320 }}>
@@ -287,7 +255,31 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
-      {/* App stats — comptes + documents */}
+      {sources.length > 0 && (
+        <div style={s.card}>
+          <h2 style={s.sectionTitle}>🔍 Sources de trafic (30j)</h2>
+          <div style={{ overflowY: 'auto', maxHeight: 300 }}>
+            {sources.map((src, i) => {
+              const max = sources[0]?.views || 1
+              const pct = Math.round((src.views / max) * 100)
+              const color = sourceColor(src.source)
+              return (
+                <div key={src.source} style={s.topRow}>
+                  <span style={s.topRank}>{i + 1}</span>
+                  <div style={s.topInfo}>
+                    <div style={{ ...s.topPath, color: '#334155' }}>{src.source}</div>
+                    <div style={s.topBarWrap}>
+                      <div style={{ ...s.topBar, width: `${pct}%`, background: color }} />
+                    </div>
+                  </div>
+                  <span style={s.topVal}>{src.views}</span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
       {appStats && (() => {
         const pick = (stat: { cur: number; prev: number; daily: { day: string; count: number }[] }) => {
           if (period === '30d') return { cur: stat.cur, prev: stat.prev }
@@ -331,59 +323,55 @@ export default function AdminDashboardPage() {
         )
       })()}
 
-      {/* PDF events */}
-      {(
-        <div style={s.card}>
-          <h2 style={s.sectionTitle}>📄 Derniers PDF générés ({pdfEvents.length})</h2>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={s.table}>
-              <thead>
-                <tr>
-                  {['Date & heure', 'Type', 'Détails', 'Page'].map(h => (
-                    <th key={h} style={s.th}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {pdfError && (
-                  <tr><td colSpan={4} style={{ ...s.td, color: '#ef4444', textAlign: 'center', padding: 24 }}>{pdfError}</td></tr>
-                )}
-                {!pdfError && pdfEvents.length === 0 && (
-                  <tr><td colSpan={4} style={{ ...s.td, color: '#94a3b8', textAlign: 'center', padding: 24 }}>Aucun PDF généré trouvé</td></tr>
-                )}
-                {pdfEvents.map((e, i) => {
-                  const props = e.properties || {}
-                  const type = (props.type || props.kind || props.document_type || e.path?.split('/')[1] || '—') as string
-                  const details = Object.entries(props)
-                    .filter(([k]) => !['type', 'kind', 'document_type', 'path'].includes(k))
-                    .map(([k, v]) => `${k}: ${v}`)
-                    .join(' · ') || '—'
-                  return (
-                    <tr key={i}>
-                      <td style={s.td}>
-                        {new Date(e.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}
-                        {' '}
-                        <span style={{ color: '#94a3b8', fontSize: 12 }}>
-                          {new Date(e.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
-                        </span>
-                      </td>
-                      <td style={s.td}>
-                        <span style={{ ...s.badge, background: typeBg(type), color: typeColor(type) }}>
-                          {type}
-                        </span>
-                      </td>
-                      <td style={{ ...s.td, fontSize: 12, color: '#64748b', maxWidth: 300 }}>{details}</td>
-                      <td style={{ ...s.td, fontSize: 12, color: '#94a3b8' }}>{e.path || '—'}</td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
+      <div style={s.card}>
+        <h2 style={s.sectionTitle}>📄 Derniers PDF générés ({pdfEvents.length})</h2>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={s.table}>
+            <thead>
+              <tr>
+                {['Date & heure', 'Type', 'Détails', 'Page'].map(h => (
+                  <th key={h} style={s.th}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {pdfError && (
+                <tr><td colSpan={4} style={{ ...s.td, color: '#ef4444', textAlign: 'center', padding: 24 }}>{pdfError}</td></tr>
+              )}
+              {!pdfError && pdfEvents.length === 0 && (
+                <tr><td colSpan={4} style={{ ...s.td, color: '#94a3b8', textAlign: 'center', padding: 24 }}>Aucun PDF généré trouvé</td></tr>
+              )}
+              {pdfEvents.map((e, i) => {
+                const props = e.properties || {}
+                const type = (props.type || props.kind || props.document_type || e.path?.split('/')[1] || '—') as string
+                const details = Object.entries(props)
+                  .filter(([k]) => !['type', 'kind', 'document_type', 'path'].includes(k))
+                  .map(([k, v]) => `${k}: ${v}`)
+                  .join(' · ') || '—'
+                return (
+                  <tr key={i}>
+                    <td style={s.td}>
+                      {new Date(e.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}
+                      {' '}
+                      <span style={{ color: '#94a3b8', fontSize: 12 }}>
+                        {new Date(e.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </td>
+                    <td style={s.td}>
+                      <span style={{ ...s.badge, background: typeBg(type), color: typeColor(type) }}>
+                        {type}
+                      </span>
+                    </td>
+                    <td style={{ ...s.td, fontSize: 12, color: '#64748b', maxWidth: 300 }}>{details}</td>
+                    <td style={{ ...s.td, fontSize: 12, color: '#94a3b8' }}>{e.path || '—'}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
         </div>
-      )}
+      </div>
 
-      {/* Daily table */}
       <div style={s.card}>
         <h2 style={s.sectionTitle}>Détail journalier</h2>
         <div style={{ overflowX: 'auto' }}>
@@ -417,28 +405,15 @@ export default function AdminDashboardPage() {
   )
 }
 
-function AppSignupsChart({
-  daily,
-  period,
-  today,
-}: {
-  daily: { day: string; count: number }[]
-  period: string
-  today: Date
-}) {
+function AppSignupsChart({ daily, period, today }: { daily: { day: string; count: number }[]; period: string; today: Date }) {
   const days = period === 'today' ? 1 : period === '7d' ? 7 : 30
   const cutoff = new Date(today)
   cutoff.setDate(cutoff.getDate() - days)
-  const filtered = daily
-    .filter(d => new Date(d.day) >= cutoff)
-    .sort((a, b) => (a.day < b.day ? -1 : 1))
-
+  const filtered = daily.filter(d => new Date(d.day) >= cutoff).sort((a, b) => (a.day < b.day ? -1 : 1))
   if (filtered.length === 0) return null
-
   const max = Math.max(...filtered.map(d => d.count), 1)
   const H = 80
   const barW = Math.max(6, Math.min(32, Math.floor(560 / filtered.length) - 2))
-
   return (
     <div style={{ marginTop: 16, overflowX: 'auto' }}>
       <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 6 }}>Nouveaux comptes / jour</div>
@@ -449,11 +424,7 @@ function AppSignupsChart({
           return (
             <g key={d.day}>
               <rect x={x} y={H - h} width={barW} height={h} rx={3} fill="#0ea5e9" opacity={0.8} />
-              {d.count > 0 && (
-                <text x={x + barW / 2} y={H - h - 3} textAnchor="middle" fontSize={9} fill="#0ea5e9" fontWeight="700">
-                  {d.count}
-                </text>
-              )}
+              {d.count > 0 && <text x={x + barW / 2} y={H - h - 3} textAnchor="middle" fontSize={9} fill="#0ea5e9" fontWeight="700">{d.count}</text>}
               <text x={x + barW / 2} y={H + 16} textAnchor="middle" fontSize={8} fill="#94a3b8">
                 {new Date(d.day).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}
               </text>
@@ -463,6 +434,18 @@ function AppSignupsChart({
       </svg>
     </div>
   )
+}
+
+function sourceColor(source: string) {
+  if (source.includes('Google')) return '#4285f4'
+  if (source.includes('Meta') || source.includes('Facebook') || source.includes('Instagram')) return '#1877f2'
+  if (source.includes('LinkedIn')) return '#0a66c2'
+  if (source.includes('Twitter') || source.includes('X')) return '#000000'
+  if (source.includes('TikTok')) return '#ff0050'
+  if (source.includes('Reddit')) return '#ff4500'
+  if (source.includes('Direct')) return '#94a3b8'
+  if (source.includes('Interne')) return '#6366f1'
+  return '#10b981'
 }
 
 function typeBg(type: string) {
@@ -482,22 +465,11 @@ function BarChart({ days }: { days: { day: string; page_views: number }[] }) {
   const max = Math.max(...days.map(d => d.page_views), 1)
   const H = 140
   const barW = Math.max(4, Math.min(28, Math.floor(560 / days.length) - 2))
-
   return (
     <div style={{ overflowX: 'auto' }}>
-      <svg
-        width="100%"
-        viewBox={`0 0 ${Math.max(560, days.length * (barW + 4))} ${H + 32}`}
-        style={{ display: 'block' }}
-      >
-        {/* Grid lines */}
+      <svg width="100%" viewBox={`0 0 ${Math.max(560, days.length * (barW + 4))} ${H + 32}`} style={{ display: 'block' }}>
         {[0, 0.25, 0.5, 0.75, 1].map(f => (
-          <line
-            key={f}
-            x1={0} y1={H - f * H}
-            x2={days.length * (barW + 4)} y2={H - f * H}
-            stroke="#f0f0f0" strokeWidth={1}
-          />
+          <line key={f} x1={0} y1={H - f * H} x2={days.length * (barW + 4)} y2={H - f * H} stroke="#f0f0f0" strokeWidth={1} />
         ))}
         {days.map((d, i) => {
           const h = Math.max(2, Math.round((d.page_views / max) * H))
@@ -506,19 +478,8 @@ function BarChart({ days }: { days: { day: string; page_views: number }[] }) {
           return (
             <g key={d.day}>
               <rect x={x} y={H - h} width={barW} height={h} rx={3} fill="#6366f1" opacity={0.85} />
-              {showLabel && (
-                <text
-                  x={x + barW / 2} y={H + 18}
-                  textAnchor="middle" fontSize={9} fill="#888"
-                >
-                  {new Date(d.day).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}
-                </text>
-              )}
-              {d.page_views > 0 && h > 18 && (
-                <text x={x + barW / 2} y={H - h + 12} textAnchor="middle" fontSize={9} fill="#fff" fontWeight="600">
-                  {d.page_views}
-                </text>
-              )}
+              {showLabel && <text x={x + barW / 2} y={H + 18} textAnchor="middle" fontSize={9} fill="#888">{new Date(d.day).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}</text>}
+              {d.page_views > 0 && h > 18 && <text x={x + barW / 2} y={H - h + 12} textAnchor="middle" fontSize={9} fill="#fff" fontWeight="600">{d.page_views}</text>}
             </g>
           )
         })}
@@ -543,7 +504,7 @@ const s: Record<string, React.CSSProperties> = {
   kpiDelta: { fontSize: 12, fontWeight: 600, marginTop: 6 },
   card: { background: '#fff', borderRadius: 12, padding: '20px 22px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', marginBottom: 20 },
   sectionTitle: { fontSize: 15, fontWeight: 700, color: '#1e293b', margin: '0 0 16px' },
-  twoCol: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20, marginBottom: 0 },
+  twoCol: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20, marginBottom: 20 },
   catRow: { display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 },
   catLabel: { display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#334155', minWidth: 130 },
   catDot: { width: 10, height: 10, borderRadius: '50%', flexShrink: 0 },
