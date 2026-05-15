@@ -156,7 +156,7 @@ export default function HomeClient() {
           </li>
           <li>
             <a href="/connexion.html" className="nav-cta" onClick={() => setMobileMenuOpen(false)}>
-              Commencer
+              Essayer gratuitement
             </a>
           </li>
         </ul>
@@ -167,23 +167,30 @@ export default function HomeClient() {
         <div className="hero-container">
           <div className="hero-content">
             <div className="hero-badge">
-              <span>✨ Nouveau</span> L&apos;IA au service des freelances
+              <span>⚡ Gratuit pour commencer</span> Sans carte bancaire requise
             </div>
 
             <h1>
-              Vos emails et documents.
+              Devis, factures, contrats
               <br />
-              <span className="highlight">Votre style.</span>
+              <span className="highlight">en 2 minutes chrono.</span>
             </h1>
 
             <p className="hero-description">
-              Spyke est votre copilote freelance : emails, devis, factures, contrats — et même la
-              <strong> question juridique</strong> quand vous bloquez. Vous gardez votre style, Spyke vous fait gagner du temps.
+              Spyke génère vos documents freelance et rédige vos emails professionnels à votre place.
+              Vous décrivez, <strong>Spyke crée le PDF prêt à envoyer</strong> — devis, facture, contrat, relance.
             </p>
 
-            <a href="/connexion.html" className="hero-btn">
-              Créer un compte →
-            </a>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 10 }}>
+              <a href="/connexion.html" className="hero-btn">
+                Essayer gratuitement →
+              </a>
+              <p style={{ margin: 0, fontSize: 13, color: 'var(--gray-500)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ color: '#10b981', fontWeight: 700 }}>✓</span> Gratuit
+                <span style={{ color: '#10b981', fontWeight: 700 }}>✓</span> Sans carte bancaire
+                <span style={{ color: '#10b981', fontWeight: 700 }}>✓</span> Prêt en 2 min
+              </p>
+            </div>
 
             <div className="hero-social-proof">
               <div className="avatars">
@@ -524,11 +531,12 @@ export default function HomeClient() {
       {/* CTA Section */}
       <section className="cta">
         <div className="cta-container">
-          <h2>Prêt à écrire plus vite ?</h2>
-          <p>Rejoignez les freelances qui ont adopté l&apos;IA pour leurs emails et documents (devis, factures, contrats).</p>
+          <h2>Votre premier devis en 2 minutes ?</h2>
+          <p>Testez Spyke gratuitement — sans carte bancaire, sans engagement. Générez un vrai devis PDF dès votre première connexion.</p>
           <a href="/connexion.html" className="cta-btn">
-            Créer un compte gratuit →
+            Essayer gratuitement →
           </a>
+          <p style={{ marginTop: 14, fontSize: 13, opacity: 0.7 }}>Gratuit · Sans carte · Sans engagement</p>
         </div>
       </section>
 
