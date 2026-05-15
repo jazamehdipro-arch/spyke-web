@@ -589,228 +589,138 @@ export default function SeoContratPage() {
       ) : null}
 
       <nav className="seo-navbar">
-        <a href="/" className="seo-nav-logo">
-          <div className="seo-nav-logo-icon">
-            <svg viewBox="0 0 24 24">
-              <path d="M13 3L4 14h7l-2 7 9-11h-7l2-7z" />
-            </svg>
-          </div>
-          <span className="seo-nav-logo-text">Spyke</span>
-        </a>
+        <a href="/" className="seo-nav-logo"><div className="seo-nav-logo-icon"><svg viewBox="0 0 24 24"><path d="M13 3L4 14h7l-2 7 9-11h-7l2-7z"/></svg></div><span className="seo-nav-logo-text">Spyke</span></a>
         <div className="seo-nav-tools">
-          <a href="/devis-freelance" className="seo-nav-tool">Devis gratuit</a>
-          <a href="/facture-auto-entrepreneur" className="seo-nav-tool">Facture gratuite</a>
-          <a href="/contrat-freelance" className="seo-nav-tool active">Contrat gratuit</a>
+          <a href="/devis-freelance" className="seo-nav-tool">Devis</a>
+          <a href="/facture-auto-entrepreneur" className="seo-nav-tool">Facture</a>
+          <a href="/contrat-freelance" className="seo-nav-tool active">Contrat</a>
         </div>
-        <a href="/connexion.html" className="seo-nav-cta">Créer un compte gratuit</a>
+        <a href="/connexion.html" className="seo-nav-cta">Essayer gratuitement</a>
       </nav>
 
       <section className="seo-hero">
-        <div className="seo-hero-badge">
-          <span className="seo-hero-badge-dot" /> Outil 100% gratuit
-        </div>
-        <h1>
-          Créez votre <span>contrat freelance</span> en 2 minutes
-        </h1>
-        <p className="seo-hero-sub">
-          Remplissez les champs essentiels, puis téléchargez un PDF. <b>Gratuit, sans inscription</b>.
-        </p>
+        <div className="seo-hero-badge"><span className="seo-hero-badge-dot"/>Outil 100 % gratuit</div>
+        <h1>Créez votre <span>contrat freelance</span><br/>en 2 minutes chrono</h1>
+        <p className="seo-hero-sub">Remplissez les champs essentiels, téléchargez un PDF. <b>Gratuit, sans inscription.</b></p>
         <div className="seo-hero-trust">
-          <span className="seo-hero-trust-item"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>2 450+ documents générés</span>
-          <span className="seo-hero-trust-item"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>Sans inscription</span>
-          <span className="seo-hero-trust-item"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>PDF pro</span>
-          <span className="seo-hero-trust-item"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>Conforme au droit français</span>
+          <span className="seo-hero-trust-item"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>2 450+ docs générés</span>
+          <span className="seo-hero-trust-item"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Sans inscription</span>
+          <span className="seo-hero-trust-item"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>PDF professionnel</span>
+          <span className="seo-hero-trust-item"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Conforme au droit français</span>
         </div>
       </section>
 
-      {showSoftSignupNudge ? (
-        <div className="seo-soft-nudge">
-          <div className="seo-soft-nudge-card">
-            <div>
-              <div className="seo-soft-nudge-text">Vous aimez l'outil ?</div>
-              <div className="seo-soft-nudge-sub">Créez un compte pour centraliser vos clients, devis, contrats et factures.</div>
-            </div>
-            <button className="seo-soft-nudge-btn" type="button" onClick={goSignup}>
-              Créer un compte
-            </button>
-          </div>
-        </div>
-      ) : null}
+      <div className="seo-workspace">
+        <div className="seo-form-col">
 
-      <div className="seo-form-wrap">
-        <div className="seo-card">
-          <div className="seo-card-title">Contrat</div>
-          <div className="seo-grid">
-            <div className="seo-group">
-              <label className="seo-label">Titre</label>
-              <input className="seo-input" value={title} onChange={(e) => setTitle(e.target.value)} />
-            </div>
-            <div className="seo-group">
-              <label className="seo-label">Numéro (optionnel)</label>
-              <input className="seo-input" value={contractNumber} onChange={(e) => setContractNumber(e.target.value)} placeholder="C202604-001" />
-            </div>
-            <div className="seo-group">
-              <label className="seo-label">Date</label>
-              <input type="date" className="seo-input" value={date} onChange={(e) => setDate(e.target.value)} />
-            </div>
-            <div className="seo-group full">
-              <label className="seo-label">Logo (optionnel)</label>
-              <input type="file" accept="image/*" className="seo-input" onChange={(e) => onPickLogo(e.target.files?.[0] || null)} />
+          <div className="seo-section">
+            <div className="seo-section-header"><div className="seo-section-num">1</div><div className="seo-section-title">Contrat</div></div>
+            <div className="seo-section-body">
+              <div className="seo-grid">
+                <div className="seo-group"><label className="seo-label">Titre</label><input className="seo-input" value={title} onChange={(e)=>setTitle(e.target.value)}/></div>
+                <div className="seo-group"><label className="seo-label">Numéro (optionnel)</label><input className="seo-input" value={contractNumber} onChange={(e)=>setContractNumber(e.target.value)} placeholder="C202604-001"/></div>
+                <div className="seo-group"><label className="seo-label">Date</label><input type="date" className="seo-input" value={date} onChange={(e)=>setDate(e.target.value)}/></div>
+                <div className="seo-group"><label className="seo-label">Logo (optionnel)</label><input type="file" accept="image/*" className="seo-input" onChange={(e)=>onPickLogo(e.target.files?.[0]||null)}/></div>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="seo-card">
-          <div className="seo-card-title">Prestataire</div>
-          <div className="seo-grid">
-            <div className="seo-group">
-              <label className="seo-label">Nom / Raison sociale</label>
-              <input className="seo-input" value={sellerName} onChange={(e) => setSellerName(e.target.value)} />
-            </div>
-            <div className="seo-group">
-              <label className="seo-label">SIRET (optionnel)</label>
-              <input className="seo-input" value={sellerSiret} onChange={(e) => setSellerSiret(e.target.value)} />
-            </div>
-            <div className="seo-group">
-              <label className="seo-label">Activité (optionnel)</label>
-              <input className="seo-input" value={sellerActivity} onChange={(e) => setSellerActivity(e.target.value)} placeholder="Développement web" />
-            </div>
-            <div className="seo-group">
-              <label className="seo-label">Email (optionnel)</label>
-              <input className="seo-input" value={sellerEmail} onChange={(e) => setSellerEmail(e.target.value)} placeholder="contact@..." />
-            </div>
-            <div className="seo-group full">
-              <label className="seo-label">Adresse (optionnel)</label>
-              <input className="seo-input" value={sellerAddress} onChange={(e) => setSellerAddress(e.target.value)} />
+          <div className="seo-section">
+            <div className="seo-section-header"><div className="seo-section-num">2</div><div className="seo-section-title">Prestataire</div></div>
+            <div className="seo-section-body">
+              <div className="seo-grid">
+                <div className="seo-group"><label className="seo-label">Nom / Raison sociale *</label><input className="seo-input" value={sellerName} onChange={(e)=>setSellerName(e.target.value)}/></div>
+                <div className="seo-group"><label className="seo-label">SIRET (optionnel)</label><input className="seo-input" value={sellerSiret} onChange={(e)=>setSellerSiret(e.target.value)}/></div>
+                <div className="seo-group"><label className="seo-label">Activité (optionnel)</label><input className="seo-input" value={sellerActivity} onChange={(e)=>setSellerActivity(e.target.value)} placeholder="Développement web"/></div>
+                <div className="seo-group"><label className="seo-label">Email (optionnel)</label><input className="seo-input" value={sellerEmail} onChange={(e)=>setSellerEmail(e.target.value)} placeholder="contact@…"/></div>
+                <div className="seo-group full"><label className="seo-label">Adresse (optionnel)</label><input className="seo-input" value={sellerAddress} onChange={(e)=>setSellerAddress(e.target.value)}/></div>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="seo-card">
-          <div className="seo-card-title">Client</div>
-          <div className="seo-grid">
-            <div className="seo-group">
-              <label className="seo-label">Nom / Entreprise</label>
-              <input className="seo-input" value={buyerName} onChange={(e) => setBuyerName(e.target.value)} />
-            </div>
-            <div className="seo-group">
-              <label className="seo-label">SIRET (optionnel)</label>
-              <input className="seo-input" value={buyerSiret} onChange={(e) => setBuyerSiret(e.target.value)} />
-            </div>
-            <div className="seo-group">
-              <label className="seo-label">Représentant (optionnel)</label>
-              <input className="seo-input" value={buyerRepresentant} onChange={(e) => setBuyerRepresentant(e.target.value)} placeholder="Nom du signataire" />
-            </div>
-            <div className="seo-group">
-              <label className="seo-label">Email (optionnel)</label>
-              <input className="seo-input" value={buyerEmail} onChange={(e) => setBuyerEmail(e.target.value)} placeholder="client@..." />
-            </div>
-            <div className="seo-group full">
-              <label className="seo-label">Adresse (optionnel)</label>
-              <input className="seo-input" value={buyerAddress} onChange={(e) => setBuyerAddress(e.target.value)} />
+          <div className="seo-section">
+            <div className="seo-section-header"><div className="seo-section-num">3</div><div className="seo-section-title">Client</div></div>
+            <div className="seo-section-body">
+              <div className="seo-grid">
+                <div className="seo-group"><label className="seo-label">Nom / Entreprise *</label><input className="seo-input" value={buyerName} onChange={(e)=>setBuyerName(e.target.value)}/></div>
+                <div className="seo-group"><label className="seo-label">SIRET (optionnel)</label><input className="seo-input" value={buyerSiret} onChange={(e)=>setBuyerSiret(e.target.value)}/></div>
+                <div className="seo-group"><label className="seo-label">Représentant (optionnel)</label><input className="seo-input" value={buyerRepresentant} onChange={(e)=>setBuyerRepresentant(e.target.value)} placeholder="Nom du signataire"/></div>
+                <div className="seo-group"><label className="seo-label">Email (optionnel)</label><input className="seo-input" value={buyerEmail} onChange={(e)=>setBuyerEmail(e.target.value)} placeholder="client@…"/></div>
+                <div className="seo-group full"><label className="seo-label">Adresse (optionnel)</label><input className="seo-input" value={buyerAddress} onChange={(e)=>setBuyerAddress(e.target.value)}/></div>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="seo-card">
-          <div className="seo-card-title">Mission</div>
-          <div className="seo-grid">
-            <div className="seo-group">
-              <label className="seo-label">Début (optionnel)</label>
-              <input type="date" className="seo-input" value={missionStartDate} onChange={(e) => setMissionStartDate(e.target.value)} />
-            </div>
-            <div className="seo-group">
-              <label className="seo-label">Fin (optionnel)</label>
-              <input type="date" className="seo-input" value={missionEndDate} onChange={(e) => setMissionEndDate(e.target.value)} />
-            </div>
-            <div className="seo-group">
-              <label className="seo-label">Lieu (optionnel)</label>
-              <input className="seo-input" value={missionLocation} onChange={(e) => setMissionLocation(e.target.value)} placeholder="À distance / sur site / mixte" />
-            </div>
-            <div className="seo-group">
-              <label className="seo-label">Révisions (optionnel)</label>
-              <input className="seo-input" value={missionRevisions} onChange={(e) => setMissionRevisions(e.target.value)} placeholder="2" />
-            </div>
-            <div className="seo-group full">
-              <label className="seo-label">Description de la mission</label>
-              <textarea className="seo-textarea" value={missionDescription} onChange={(e) => setMissionDescription(e.target.value)} placeholder="Décris le périmètre, les modalités, les délais…" />
-            </div>
-            <div className="seo-group full">
-              <label className="seo-label">Livrables (optionnel)</label>
-              <textarea className="seo-textarea" value={missionDeliverables} onChange={(e) => setMissionDeliverables(e.target.value)} placeholder="- Maquette\n- Code source\n- Documentation…" />
+          <div className="seo-section">
+            <div className="seo-section-header"><div className="seo-section-num">4</div><div className="seo-section-title">Mission</div></div>
+            <div className="seo-section-body">
+              <div className="seo-grid">
+                <div className="seo-group"><label className="seo-label">Début (optionnel)</label><input type="date" className="seo-input" value={missionStartDate} onChange={(e)=>setMissionStartDate(e.target.value)}/></div>
+                <div className="seo-group"><label className="seo-label">Fin (optionnel)</label><input type="date" className="seo-input" value={missionEndDate} onChange={(e)=>setMissionEndDate(e.target.value)}/></div>
+                <div className="seo-group"><label className="seo-label">Lieu (optionnel)</label><input className="seo-input" value={missionLocation} onChange={(e)=>setMissionLocation(e.target.value)} placeholder="À distance / sur site / mixte"/></div>
+                <div className="seo-group"><label className="seo-label">Révisions (optionnel)</label><input className="seo-input" value={missionRevisions} onChange={(e)=>setMissionRevisions(e.target.value)} placeholder="2"/></div>
+                <div className="seo-group full"><label className="seo-label">Description de la mission *</label><textarea className="seo-textarea" value={missionDescription} onChange={(e)=>setMissionDescription(e.target.value)} placeholder="Décris le périmètre, les modalités, les délais…"/></div>
+                <div className="seo-group full"><label className="seo-label">Livrables (optionnel)</label><textarea className="seo-textarea" value={missionDeliverables} onChange={(e)=>setMissionDeliverables(e.target.value)} placeholder="- Maquette&#10;- Code source&#10;- Documentation…"/></div>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="seo-card">
-          <div className="seo-card-title">Prix & clauses (optionnel)</div>
-          <div className="seo-grid">
-            <div className="seo-group">
-              <label className="seo-label">Type</label>
-              <input className="seo-input" value={pricingType} onChange={(e) => setPricingType(e.target.value)} placeholder="Forfait / TJM / Taux horaire" />
-            </div>
-            <div className="seo-group">
-              <label className="seo-label">Montant</label>
-              <input className="seo-input" value={pricingAmount} onChange={(e) => setPricingAmount(e.target.value)} placeholder="1 500€" />
-            </div>
-            <div className="seo-group">
-              <label className="seo-label">Régime TVA</label>
-              <input className="seo-input" value={vatRegime} onChange={(e) => setVatRegime(e.target.value)} placeholder="Franchise en base / assujetti" />
-            </div>
-            <div className="seo-group">
-              <label className="seo-label">Échéancier</label>
-              <input className="seo-input" value={paymentSchedule} onChange={(e) => setPaymentSchedule(e.target.value)} placeholder="30/70, 50/50…" />
-            </div>
-            <div className="seo-group">
-              <label className="seo-label">Délai de paiement</label>
-              <input className="seo-input" value={paymentDelay} onChange={(e) => setPaymentDelay(e.target.value)} placeholder="30 jours" />
-            </div>
-            <div className="seo-group">
-              <label className="seo-label">Clause IP</label>
-              <input className="seo-input" value={ipClause} onChange={(e) => setIpClause(e.target.value)} placeholder="Cession après paiement…" />
-            </div>
-            <div className="seo-group">
-              <label className="seo-label">Confidentialité</label>
-              <input className="seo-input" value={confidentiality} onChange={(e) => setConfidentiality(e.target.value)} placeholder="Oui / Non" />
-            </div>
-            <div className="seo-group full">
-              <label className="seo-label">Résiliation / préavis</label>
-              <input className="seo-input" value={termination} onChange={(e) => setTermination(e.target.value)} placeholder="Préavis 30 jours…" />
+          <div className="seo-section">
+            <div className="seo-section-header"><div className="seo-section-num">5</div><div className="seo-section-title">Prix & clauses</div><span className="seo-section-subtitle">Optionnel</span></div>
+            <div className="seo-section-body">
+              <div className="seo-grid">
+                <div className="seo-group"><label className="seo-label">Type</label><input className="seo-input" value={pricingType} onChange={(e)=>setPricingType(e.target.value)} placeholder="Forfait / TJM / Taux horaire"/></div>
+                <div className="seo-group"><label className="seo-label">Montant</label><input className="seo-input" value={pricingAmount} onChange={(e)=>setPricingAmount(e.target.value)} placeholder="1 500€"/></div>
+                <div className="seo-group"><label className="seo-label">Régime TVA</label><input className="seo-input" value={vatRegime} onChange={(e)=>setVatRegime(e.target.value)} placeholder="Franchise en base / assujetti"/></div>
+                <div className="seo-group"><label className="seo-label">Échéancier</label><input className="seo-input" value={paymentSchedule} onChange={(e)=>setPaymentSchedule(e.target.value)} placeholder="30/70, 50/50…"/></div>
+                <div className="seo-group"><label className="seo-label">Délai de paiement</label><input className="seo-input" value={paymentDelay} onChange={(e)=>setPaymentDelay(e.target.value)} placeholder="30 jours"/></div>
+                <div className="seo-group"><label className="seo-label">Clause IP</label><input className="seo-input" value={ipClause} onChange={(e)=>setIpClause(e.target.value)} placeholder="Cession après paiement…"/></div>
+                <div className="seo-group"><label className="seo-label">Confidentialité</label><input className="seo-input" value={confidentiality} onChange={(e)=>setConfidentiality(e.target.value)} placeholder="Oui / Non"/></div>
+                <div className="seo-group full"><label className="seo-label">Résiliation / préavis</label><input className="seo-input" value={termination} onChange={(e)=>setTermination(e.target.value)} placeholder="Préavis 30 jours…"/></div>
+              </div>
             </div>
           </div>
+
+          <div className="seo-section">
+            <div className="seo-section-header"><div className="seo-section-num">6</div><div className="seo-section-title">Aperçu texte</div><span className="seo-section-subtitle">Modifiable</span></div>
+            <div className="seo-section-body"><textarea className="seo-textarea" style={{minHeight:200,width:'100%'}} value={contractText} onChange={(e)=>setContractText(e.target.value)}/></div>
+          </div>
+
         </div>
 
-        <div className="seo-card">
-          <div className="seo-card-title">Aperçu texte (modifiable)</div>
-          <textarea className="seo-textarea" style={{ minHeight: 220 }} value={contractText} onChange={(e) => setContractText(e.target.value)} />
-        </div>
-
-        <div className="seo-generate">
-          <button type="button" className="seo-btn-generate" onClick={generatePdf}>
-            Générer mon contrat en PDF
-          </button>
-          <p className="seo-note">Gratuit, sans inscription.</p>
+        <div className="seo-summary-col">
+          <div className="seo-summary">
+            <div className="seo-summary-top">
+              <div className="seo-summary-label">Votre contrat</div>
+              {pricingAmount && <div className="seo-summary-row total" style={{marginTop:0,paddingTop:0,borderTop:'none'}}>
+                <span className="sl">Montant</span>
+                <span className="sv" style={{fontSize:22}}>{pricingAmount}{pricingType?' '+pricingType:''}</span>
+              </div>}
+              {!pricingAmount && <p style={{fontSize:13,color:'#6b7280',margin:'8px 0 0',lineHeight:1.5}}>Remplissez les champs essentiels et générez votre contrat en PDF.</p>}
+            </div>
+            <div className="seo-summary-actions">
+              <button className="seo-btn-generate" type="button" onClick={generatePdf}>Générer mon contrat PDF ↓</button>
+              <p className="seo-summary-note"><span>Gratuit</span><span className="seo-summary-note-dot"/><span>Sans inscription</span><span className="seo-summary-note-dot"/><span>PDF pro</span></p>
+            </div>
+            {showSoftSignupNudge && <div className="seo-summary-nudge">
+              <div className="seo-summary-nudge-title">Sauvegarder vos contrats ?</div>
+              <div className="seo-summary-nudge-text">Créez un compte gratuit pour centraliser vos clients, contrats, devis et factures.</div>
+              <button className="seo-summary-nudge-btn" type="button" onClick={goSignup}>Créer un compte gratuit →</button>
+            </div>}
+          </div>
+          <div className="seo-mini-tools">
+            <div className="seo-mini-tools-title">Autres outils gratuits</div>
+            <a href="/devis-freelance" className="seo-mini-tool"><span className="seo-mini-tool-dot" style={{background:'#facc15'}}/>Devis freelance</a>
+            <a href="/facture-auto-entrepreneur" className="seo-mini-tool"><span className="seo-mini-tool-dot" style={{background:'#3b82f6'}}/>Facture auto-entrepreneur</a>
+            <a href="/contrat-freelance" className="seo-mini-tool active"><span className="seo-mini-tool-dot" style={{background:'#f97316'}}/>Contrat freelance</a>
+          </div>
         </div>
       </div>
 
-      {/* Simple modal UX kept for parity with other SEO tools */}
-      {showEmailModal ? (
-        <div className="seo-modal-overlay">
-          <div className="seo-modal">
-            <h3>Votre contrat est prêt !</h3>
-            <p>Voulez-vous aussi le recevoir par email ?</p>
-            <div className="seo-modal-form">
-              <input placeholder="votre@email.com" className="seo-input" value={email} onChange={(e) => setEmail(e.target.value)} />
-              <button type="button" onClick={goSignup}>
-                Envoyer
-              </button>
-            </div>
-            <button type="button" className="seo-modal-skip" onClick={() => setShowEmailModal(false)}>
-              Non merci, c'est tout
-            </button>
-          </div>
-        </div>
-      ) : null}
+      <div className="seo-mobile-bar">
+        <div className="seo-mobile-bar-info"><div className="seo-mobile-bar-label">Contrat freelance</div><div className="seo-mobile-bar-amount" style={{fontSize:15,fontWeight:700}}>PDF gratuit</div></div>
+        <button className="seo-mobile-bar-btn" type="button" onClick={generatePdf}>Générer le PDF ↓</button>
+      </div>
     </div>
   )
 }
