@@ -1066,7 +1066,10 @@ export const HOME_CSS = `
 
           .nav-cta {
             justify-content: center !important;
+            background: var(--black) !important;
+            color: var(--white) !important;
             border: none !important;
+            font-weight: 700;
           }
 
           .hero {
