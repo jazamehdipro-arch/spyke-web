@@ -85,9 +85,14 @@ export default function InfluencerPage() {
 
   async function handleDelete(id: string) {
     if (!confirm('Supprimer ce contact ?')) return
-    const { error } = await supabase.from('influencer_contacts').delete().eq('id', id)
-    if (error) {
-      setMessage({ type: 'error', text: 'Erreur suppression : ' + error.message })
+    const res = await fetch('/api/influencer/delete', {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    })
+    if (!res.ok) {
+      const json = await res.json()
+      setMessage({ type: 'error', text: 'Erreur suppression : ' + json.error })
     } else {
       await loadStats()
     }
