@@ -49,6 +49,8 @@ export default function AdminDashboardPage() {
   const [topPages, setTopPages] = useState<TopPage[]>([])
   const [pdfEvents, setPdfEvents] = useState<PdfEvent[]>([])
   const [sources, setSources] = useState<Source[]>([])
+  const [sourcePeriod, setSourcePeriod] = useState<Period>('30d')
+  const [authToken, setAuthToken] = useState<string | null>(null)
   const [pdfError, setPdfError] = useState<string | null>(null)
   const [appStats, setAppStats] = useState<AppStats | null>(null)
   const [showReport, setShowReport] = useState(false)
@@ -68,6 +70,7 @@ export default function AdminDashboardPage() {
 
       const { data: sessionData } = await supabase.auth.getSession()
       const token = sessionData.session?.access_token
+      setAuthToken(token ?? null)
 
       const [{ data: dailyRows }, { data: groupedRows }, { data: topRows }] = await Promise.all([
         supabase.from('analytics_daily_metrics').select('*').limit(90),
@@ -120,6 +123,14 @@ export default function AdminDashboardPage() {
       setStatus('ready')
     })()
   }, [supabase])
+
+  useEffect(() => {
+    if (status !== 'ready' || !authToken) return
+    const days = sourcePeriod === 'today' ? 1 : sourcePeriod === '7d' ? 7 : 30
+    fetch(`/api/analytics/sources?days=${days}`, { headers: { Authorization: `Bearer ${authToken}` } })
+      .then(r => r.json())
+      .then(j => setSources(j.sources ?? []))
+  }, [sourcePeriod, status, authToken])
 
   function downloadReport() {
     const from = new Date(reportFrom)
@@ -351,7 +362,16 @@ export default function AdminDashboardPage() {
 
       {sources.length > 0 && (
         <div style={s.card}>
-          <h2 style={s.sectionTitle}>🔍 Sources de trafic (30j)</h2>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
+            <h2 style={{ ...s.sectionTitle, margin: 0 }}>🔍 Sources de trafic</h2>
+            <div style={s.tabs}>
+              {(['today', '7d', '30d'] as Period[]).map(p => (
+                <button key={p} onClick={() => setSourcePeriod(p)} style={{ ...s.tab, ...(sourcePeriod === p ? s.tabActive : {}) }}>
+                  {p === 'today' ? "Aujourd'hui" : p === '7d' ? '7 jours' : '30 jours'}
+                </button>
+              ))}
+            </div>
+          </div>
           <div style={{ overflowY: 'auto', maxHeight: 300 }}>
             {sources.map((src, i) => {
               const max = sources[0]?.views || 1
