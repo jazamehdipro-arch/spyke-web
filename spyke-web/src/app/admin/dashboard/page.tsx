@@ -234,6 +234,8 @@ export default function AdminDashboardPage() {
       <div style={s.header}>
         <h1 style={s.title}>Dashboard Analytics</h1>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+        <a href="/admin/outreach" style={{ ...s.reportBtn, textDecoration: 'none', background: '#1a1a2e' }}>📧 Outreach Freelance</a>
+        <a href="/admin/influencer" style={{ ...s.reportBtn, textDecoration: 'none', background: '#7c3aed' }}>🤝 Outreach Influenceurs</a>
         <button onClick={() => setShowReport(true)} style={s.reportBtn}>📥 Compte rendu</button>
         <div style={s.tabs}>
           {(['today', '7d', '30d'] as Period[]).map(p => (
