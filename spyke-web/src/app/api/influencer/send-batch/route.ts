@@ -15,10 +15,7 @@ function requireEnv(name: string): string {
   return v
 }
 
-function buildEmailHtml(name: string | null): string {
-  const firstName = name?.split(' ')[0] || null
-  const greeting = firstName ? `Bonjour ${firstName},` : 'Bonjour,'
-
+function buildEmailHtml(_name: string | null): string {
   return `<!DOCTYPE html>
 <html lang="fr">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
@@ -33,7 +30,7 @@ function buildEmailHtml(name: string | null): string {
         </tr>
         <tr>
           <td style="padding:40px 40px 32px">
-            <p style="margin:0 0 20px;font-size:16px;color:#333;line-height:1.6">${greeting}</p>
+            <p style="margin:0 0 20px;font-size:16px;color:#333;line-height:1.6">Bonjour,</p>
 
             <p style="margin:0 0 16px;font-size:16px;color:#333;line-height:1.6">
               Je suis Mehdi, fondateur de <strong>Spyke</strong> — un outil conçu pour les freelances français afin de générer devis, factures et contrats en moins de 30 secondes, avec des documents validés par des juristes et conformes au droit français.
@@ -48,8 +45,8 @@ function buildEmailHtml(name: string | null): string {
             </p>
 
             <table cellpadding="0" cellspacing="0" style="margin:0 0 24px;background:#f9f9f9;border-radius:10px;padding:20px 24px;width:100%">
-              <tr><td style="padding:6px 0;font-size:15px;color:#333">💰 &nbsp;<strong>19,90€</strong> par abonnement généré via votre lien</td></tr>
-              <tr><td style="padding:6px 0;font-size:15px;color:#333">🔄 &nbsp;puis <strong>25% de commission récurrente pendant 6 mois</strong> sur chaque abonné actif</td></tr>
+              <tr><td style="padding:6px 0;font-size:15px;color:#333"><strong>19,90€</strong> par abonnement généré via votre lien</td></tr>
+              <tr><td style="padding:6px 0;font-size:15px;color:#333">puis <strong>25% de commission récurrente pendant 6 mois</strong> sur chaque abonné actif</td></tr>
             </table>
 
             <p style="margin:0 0 16px;font-size:16px;color:#333;line-height:1.6">
@@ -94,19 +91,14 @@ function buildEmailHtml(name: string | null): string {
 </html>`
 }
 
-function buildEmailText(name: string | null): string {
-  const firstName = name?.split(' ')[0] || null
-  const greeting = firstName ? `Bonjour ${firstName},` : 'Bonjour,'
-  return `${greeting}
+function buildEmailText(_name: string | null): string {
+  return `Bonjour,
 
 Je suis Mehdi, fondateur de Spyke — un outil conçu pour les freelances français afin de générer devis, factures et contrats en moins de 30 secondes, avec des documents validés par des juristes et conformes au droit français.
 
 En découvrant votre contenu, je me suis dit que Spyke pouvait réellement intéresser votre communauté de freelances et d'indépendants.
 
-L'idée serait de vous proposer une collaboration affiliée autour de l'outil :
-
-- 19,90€ par abonnement généré via votre lien
-- puis 25% de commission récurrente pendant 6 mois sur chaque abonné actif
+L'idée serait de vous proposer une collaboration affiliée autour de l'outil : 19,90€ par abonnement généré via votre lien, puis 25% de commission récurrente pendant 6 mois sur chaque abonné actif.
 
 Même avec quelques conversions par mois, cela peut rapidement représenter un revenu récurrent intéressant, tout en recommandant un outil réellement utile à votre audience.
 
@@ -116,7 +108,7 @@ Si le sujet vous intéresse, je serais ravi d'en discuter avec vous.
 
 À bientôt,
 Mehdi
-Fondateur de Spyke - spykeapp.fr`
+Fondateur de Spyke — spykeapp.fr`
 }
 
 export async function POST(req: Request) {
