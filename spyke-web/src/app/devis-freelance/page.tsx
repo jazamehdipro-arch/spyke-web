@@ -7,11 +7,11 @@ export const metadata: Metadata = {
   title: 'Générateur de Devis Freelance Gratuit en Ligne — Spyke',
   description:
     'Créez un devis professionnel freelance gratuitement en 2 minutes. Téléchargez votre devis en PDF, conforme et personnalisable. Sans inscription.',
-  alternates: { canonical: 'https://www.spykeapp.fr/devis-freelance' },
+  alternates: { canonical: 'https://spykeapp.fr/devis-freelance' },
   openGraph: {
     title: 'Générateur de Devis Freelance Gratuit — Spyke',
     description: 'Créez un devis professionnel en 2 minutes. Téléchargez en PDF gratuitement, sans inscription.',
-    url: 'https://www.spykeapp.fr/devis-freelance',
+    url: 'https://spykeapp.fr/devis-freelance',
     type: 'website',
   },
 }
@@ -55,7 +55,7 @@ export default function Page() {
     '@type': 'WebApplication',
     name: 'Générateur de Devis Freelance Gratuit — Spyke',
     description: 'Créez un devis professionnel freelance gratuitement en ligne. Téléchargez en PDF.',
-    url: 'https://www.spykeapp.fr/devis-freelance',
+    url: 'https://spykeapp.fr/devis-freelance',
     applicationCategory: 'BusinessApplication',
     operatingSystem: 'Web',
     offers: { '@type': 'Offer', price: '0', priceCurrency: 'EUR' },

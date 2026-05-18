@@ -174,7 +174,7 @@ export async function GET(req: Request) {
       try {
         return (url || new URL(req.url)).origin
       } catch {
-        return 'https://www.spykeapp.fr'
+        return 'https://spykeapp.fr'
       }
     })()
     return NextResponse.redirect(new URL(`/onboarding.html?gmail=error&reason=callback_failed`, origin))

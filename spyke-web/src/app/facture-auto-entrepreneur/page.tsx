@@ -7,11 +7,11 @@ export const metadata: Metadata = {
   title: 'Générateur de Facture Gratuit en Ligne — Spyke',
   description:
     'Créez une facture professionnelle gratuitement en 2 minutes. Téléchargez votre facture en PDF, claire et prête à envoyer. Sans inscription.',
-  alternates: { canonical: 'https://www.spykeapp.fr/facture-auto-entrepreneur' },
+  alternates: { canonical: 'https://spykeapp.fr/facture-auto-entrepreneur' },
   openGraph: {
     title: 'Générateur de Facture Gratuit — Spyke',
     description: 'Créez une facture professionnelle en 2 minutes. Téléchargez en PDF gratuitement, sans inscription.',
-    url: 'https://www.spykeapp.fr/facture-auto-entrepreneur',
+    url: 'https://spykeapp.fr/facture-auto-entrepreneur',
     type: 'website',
   },
 }
@@ -55,7 +55,7 @@ export default function Page() {
     '@type': 'WebApplication',
     name: 'Générateur de Facture Gratuit — Spyke',
     description: 'Créez une facture professionnelle gratuitement en ligne. Téléchargez en PDF.',
-    url: 'https://www.spykeapp.fr/facture-auto-entrepreneur',
+    url: 'https://spykeapp.fr/facture-auto-entrepreneur',
     applicationCategory: 'BusinessApplication',
     operatingSystem: 'Web',
     offers: { '@type': 'Offer', price: '0', priceCurrency: 'EUR' },

@@ -60,7 +60,7 @@ export async function POST(req: Request) {
     const existing = await stripe.customers.list({ email, limit: 1 })
     const customer = existing.data[0] || (await stripe.customers.create({ email, metadata: { supabase_user_id: user.id } }))
 
-    const origin = req.headers.get('origin') || 'https://www.spykeapp.fr'
+    const origin = req.headers.get('origin') || 'https://spykeapp.fr'
 
     const priceId = body.period === 'annual' ? stripePriceAnnual : stripePriceMonthly
 

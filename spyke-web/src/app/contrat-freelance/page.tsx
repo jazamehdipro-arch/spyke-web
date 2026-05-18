@@ -7,11 +7,11 @@ export const metadata: Metadata = {
   title: 'Générateur de Contrat Freelance Gratuit — Spyke',
   description:
     'Créez un contrat de prestation freelance gratuitement. Modifiez le texte et téléchargez votre contrat en PDF. Sans inscription.',
-  alternates: { canonical: 'https://www.spykeapp.fr/contrat-freelance' },
+  alternates: { canonical: 'https://spykeapp.fr/contrat-freelance' },
   openGraph: {
     title: 'Générateur de Contrat Freelance Gratuit — Spyke',
     description: 'Créez un contrat freelance gratuitement. Téléchargez en PDF sans inscription.',
-    url: 'https://www.spykeapp.fr/contrat-freelance',
+    url: 'https://spykeapp.fr/contrat-freelance',
     type: 'website',
   },
 }
@@ -55,7 +55,7 @@ export default function Page() {
     '@type': 'WebApplication',
     name: 'Générateur de Contrat Freelance Gratuit — Spyke',
     description: 'Créez un contrat freelance gratuitement en ligne. Téléchargez en PDF.',
-    url: 'https://www.spykeapp.fr/contrat-freelance',
+    url: 'https://spykeapp.fr/contrat-freelance',
     applicationCategory: 'BusinessApplication',
     operatingSystem: 'Web',
     offers: { '@type': 'Offer', price: '0', priceCurrency: 'EUR' },

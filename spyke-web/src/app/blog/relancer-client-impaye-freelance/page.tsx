@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Relancer un client impayé freelance : guide complet 2026',
     description: "Comment relancer un client qui ne paie pas. Techniques, modèles d'e-mails et recours.",
-    url: 'https://www.spykeapp.fr/blog/relancer-client-impaye-freelance',
+    url: 'https://spykeapp.fr/blog/relancer-client-impaye-freelance',
   },
 }
 
@@ -815,8 +815,8 @@ Cordialement,
             datePublished: '2026-02-16',
             dateModified: '2026-02-16',
             author: { '@type': 'Organization', name: 'Spyke' },
-            publisher: { '@type': 'Organization', name: 'Spyke', url: 'https://www.spykeapp.fr' },
-            mainEntityOfPage: 'https://www.spykeapp.fr/blog/relancer-client-impaye-freelance',
+            publisher: { '@type': 'Organization', name: 'Spyke', url: 'https://spykeapp.fr' },
+            mainEntityOfPage: 'https://spykeapp.fr/blog/relancer-client-impaye-freelance',
           }),
         }}
       />

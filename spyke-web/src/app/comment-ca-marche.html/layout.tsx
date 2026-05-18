@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Comment fonctionne Spyke — L'IA pour les freelances",
     description: 'Devis, factures, contrats et relances automatiques. Découvrez comment Spyke simplifie votre admin.',
-    url: 'https://www.spykeapp.fr/comment-ca-marche.html',
+    url: 'https://spykeapp.fr/comment-ca-marche.html',
   },
 }
 

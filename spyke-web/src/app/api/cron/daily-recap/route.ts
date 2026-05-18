@@ -111,7 +111,7 @@ export async function GET(req: Request) {
       </tr>
     </table>
     <div style="margin-top: 28px; padding-top: 20px; border-top: 1px solid #f1f5f9; text-align: center;">
-      <a href="https://www.spykeapp.fr/admin/dashboard" style="display: inline-block; background: #6366f1; color: #fff; border-radius: 8px; padding: 10px 24px; font-size: 13px; font-weight: 600; text-decoration: none;">Voir le dashboard →</a>
+      <a href="https://spykeapp.fr/admin/dashboard" style="display: inline-block; background: #6366f1; color: #fff; border-radius: 8px; padding: 10px 24px; font-size: 13px; font-weight: 600; text-decoration: none;">Voir le dashboard →</a>
     </div>
   </div>
   <p style="text-align: center; font-size: 11px; color: #cbd5e1; margin-top: 16px;">Spyke · spykeapp.fr</p>

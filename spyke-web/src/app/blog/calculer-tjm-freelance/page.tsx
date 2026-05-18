@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Calculer son TJM freelance : méthode + simulateur 2026',
     description: 'Comment calculer son TJM freelance en 2026. Simulateur intégré et méthode pas à pas.',
-    url: 'https://www.spykeapp.fr/blog/calculer-tjm-freelance',
+    url: 'https://spykeapp.fr/blog/calculer-tjm-freelance',
   },
 }
 
@@ -677,8 +677,8 @@ export default function BlogTjmPage() {
             datePublished: '2026-02-16',
             dateModified: '2026-02-16',
             author: { '@type': 'Organization', name: 'Spyke' },
-            publisher: { '@type': 'Organization', name: 'Spyke', url: 'https://www.spykeapp.fr' },
-            mainEntityOfPage: 'https://www.spykeapp.fr/blog/calculer-tjm-freelance',
+            publisher: { '@type': 'Organization', name: 'Spyke', url: 'https://spykeapp.fr' },
+            mainEntityOfPage: 'https://spykeapp.fr/blog/calculer-tjm-freelance',
           }),
         }}
       />

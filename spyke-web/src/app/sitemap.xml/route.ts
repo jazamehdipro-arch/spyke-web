@@ -1,4 +1,4 @@
-const base = 'https://www.spykeapp.fr'
+const base = 'https://spykeapp.fr'
 
 function xmlEscape(s: string) {
   return s

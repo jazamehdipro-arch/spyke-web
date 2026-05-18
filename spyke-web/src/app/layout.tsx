@@ -14,13 +14,13 @@ const syne = Syne({
 })
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://www.spykeapp.fr'),
+  metadataBase: new URL('https://spykeapp.fr'),
   title: "Spyke – L'assistant IA des freelances français",
   description:
     "Spyke génère vos devis, factures et relances en quelques clics grâce à l'intelligence artificielle. Concentrez-vous sur votre métier.",
   openGraph: {
     type: 'website',
-    url: 'https://www.spykeapp.fr/',
+    url: 'https://spykeapp.fr/',
     title: "Spyke – L'assistant IA des freelances français",
     description:
       "Spyke génère vos devis, factures et relances en quelques clics grâce à l'intelligence artificielle. Concentrez-vous sur votre métier.",

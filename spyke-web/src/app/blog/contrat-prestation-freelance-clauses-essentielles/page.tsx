@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Contrat de prestation freelance : les 10 clauses indispensables',
     description: "Protégez-vous avec les 10 clauses essentielles d'un contrat freelance en 2026.",
-    url: 'https://www.spykeapp.fr/blog/contrat-prestation-freelance-clauses-essentielles',
+    url: 'https://spykeapp.fr/blog/contrat-prestation-freelance-clauses-essentielles',
   },
 }
 
@@ -726,8 +726,8 @@ export default function BlogContratClausesPage() {
             datePublished: '2026-02-16',
             dateModified: '2026-02-16',
             author: { '@type': 'Organization', name: 'Spyke' },
-            publisher: { '@type': 'Organization', name: 'Spyke', url: 'https://www.spykeapp.fr' },
-            mainEntityOfPage: 'https://www.spykeapp.fr/blog/contrat-prestation-freelance-clauses-essentielles',
+            publisher: { '@type': 'Organization', name: 'Spyke', url: 'https://spykeapp.fr' },
+            mainEntityOfPage: 'https://spykeapp.fr/blog/contrat-prestation-freelance-clauses-essentielles',
           }),
         }}
       />

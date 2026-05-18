@@ -61,7 +61,7 @@ export async function POST(req: Request) {
       customerId = customer.id
     }
 
-    const origin = req.headers.get('origin') || 'https://www.spykeapp.fr'
+    const origin = req.headers.get('origin') || 'https://spykeapp.fr'
     const returnUrl = `${origin}/app.html`
 
     const session = await stripe.billingPortal.sessions.create({
