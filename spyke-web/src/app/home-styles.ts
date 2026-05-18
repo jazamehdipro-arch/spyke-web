@@ -158,7 +158,7 @@ export const HOME_CSS = `
         .hero-tool-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.15); }
         .hero-tool-yellow { background: #facc15; color: #0a0a0a; }
         .hero-tool-blue   { background: #0a0a0a; color: #fff; }
-        .hero-tool-orange { background: #f3f4f6; color: #0a0a0a; border: 1.5px solid #e5e7eb; }
+        .hero-tool-orange { background: #1e293b; color: #fff; }
 
         /* ===== HERO SECTION ===== */
         .hero {

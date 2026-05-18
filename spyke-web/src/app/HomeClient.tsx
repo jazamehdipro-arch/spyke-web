@@ -173,7 +173,7 @@ export default function HomeClient() {
             <h1>
               Devis, factures, contrats
               <br />
-              <span className="highlight">en 2 minutes chrono.</span>
+              <span className="highlight">en 30 secondes.</span>
             </h1>
 
             <p className="hero-description">
