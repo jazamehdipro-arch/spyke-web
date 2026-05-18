@@ -181,16 +181,21 @@ export default function HomeClient() {
               Vous décrivez, <strong>Spyke crée le PDF prêt à envoyer</strong> — devis, facture, contrat, relance.
             </p>
 
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 10 }}>
-              <a href="/connexion.html" className="hero-btn">
-                Essayer gratuitement →
+            <div className="hero-tools">
+              <a href="/devis-freelance" className="hero-tool-btn hero-tool-yellow">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                Générer un devis
               </a>
-              <p style={{ margin: 0, fontSize: 13, color: 'var(--gray-500)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ color: '#10b981', fontWeight: 700 }}>✓</span> Gratuit
-                <span style={{ color: '#10b981', fontWeight: 700 }}>✓</span> Sans carte bancaire
-                <span style={{ color: '#10b981', fontWeight: 700 }}>✓</span> Prêt en 2 min
-              </p>
+              <a href="/facture-auto-entrepreneur" className="hero-tool-btn hero-tool-blue">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+                Générer une facture
+              </a>
+              <a href="/contrat-freelance" className="hero-tool-btn hero-tool-orange">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                Générer un contrat
+              </a>
             </div>
+            <p style={{ margin: '8px 0 0', fontSize: 12, color: 'var(--gray-400)' }}>Gratuit · Sans compte · PDF prêt en 30 sec</p>
 
             <div className="hero-social-proof">
               <div className="avatars">
@@ -246,51 +251,6 @@ export default function HomeClient() {
               <p>25h/mois</p>
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* Quick Tools */}
-      <section className="quick-tools">
-        <div className="quick-tools-label">Essayez gratuitement — sans compte</div>
-        <div className="quick-tools-grid">
-          <a href="/devis-freelance" className="quick-tool-card">
-            <div className="quick-tool-icon" style={{ background: 'rgba(250,204,21,0.12)', border: '1px solid rgba(250,204,21,0.25)' }}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ca8a04" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
-              </svg>
-            </div>
-            <div className="quick-tool-text">
-              <div className="quick-tool-title">Générer un devis</div>
-              <div className="quick-tool-sub">PDF professionnel en 30 sec</div>
-            </div>
-            <div className="quick-tool-arrow">→</div>
-          </a>
-
-          <a href="/facture-auto-entrepreneur" className="quick-tool-card">
-            <div className="quick-tool-icon" style={{ background: 'rgba(59,130,246,0.10)', border: '1px solid rgba(59,130,246,0.2)' }}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>
-              </svg>
-            </div>
-            <div className="quick-tool-text">
-              <div className="quick-tool-title">Générer une facture</div>
-              <div className="quick-tool-sub">Conforme auto-entrepreneur</div>
-            </div>
-            <div className="quick-tool-arrow">→</div>
-          </a>
-
-          <a href="/contrat-freelance" className="quick-tool-card">
-            <div className="quick-tool-icon" style={{ background: 'rgba(249,115,22,0.10)', border: '1px solid rgba(249,115,22,0.2)' }}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ea580c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-              </svg>
-            </div>
-            <div className="quick-tool-text">
-              <div className="quick-tool-title">Générer un contrat</div>
-              <div className="quick-tool-sub">Validé par des juristes</div>
-            </div>
-            <div className="quick-tool-arrow">→</div>
-          </a>
         </div>
       </section>
 
