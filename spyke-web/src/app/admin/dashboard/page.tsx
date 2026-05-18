@@ -136,6 +136,8 @@ export default function AdminDashboardPage() {
     const from = new Date(reportFrom)
     const to = new Date(reportTo)
     to.setHours(23, 59, 59, 999)
+    const fromLabel = new Date(reportFrom).toLocaleDateString('fr-FR')
+    const toLabel = new Date(reportTo).toLocaleDateString('fr-FR')
 
     const filtered = daily
       .filter(r => { const d = new Date(r.day); return d >= from && d <= to })
@@ -152,34 +154,95 @@ export default function AdminDashboardPage() {
       for (const d of appStats.contracts.daily) contractMap[d.day] = d.count
     }
 
-    const headers = ['Date', 'Pages vues', 'PDF générés', 'PDF échoués', 'Emails', 'Nouveaux comptes', 'Devis', 'Factures', 'Contrats']
-    const rows = filtered.map(r => [
-      new Date(r.day).toLocaleDateString('fr-FR'),
-      r.page_views, r.pdf_generated, r.pdf_failed, r.email_sent,
-      userMap[r.day] ?? '', quoteMap[r.day] ?? '', invoiceMap[r.day] ?? '', contractMap[r.day] ?? '',
+    const s = (n: number | string) => String(n)
+    const rows: (string | number)[][] = []
+
+    // ── EN-TÊTE ──────────────────────────────────────────────────────────
+    rows.push([`Compte rendu d'activité Spyke — du ${fromLabel} au ${toLabel}`])
+    rows.push([])
+
+    // ── KPIs GLOBAUX ─────────────────────────────────────────────────────
+    rows.push(['=== KPIs GLOBAUX ==='])
+    rows.push(['Indicateur', 'Valeur'])
+    const totalViews  = filtered.reduce((a, r) => a + r.page_views, 0)
+    const totalPdf    = filtered.reduce((a, r) => a + r.pdf_generated, 0)
+    const totalFailed = filtered.reduce((a, r) => a + r.pdf_failed, 0)
+    const totalEmails = filtered.reduce((a, r) => a + r.email_sent, 0)
+    const totalUsers  = filtered.reduce((a, r) => a + (userMap[r.day] ?? 0), 0)
+    const totalQuotes = filtered.reduce((a, r) => a + (quoteMap[r.day] ?? 0), 0)
+    const totalInv    = filtered.reduce((a, r) => a + (invoiceMap[r.day] ?? 0), 0)
+    const totalContr  = filtered.reduce((a, r) => a + (contractMap[r.day] ?? 0), 0)
+    rows.push(['Pages vues', totalViews])
+    rows.push(['PDF générés', totalPdf])
+    rows.push(['PDF échoués', totalFailed])
+    rows.push(['Emails envoyés', totalEmails])
+    rows.push(['Nouveaux comptes', totalUsers])
+    rows.push(['Devis créés', totalQuotes])
+    rows.push(['Factures créées', totalInv])
+    rows.push(['Contrats créés', totalContr])
+    rows.push([])
+
+    // ── ACTIVITÉ PAR SECTION ─────────────────────────────────────────────
+    rows.push(['=== TRAFIC PAR SECTION ==='])
+    rows.push(['Section', 'Pages vues', '% du total'])
+    const sectionKeys: Record<string, string> = {
+      blog: 'Blog', seo_devis: 'SEO — Devis',
+      seo_facture: 'SEO — Facture', seo_contrat: 'SEO — Contrat', other: 'Autres'
+    }
+    const sectionTotals: Record<string, number> = {}
+    for (const r of grouped) {
+      const d = new Date(r.day)
+      if (d >= from && d <= to) {
+        sectionTotals[r.page_group] = (sectionTotals[r.page_group] || 0) + r.page_views
+      }
+    }
+    const sectionSum = Object.values(sectionTotals).reduce((a, v) => a + v, 0) || 1
+    for (const [key, label] of Object.entries(sectionKeys)) {
+      const v = sectionTotals[key] ?? 0
+      rows.push([label, v, `${Math.round((v / sectionSum) * 100)}%`])
+    }
+    rows.push([])
+
+    // ── SOURCES DE TRAFIC ────────────────────────────────────────────────
+    if (sources.length > 0) {
+      rows.push(['=== SOURCES DE TRAFIC ==='])
+      rows.push(['Source', 'Vues', '% du total'])
+      const srcTotal = sources.reduce((a, s) => a + s.views, 0) || 1
+      for (const src of sources) {
+        rows.push([src.source, src.views, `${Math.round((src.views / srcTotal) * 100)}%`])
+      }
+      rows.push([])
+    }
+
+    // ── TOP PAGES ────────────────────────────────────────────────────────
+    if (topPages.length > 0) {
+      rows.push(['=== TOP PAGES (30j) ==='])
+      rows.push(['Page', 'Vues'])
+      for (const p of topPages.slice(0, 20)) {
+        rows.push([p.path, p.page_views])
+      }
+      rows.push([])
+    }
+
+    // ── ACTIVITÉ QUOTIDIENNE ─────────────────────────────────────────────
+    rows.push(['=== ACTIVITÉ QUOTIDIENNE ==='])
+    rows.push(['Date', 'Pages vues', 'PDF générés', 'PDF échoués', 'Emails', 'Nvx comptes', 'Devis', 'Factures', 'Contrats'])
+    for (const r of filtered) {
+      rows.push([
+        new Date(r.day).toLocaleDateString('fr-FR'),
+        r.page_views, r.pdf_generated, r.pdf_failed, r.email_sent,
+        userMap[r.day] ?? 0, quoteMap[r.day] ?? 0, invoiceMap[r.day] ?? 0, contractMap[r.day] ?? 0,
+      ])
+    }
+    rows.push([
+      'TOTAL', totalViews, totalPdf, totalFailed, totalEmails,
+      totalUsers, totalQuotes, totalInv, totalContr,
     ])
 
-    const totals = ['TOTAL',
-      rows.reduce((a, r) => a + (Number(r[1]) || 0), 0),
-      rows.reduce((a, r) => a + (Number(r[2]) || 0), 0),
-      rows.reduce((a, r) => a + (Number(r[3]) || 0), 0),
-      rows.reduce((a, r) => a + (Number(r[4]) || 0), 0),
-      rows.reduce((a, r) => a + (Number(r[5]) || 0), 0),
-      rows.reduce((a, r) => a + (Number(r[6]) || 0), 0),
-      rows.reduce((a, r) => a + (Number(r[7]) || 0), 0),
-      rows.reduce((a, r) => a + (Number(r[8]) || 0), 0),
-    ]
-
-    const fromLabel = new Date(reportFrom).toLocaleDateString('fr-FR')
-    const toLabel = new Date(reportTo).toLocaleDateString('fr-FR')
-    const csv = [
-      [`"Compte rendu d'activité Spyke — du ${fromLabel} au ${toLabel}"`],
-      [],
-      headers,
-      ...rows,
-      [],
-      totals,
-    ].map(row => row.join(';')).join('\n')
+    const csv = rows.map(row => row.map(cell => {
+      const str = s(cell)
+      return str.includes(';') || str.includes('"') ? `"${str.replace(/"/g, '""')}"` : str
+    }).join(';')).join('\n')
 
     const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
