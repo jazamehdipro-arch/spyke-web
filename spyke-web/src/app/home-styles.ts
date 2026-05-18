@@ -135,6 +135,76 @@ export const HOME_CSS = `
           transform: translateY(-2px);
         }
 
+        /* ===== QUICK TOOLS ===== */
+        .quick-tools {
+          padding: 0 48px 64px;
+          background: var(--white);
+          max-width: 1400px;
+          margin: 0 auto;
+        }
+        .quick-tools-label {
+          text-align: center;
+          font-size: 12px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 1.5px;
+          color: var(--gray-400);
+          margin-bottom: 20px;
+        }
+        .quick-tools-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 16px;
+        }
+        .quick-tool-card {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          padding: 20px 22px;
+          background: var(--white);
+          border: 1.5px solid var(--gray-200);
+          border-radius: 16px;
+          text-decoration: none;
+          color: var(--black);
+          transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .quick-tool-card:hover {
+          border-color: var(--black);
+          box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+          transform: translateY(-2px);
+        }
+        .quick-tool-icon {
+          width: 46px;
+          height: 46px;
+          border-radius: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+        .quick-tool-text { flex: 1; }
+        .quick-tool-title {
+          font-size: 15px;
+          font-weight: 700;
+          color: var(--black);
+          letter-spacing: -0.2px;
+        }
+        .quick-tool-sub {
+          font-size: 12px;
+          color: var(--gray-500);
+          margin-top: 2px;
+        }
+        .quick-tool-arrow {
+          font-size: 18px;
+          color: var(--gray-400);
+          transition: color 0.15s, transform 0.15s;
+        }
+        .quick-tool-card:hover .quick-tool-arrow {
+          color: var(--black);
+          transform: translateX(3px);
+        }
+
         /* ===== HERO SECTION ===== */
         .hero {
           min-height: 100vh;
@@ -969,6 +1039,12 @@ export const HOME_CSS = `
 
         /* ===== RESPONSIVE ===== */
         @media (max-width: 1024px) {
+          .quick-tools-grid {
+            grid-template-columns: 1fr;
+          }
+          .quick-tools {
+            padding: 0 24px 48px;
+          }
           .hero-container {
             grid-template-columns: 1fr;
             gap: 60px;
