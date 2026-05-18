@@ -33,7 +33,7 @@ function buildEmailHtml(_name: string | null): string {
             <p style="margin:0 0 20px;font-size:16px;color:#333;line-height:1.6">Bonjour,</p>
 
             <p style="margin:0 0 16px;font-size:16px;color:#333;line-height:1.6">
-              Je suis Mehdi, fondateur de <strong>Spyke</strong> — un outil conçu pour les freelances français afin de générer devis, factures et contrats en moins de 30 secondes, avec des documents validés par des juristes et conformes au droit français.
+              Je suis Mehdi, fondateur de <strong>Spyke</strong>, un outil conçu pour les freelances français afin de générer devis, factures et contrats en moins de 30 secondes, avec des documents validés par des juristes et conformes au droit français.
             </p>
 
             <p style="margin:0 0 16px;font-size:16px;color:#333;line-height:1.6">
@@ -94,7 +94,7 @@ function buildEmailHtml(_name: string | null): string {
 function buildEmailText(_name: string | null): string {
   return `Bonjour,
 
-Je suis Mehdi, fondateur de Spyke — un outil conçu pour les freelances français afin de générer devis, factures et contrats en moins de 30 secondes, avec des documents validés par des juristes et conformes au droit français.
+Je suis Mehdi, fondateur de Spyke, un outil conçu pour les freelances français afin de générer devis, factures et contrats en moins de 30 secondes, avec des documents validés par des juristes et conformes au droit français.
 
 En découvrant votre contenu, je me suis dit que Spyke pouvait réellement intéresser votre communauté de freelances et d'indépendants.
 
