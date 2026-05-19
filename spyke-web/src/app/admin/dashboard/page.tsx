@@ -76,7 +76,7 @@ export default function AdminDashboardPage() {
       const todayStr = `${nowLocal.getFullYear()}-${String(nowLocal.getMonth() + 1).padStart(2, '0')}-${String(nowLocal.getDate()).padStart(2, '0')}`
       const todayStart = new Date(nowLocal.getFullYear(), nowLocal.getMonth(), nowLocal.getDate()).toISOString()
 
-      const [{ data: dailyRows }, { data: groupedRows }, { data: topRows }, { data: todayEvents }] = await Promise.all([
+      const [{ data: dailyRows }, { data: groupedRows }, { data: topRows }, todayEventsRes] = await Promise.all([
         supabase.from('analytics_daily_metrics').select('*').limit(90),
         supabase.from('analytics_page_views_daily_grouped').select('day,page_group,page_views').limit(2700),
         supabase
@@ -86,15 +86,14 @@ export default function AdminDashboardPage() {
           .gte('created_at', new Date(Date.now() - 30 * 86400000).toISOString())
           .not('path', 'is', null)
           .limit(5000),
-        supabase
-          .from('analytics_events')
-          .select('event_name')
-          .gte('created_at', todayStart)
-          .limit(5000),
+        // Use API route (service role) to bypass RLS on analytics_events
+        fetch(`/api/analytics/today-events?from=${encodeURIComponent(todayStart)}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }).then(r => r.json()),
       ])
 
       // Build real-time today row from raw events
-      const todayRaw = (todayEvents ?? []) as { event_name: string }[]
+      const todayRaw = (todayEventsRes?.events ?? []) as { event_name: string }[]
       const count = (name: string) => todayRaw.filter(e => e.event_name === name).length
       const todayRow: DailyMetric = {
         day: todayStr,
