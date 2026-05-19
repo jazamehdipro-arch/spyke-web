@@ -72,8 +72,9 @@ export default function AdminDashboardPage() {
       const token = sessionData.session?.access_token
       setAuthToken(token ?? null)
 
-      const todayStr = new Date().toISOString().split('T')[0]
-      const todayStart = `${todayStr}T00:00:00.000Z`
+      const nowLocal = new Date()
+      const todayStr = `${nowLocal.getFullYear()}-${String(nowLocal.getMonth() + 1).padStart(2, '0')}-${String(nowLocal.getDate()).padStart(2, '0')}`
+      const todayStart = new Date(nowLocal.getFullYear(), nowLocal.getMonth(), nowLocal.getDate()).toISOString()
 
       const [{ data: dailyRows }, { data: groupedRows }, { data: topRows }, { data: todayEvents }] = await Promise.all([
         supabase.from('analytics_daily_metrics').select('*').limit(90),
@@ -280,18 +281,29 @@ export default function AdminDashboardPage() {
   if (status === 'loading') return <div style={s.center}>Chargement…</div>
   if (status === 'forbidden') return <div style={s.center}>Accès refusé.</div>
 
-  const today = new Date()
+  const now = new Date()
+  const today = new Date(now)
   today.setHours(0, 0, 0, 0)
+
+  // Use local date string (YYYY-MM-DD) to avoid UTC vs local timezone mismatches
+  const localDateStr = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  const todayStr = localDateStr(now)
 
   const periodDays = period === 'today' ? 1 : period === '7d' ? 7 : 30
 
   const inPeriod = (day: string, offset = 0) => {
-    const d = new Date(day)
-    const start = new Date(today)
-    start.setDate(start.getDate() - periodDays * (offset + 1))
-    const end = new Date(today)
-    end.setDate(end.getDate() - periodDays * offset)
-    return d >= start && d < end
+    const startD = new Date(today)
+    startD.setDate(startD.getDate() - periodDays * (offset + 1))
+    const startStr = localDateStr(startD)
+    if (offset === 0) {
+      // current period: from start up to and including today
+      return day >= startStr && day <= todayStr
+    }
+    const endD = new Date(today)
+    endD.setDate(endD.getDate() - periodDays * offset)
+    const endStr = localDateStr(endD)
+    return day >= startStr && day < endStr
   }
 
   const cur = daily.filter(r => inPeriod(r.day, 0))
