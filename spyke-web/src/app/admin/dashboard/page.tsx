@@ -72,7 +72,10 @@ export default function AdminDashboardPage() {
       const token = sessionData.session?.access_token
       setAuthToken(token ?? null)
 
-      const [{ data: dailyRows }, { data: groupedRows }, { data: topRows }] = await Promise.all([
+      const todayStr = new Date().toISOString().split('T')[0]
+      const todayStart = `${todayStr}T00:00:00.000Z`
+
+      const [{ data: dailyRows }, { data: groupedRows }, { data: topRows }, { data: todayEvents }] = await Promise.all([
         supabase.from('analytics_daily_metrics').select('*').limit(90),
         supabase.from('analytics_page_views_daily_grouped').select('day,page_group,page_views').limit(2700),
         supabase
@@ -82,9 +85,29 @@ export default function AdminDashboardPage() {
           .gte('created_at', new Date(Date.now() - 30 * 86400000).toISOString())
           .not('path', 'is', null)
           .limit(5000),
+        supabase
+          .from('analytics_events')
+          .select('event_name')
+          .gte('created_at', todayStart)
+          .limit(5000),
       ])
 
-      setDaily((dailyRows ?? []) as DailyMetric[])
+      // Build real-time today row from raw events
+      const todayRaw = (todayEvents ?? []) as { event_name: string }[]
+      const count = (name: string) => todayRaw.filter(e => e.event_name === name).length
+      const todayRow: DailyMetric = {
+        day: todayStr,
+        total_events: todayRaw.length,
+        page_views: count('page_view'),
+        pdf_generated: count('pdf_generated'),
+        pdf_failed: count('pdf_failed'),
+        email_sent: count('email_sent'),
+        email_failed: count('email_failed'),
+      }
+      // Merge: replace today's aggregated row if present, otherwise prepend
+      const historical = (dailyRows ?? []) as DailyMetric[]
+      const withoutToday = historical.filter(r => r.day !== todayStr)
+      setDaily([...withoutToday, todayRow])
       setGrouped((groupedRows ?? []) as GroupedRow[])
 
       const pathCount: Record<string, number> = {}
