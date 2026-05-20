@@ -34,8 +34,8 @@ export function ConversionBanner({
             width: 260,
             height: 260,
             borderRadius: 999,
-            background: '#7c3aed',
-            opacity: 0.12,
+            background: '#facc15',
+            opacity: 0.15,
             right: -60,
             top: -60,
             filter: 'blur(60px)',
@@ -46,17 +46,17 @@ export function ConversionBanner({
           style={{
             width: 56,
             height: 56,
-            background: 'rgba(109, 40, 217, 0.18)',
+            background: 'rgba(250, 204, 21, 0.15)',
             borderRadius: 14,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             flexShrink: 0,
-            border: '1px solid rgba(109, 40, 217, 0.25)',
+            border: '1px solid rgba(250, 204, 21, 0.30)',
             zIndex: 1,
           }}
         >
-          <svg viewBox="0 0 24 24" width="28" height="28" fill="#a78bfa"><path d="M13 3L4 14h7l-2 7 9-11h-7l2-7z"/></svg>
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="#facc15"><path d="M13 3L4 14h7l-2 7 9-11h-7l2-7z"/></svg>
         </div>
 
         <div style={{ flex: 1, minWidth: 240, zIndex: 1 }}>
@@ -68,8 +68,8 @@ export function ConversionBanner({
           href={href}
           style={{
             padding: '14px 26px',
-            background: '#6d28d9',
-            color: '#fff',
+            background: '#facc15',
+            color: '#0a0a0a',
             borderRadius: 12,
             fontFamily: 'Syne, ui-sans-serif, system-ui',
             fontSize: 14,
@@ -77,7 +77,7 @@ export function ConversionBanner({
             textDecoration: 'none',
             whiteSpace: 'nowrap',
             zIndex: 1,
-            boxShadow: '0 4px 14px rgba(109,40,217,0.35)',
+            boxShadow: '0 4px 14px rgba(250,204,21,0.4)',
           }}
         >
           {cta}
@@ -172,7 +172,7 @@ export function FaqAccordion({ title = 'Questions fréquentes', items }: { title
 
   return (
     <section style={{ maxWidth: 900, margin: '48px auto 0', padding: '0 40px' }}>
-      <div style={{ width: 60, height: 3, background: '#6d28d9', borderRadius: 2, marginBottom: 20 }} />
+      <div style={{ width: 60, height: 3, background: '#facc15', borderRadius: 2, marginBottom: 20 }} />
       <h2 style={{ fontSize: 24, fontWeight: 900, letterSpacing: '-0.6px', marginBottom: 14 }}>{title}</h2>
 
       <div style={{ display: 'grid', gap: 10 }}>
@@ -214,7 +214,7 @@ export function FaqAccordion({ title = 'Questions fréquentes', items }: { title
                     width: 28,
                     height: 28,
                     borderRadius: 8,
-                    background: isOpen ? 'rgba(109, 40, 217, 0.10)' : '#fafafa',
+                    background: isOpen ? 'rgba(250, 204, 21, 0.15)' : '#fafafa',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -222,7 +222,7 @@ export function FaqAccordion({ title = 'Questions fréquentes', items }: { title
                     transition: 'transform 0.2s ease',
                   }}
                 >
-                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke={isOpen ? '#7c3aed' : '#71717a'} strokeWidth="2" style={{ transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease' }}>
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke={isOpen ? '#0a0a0a' : '#71717a'} strokeWidth="2" style={{ transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease' }}>
                     <polyline points="6 9 12 15 18 9" />
                   </svg>
                 </span>
