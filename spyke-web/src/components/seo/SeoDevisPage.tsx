@@ -66,6 +66,117 @@ function writeCount(key: string, value: number) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// DevisPreview — mini live document preview
+// ---------------------------------------------------------------------------
+type DevisPreviewProps = {
+  sellerName: string
+  buyerName: string
+  quoteNumber: string
+  dateIssue: string
+  lines: DevisLine[]
+  totals: { totalHt: number; totalTva: number; totalTtc: number }
+  title: string
+}
+
+function DevisPreview({ sellerName, buyerName, quoteNumber, dateIssue, lines, totals, title }: DevisPreviewProps) {
+  const ph = '#d1d5db'
+  const displayLines = lines.slice(0, 4)
+
+  return (
+    <div style={{ fontFamily: 'system-ui, sans-serif', fontSize: 10, lineHeight: 1.4, border: '1px solid #e5e7eb', borderRadius: 8, overflow: 'hidden', background: '#fff' }}>
+      {/* Dark header */}
+      <div style={{ background: '#0f172a', padding: '10px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ color: '#facc15', fontWeight: 800, fontSize: 13, letterSpacing: 1 }}>DEVIS</span>
+          <span style={{ color: '#94a3b8', fontSize: 9 }}>
+            {quoteNumber || <span style={{ color: ph }}>N°…</span>}
+          </span>
+        </div>
+        <span style={{ color: sellerName ? '#e2e8f0' : ph, fontSize: 9, maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {sellerName || 'Votre nom'}
+        </span>
+      </div>
+
+      {/* Body */}
+      <div style={{ padding: '10px 12px', background: '#fff' }}>
+        {/* Date + title */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, gap: 8 }}>
+          <span style={{ color: dateIssue ? '#374151' : ph, fontSize: 9 }}>
+            {dateIssue || 'Date…'}
+          </span>
+          {title && <span style={{ color: '#374151', fontSize: 9, fontStyle: 'italic', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</span>}
+        </div>
+
+        {/* Adressé à */}
+        <div style={{ marginBottom: 10, padding: '6px 8px', background: '#f8fafc', borderRadius: 4, borderLeft: '2px solid #facc15' }}>
+          <div style={{ fontSize: 8, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: '#94a3b8', marginBottom: 3 }}>Adressé à</div>
+          <div style={{ color: buyerName ? '#111827' : ph, fontWeight: buyerName ? 600 : 400 }}>
+            {buyerName || 'Nom du client'}
+          </div>
+        </div>
+
+        {/* Lines table */}
+        <div style={{ marginBottom: 10 }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 9 }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
+                <th style={{ textAlign: 'left', padding: '3px 4px', color: '#6b7280', fontWeight: 600 }}>Description</th>
+                <th style={{ textAlign: 'right', padding: '3px 4px', color: '#6b7280', fontWeight: 600, whiteSpace: 'nowrap' }}>Qté</th>
+                <th style={{ textAlign: 'right', padding: '3px 4px', color: '#6b7280', fontWeight: 600, whiteSpace: 'nowrap' }}>PU HT</th>
+                <th style={{ textAlign: 'right', padding: '3px 4px', color: '#6b7280', fontWeight: 600, whiteSpace: 'nowrap' }}>Total HT</th>
+              </tr>
+            </thead>
+            <tbody>
+              {displayLines.map((l) => {
+                const lineHt = (l.qty || 0) * (l.unitPriceHt || 0)
+                return (
+                  <tr key={l.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                    <td style={{ padding: '3px 4px', color: l.label ? '#111827' : ph, maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {l.label || 'Description'}
+                    </td>
+                    <td style={{ padding: '3px 4px', textAlign: 'right', color: '#374151' }}>{l.qty}</td>
+                    <td style={{ padding: '3px 4px', textAlign: 'right', color: '#374151', whiteSpace: 'nowrap' }}>{formatMoney(l.unitPriceHt)}</td>
+                    <td style={{ padding: '3px 4px', textAlign: 'right', color: '#374151', whiteSpace: 'nowrap' }}>{formatMoney(lineHt)}</td>
+                  </tr>
+                )
+              })}
+              {lines.length > 4 && (
+                <tr>
+                  <td colSpan={4} style={{ padding: '3px 4px', color: '#94a3b8', fontSize: 8, fontStyle: 'italic' }}>
+                    + {lines.length - 4} autre{lines.length - 4 > 1 ? 's' : ''} ligne{lines.length - 4 > 1 ? 's' : ''}…
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Totals */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2, marginBottom: 8 }}>
+          <div style={{ display: 'flex', gap: 16, fontSize: 9, color: '#6b7280' }}>
+            <span>Sous-total HT</span>
+            <span style={{ minWidth: 60, textAlign: 'right' }}>{formatMoney(totals.totalHt)}</span>
+          </div>
+          <div style={{ display: 'flex', gap: 16, fontSize: 9, color: '#6b7280' }}>
+            <span>TVA</span>
+            <span style={{ minWidth: 60, textAlign: 'right' }}>{formatMoney(totals.totalTva)}</span>
+          </div>
+          <div style={{ display: 'flex', gap: 16, fontSize: 10, fontWeight: 700, color: '#0f172a', borderTop: '1px solid #e5e7eb', paddingTop: 4, marginTop: 2 }}>
+            <span>Total TTC</span>
+            <span style={{ minWidth: 60, textAlign: 'right' }}>{formatMoney(totals.totalTtc)}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div style={{ background: '#f8fafc', borderTop: '1px solid #e5e7eb', padding: '5px 12px', textAlign: 'center', fontSize: 8, color: '#94a3b8' }}>
+        Généré avec Spyke · spykeapp.fr
+      </div>
+    </div>
+  )
+}
+
 export default function SeoDevisPage() {
   const today = useMemo(() => new Date().toISOString().slice(0, 10), [])
 
@@ -108,6 +219,8 @@ export default function SeoDevisPage() {
   const [email, setEmail] = useState('')
 
   const [pdfCount, setPdfCount] = useState(0)
+
+  const [showPreviewDrawer, setShowPreviewDrawer] = useState(false)
 
   useEffect(() => {
     // Improve defaults: quote number based on month
@@ -316,6 +429,43 @@ export default function SeoDevisPage() {
         </div>
       ) : null}
 
+      {/* Mobile preview drawer — zIndex 400, above form, below PDF preview (500) */}
+      {showPreviewDrawer && (
+        <>
+          {/* Backdrop */}
+          <div
+            style={{ position:'fixed',inset:0,background:'rgba(0,0,0,0.45)',zIndex:400 }}
+            onClick={() => setShowPreviewDrawer(false)}
+          />
+          {/* Panel */}
+          <div style={{ position:'fixed',bottom:0,left:0,right:0,zIndex:400,background:'#fff',borderRadius:'20px 20px 0 0',maxHeight:'80vh',overflowY:'auto',padding:'20px 16px 32px',boxShadow:'0 -8px 40px rgba(0,0,0,0.18)' }}>
+            {/* Header row */}
+            <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:16 }}>
+              <span style={{ fontWeight:800,fontSize:16,color:'#0f172a' }}>Aperçu du document</span>
+              <button
+                type="button"
+                onClick={() => setShowPreviewDrawer(false)}
+                style={{ background:'#f1f5f9',border:'none',borderRadius:8,padding:'6px 12px',fontWeight:700,fontSize:13,cursor:'pointer',color:'#0a0a0a' }}
+              >
+                ✕ Fermer
+              </button>
+            </div>
+            <DevisPreview
+              sellerName={sellerName}
+              buyerName={buyerName}
+              quoteNumber={quoteNumber}
+              dateIssue={dateIssue}
+              lines={lines}
+              totals={totals}
+              title={title}
+            />
+            <p style={{ marginTop:12,textAlign:'center',fontSize:11,color:'#94a3b8' }}>
+              Aperçu simplifié · Cliquez sur Générer pour le vrai PDF
+            </p>
+          </div>
+        </>
+      )}
+
       <nav className="seo-navbar">
         <a className="seo-nav-logo" href="/"><div className="seo-nav-logo-icon"><svg viewBox="0 0 24 24"><path d="M13 3L4 14h7l-2 7 9-11h-7l2-7z"/></svg></div><span className="seo-nav-logo-text">Spyke</span></a>
         <div className="seo-nav-tools">
@@ -426,11 +576,9 @@ export default function SeoDevisPage() {
 
         <div className="seo-summary-col">
           <div className="seo-summary">
-            <div className="seo-summary-top">
-              <div className="seo-summary-label">Récapitulatif</div>
-              <div className="seo-summary-row"><span>Sous-total HT</span><span>{formatMoney(totals.totalHt)}</span></div>
-              <div className="seo-summary-row"><span>TVA</span><span>{formatMoney(totals.totalTva)}</span></div>
-              <div className="seo-summary-row total"><span className="sl">Total TTC</span><span className="sv">{formatMoney(totals.totalTtc)}</span></div>
+            <div style={{ padding:'14px 16px', borderBottom:'1px solid #f3f4f6' }}>
+              <div style={{ fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:1, color:'#94a3b8', marginBottom:10 }}>Aperçu en direct</div>
+              <DevisPreview sellerName={sellerName} buyerName={buyerName} quoteNumber={quoteNumber} dateIssue={dateIssue} lines={lines} totals={totals} title={title} />
             </div>
             <div className="seo-summary-actions">
               <button className="seo-btn-generate" type="button" onClick={generatePdf}>Générer mon devis PDF ↓</button>
@@ -453,7 +601,16 @@ export default function SeoDevisPage() {
 
       <div className="seo-mobile-bar">
         <div className="seo-mobile-bar-info"><div className="seo-mobile-bar-label">Total TTC</div><div className="seo-mobile-bar-amount">{formatMoney(totals.totalTtc)}</div></div>
-        <button className="seo-mobile-bar-btn" type="button" onClick={generatePdf}>Générer le PDF ↓</button>
+        <div style={{ display:'flex', gap:8 }}>
+          <button
+            type="button"
+            onClick={() => setShowPreviewDrawer(true)}
+            style={{ padding:'12px 14px', background:'#f1f5f9', border:'none', borderRadius:10, fontWeight:700, fontSize:13, cursor:'pointer', color:'#0a0a0a', whiteSpace:'nowrap' }}
+          >
+            👁 Aperçu
+          </button>
+          <button className="seo-mobile-bar-btn" type="button" onClick={generatePdf}>Générer le PDF ↓</button>
+        </div>
       </div>
 
       <div className={showEmailModal?'seo-modal-overlay active':'seo-modal-overlay'} onClick={(e)=>{ if(e.target===e.currentTarget) setShowEmailModal(false) }}>

@@ -44,6 +44,176 @@ function writeCount(key: string, value: number) {
   }
 }
 
+// ─── FacturePreview ───────────────────────────────────────────────────────────
+
+type PreviewLine = { id: string; description: string; qty: number; unitPrice: number }
+type PreviewTotals = { totalHt: number; totalTva: number; totalTtc: number }
+
+function FacturePreview({
+  sellerName,
+  buyerName,
+  invoiceNumber,
+  dateIssue,
+  dueDate,
+  lines,
+  totals,
+}: {
+  sellerName: string
+  buyerName: string
+  invoiceNumber: string
+  dateIssue: string
+  dueDate: string
+  lines: PreviewLine[]
+  totals: PreviewTotals
+}) {
+  const ph = (val: string | number | undefined | null, fallback: string) => {
+    const s = String(val ?? '').trim()
+    return s ? (
+      <span>{s}</span>
+    ) : (
+      <span style={{ color: '#d1d5db', fontStyle: 'italic' }}>{fallback}</span>
+    )
+  }
+
+  const displayLines = lines.length > 0 ? lines.slice(0, 4) : []
+
+  return (
+    <div
+      style={{
+        fontFamily: 'system-ui, -apple-system, sans-serif',
+        fontSize: 10,
+        lineHeight: 1.4,
+        color: '#1e293b',
+        background: '#fff',
+        border: '1px solid #e2e8f0',
+        borderRadius: 8,
+        overflow: 'hidden',
+      }}
+    >
+      {/* Dark header */}
+      <div
+        style={{
+          background: '#0f172a',
+          padding: '10px 12px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+        }}
+      >
+        <div>
+          <div style={{ color: '#facc15', fontWeight: 800, fontSize: 13, letterSpacing: 1 }}>FACTURE</div>
+          <div style={{ color: '#94a3b8', fontSize: 9, marginTop: 2 }}>
+            {ph(invoiceNumber, 'N° de facture')}
+          </div>
+        </div>
+        <div style={{ textAlign: 'right' }}>
+          <div style={{ color: '#f8fafc', fontWeight: 700, fontSize: 10 }}>
+            {ph(sellerName, 'Votre nom')}
+          </div>
+          {dateIssue && (
+            <div style={{ color: '#94a3b8', fontSize: 8, marginTop: 2 }}>
+              Émis le {dateIssue}
+            </div>
+          )}
+          {dueDate && (
+            <div style={{ color: '#94a3b8', fontSize: 8 }}>
+              Échéance {dueDate}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Adressé à */}
+      <div style={{ padding: '8px 12px', borderBottom: '1px solid #f1f5f9' }}>
+        <div style={{ fontSize: 8, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, color: '#94a3b8', marginBottom: 3 }}>
+          Adressé à
+        </div>
+        <div style={{ fontWeight: 600, fontSize: 10 }}>
+          {ph(buyerName, 'Nom du client')}
+        </div>
+      </div>
+
+      {/* Lines table */}
+      <div style={{ padding: '8px 12px', borderBottom: '1px solid #f1f5f9' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 9 }}>
+          <thead>
+            <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+              <th style={{ textAlign: 'left', padding: '3px 0', fontWeight: 700, color: '#64748b', fontSize: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>Description</th>
+              <th style={{ textAlign: 'center', padding: '3px 4px', fontWeight: 700, color: '#64748b', fontSize: 8, textTransform: 'uppercase', letterSpacing: 0.5, width: 28 }}>Qté</th>
+              <th style={{ textAlign: 'right', padding: '3px 0', fontWeight: 700, color: '#64748b', fontSize: 8, textTransform: 'uppercase', letterSpacing: 0.5, width: 52 }}>PU HT</th>
+              <th style={{ textAlign: 'right', padding: '3px 0', fontWeight: 700, color: '#64748b', fontSize: 8, textTransform: 'uppercase', letterSpacing: 0.5, width: 52 }}>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {displayLines.length === 0 ? (
+              <tr>
+                <td colSpan={4} style={{ padding: '6px 0', color: '#d1d5db', fontStyle: 'italic', fontSize: 9 }}>
+                  Aucune ligne
+                </td>
+              </tr>
+            ) : (
+              displayLines.map((l) => {
+                const lineTotal = (l.qty || 0) * (l.unitPrice || 0)
+                return (
+                  <tr key={l.id} style={{ borderBottom: '1px solid #f8fafc' }}>
+                    <td style={{ padding: '4px 0', color: l.description.trim() ? '#1e293b' : '#d1d5db', fontStyle: l.description.trim() ? 'normal' : 'italic' }}>
+                      {l.description.trim() || 'Description…'}
+                    </td>
+                    <td style={{ textAlign: 'center', padding: '4px 4px', color: '#475569' }}>{l.qty}</td>
+                    <td style={{ textAlign: 'right', padding: '4px 0', color: '#475569' }}>
+                      {(l.unitPrice || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </td>
+                    <td style={{ textAlign: 'right', padding: '4px 0', fontWeight: 600, color: '#1e293b' }}>
+                      {lineTotal.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </td>
+                  </tr>
+                )
+              })
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Totals */}
+      <div style={{ padding: '8px 12px', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2, borderBottom: '1px solid #f1f5f9' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', width: 140, fontSize: 9, color: '#64748b' }}>
+          <span>Sous-total HT</span>
+          <span>{formatMoney(totals.totalHt)}</span>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', width: 140, fontSize: 9, color: '#64748b' }}>
+          <span>TVA</span>
+          <span>{formatMoney(totals.totalTva)}</span>
+        </div>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            width: 140,
+            fontSize: 10,
+            fontWeight: 800,
+            color: '#0f172a',
+            marginTop: 3,
+            paddingTop: 4,
+            borderTop: '1.5px solid #0f172a',
+          }}
+        >
+          <span>Total TTC</span>
+          <span>{formatMoney(totals.totalTtc)}</span>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div style={{ padding: '5px 12px', background: '#f8fafc' }}>
+        <div style={{ fontSize: 7, color: '#94a3b8', textAlign: 'center' }}>
+          Document généré via Spyke · spyke.fr
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── SeoFacturePage ───────────────────────────────────────────────────────────
+
 export default function SeoFacturePage() {
   const today = useMemo(() => new Date().toISOString().slice(0, 10), [])
   const pdfCountKey = 'spyke_seo_facture_pdf_count_v1'
@@ -78,6 +248,8 @@ export default function SeoFacturePage() {
 
   const [showEmailModal, setShowEmailModal] = useState(false)
   const [email, setEmail] = useState('')
+
+  const [showPreviewDrawer, setShowPreviewDrawer] = useState(false)
 
   useEffect(() => {
     const d = new Date()
@@ -384,6 +556,58 @@ export default function SeoFacturePage() {
         </div>
       ) : null}
 
+      {/* Mobile preview drawer */}
+      {showPreviewDrawer ? (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.45)',
+            zIndex: 400,
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'flex-end',
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowPreviewDrawer(false)
+          }}
+        >
+          <div
+            style={{
+              background: '#fff',
+              borderRadius: '20px 20px 0 0',
+              maxHeight: '80vh',
+              overflow: 'auto',
+              padding: '20px 16px 32px',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <div style={{ fontSize: 15, fontWeight: 800, color: '#0f172a' }}>Aperçu du document</div>
+              <button
+                type="button"
+                onClick={() => setShowPreviewDrawer(false)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#64748b', padding: '4px 8px' }}
+              >
+                ✕ Fermer
+              </button>
+            </div>
+            <FacturePreview
+              sellerName={sellerName}
+              buyerName={buyerName}
+              invoiceNumber={invoiceNumber}
+              dateIssue={dateIssue}
+              dueDate={dueDate}
+              lines={lines}
+              totals={totals}
+            />
+            <div style={{ marginTop: 12, fontSize: 11, color: '#94a3b8', textAlign: 'center' }}>
+              Aperçu simplifié · Cliquez sur Générer pour le vrai PDF
+            </div>
+          </div>
+        </div>
+      ) : null}
+
 
       <nav className="seo-navbar">
         <a className="seo-nav-logo" href="/"><div className="seo-nav-logo-icon"><svg viewBox="0 0 24 24"><path d="M13 3L4 14h7l-2 7 9-11h-7l2-7z"/></svg></div><span className="seo-nav-logo-text">Spyke</span></a>
@@ -487,11 +711,17 @@ export default function SeoFacturePage() {
 
         <div className="seo-summary-col">
           <div className="seo-summary">
-            <div className="seo-summary-top">
-              <div className="seo-summary-label">Récapitulatif</div>
-              <div className="seo-summary-row"><span>Sous-total HT</span><span>{formatMoney(totals.totalHt)}</span></div>
-              <div className="seo-summary-row"><span>TVA</span><span>{formatMoney(totals.totalTva)}</span></div>
-              <div className="seo-summary-row total"><span className="sl">Total TTC</span><span className="sv">{formatMoney(totals.totalTtc)}</span></div>
+            <div style={{ padding: '14px 16px', borderBottom: '1px solid #f3f4f6' }}>
+              <div style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1, color: '#94a3b8', marginBottom: 10 }}>Aperçu en direct</div>
+              <FacturePreview
+                sellerName={sellerName}
+                buyerName={buyerName}
+                invoiceNumber={invoiceNumber}
+                dateIssue={dateIssue}
+                dueDate={dueDate}
+                lines={lines}
+                totals={totals}
+              />
             </div>
             <div className="seo-summary-actions">
               <button className="seo-btn-generate" type="button" onClick={generatePdf}>Générer ma facture PDF ↓</button>
@@ -514,7 +744,16 @@ export default function SeoFacturePage() {
 
       <div className="seo-mobile-bar">
         <div className="seo-mobile-bar-info"><div className="seo-mobile-bar-label">Total TTC</div><div className="seo-mobile-bar-amount">{formatMoney(totals.totalTtc)}</div></div>
-        <button className="seo-mobile-bar-btn" type="button" onClick={generatePdf}>Générer le PDF ↓</button>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <button
+            type="button"
+            onClick={() => setShowPreviewDrawer(true)}
+            style={{ padding: '12px 14px', background: '#f1f5f9', border: 'none', borderRadius: 10, fontWeight: 700, fontSize: 13, cursor: 'pointer', color: '#0a0a0a', whiteSpace: 'nowrap' }}
+          >
+            👁 Aperçu
+          </button>
+          <button className="seo-mobile-bar-btn" type="button" onClick={generatePdf}>Générer le PDF ↓</button>
+        </div>
       </div>
 
       <div className={showEmailModal?'seo-modal-overlay active':'seo-modal-overlay'} onClick={(e)=>e.target===e.currentTarget&&setShowEmailModal(false)}>
