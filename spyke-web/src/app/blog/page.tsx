@@ -69,6 +69,17 @@ const posts: BlogPost[] = [
     icon: '💰',
     thumbClass: 'gestion',
   },
+  {
+    href: '/blog/acompte-devis-freelance',
+    category: 'Devis',
+    title: 'Acompte sur devis freelance : comment le demander (et quel montant ?)',
+    excerpt:
+      "30 %, 50 %, 100 % prépayé… Quel montant choisir, comment formuler la demande sur votre devis et quoi faire si le client refuse. Guide complet avec exemples.",
+    dateLabel: 'Mai 2026',
+    readTime: '7 min',
+    icon: '💳',
+    thumbClass: 'devis',
+  },
 ]
 
 import { MarketingNav } from '@/components/MarketingNav'
