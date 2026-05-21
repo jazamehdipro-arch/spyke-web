@@ -616,7 +616,7 @@ export default function SeoFacturePage() {
           <a className="seo-nav-tool active" href="/facture-auto-entrepreneur">Facture</a>
           <a className="seo-nav-tool" href="/contrat-freelance">Contrat</a>
         </div>
-        <a className="seo-nav-cta" href="/connexion.html">Essayer gratuitement</a>
+        <a className="seo-nav-cta" href="/connexion.html">Connexion / Inscription</a>
       </nav>
 
       <section className="seo-hero">
