@@ -1544,23 +1544,15 @@ Réponds uniquement par le texte de la description.`
     try {
       if (!supabase) throw new Error('Supabase non initialisé')
 
-      // Free quota (per month): 3 devis
+      // Free quota (lifetime): 1 devis
       if (planCode !== 'pro' && userId) {
-        const now = new Date()
-        const start = new Date(now.getFullYear(), now.getMonth(), 1)
-        const end = new Date(now.getFullYear(), now.getMonth() + 1, 1)
-        const startStr = start.toISOString()
-        const endStr = end.toISOString()
-
         const { count, error } = await supabase
           .from('quotes')
           .select('id', { count: 'exact', head: true })
           .eq('user_id', userId)
-          .gte('created_at', startStr)
-          .lt('created_at', endStr)
         if (error) throw error
-        if (Number(count || 0) >= 3) {
-          alert('Limite du plan Free atteinte : 3 devis / mois. Passe Pro pour illimité.')
+        if (Number(count || 0) >= 1) {
+          try { window.dispatchEvent(new CustomEvent('spyke:quotaExceeded', { detail: { message: 'Tu as déjà utilisé ton devis gratuit. Passe Pro pour créer des devis en illimité.' } })) } catch {}
           return
         }
       }
@@ -1733,15 +1725,16 @@ Réponds uniquement par le texte de la description.`
             const { error: updErr } = await supabase.from('quotes').update(row).eq('id', quoteId)
             if (updErr) throw updErr
           } else {
-            // Free quota (lifetime): 2 quotes
+            // Free quota (lifetime): 1 quote
             if (planCode !== 'pro') {
               const { count, error: cErr } = await supabase
                 .from('quotes')
                 .select('id', { count: 'exact', head: true })
                 .eq('user_id', userId)
               if (cErr) throw cErr
-              if (Number(count || 0) >= 2) {
-                throw new Error('Limite du compte gratuit atteinte : 2 devis maximum. Passe Pro pour illimité.')
+              if (Number(count || 0) >= 1) {
+                try { window.dispatchEvent(new CustomEvent('spyke:quotaExceeded', { detail: { message: 'Tu as déjà utilisé ton devis gratuit. Passe Pro pour créer des devis en illimité.' } })) } catch {}
+                return
               }
             }
 
@@ -4371,23 +4364,15 @@ Contrat généré par Spyke — spykeapp.fr — L’assistant IA des freelances 
         }
       }
 
-      // Free quota (per month): 3 contrats
+      // Free quota (lifetime): 1 contrat
       if (planCode !== 'pro' && userId) {
-        const now = new Date()
-        const start = new Date(now.getFullYear(), now.getMonth(), 1)
-        const end = new Date(now.getFullYear(), now.getMonth() + 1, 1)
-        const startStr = start.toISOString()
-        const endStr = end.toISOString()
-
         const { count, error } = await supabase
           .from('contracts')
           .select('id', { count: 'exact', head: true })
           .eq('user_id', userId)
-          .gte('created_at', startStr)
-          .lt('created_at', endStr)
         if (error) throw error
-        if (Number(count || 0) >= 3) {
-          alert('Limite du plan Free atteinte : 3 contrats / mois. Passe Pro pour illimité.')
+        if (Number(count || 0) >= 1) {
+          try { window.dispatchEvent(new CustomEvent('spyke:quotaExceeded', { detail: { message: 'Tu as déjà utilisé ton contrat gratuit. Passe Pro pour créer des contrats en illimité.' } })) } catch {}
           return
         }
       }
@@ -6208,23 +6193,15 @@ function FacturesV1({
     try {
       if (!supabase) throw new Error('Supabase non initialisé')
 
-      // Free quota (per month): 3 factures
+      // Free quota (lifetime): 1 facture
       if (planCode !== 'pro' && userId) {
-        const now = new Date()
-        const start = new Date(now.getFullYear(), now.getMonth(), 1)
-        const end = new Date(now.getFullYear(), now.getMonth() + 1, 1)
-        const startStr = start.toISOString()
-        const endStr = end.toISOString()
-
         const { count, error } = await supabase
           .from('invoices')
           .select('id', { count: 'exact', head: true })
           .eq('user_id', userId)
-          .gte('created_at', startStr)
-          .lt('created_at', endStr)
         if (error) throw error
-        if (Number(count || 0) >= 3) {
-          alert('Limite du plan Free atteinte : 3 factures / mois. Passe Pro pour illimité.')
+        if (Number(count || 0) >= 1) {
+          try { window.dispatchEvent(new CustomEvent('spyke:quotaExceeded', { detail: { message: 'Tu as déjà utilisé ta facture gratuite. Passe Pro pour créer des factures en illimité.' } })) } catch {}
           return
         }
       }
@@ -6383,15 +6360,16 @@ function FacturesV1({
             if (updErr) throw updErr
             invoiceId = String(existing.id)
           } else {
-            // Free quota (lifetime): 2 invoices
+            // Free quota (lifetime): 1 invoice
             if (planCode !== 'pro') {
               const { count, error: cErr } = await supabase
                 .from('invoices')
                 .select('id', { count: 'exact', head: true })
                 .eq('user_id', userId)
               if (cErr) throw cErr
-              if (Number(count || 0) >= 2) {
-                throw new Error('Limite du compte gratuit atteinte : 2 factures maximum. Passe Pro pour illimité.')
+              if (Number(count || 0) >= 1) {
+                try { window.dispatchEvent(new CustomEvent('spyke:quotaExceeded', { detail: { message: 'Tu as déjà utilisé ta facture gratuite. Passe Pro pour créer des factures en illimité.' } })) } catch {}
+                return
               }
             }
 
@@ -7413,6 +7391,7 @@ export default function AppHtmlPage() {
   // Toasts (replace browser alerts)
   const [toast, setToast] = useState<null | { type: 'success' | 'error' | 'info'; title?: string; message: string }>(null)
   const toastTimerRef = useRef<number | null>(null)
+  const [upgradeModal, setUpgradeModal] = useState<string | null>(null)
 
   function notify(message: string, type: 'success' | 'error' | 'info' = 'info', title?: string) {
     try {
@@ -7474,12 +7453,20 @@ export default function AppHtmlPage() {
       } catch {}
     }
 
+    const handlerQuota = (e: any) => {
+      try {
+        setUpgradeModal(String(e?.detail?.message || 'Limite du compte gratuit atteinte.'))
+      } catch {}
+    }
+
     try {
       window.addEventListener('spyke:goToSignatureSettings', handlerSignature as any)
       window.addEventListener('spyke:goToGmailSettings', handlerGmail as any)
+      window.addEventListener('spyke:quotaExceeded', handlerQuota as any)
       return () => {
         window.removeEventListener('spyke:goToSignatureSettings', handlerSignature as any)
         window.removeEventListener('spyke:goToGmailSettings', handlerGmail as any)
+        window.removeEventListener('spyke:quotaExceeded', handlerQuota as any)
       }
     } catch {
       return
@@ -9080,8 +9067,8 @@ export default function AppHtmlPage() {
           .eq('user_id', userId)
 
         if (error) throw error
-        if (Number(count || 0) >= 3) {
-          alert('Limite du compte gratuit atteinte : 3 emails Assistant mail. Passe Pro pour illimité.')
+        if (Number(count || 0) >= 5) {
+          try { window.dispatchEvent(new CustomEvent('spyke:quotaExceeded', { detail: { message: 'Tu as utilisé tes 5 emails Assistant mail gratuits. Passe Pro pour un accès illimité.' } })) } catch {}
           return
         }
       }
@@ -12975,7 +12962,7 @@ CONTEXTE UTILISATEUR :
                 )}
               </div>
               <div style={{ marginTop: 14, fontSize: 13, color: 'var(--gray-500)' }}>
-                Free : 10 emails IA / mois, 3 devis / mois, 3 factures / mois, 3 contrats / mois, 3 clients max.
+                Free : 1 devis, 1 facture, 1 contrat (à vie, sans filigrane), 3 clients max, 5 emails Assistant mail.
                 <br />
                 Pro : illimité.
               </div>
@@ -13528,6 +13515,38 @@ CONTEXTE UTILISATEUR :
         </div>
       ) : null}
 
+      {/* Upgrade modal */}
+      {upgradeModal ? (
+        <div
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', zIndex: 9500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+          onClick={(e) => { if (e.target === e.currentTarget) setUpgradeModal(null) }}
+        >
+          <div style={{ background: '#111', borderRadius: 20, padding: '32px 28px', width: 'min(380px, 95vw)', boxShadow: '0 30px 80px rgba(0,0,0,0.7)', border: '1px solid rgba(250,204,21,0.25)', textAlign: 'center' }}>
+            <div style={{ fontSize: 44, marginBottom: 14 }}>🔒</div>
+            <div style={{ fontSize: 19, fontWeight: 800, color: '#fff', marginBottom: 10 }}>Limite atteinte</div>
+            <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.72)', lineHeight: 1.55, marginBottom: 28 }}>
+              {upgradeModal}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <button
+                type="button"
+                style={{ background: '#facc15', color: '#0a0a0a', border: 'none', borderRadius: 12, padding: '13px 20px', fontWeight: 800, fontSize: 15, cursor: 'pointer', letterSpacing: 0.2 }}
+                onClick={() => { goTab('settings'); setSettingsTab('abonnement'); setUpgradeModal(null) }}
+              >
+                Passer Pro →
+              </button>
+              <button
+                type="button"
+                style={{ background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.8)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 12, padding: '11px 20px', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}
+                onClick={() => setUpgradeModal(null)}
+              >
+                Fermer
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {/* Toast */}
       {toast ? (
         <div
@@ -13653,7 +13672,7 @@ CONTEXTE UTILISATEUR :
                   }
 
                   if (planCode !== 'pro' && (clients?.length || 0) >= 3) {
-                    alert('Limite du plan Free atteinte : 3 clients maximum. Passe Pro pour illimité.')
+                    setUpgradeModal('Tu as atteint la limite de 3 clients sur le compte gratuit. Passe Pro pour en ajouter autant que tu veux.')
                     return
                   }
 
