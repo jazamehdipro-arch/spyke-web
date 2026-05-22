@@ -159,6 +159,15 @@ export const HOME_CSS = `
         .hero-tool-yellow { background: #facc15; color: #0a0a0a; }
         .hero-tool-blue   { background: #0a0a0a; color: #fff; }
         .hero-tool-orange { background: #1e293b; color: #fff; }
+        .hero-cta-main {
+          background: #facc15;
+          color: #0a0a0a;
+          font-size: 17px;
+          padding: 16px 28px;
+          justify-content: center;
+          box-shadow: 0 4px 20px rgba(250,204,21,0.35);
+        }
+        .hero-cta-main:hover { box-shadow: 0 8px 28px rgba(250,204,21,0.5); }
 
         /* ===== HERO SECTION ===== */
         .hero {

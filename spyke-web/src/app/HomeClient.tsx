@@ -182,20 +182,12 @@ export default function HomeClient() {
             </p>
 
             <div className="hero-tools">
-              <a href="/devis-freelance" className="hero-tool-btn hero-tool-yellow">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-                Générer un devis
-              </a>
-              <a href="/facture-auto-entrepreneur" className="hero-tool-btn hero-tool-blue">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
-                Générer une facture
-              </a>
-              <a href="/contrat-freelance" className="hero-tool-btn hero-tool-orange">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                Générer un contrat
+              <a href="/connexion.html" className="hero-tool-btn hero-cta-main">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2v-9"/><polyline points="17 2 22 7"/><line x1="22" y1="2" x2="12" y2="12"/></svg>
+                Essayer gratuitement →
               </a>
             </div>
-            <p style={{ margin: '8px 0 0', fontSize: 12, color: 'var(--gray-400)' }}>Gratuit · Sans compte · PDF prêt en 30 sec</p>
+            <p style={{ margin: '8px 0 0', fontSize: 12, color: 'var(--gray-400)' }}>Gratuit · Sans carte bancaire · 1 devis, 1 facture, 1 contrat offerts</p>
 
             <div className="hero-social-proof">
               <div className="avatars">
