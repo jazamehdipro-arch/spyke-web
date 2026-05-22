@@ -1547,20 +1547,13 @@ Réponds uniquement par le texte de la description.`
       // Free quota (per month): 3 devis
       if (planCode !== 'pro' && userId) {
         const now = new Date()
-        const start = new Date(now.getFullYear(), now.getMonth(), 1)
-        const end = new Date(now.getFullYear(), now.getMonth() + 1, 1)
-        const startStr = start.toISOString()
-        const endStr = end.toISOString()
-
         const { count, error } = await supabase
           .from('quotes')
           .select('id', { count: 'exact', head: true })
           .eq('user_id', userId)
-          .gte('created_at', startStr)
-          .lt('created_at', endStr)
         if (error) throw error
-        if (Number(count || 0) >= 3) {
-          alert('Limite du plan Free atteinte : 3 devis / mois. Passe Pro pour illimité.')
+        if (Number(count || 0) >= 1) {
+          alert('Limite du compte gratuit atteinte : 1 devis maximum. Passe Pro pour illimité.')
           return
         }
       }
@@ -1733,15 +1726,15 @@ Réponds uniquement par le texte de la description.`
             const { error: updErr } = await supabase.from('quotes').update(row).eq('id', quoteId)
             if (updErr) throw updErr
           } else {
-            // Free quota (lifetime): 2 quotes
+            // Free quota (lifetime): 1 quote
             if (planCode !== 'pro') {
               const { count, error: cErr } = await supabase
                 .from('quotes')
                 .select('id', { count: 'exact', head: true })
                 .eq('user_id', userId)
               if (cErr) throw cErr
-              if (Number(count || 0) >= 2) {
-                throw new Error('Limite du compte gratuit atteinte : 2 devis maximum. Passe Pro pour illimité.')
+              if (Number(count || 0) >= 1) {
+                throw new Error('Limite du compte gratuit atteinte : 1 devis maximum. Passe Pro pour illimité.')
               }
             }
 
@@ -4371,23 +4364,15 @@ Contrat généré par Spyke — spykeapp.fr — L’assistant IA des freelances 
         }
       }
 
-      // Free quota (per month): 3 contrats
+      // Free quota (lifetime): 1 contrat
       if (planCode !== 'pro' && userId) {
-        const now = new Date()
-        const start = new Date(now.getFullYear(), now.getMonth(), 1)
-        const end = new Date(now.getFullYear(), now.getMonth() + 1, 1)
-        const startStr = start.toISOString()
-        const endStr = end.toISOString()
-
         const { count, error } = await supabase
           .from('contracts')
           .select('id', { count: 'exact', head: true })
           .eq('user_id', userId)
-          .gte('created_at', startStr)
-          .lt('created_at', endStr)
         if (error) throw error
-        if (Number(count || 0) >= 3) {
-          alert('Limite du plan Free atteinte : 3 contrats / mois. Passe Pro pour illimité.')
+        if (Number(count || 0) >= 1) {
+          alert('Limite du compte gratuit atteinte : 1 contrat maximum. Passe Pro pour illimité.')
           return
         }
       }
@@ -6208,23 +6193,15 @@ function FacturesV1({
     try {
       if (!supabase) throw new Error('Supabase non initialisé')
 
-      // Free quota (per month): 3 factures
+      // Free quota (lifetime): 1 facture
       if (planCode !== 'pro' && userId) {
-        const now = new Date()
-        const start = new Date(now.getFullYear(), now.getMonth(), 1)
-        const end = new Date(now.getFullYear(), now.getMonth() + 1, 1)
-        const startStr = start.toISOString()
-        const endStr = end.toISOString()
-
         const { count, error } = await supabase
           .from('invoices')
           .select('id', { count: 'exact', head: true })
           .eq('user_id', userId)
-          .gte('created_at', startStr)
-          .lt('created_at', endStr)
         if (error) throw error
-        if (Number(count || 0) >= 3) {
-          alert('Limite du plan Free atteinte : 3 factures / mois. Passe Pro pour illimité.')
+        if (Number(count || 0) >= 1) {
+          alert('Limite du compte gratuit atteinte : 1 facture maximum. Passe Pro pour illimité.')
           return
         }
       }
@@ -6383,15 +6360,15 @@ function FacturesV1({
             if (updErr) throw updErr
             invoiceId = String(existing.id)
           } else {
-            // Free quota (lifetime): 2 invoices
+            // Free quota (lifetime): 1 invoice
             if (planCode !== 'pro') {
               const { count, error: cErr } = await supabase
                 .from('invoices')
                 .select('id', { count: 'exact', head: true })
                 .eq('user_id', userId)
               if (cErr) throw cErr
-              if (Number(count || 0) >= 2) {
-                throw new Error('Limite du compte gratuit atteinte : 2 factures maximum. Passe Pro pour illimité.')
+              if (Number(count || 0) >= 1) {
+                throw new Error('Limite du compte gratuit atteinte : 1 facture maximum. Passe Pro pour illimité.')
               }
             }
 
@@ -9067,7 +9044,7 @@ export default function AppHtmlPage() {
 
   async function generateAssistantEmail() {
     try {
-      // Free quota (lifetime): 3 assistant mails
+      // Free quota (lifetime): 5 assistant mails
       if (planCode !== 'pro') {
         if (!supabase || !userId) {
           alert('Session manquante')
@@ -9080,8 +9057,8 @@ export default function AppHtmlPage() {
           .eq('user_id', userId)
 
         if (error) throw error
-        if (Number(count || 0) >= 3) {
-          alert('Limite du compte gratuit atteinte : 3 emails Assistant mail. Passe Pro pour illimité.')
+        if (Number(count || 0) >= 5) {
+          alert('Limite du compte gratuit atteinte : 5 emails Assistant mail. Passe Pro pour illimité.')
           return
         }
       }
@@ -12975,7 +12952,7 @@ CONTEXTE UTILISATEUR :
                 )}
               </div>
               <div style={{ marginTop: 14, fontSize: 13, color: 'var(--gray-500)' }}>
-                Free : 10 emails IA / mois, 3 devis / mois, 3 factures / mois, 3 contrats / mois, 3 clients max.
+                Free : 1 devis, 1 facture, 1 contrat (à vie, sans filigrane), 3 clients max, 5 emails Assistant mail.
                 <br />
                 Pro : illimité.
               </div>
