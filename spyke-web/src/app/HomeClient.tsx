@@ -187,7 +187,7 @@ export default function HomeClient() {
                 Essayer gratuitement →
               </a>
             </div>
-            <p style={{ margin: '8px 0 0', fontSize: 12, color: 'var(--gray-400)' }}>Gratuit · Sans carte bancaire · 1 devis, 1 facture, 1 contrat offerts</p>
+            <p style={{ margin: '8px 0 0', fontSize: 12, color: 'var(--gray-400)' }}>Gratuit · Sans carte bancaire · Sans engagement</p>
 
             <div className="hero-social-proof">
               <div className="avatars">
