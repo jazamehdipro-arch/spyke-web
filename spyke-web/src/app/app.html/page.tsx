@@ -1544,8 +1544,8 @@ Réponds uniquement par le texte de la description.`
     try {
       if (!supabase) throw new Error('Supabase non initialisé')
 
-      // Free quota (lifetime): 1 devis
-      if (planCode !== 'pro' && userId) {
+      // Free quota (lifetime): 1 devis — only for new documents
+      if (planCode !== 'pro' && userId && !currentQuoteId) {
         const { count, error } = await supabase
           .from('quotes')
           .select('id', { count: 'exact', head: true })
@@ -4364,8 +4364,8 @@ Contrat généré par Spyke — spykeapp.fr — L’assistant IA des freelances 
         }
       }
 
-      // Free quota (lifetime): 1 contrat
-      if (planCode !== 'pro' && userId) {
+      // Free quota (lifetime): 1 contrat — only for new documents
+      if (planCode !== 'pro' && userId && !selectedContractId) {
         const { count, error } = await supabase
           .from('contracts')
           .select('id', { count: 'exact', head: true })
@@ -6193,8 +6193,8 @@ function FacturesV1({
     try {
       if (!supabase) throw new Error('Supabase non initialisé')
 
-      // Free quota (lifetime): 1 facture
-      if (planCode !== 'pro' && userId) {
+      // Free quota (lifetime): 1 facture — only for new documents
+      if (planCode !== 'pro' && userId && !selectedInvoiceId) {
         const { count, error } = await supabase
           .from('invoices')
           .select('id', { count: 'exact', head: true })
@@ -9647,7 +9647,7 @@ CONTEXTE UTILISATEUR :
           }
 
           .mail-compose-preview {
-            height: 38vh;
+            display: none;
           }
 
           .mail-compose-preview-iframe {
