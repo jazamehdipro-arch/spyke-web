@@ -60,24 +60,22 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true, skipped: true })
     }
 
-    const firstName = String((profile as any)?.first_name || '')
-
-    const subject = ‘Bienvenue sur Spyke’
-    const baseUrl = process.env.APP_BASE_URL || ‘https://spykeapp.fr’
+    const subject = 'Bienvenue sur Spyke'
+    const baseUrl = process.env.APP_BASE_URL || 'https://spykeapp.fr'
     const text = [
-      ‘Bonjour,’,
-      ‘’,
-      ‘En tant que freelance, vous passez probablement plus de temps que vous ne le souhaitez sur vos devis, factures et contrats.’,
-      ‘’,
-      "Spyke est là pour changer ça. Vous pouvez dès maintenant :",
-      ‘- générer des devis, factures et contrats en quelques clics’,
-      ‘- envoyer vos documents directement par email’,
-      ‘- utiliser l\’assistant IA pour répondre à vos clients’,
-      ‘’,
-      `Accéder à l’app : ${baseUrl}/app.html`,
-      ‘’,
-      ‘— L\’équipe Spyke’,
-    ].join(‘\n’)
+      'Bonjour,',
+      '',
+      'En tant que freelance, vous passez probablement plus de temps que vous ne le souhaitez sur vos devis, factures et contrats.',
+      '',
+      "Spyke est la pour changer ca. Vous pouvez des maintenant :",
+      '- generer des devis, factures et contrats en quelques clics',
+      '- envoyer vos documents directement par email',
+      "- utiliser l'assistant IA pour repondre a vos clients",
+      '',
+      `Acceder a l'app : ${baseUrl}/app.html`,
+      '',
+      "-- L'equipe Spyke",
+    ].join('\n')
 
     const sendRes = await fetch('https://api.resend.com/emails', {
       method: 'POST',
