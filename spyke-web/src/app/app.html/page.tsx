@@ -9092,7 +9092,7 @@ Tu génères des emails professionnels en français.
 RÈGLES :
 - Sois concis, pas de blabla inutile
 - Adapte le ton selon ce qui est demandé (professionnel, chaleureux, formel, décontracté)
-- Utilise le nom du client si fourni
+- Commence TOUJOURS par "Bonjour," uniquement — jamais de prénom ni de nom dans l'accroche
 - Si des infos factuelles sont fournies (montant, n° de devis/facture, échéance), intègre-les
 - Termine toujours par une formule de politesse adaptée au ton
 - Termine toujours par une action attendue claire (ex: "Peux-tu me confirmer…", "Peux-tu régler…", "Dis-moi si…")
