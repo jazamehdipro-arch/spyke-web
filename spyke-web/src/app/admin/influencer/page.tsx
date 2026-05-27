@@ -11,7 +11,7 @@ type Contact = {
   name: string | null
   platform: string | null
   followers: string | null
-  status: 'pending' | 'sent' | 'error'
+  status: 'pending' | 'sent' | 'relanced' | 'error'
   sent_at: string | null
   created_at: string
 }
@@ -31,6 +31,7 @@ export default function InfluencerPage() {
   const [stats, setStats] = useState<Stats | null>(null)
   const [importing, setImporting] = useState(false)
   const [sending, setSending] = useState(false)
+  const [relancing, setRelancing] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -124,6 +125,32 @@ export default function InfluencerPage() {
     }
   }
 
+  async function handleRelanceBatch() {
+    setRelancing(true)
+    setMessage(null)
+    try {
+      const res = await fetch('/api/influencer/relance-batch', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error)
+      if (json.sent === 0) {
+        setMessage({ type: 'success', text: 'Aucun contact à relancer.' })
+      } else {
+        setMessage({
+          type: 'success',
+          text: `${json.sent} relance(s) envoyée(s)${json.errors > 0 ? `, ${json.errors} erreur(s)` : ''}.`,
+        })
+      }
+      await loadStats()
+    } catch (err: unknown) {
+      setMessage({ type: 'error', text: err instanceof Error ? err.message : 'Erreur relance' })
+    } finally {
+      setRelancing(false)
+    }
+  }
+
   if (pageStatus === 'loading') return <div style={styles.center}>Chargement…</div>
   if (pageStatus === 'forbidden') return <div style={styles.center}>Accès refusé.</div>
 
@@ -168,6 +195,14 @@ export default function InfluencerPage() {
           disabled={sending || stats?.pending === 0}
         >
           {sending ? 'Envoi en cours…' : `Envoyer 20 emails (${stats?.pending ?? '…'} en attente)`}
+        </button>
+
+        <button
+          style={{ ...styles.btn, background: stats?.sent === 0 ? '#aaa' : '#f59e0b' }}
+          onClick={handleRelanceBatch}
+          disabled={relancing || stats?.sent === 0}
+        >
+          {relancing ? 'Relance en cours…' : `Relancer (${stats?.sent ?? '…'} envoyés)`}
         </button>
       </div>
 
@@ -232,6 +267,7 @@ function StatCard({ label, value, color }: { label: string; value: number; color
 
 function badgeColor(status: string): React.CSSProperties {
   if (status === 'sent') return { background: '#d1fae5', color: '#065f46' }
+  if (status === 'relanced') return { background: '#dbeafe', color: '#1d4ed8' }
   if (status === 'error') return { background: '#fee2e2', color: '#991b1b' }
   return { background: '#fef3c7', color: '#92400e' }
 }
