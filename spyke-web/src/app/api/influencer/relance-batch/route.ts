@@ -8,6 +8,7 @@ const ADMIN_EMAIL = 'Jazamehdi.pro@gmail.com'
 const FROM_EMAIL = 'contact@spykeapp.fr'
 const FROM_NAME = 'Mehdi de Spyke'
 const BATCH_SIZE = 20
+const TEST_OVERRIDE_EMAIL = 'jazamehdi.pro@gmail.com' // TODO: remove before real send
 
 function requireEnv(name: string): string {
   const v = process.env[name]
@@ -115,7 +116,7 @@ export async function POST(req: Request) {
       try {
         await transporter.sendMail({
           from: `${FROM_NAME} <${FROM_EMAIL}>`,
-          to: contact.email,
+          to: TEST_OVERRIDE_EMAIL,
           subject: 'Re: Demande de collaboration — Spyke',
           text: RELANCE_TEXT,
           html: RELANCE_HTML,
