@@ -33,6 +33,11 @@ export default function InfluencerPage() {
   const [sending, setSending] = useState(false)
   const [relancing, setRelancing] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [showInviteForm, setShowInviteForm] = useState(false)
+  const [inviteEmail, setInviteEmail] = useState('')
+  const [inviteName, setInviteName] = useState('')
+  const [inviteCode, setInviteCode] = useState('')
+  const [inviting, setInviting] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -125,6 +130,33 @@ export default function InfluencerPage() {
     }
   }
 
+  function slugify(s: string) {
+    return s.toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9]/g, '')
+  }
+
+  async function handleInvitePro() {
+    setInviting(true)
+    setMessage(null)
+    try {
+      const res = await fetch('/api/admin/invite-pro', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: inviteEmail, name: inviteName, affiliateCode: inviteCode }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error)
+      setMessage({ type: 'success', text: `Invitation envoyee a ${inviteEmail} — lien affiliation : ${json.affiliateLink}` })
+      setShowInviteForm(false)
+      setInviteEmail('')
+      setInviteName('')
+      setInviteCode('')
+    } catch (err: unknown) {
+      setMessage({ type: 'error', text: err instanceof Error ? err.message : 'Erreur invitation' })
+    } finally {
+      setInviting(false)
+    }
+  }
+
   async function handleRelanceBatch() {
     setRelancing(true)
     setMessage(null)
@@ -205,6 +237,53 @@ export default function InfluencerPage() {
           {relancing ? 'Relance en cours…' : `Relancer (${stats?.sent ?? '…'} envoyés)`}
         </button>
       </div>
+
+      <div style={styles.actionsRow}>
+        <button
+          style={{ ...styles.btn, background: '#7c3aed' }}
+          onClick={() => setShowInviteForm(v => !v)}
+        >
+          {showInviteForm ? 'Annuler' : '+ Inviter un createur (Pro)'}
+        </button>
+      </div>
+
+      {showInviteForm && (
+        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, padding: '24px', marginBottom: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>Invitation compte Pro + lien affiliation</div>
+          <input
+            style={styles.input}
+            placeholder="Email du createur"
+            type="email"
+            value={inviteEmail}
+            onChange={e => setInviteEmail(e.target.value)}
+          />
+          <input
+            style={styles.input}
+            placeholder="Prenom Nom (ex: Axel Brume)"
+            value={inviteName}
+            onChange={e => {
+              setInviteName(e.target.value)
+              setInviteCode(slugify(e.target.value))
+            }}
+          />
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <span style={{ fontSize: 13, color: '#666', whiteSpace: 'nowrap' }}>spykeapp.fr?ref=</span>
+            <input
+              style={{ ...styles.input, flex: 1 }}
+              placeholder="code-affiliation"
+              value={inviteCode}
+              onChange={e => setInviteCode(e.target.value)}
+            />
+          </div>
+          <button
+            style={{ ...styles.btn, background: inviting ? '#aaa' : '#7c3aed', alignSelf: 'flex-start' }}
+            onClick={handleInvitePro}
+            disabled={inviting || !inviteEmail || !inviteName || !inviteCode}
+          >
+            {inviting ? 'Envoi en cours...' : 'Envoyer l\'invitation'}
+          </button>
+        </div>
+      )}
 
       <div style={styles.infoBox}>
         <strong>Colonnes acceptées dans le fichier :</strong> email (obligatoire), nom/prénom, plateforme (YouTube/Instagram/TikTok…), abonnés/followers
@@ -291,4 +370,5 @@ const styles: Record<string, React.CSSProperties> = {
   td: { padding: '12px 16px', fontSize: 14, color: '#333', borderBottom: '1px solid #f3f3f3' },
   badge: { display: 'inline-block', borderRadius: 6, padding: '2px 10px', fontSize: 12, fontWeight: 600 },
   deleteBtn: { background: 'none', border: 'none', color: '#ef4444', fontSize: 16, cursor: 'pointer', padding: '2px 6px', borderRadius: 4 },
+  input: { border: '1px solid #e5e7eb', borderRadius: 8, padding: '10px 14px', fontSize: 14, outline: 'none', width: '100%', boxSizing: 'border-box' as const },
 }
