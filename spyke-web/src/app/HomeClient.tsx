@@ -98,6 +98,11 @@ export default function HomeClient() {
 
   useEffect(() => {
     track('page_view', { path: '/' })
+    // Capture affiliate ref from URL and store for signup
+    try {
+      const ref = new URLSearchParams(window.location.search).get('ref')
+      if (ref) localStorage.setItem('spyke_ref', ref)
+    } catch {}
   }, [])
 
   const perView = 3
