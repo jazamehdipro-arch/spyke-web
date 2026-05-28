@@ -530,6 +530,15 @@ export default function ConnexionPage() {
                 const user = signInData.user
                 if (!user) throw new Error('Utilisateur introuvable')
 
+                // Save affiliate ref if present and not already set
+                try {
+                  const affiliateRef = localStorage.getItem('spyke_ref')
+                  if (affiliateRef) {
+                    await supabase.from('profiles').update({ affiliate_ref: affiliateRef } as any).eq('id', user.id).is('affiliate_ref', null)
+                    localStorage.removeItem('spyke_ref')
+                  }
+                } catch {}
+
                 const { data: profile, error: profileError } = await supabase
                   .from('profiles')
                   .select('onboarding_completed')
