@@ -26,6 +26,11 @@ export default function ConnexionPage() {
   useEffect(() => {
     // Expose switchTab() for inline onclicks in the markup (kept for fidelity)
     ;(window as any).switchTab = (next: Tab) => setTab(next)
+    // Capture affiliate ref from URL and persist it for signup
+    try {
+      const ref = new URLSearchParams(window.location.search).get('ref')
+      if (ref) localStorage.setItem('spyke_ref', ref)
+    } catch {}
     return () => {
       delete (window as any).switchTab
     }
@@ -715,8 +720,11 @@ export default function ConnexionPage() {
                 // If email confirmations are enabled, session may be null.
                 // We still send the user to onboarding; onboarding will ask to login if no session.
                 if (signUpData.user && signUpData.session) {
-                  // Ensure profile row exists
-                  await supabase.from('profiles').upsert({ id: signUpData.user.id }, { onConflict: 'id' })
+                  const affiliateRef = (() => { try { return localStorage.getItem('spyke_ref') || undefined } catch { return undefined } })()
+                  const profileData: Record<string, unknown> = { id: signUpData.user.id }
+                  if (affiliateRef) profileData.affiliate_ref = affiliateRef
+                  await supabase.from('profiles').upsert(profileData as any, { onConflict: 'id' })
+                  try { localStorage.removeItem('spyke_ref') } catch {}
                 }
 
                 window.location.href = '/onboarding.html'

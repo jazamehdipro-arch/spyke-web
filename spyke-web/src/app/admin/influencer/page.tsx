@@ -24,6 +24,14 @@ type Stats = {
   recent: Contact[]
 }
 
+type AffiliateStat = {
+  code: string
+  signups: number
+  pro: number
+  commission: number
+  firstSignup: string | null
+}
+
 export default function InfluencerPage() {
   const supabase = useMemo(() => getSupabase(), [])
   const [pageStatus, setPageStatus] = useState<'loading' | 'forbidden' | 'ready'>('loading')
@@ -38,6 +46,7 @@ export default function InfluencerPage() {
   const [inviteName, setInviteName] = useState('')
   const [inviteCode, setInviteCode] = useState('')
   const [inviting, setInviting] = useState(false)
+  const [affiliateStats, setAffiliateStats] = useState<AffiliateStat[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -54,7 +63,10 @@ export default function InfluencerPage() {
   }, [supabase])
 
   useEffect(() => {
-    if (pageStatus === 'ready' && token) loadStats()
+    if (pageStatus === 'ready' && token) {
+      loadStats()
+      loadAffiliateStats()
+    }
   }, [pageStatus, token])
 
   async function loadStats() {
@@ -62,6 +74,16 @@ export default function InfluencerPage() {
       headers: { Authorization: `Bearer ${token}` },
     })
     if (res.ok) setStats(await res.json())
+  }
+
+  async function loadAffiliateStats() {
+    const res = await fetch('/api/admin/affiliate-stats', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (res.ok) {
+      const json = await res.json()
+      setAffiliateStats(json.stats || [])
+    }
   }
 
   async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
@@ -298,6 +320,38 @@ export default function InfluencerPage() {
           }}
         >
           {message.text}
+        </div>
+      )}
+
+      {affiliateStats.length > 0 && (
+        <div style={{ marginBottom: 32 }}>
+          <div style={{ fontSize: 16, fontWeight: 700, color: '#1a1a2e', marginBottom: 12 }}>Suivi des liens d'affiliation</div>
+          <div style={styles.tableWrap}>
+            <table style={styles.table}>
+              <thead>
+                <tr>
+                  {['Code', 'Inscrits', 'Pro', 'Commission estimee', 'Premier inscrit le'].map(h => (
+                    <th key={h} style={styles.th}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {affiliateStats.map(s => (
+                  <tr key={s.code}>
+                    <td style={styles.td}><code style={{ background: '#f3f4f6', padding: '2px 8px', borderRadius: 6, fontSize: 13 }}>{s.code}</code></td>
+                    <td style={styles.td}><strong>{s.signups}</strong></td>
+                    <td style={styles.td}>
+                      <span style={{ color: s.pro > 0 ? '#10b981' : '#666', fontWeight: s.pro > 0 ? 700 : 400 }}>{s.pro}</span>
+                    </td>
+                    <td style={styles.td}>
+                      <span style={{ color: s.commission > 0 ? '#10b981' : '#666', fontWeight: 600 }}>{s.commission.toFixed(2)} EUR</span>
+                    </td>
+                    <td style={styles.td}>{s.firstSignup ? new Date(s.firstSignup).toLocaleDateString('fr-FR') : '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
