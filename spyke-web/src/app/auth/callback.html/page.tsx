@@ -55,12 +55,20 @@ export default function AuthCallbackPage() {
           return
         }
 
-        // Ensure profile exists, attach affiliate ref if present
-        const affiliateRef = (() => { try { return localStorage.getItem('spyke_ref') || undefined } catch { return undefined } })()
-        const profileData: Record<string, unknown> = { id: user.id }
-        if (affiliateRef) profileData.affiliate_ref = affiliateRef
-        await supabase.from('profiles').upsert(profileData as any, { onConflict: 'id' })
-        try { localStorage.removeItem('spyke_ref') } catch {}
+        // Ensure profile exists
+        await supabase.from('profiles').upsert({ id: user.id }, { onConflict: 'id' })
+        // Save affiliate ref via server route (bypasses RLS)
+        try {
+          const affiliateRef = localStorage.getItem('spyke_ref')
+          if (affiliateRef && session?.access_token) {
+            await fetch('/api/affiliate/track', {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ ref: affiliateRef }),
+            })
+            localStorage.removeItem('spyke_ref')
+          }
+        } catch {}
 
         // If Google OAuth provided a refresh token, auto-connect Gmail for sending.
         try {

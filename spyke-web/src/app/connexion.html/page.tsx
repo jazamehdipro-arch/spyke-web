@@ -533,8 +533,12 @@ export default function ConnexionPage() {
                 // Save affiliate ref if present and not already set
                 try {
                   const affiliateRef = localStorage.getItem('spyke_ref')
-                  if (affiliateRef) {
-                    await supabase.from('profiles').update({ affiliate_ref: affiliateRef } as any).eq('id', user.id).is('affiliate_ref', null)
+                  if (affiliateRef && signInData.session) {
+                    await fetch('/api/affiliate/track', {
+                      method: 'POST',
+                      headers: { Authorization: `Bearer ${signInData.session.access_token}`, 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ ref: affiliateRef }),
+                    })
                     localStorage.removeItem('spyke_ref')
                   }
                 } catch {}
@@ -729,11 +733,18 @@ export default function ConnexionPage() {
                 // If email confirmations are enabled, session may be null.
                 // We still send the user to onboarding; onboarding will ask to login if no session.
                 if (signUpData.user && signUpData.session) {
-                  const affiliateRef = (() => { try { return localStorage.getItem('spyke_ref') || undefined } catch { return undefined } })()
-                  const profileData: Record<string, unknown> = { id: signUpData.user.id }
-                  if (affiliateRef) profileData.affiliate_ref = affiliateRef
-                  await supabase.from('profiles').upsert(profileData as any, { onConflict: 'id' })
-                  try { localStorage.removeItem('spyke_ref') } catch {}
+                  await supabase.from('profiles').upsert({ id: signUpData.user.id }, { onConflict: 'id' })
+                  try {
+                    const affiliateRef = localStorage.getItem('spyke_ref')
+                    if (affiliateRef) {
+                      await fetch('/api/affiliate/track', {
+                        method: 'POST',
+                        headers: { Authorization: `Bearer ${signUpData.session.access_token}`, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ ref: affiliateRef }),
+                      })
+                      localStorage.removeItem('spyke_ref')
+                    }
+                  } catch {}
                 }
 
                 window.location.href = '/onboarding.html'
