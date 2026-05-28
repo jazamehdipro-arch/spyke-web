@@ -323,37 +323,41 @@ export default function InfluencerPage() {
         </div>
       )}
 
-      {affiliateStats.length > 0 && (
-        <div style={{ marginBottom: 32 }}>
-          <div style={{ fontSize: 16, fontWeight: 700, color: '#1a1a2e', marginBottom: 12 }}>Suivi des liens d'affiliation</div>
-          <div style={styles.tableWrap}>
-            <table style={styles.table}>
-              <thead>
-                <tr>
-                  {['Code', 'Inscrits', 'Pro', 'Commission estimee', 'Premier inscrit le'].map(h => (
-                    <th key={h} style={styles.th}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {affiliateStats.map(s => (
-                  <tr key={s.code}>
-                    <td style={styles.td}><code style={{ background: '#f3f4f6', padding: '2px 8px', borderRadius: 6, fontSize: 13 }}>{s.code}</code></td>
-                    <td style={styles.td}><strong>{s.signups}</strong></td>
-                    <td style={styles.td}>
-                      <span style={{ color: s.pro > 0 ? '#10b981' : '#666', fontWeight: s.pro > 0 ? 700 : 400 }}>{s.pro}</span>
-                    </td>
-                    <td style={styles.td}>
-                      <span style={{ color: s.commission > 0 ? '#10b981' : '#666', fontWeight: 600 }}>{s.commission.toFixed(2)} EUR</span>
-                    </td>
-                    <td style={styles.td}>{s.firstSignup ? new Date(s.firstSignup).toLocaleDateString('fr-FR') : '—'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      <div style={{ marginBottom: 32 }}>
+        <div style={{ fontSize: 16, fontWeight: 700, color: '#1a1a2e', marginBottom: 12 }}>Suivi des liens d'affiliation</div>
+        {affiliateStats.length === 0 ? (
+          <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, padding: '20px 24px', fontSize: 14, color: '#666' }}>
+            Aucun inscrit via un lien d'affiliation pour l'instant.
           </div>
+        ) : (
+        <div style={styles.tableWrap}>
+          <table style={styles.table}>
+            <thead>
+              <tr>
+                {['Code', 'Inscrits', 'Pro', 'Commission estimee', 'Premier inscrit le'].map(h => (
+                  <th key={h} style={styles.th}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {affiliateStats.map(s => (
+                <tr key={s.code}>
+                  <td style={styles.td}><code style={{ background: '#f3f4f6', padding: '2px 8px', borderRadius: 6, fontSize: 13 }}>{s.code}</code></td>
+                  <td style={styles.td}><strong>{s.signups}</strong></td>
+                  <td style={styles.td}>
+                    <span style={{ color: s.pro > 0 ? '#10b981' : '#666', fontWeight: s.pro > 0 ? 700 : 400 }}>{s.pro}</span>
+                  </td>
+                  <td style={styles.td}>
+                    <span style={{ color: s.commission > 0 ? '#10b981' : '#666', fontWeight: 600 }}>{s.commission.toFixed(2)} EUR</span>
+                  </td>
+                  <td style={styles.td}>{s.firstSignup ? new Date(s.firstSignup).toLocaleDateString('fr-FR') : '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-      )}
+        )}
+      </div>
 
       {stats && stats.recent.length > 0 && (
         <div style={styles.tableWrap}>
