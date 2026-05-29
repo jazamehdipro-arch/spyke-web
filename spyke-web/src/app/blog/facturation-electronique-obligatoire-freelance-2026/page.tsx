@@ -800,8 +800,8 @@ export default function BlogFacturationElectroniqueFreelancePage() {
 
         <div className="cta-inline">
           <h3>Génère tes factures en 30 secondes avec Spyke</h3>
-          <p>Factures, devis et contrats conformes — sans Word, sans Excel, sans prise de tête.</p>
-          <a href="/connexion.html" className="cta-btn">Essayer gratuitement →</a>
+          <p>Factures conformes aux mentions obligatoires — sans Word, sans Excel, sans prise de tête.</p>
+          <a href="/facture-auto-entrepreneur" className="cta-btn">Créer ma facture gratuite →</a>
         </div>
 
       </article>
