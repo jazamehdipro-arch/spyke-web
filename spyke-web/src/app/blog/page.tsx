@@ -14,6 +14,18 @@ type BlogPost = {
 
 const posts: BlogPost[] = [
   {
+    href: '/blog/facturation-electronique-obligatoire-freelance-2026',
+    category: 'Factures',
+    title: 'Facturation électronique obligatoire 2026-2027 : ce que ça change pour les freelances',
+    excerpt:
+      'Envoyer un PDF par email ne suffira plus. Dès septembre 2026, la facturation électronique devient obligatoire. Dates, formats, plateformes : tout ce que vous devez savoir.',
+    dateLabel: 'Mai 2026',
+    readTime: '6 min',
+    icon: '⚡',
+    thumbClass: 'facture',
+    featured: true,
+  },
+  {
     href: '/blog/comment-faire-devis-freelance',
     category: 'Devis',
     title: 'Comment faire un devis freelance professionnel en 2026 (guide complet)',
