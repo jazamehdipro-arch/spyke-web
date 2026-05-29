@@ -3,11 +3,21 @@ import type { Metadata } from 'next'
 export const metadata: Metadata = {
   title: 'Facturation électronique obligatoire 2026-2027 : ce que ça change pour les freelances — Spyke',
   description:
-    'La facturation électronique devient obligatoire en France dès septembre 2026. Ce que ça change concrètement pour les freelances et auto-entrepreneurs, et comment se préparer.',
+    'La facturation électronique devient obligatoire en France dès septembre 2026. Dates, formats, plateformes : tout ce que les freelances et auto-entrepreneurs doivent savoir.',
+  alternates: {
+    canonical: 'https://spykeapp.fr/blog/facturation-electronique-obligatoire-freelance-2026',
+  },
   openGraph: {
     title: 'Facturation électronique obligatoire 2026-2027 : ce que ça change pour les freelances',
     description: 'Dates, obligations, formats, plateformes : tout ce que les freelances doivent savoir sur la réforme de la facturation électronique.',
     url: 'https://spykeapp.fr/blog/facturation-electronique-obligatoire-freelance-2026',
+    type: 'article',
+    siteName: 'Spyke',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Facturation électronique obligatoire 2026-2027 : ce que ça change pour les freelances',
+    description: 'Dates, formats, plateformes : tout ce que les freelances doivent savoir sur la réforme.',
   },
 }
 
@@ -613,6 +623,7 @@ export default function BlogFacturationElectroniqueFreelancePage() {
             <li><a href="#change">Ce qui change concrètement</a></li>
             <li><a href="#change-pas">Ce qui ne change pas</a></li>
             <li><a href="#preparer">Comment se préparer maintenant</a></li>
+            <li><a href="#faq">Questions fréquentes</a></li>
           </ol>
         </div>
       </div>
@@ -795,7 +806,7 @@ export default function BlogFacturationElectroniqueFreelancePage() {
         </div>
 
         <div className="info-box">
-          <p><strong>Profite-en pour mettre de l&apos;ordre dans ta facturation.</strong> La réforme est une bonne occasion de passer à un outil sérieux si tu fonctionnes encore avec Word ou Excel. Un logiciel comme Spyke génère des factures correctement formatées, conformes aux mentions obligatoires, et s&apos;adaptera aux nouvelles exigences.</p>
+          <p><strong>Profite-en pour mettre de l&apos;ordre dans ta facturation.</strong> La réforme est une bonne occasion de passer à un outil sérieux si tu fonctionnes encore avec Word ou Excel. Notre <a href="/facture-auto-entrepreneur">générateur de facture gratuit</a> produit des factures conformes aux mentions obligatoires, prêtes à être envoyées.</p>
         </div>
 
         <div className="cta-inline">
@@ -803,6 +814,33 @@ export default function BlogFacturationElectroniqueFreelancePage() {
           <p>Factures conformes aux mentions obligatoires — sans Word, sans Excel, sans prise de tête.</p>
           <a href="/facture-auto-entrepreneur" className="cta-btn">Créer ma facture gratuite →</a>
         </div>
+
+        <h2 id="faq">Questions fréquentes</h2>
+
+        <h3>La facturation électronique concerne-t-elle les auto-entrepreneurs en franchise de TVA ?</h3>
+        <p>
+          Oui. Même sans TVA à collecter, les auto-entrepreneurs sont concernés par la réforme. Ils devront émettre des factures électroniques pour leurs clients professionnels français dès septembre 2027, et seront soumis au e-reporting pour déclarer leurs transactions à la DGFiP.
+        </p>
+
+        <h3>Puis-je encore envoyer mes factures par email après 2027 ?</h3>
+        <p>
+          Non, pas directement. Les factures B2B entre entreprises françaises devront obligatoirement transiter par une plateforme certifiée (le Portail Public de Facturation ou une PDP agréée). L&apos;envoi par email simple ne sera plus conforme pour ces transactions.
+        </p>
+
+        <h3>Qu&apos;est-ce que le Portail Public de Facturation (PPF) ?</h3>
+        <p>
+          Le PPF est la solution gratuite mise en place par l&apos;État pour permettre à toutes les entreprises d&apos;émettre et de recevoir des factures électroniques. Il étend les fonctionnalités de Chorus Pro, déjà utilisé pour les factures adressées aux administrations publiques. Les PDP sont des alternatives privées, souvent mieux intégrées aux logiciels comptables existants.
+        </p>
+
+        <h3>Que risque-t-on si on ne respecte pas la réforme ?</h3>
+        <p>
+          Les sanctions ne sont pas encore toutes définies dans les textes, mais le non-respect des obligations de facturation électronique pourrait entraîner des amendes fiscales. Plus concrètement, tes clients professionnels pourraient refuser tes factures non conformes, ce qui bloquerait le paiement.
+        </p>
+
+        <h3>Mon logiciel de facturation actuel sera-t-il compatible ?</h3>
+        <p>
+          Ça dépend de l&apos;éditeur. Les principaux logiciels de comptabilité et de facturation mettent à jour leurs outils pour être conformes avant les échéances. Contacte ton éditeur pour confirmer la roadmap. Si tu utilises encore Word ou Excel, il est temps de passer à un outil dédié comme <a href="/facture-auto-entrepreneur">Spyke</a>.
+        </p>
 
       </article>
 
@@ -845,9 +883,105 @@ export default function BlogFacturationElectroniqueFreelancePage() {
             <a href="/cgu.html">CGU</a>
             <a href="/confidentialite.html">Confidentialité</a>
           </div>
-          <p className="footer-copy">© 2026 Spyke — L&apos;assistant IA des freelances français</p>
+          <p className="footer-copy">Spyke © 2026 — L&apos;assistant IA des freelances français</p>
         </div>
       </footer>
+
+      {/* Schema BlogPosting */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'BlogPosting',
+            headline: 'Facturation électronique obligatoire 2026-2027 : ce que ça change pour les freelances',
+            description: 'La facturation électronique devient obligatoire en France dès septembre 2026. Dates, formats, plateformes : tout ce que les freelances et auto-entrepreneurs doivent savoir.',
+            datePublished: '2026-05-29',
+            dateModified: '2026-05-29',
+            author: { '@type': 'Organization', name: 'Spyke' },
+            publisher: { '@type': 'Organization', name: 'Spyke', url: 'https://spykeapp.fr' },
+            mainEntityOfPage: 'https://spykeapp.fr/blog/facturation-electronique-obligatoire-freelance-2026',
+            keywords: 'facturation électronique obligatoire, e-facture freelance, réforme facturation 2026, auto-entrepreneur facturation électronique',
+          }),
+        }}
+      />
+
+      {/* Schema FAQPage */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: [
+              {
+                '@type': 'Question',
+                name: 'La facturation électronique concerne-t-elle les auto-entrepreneurs en franchise de TVA ?',
+                acceptedAnswer: {
+                  '@type': 'Answer',
+                  text: "Oui. Même sans TVA à collecter, les auto-entrepreneurs sont concernés par la réforme. Ils devront émettre des factures électroniques pour leurs clients professionnels français dès septembre 2027, et seront soumis au e-reporting pour déclarer leurs transactions à la DGFiP.",
+                },
+              },
+              {
+                '@type': 'Question',
+                name: 'Puis-je encore envoyer mes factures par email après 2027 ?',
+                acceptedAnswer: {
+                  '@type': 'Answer',
+                  text: "Non, pas directement. Les factures B2B entre entreprises françaises devront obligatoirement transiter par une plateforme certifiée (le Portail Public de Facturation ou une PDP agréée). L'envoi par email simple ne sera plus conforme pour ces transactions.",
+                },
+              },
+              {
+                '@type': 'Question',
+                name: "Qu'est-ce que le Portail Public de Facturation (PPF) ?",
+                acceptedAnswer: {
+                  '@type': 'Answer',
+                  text: "Le PPF est la solution gratuite mise en place par l'État pour permettre à toutes les entreprises d'émettre et de recevoir des factures électroniques. Il étend les fonctionnalités de Chorus Pro, déjà utilisé pour les factures adressées aux administrations publiques.",
+                },
+              },
+              {
+                '@type': 'Question',
+                name: 'Que risque-t-on si on ne respecte pas la réforme de facturation électronique ?',
+                acceptedAnswer: {
+                  '@type': 'Answer',
+                  text: "Le non-respect des obligations de facturation électronique pourrait entraîner des amendes fiscales. Plus concrètement, tes clients professionnels pourraient refuser tes factures non conformes, ce qui bloquerait le paiement.",
+                },
+              },
+              {
+                '@type': 'Question',
+                name: 'Mon logiciel de facturation actuel sera-t-il compatible avec la réforme ?',
+                acceptedAnswer: {
+                  '@type': 'Answer',
+                  text: "Ça dépend de l'éditeur. Les principaux logiciels de comptabilité et de facturation mettent à jour leurs outils pour être conformes avant les échéances. Contacte ton éditeur pour confirmer la roadmap. Si tu utilises encore Word ou Excel, il est temps de passer à un outil dédié.",
+                },
+              },
+            ],
+          }),
+        }}
+      />
+
+      {/* Mobile nav */}
+      <script
+        defer
+        dangerouslySetInnerHTML={{
+          __html: `
+            (function(){
+              var btn = document.querySelector('.mobile-menu-btn');
+              var links = document.querySelector('.nav-links');
+              if (!btn || !links) return;
+              btn.addEventListener('click', function(){
+                var open = links.classList.toggle('open');
+                btn.setAttribute('aria-expanded', String(open));
+              });
+              document.addEventListener('click', function(e){
+                if (!btn.contains(e.target) && !links.contains(e.target)) {
+                  links.classList.remove('open');
+                  btn.setAttribute('aria-expanded', 'false');
+                }
+              });
+            })();
+          `,
+        }}
+      />
     </>
   )
 }
