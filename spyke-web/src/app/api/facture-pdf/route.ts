@@ -463,6 +463,7 @@ export async function POST(req: Request) {
             { style: styles.footer },
             "En cas de retard de paiement, seront exigibles, conformément au code de commerce, une indemnité calculée sur la base de trois fois le taux de l'intérêt légal en vigueur ainsi qu'une indemnité forfaitaire pour frais de recouvrement de 40€.\n"
               + "Pas d'escompte en cas de paiement anticipé.\n"
+              + "TVA non applicable, art. 293 B du CGI."
           ),
           React.createElement(
             View,
