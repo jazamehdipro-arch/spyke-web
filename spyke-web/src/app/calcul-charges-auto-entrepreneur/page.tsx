@@ -226,10 +226,10 @@ export default function CalculChargesPage() {
 
         <div className="calc-card">
           <div className="toggle-row" id="toggleRow">
-            <button className="toggle-btn active" data-mode="mensuel" onClick={() => {}}>
+            <button className="toggle-btn active" data-mode="mensuel">
               CA mensuel
             </button>
-            <button className="toggle-btn" data-mode="annuel" onClick={() => {}}>
+            <button className="toggle-btn" data-mode="annuel">
               CA annuel
             </button>
           </div>
