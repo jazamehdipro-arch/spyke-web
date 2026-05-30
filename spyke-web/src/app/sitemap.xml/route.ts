@@ -31,6 +31,8 @@ export async function GET() {
     { loc: `${base}/devis-freelance`, lastmod: now },
     { loc: `${base}/facture-auto-entrepreneur`, lastmod: now },
     { loc: `${base}/contrat-freelance`, lastmod: now },
+    { loc: `${base}/calculateur-tjm`, lastmod: now },
+    { loc: `${base}/calcul-charges-auto-entrepreneur`, lastmod: now },
 
     // Static pages
     { loc: `${base}/comment-ca-marche.html`, lastmod: now },
@@ -39,6 +41,10 @@ export async function GET() {
     { loc: `${base}/mentions-legales.html`, lastmod: now },
     { loc: `${base}/confidentialite.html`, lastmod: now },
     { loc: `${base}/cgu.html`, lastmod: now },
+
+    // Blog
+    { loc: `${base}/blog`, lastmod: now },
+    { loc: `${base}/blog/facturation-electronique-obligatoire-freelance-2026`, lastmod: now },
 
     // App / auth
     { loc: `${base}/login`, lastmod: now },
