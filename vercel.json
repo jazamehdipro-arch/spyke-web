@@ -1,6 +1,13 @@
 {
   "version": 2,
   "name": "maison-merati",
-  "builds": [{ "src": "index.html", "use": "@vercel/static" }],
-  "routes": [{ "src": "/(.*)", "dest": "/index.html" }]
+  "buildCommand": "",
+  "outputDirectory": ".",
+  "framework": null,
+  "builds": [
+    { "src": "index.html", "use": "@vercel/static" }
+  ],
+  "routes": [
+    { "src": "/(.*)", "dest": "/index.html" }
+  ]
 }
