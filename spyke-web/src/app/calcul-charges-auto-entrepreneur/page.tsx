@@ -33,7 +33,7 @@ export default function CalculChargesPage() {
         name: 'Calculateur de charges auto-entrepreneur 2026',
         url: 'https://spykeapp.fr/calcul-charges-auto-entrepreneur',
         description:
-          'Outil gratuit pour calculer les cotisations sociales URSSAF et l'impôt sur le revenu (versement libératoire) d'un auto-entrepreneur en 2026.',
+          "Outil gratuit pour calculer les cotisations sociales URSSAF et l'impôt sur le revenu (versement libératoire) d'un auto-entrepreneur en 2026.",
         applicationCategory: 'FinanceApplication',
         operatingSystem: 'Web',
         offers: {
@@ -43,7 +43,7 @@ export default function CalculChargesPage() {
         },
         featureList: [
           'Calcul cotisations URSSAF 2026',
-          'Versement libératoire de l'impôt',
+          "Versement libératoire de l'impôt",
           'Commerce, Services BIC et Services BNC',
           'Saisie mensuelle ou annuelle',
         ],
@@ -53,42 +53,42 @@ export default function CalculChargesPage() {
         mainEntity: [
           {
             '@type': 'Question',
-            name: 'Quelles sont les charges d'un auto-entrepreneur en 2026 ?',
+            name: "Quelles sont les charges d'un auto-entrepreneur en 2026 ?",
             acceptedAnswer: {
               '@type': 'Answer',
-              text: 'En 2026, les cotisations sociales s'élèvent à 12,3 % du CA pour les activités de vente de marchandises, 21,2 % pour les prestations de services BIC et 25,6 % pour les prestations de services BNC (professions libérales non réglementées).',
+              text: "En 2026, les cotisations sociales s'élèvent à 12,3 % du CA pour les activités de vente de marchandises, 21,2 % pour les prestations de services BIC et 25,6 % pour les prestations de services BNC (professions libérales non réglementées).",
             },
           },
           {
             '@type': 'Question',
-            name: 'Le versement libératoire est-il intéressant ?',
+            name: "Le versement libératoire est-il intéressant ?",
             acceptedAnswer: {
               '@type': 'Answer',
-              text: 'Le versement libératoire (VFL) permet de payer l'impôt sur le revenu en même temps que les cotisations sociales : +1 % pour le commerce, +1,7 % pour les services BIC, +2,2 % pour les BNC. C'est généralement avantageux si vous êtes imposé à 11 % ou plus.',
+              text: "Le versement libératoire (VFL) permet de payer l'impôt sur le revenu en même temps que les cotisations sociales : +1 % pour le commerce, +1,7 % pour les services BIC, +2,2 % pour les BNC. C'est généralement avantageux si vous êtes imposé à 11 % ou plus.",
             },
           },
           {
             '@type': 'Question',
-            name: 'Comment calculer le revenu net d'un auto-entrepreneur ?',
+            name: "Comment calculer le revenu net d'un auto-entrepreneur ?",
             acceptedAnswer: {
               '@type': 'Answer',
-              text: 'Revenu net = CA − cotisations sociales − impôt (si VFL). Par exemple, un auto-entrepreneur BNC avec 3 000 €/mois de CA paie 768 € de cotisations. Avec le VFL (+2,2 %), il paie 66 € d'impôt supplémentaires, soit un revenu net d'environ 2 166 €.',
+              text: "Revenu net = CA − cotisations sociales − impôt (si VFL). Par exemple, un auto-entrepreneur BNC avec 3 000 €/mois de CA paie 768 € de cotisations. Avec le VFL (+2,2 %), il paie 66 € d'impôt supplémentaires, soit un revenu net d'environ 2 166 €.",
             },
           },
           {
             '@type': 'Question',
-            name: 'Quels plafonds de CA pour l'auto-entrepreneur en 2026 ?',
+            name: "Quels plafonds de CA pour l'auto-entrepreneur en 2026 ?",
             acceptedAnswer: {
               '@type': 'Answer',
-              text: 'En 2026, le plafond est de 188 700 € pour les activités de vente (BIC marchandises) et 77 700 € pour les prestations de services (BIC ou BNC). Au-delà, vous basculez au régime réel.',
+              text: "En 2026, le plafond est de 188 700 € pour les activités de vente (BIC marchandises) et 77 700 € pour les prestations de services (BIC ou BNC). Au-delà, vous basculez au régime réel.",
             },
           },
           {
             '@type': 'Question',
-            name: 'Peut-on déduire des frais en auto-entrepreneur ?',
+            name: "Peut-on déduire des frais en auto-entrepreneur ?",
             acceptedAnswer: {
               '@type': 'Answer',
-              text: 'Non, le régime de la micro-entreprise ne permet pas de déduire les frais réels. Les cotisations sont calculées sur le CA brut. En contrepartie, un abattement forfaitaire est appliqué pour le calcul de l'impôt sur le revenu (71 % commerce, 50 % BIC, 34 % BNC) si vous n'êtes pas au VFL.',
+              text: "Non, le régime de la micro-entreprise ne permet pas de déduire les frais réels. Les cotisations sont calculées sur le CA brut. En contrepartie, un abattement forfaitaire est appliqué pour le calcul de l'impôt sur le revenu (71 % commerce, 50 % BIC, 34 % BNC) si vous n'êtes pas au VFL.",
             },
           },
         ],
