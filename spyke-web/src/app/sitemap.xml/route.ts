@@ -31,6 +31,10 @@ export async function GET() {
     { loc: `${base}/devis-freelance`, lastmod: now },
     { loc: `${base}/facture-auto-entrepreneur`, lastmod: now },
     { loc: `${base}/contrat-freelance`, lastmod: now },
+    { loc: `${base}/calculateur-tjm`, lastmod: now },
+    { loc: `${base}/calcul-charges-auto-entrepreneur`, lastmod: now },
+    { loc: `${base}/calculateur-marge-devis`, lastmod: now },
+    { loc: `${base}/checklist-clauses-contrat`, lastmod: now },
 
     // Static pages
     { loc: `${base}/comment-ca-marche.html`, lastmod: now },
