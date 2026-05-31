@@ -1,1206 +1,684 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Yemma Création — Robes Faites Main</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Jost:wght@200;300;400;500&display=swap" rel="stylesheet" />
-  <style>
-    /* ─── TOKENS ─────────────────────────────────────────── */
-    :root {
-      --bordeaux:   #5C0A1E;
-      --bordeaux-2: #7A1030;
-      --or:         #C4922A;
-      --or-light:   #E8C36A;
-      --or-pale:    #F5E6C0;
-      --cream:      #FAF6EF;
-      --ink:        #1A0A0D;
-      --ink-soft:   #3D1820;
-      --muted:      #8C6B5A;
-      --white:      #FFFFFF;
-    }
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Yemma Création</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=Inter:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;-webkit-font-smoothing:antialiased}
+:root{
+  --noir:#080808;
+  --blanc:#FAFAF8;
+  --or:#C9A84C;
+  --or2:#E8C96A;
+  --terre:#8B4513;
+  --gris:#F2EFE9;
+  --gris2:#D4CEBF;
+  --texte:#1A1A1A;
+  --muted:#7A7570;
+}
+body{background:var(--blanc);color:var(--texte);font-family:'Inter',sans-serif;font-weight:300;overflow-x:hidden}
+a{text-decoration:none;color:inherit}
+img{display:block;max-width:100%}
 
-    /* ─── RESET ──────────────────────────────────────────── */
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html { scroll-behavior: smooth; font-size: 16px; }
-    body {
-      background: var(--cream);
-      color: var(--ink);
-      font-family: 'Jost', sans-serif;
-      font-weight: 300;
-      letter-spacing: .03em;
-      overflow-x: hidden;
-    }
-    img { display: block; max-width: 100%; }
-    a { color: inherit; text-decoration: none; }
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:999;padding:1.5rem 5vw;display:flex;align-items:center;justify-content:space-between;transition:all .4s}
+nav.solid{background:rgba(8,8,8,.96);backdrop-filter:blur(20px)}
+.nav-logo{font-family:'Playfair Display',serif;font-size:1.4rem;font-weight:700;letter-spacing:.05em;color:var(--blanc)}
+.nav-logo span{color:var(--or);font-style:italic}
+.nav-menu{display:flex;gap:2.5rem;list-style:none}
+.nav-menu a{font-size:.72rem;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.6);transition:color .2s}
+.nav-menu a:hover{color:var(--or)}
+.nav-btn{font-size:.72rem;letter-spacing:.15em;text-transform:uppercase;padding:.6rem 1.6rem;background:var(--or);color:var(--noir);font-weight:500;transition:all .2s}
+.nav-btn:hover{background:var(--or2)}
 
-    /* ─── TYPOGRAPHY ─────────────────────────────────────── */
-    .serif { font-family: 'Cormorant Garamond', serif; }
-    h1, h2, h3, h4 { font-family: 'Cormorant Garamond', serif; font-weight: 400; line-height: 1.1; }
+/* HERO */
+.hero{height:100vh;background:var(--noir);display:grid;grid-template-columns:1fr 1fr;overflow:hidden;position:relative}
+.hero-left{display:flex;flex-direction:column;justify-content:flex-end;padding:8vh 5vw;position:relative;z-index:2}
+.hero-tag{font-size:.65rem;letter-spacing:.35em;text-transform:uppercase;color:var(--or);margin-bottom:2rem}
+.hero-h1{font-family:'Playfair Display',serif;font-size:clamp(3rem,6vw,6rem);font-weight:900;line-height:.95;color:var(--blanc);margin-bottom:2rem}
+.hero-h1 em{display:block;color:var(--or);font-style:italic;font-weight:400;font-size:.7em}
+.hero-sub{font-size:.85rem;line-height:1.8;color:rgba(255,255,255,.45);max-width:36ch;margin-bottom:3rem}
+.hero-actions{display:flex;align-items:center;gap:2rem}
+.btn-primary{display:inline-block;padding:.9rem 2.5rem;background:var(--or);color:var(--noir);font-size:.75rem;font-weight:500;letter-spacing:.18em;text-transform:uppercase;transition:all .25s}
+.btn-primary:hover{background:var(--or2);transform:translateY(-2px)}
+.btn-link{font-size:.75rem;letter-spacing:.15em;text-transform:uppercase;color:rgba(255,255,255,.5);border-bottom:1px solid rgba(255,255,255,.2);padding-bottom:2px;transition:color .2s}
+.btn-link:hover{color:var(--blanc)}
+.hero-right{position:relative;overflow:hidden}
+.hero-visual{width:100%;height:100%;background:linear-gradient(160deg,#1a0808 0%,#3d0f0f 40%,#1a0808 100%);display:flex;align-items:center;justify-content:center;position:relative}
+.hero-visual::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 80% at 50% 40%,rgba(201,168,76,.08) 0%,transparent 70%)}
+.hero-visual-inner{position:relative;width:320px;height:520px}
+/* Dress illustration */
+.dress-art{position:absolute;inset:0}
+.hero-scroll-hint{position:absolute;bottom:3rem;left:50%;transform:translateX(-50%);font-size:.6rem;letter-spacing:.25em;text-transform:uppercase;color:rgba(255,255,255,.25);display:flex;flex-direction:column;align-items:center;gap:.8rem}
+.hero-scroll-hint::after{content:'';width:1px;height:50px;background:linear-gradient(var(--or),transparent)}
 
-    /* ─── UTILS ──────────────────────────────────────────── */
-    .container { width: min(1200px, 92vw); margin-inline: auto; }
-    .gold-line {
-      display: block; width: 60px; height: 1px;
-      background: var(--or); margin-inline: auto; margin-block: 1.5rem;
-    }
-    .gold-line--left { margin-inline: 0; }
+/* BANDE */
+.band{background:var(--or);padding:.7rem 0;overflow:hidden;white-space:nowrap}
+.band-track{display:inline-flex;gap:2.5rem;animation:slide 20s linear infinite}
+.band-item{font-size:.65rem;letter-spacing:.25em;text-transform:uppercase;color:var(--noir);font-weight:500}
+.band-sep{color:rgba(0,0,0,.4)}
 
-    /* ─── NAVBAR ─────────────────────────────────────────── */
-    nav {
-      position: fixed; top: 0; inset-inline: 0; z-index: 100;
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 1.4rem 4vw;
-      background: transparent;
-      transition: background .5s, padding .5s;
-    }
-    nav.scrolled {
-      background: rgba(26,10,13,.93);
-      backdrop-filter: blur(12px);
-      padding: .9rem 4vw;
-    }
-    .nav-brand {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 1.35rem;
-      font-weight: 500;
-      letter-spacing: .18em;
-      text-transform: uppercase;
-      color: var(--or-light);
-    }
-    .nav-links { display: flex; gap: 2.4rem; list-style: none; }
-    .nav-links a {
-      font-size: .75rem;
-      letter-spacing: .14em;
-      text-transform: uppercase;
-      color: rgba(255,255,255,.75);
-      transition: color .25s;
-    }
-    .nav-links a:hover { color: var(--or-light); }
-    .nav-cta {
-      font-size: .72rem;
-      letter-spacing: .12em;
-      text-transform: uppercase;
-      padding: .55rem 1.4rem;
-      border: 1px solid var(--or);
-      color: var(--or-light);
-      transition: background .25s, color .25s;
-    }
-    .nav-cta:hover { background: var(--or); color: var(--ink); }
+/* COLLECTION */
+.collection{padding:8rem 5vw}
+.section-header{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:5rem}
+.section-label{font-size:.62rem;letter-spacing:.3em;text-transform:uppercase;color:var(--or);margin-bottom:.8rem}
+.section-title{font-family:'Playfair Display',serif;font-size:clamp(2.2rem,4vw,3.5rem);font-weight:700;line-height:1.1}
+.section-link{font-size:.72rem;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--gris2);padding-bottom:3px}
+.products{display:grid;grid-template-columns:repeat(3,1fr);gap:2px}
+.product{background:var(--noir);position:relative;overflow:hidden;cursor:pointer}
+.product:hover .product-img-wrap{transform:scale(1.04)}
+.product-img-wrap{aspect-ratio:3/4;overflow:hidden;transition:transform .6s ease;display:flex;align-items:center;justify-content:center;position:relative}
+.product-canvas{width:100%;height:100%;display:flex;align-items:center;justify-content:center;position:relative;transition:transform .6s}
+.product-info{padding:1.8rem 1.6rem 2rem;background:var(--noir)}
+.product-cat{font-size:.6rem;letter-spacing:.25em;text-transform:uppercase;color:var(--or);margin-bottom:.6rem}
+.product-name{font-family:'Playfair Display',serif;font-size:1.3rem;color:var(--blanc);margin-bottom:.5rem;font-weight:400}
+.product-desc{font-size:.78rem;line-height:1.7;color:rgba(255,255,255,.38);margin-bottom:1.4rem}
+.product-footer{display:flex;align-items:center;justify-content:space-between}
+.dots{display:flex;gap:.4rem}
+.dot{width:12px;height:12px;border-radius:50%;border:1.5px solid rgba(255,255,255,.15);cursor:pointer;transition:all .2s}
+.dot:hover{border-color:var(--or);transform:scale(1.2)}
+.price{font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--or)}
 
-    /* ─── HERO ───────────────────────────────────────────── */
-    .hero {
-      position: relative;
-      height: 100svh;
-      min-height: 640px;
-      display: grid;
-      place-items: center;
-      overflow: hidden;
-      background: var(--ink);
-    }
-    .hero-bg {
-      position: absolute; inset: 0;
-      background:
-        radial-gradient(ellipse 70% 60% at 30% 60%, rgba(92,10,30,.85) 0%, transparent 70%),
-        radial-gradient(ellipse 60% 80% at 75% 40%, rgba(122,16,48,.5) 0%, transparent 65%),
-        linear-gradient(135deg, #1A0A0D 0%, #2D0F1A 50%, #1A0A0D 100%);
-    }
-    /* subtle pattern overlay */
-    .hero-bg::after {
-      content: '';
-      position: absolute; inset: 0;
-      background-image:
-        repeating-linear-gradient(45deg, rgba(196,146,42,.04) 0, rgba(196,146,42,.04) 1px, transparent 1px, transparent 12px),
-        repeating-linear-gradient(-45deg, rgba(196,146,42,.04) 0, rgba(196,146,42,.04) 1px, transparent 1px, transparent 12px);
-    }
-    /* vertical gold ornament lines */
-    .hero-ornament {
-      position: absolute; top: 12%; bottom: 12%; width: 1px;
-      background: linear-gradient(to bottom, transparent, var(--or) 30%, var(--or) 70%, transparent);
-      opacity: .35;
-    }
-    .hero-ornament.left  { left: 7%; }
-    .hero-ornament.right { right: 7%; }
-    .hero-ornament::before, .hero-ornament::after {
-      content: '◆';
-      position: absolute; left: 50%; transform: translateX(-50%);
-      color: var(--or); font-size: .5rem; opacity: .8;
-    }
-    .hero-ornament::before { top: -1rem; }
-    .hero-ornament::after  { bottom: -1rem; }
+/* Dress canvas styles */
+.dc-bordeaux{background:linear-gradient(170deg,#1a0508 0%,#4a0815 50%,#1a0508 100%)}
+.dc-prune{background:linear-gradient(170deg,#0d0515 0%,#3d0f5a 50%,#0d0515 100%)}
+.dc-noir{background:linear-gradient(170deg,#050505 0%,#151515 50%,#050505 100%)}
 
-    .hero-content {
-      position: relative; z-index: 1;
-      text-align: center;
-      padding-inline: 1rem;
-      animation: fadeUp .9s ease both;
-    }
-    .hero-eyebrow {
-      font-size: .7rem;
-      letter-spacing: .28em;
-      text-transform: uppercase;
-      color: var(--or);
-      margin-bottom: 1.2rem;
-    }
-    .hero-title {
-      font-size: clamp(3.5rem, 9vw, 7.5rem);
-      font-weight: 300;
-      color: var(--cream);
-      line-height: 1;
-      margin-bottom: .3rem;
-    }
-    .hero-title em {
-      display: block;
-      font-style: italic;
-      font-weight: 300;
-      color: var(--or-light);
-    }
-    .hero-subtitle {
-      font-size: clamp(.8rem, 1.4vw, 1rem);
-      letter-spacing: .22em;
-      text-transform: uppercase;
-      color: rgba(255,255,255,.5);
-      margin-top: 1.4rem;
-      margin-bottom: 2.8rem;
-    }
-    .hero-cta {
-      display: inline-flex; align-items: center; gap: .8rem;
-      padding: .85rem 2.4rem;
-      background: var(--or);
-      color: var(--ink);
-      font-size: .78rem;
-      font-weight: 500;
-      letter-spacing: .16em;
-      text-transform: uppercase;
-      transition: background .25s, transform .25s;
-    }
-    .hero-cta:hover { background: var(--or-light); transform: translateY(-2px); }
-    .hero-cta svg { width: 14px; height: 14px; }
-    .hero-scroll {
-      position: absolute; bottom: 2.5rem; left: 50%; transform: translateX(-50%);
-      display: flex; flex-direction: column; align-items: center; gap: .6rem;
-      color: rgba(255,255,255,.3);
-      font-size: .65rem; letter-spacing: .2em; text-transform: uppercase;
-      animation: pulse 2.5s ease-in-out infinite;
-    }
-    .hero-scroll::after {
-      content: '';
-      display: block; width: 1px; height: 40px;
-      background: linear-gradient(to bottom, var(--or), transparent);
-    }
+/* HERO DRESS SVG */
+.hero-dress-svg,.product-dress-svg{filter:drop-shadow(0 20px 60px rgba(0,0,0,.6))}
 
-    /* ─── MARQUEE STRIP ──────────────────────────────────── */
-    .marquee-strip {
-      background: var(--bordeaux);
-      padding: .8rem 0;
-      overflow: hidden;
-      white-space: nowrap;
-    }
-    .marquee-track {
-      display: inline-flex; gap: 3rem;
-      animation: marquee 24s linear infinite;
-    }
-    .marquee-item {
-      font-size: .68rem;
-      letter-spacing: .22em;
-      text-transform: uppercase;
-      color: var(--or-pale);
-    }
-    .marquee-dot { color: var(--or); }
+/* SAVOIR */
+.savoir{background:var(--gris);padding:8rem 5vw;display:grid;grid-template-columns:1fr 1fr;gap:6rem;align-items:center}
+.savoir-text .section-label{margin-bottom:.8rem}
+.savoir-title{font-family:'Playfair Display',serif;font-size:clamp(2rem,3.5vw,3rem);font-weight:700;line-height:1.1;margin-bottom:1.5rem}
+.savoir-body{font-size:.88rem;line-height:1.95;color:var(--muted);margin-bottom:3rem}
+.features{display:flex;flex-direction:column;gap:1.2rem}
+.feature{display:flex;gap:1.2rem;align-items:flex-start;padding:1.2rem;background:var(--blanc);transition:all .3s}
+.feature:hover{background:var(--noir);color:var(--blanc)}
+.feature:hover .feat-title{color:var(--blanc)}
+.feature:hover .feat-desc{color:rgba(255,255,255,.45)}
+.feat-num{font-family:'Playfair Display',serif;font-size:2rem;color:var(--or);line-height:1;flex-shrink:0;font-weight:700}
+.feat-title{font-size:.85rem;font-weight:500;margin-bottom:.3rem;letter-spacing:.05em}
+.feat-desc{font-size:.78rem;line-height:1.6;color:var(--muted)}
+.savoir-visual{position:relative}
+.savoir-img{aspect-ratio:4/5;background:var(--noir);display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
+.savoir-img::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 70% 80% at 50% 40%,rgba(201,168,76,.06) 0%,transparent 70%)}
+.savoir-badge{position:absolute;bottom:-2rem;right:-2rem;width:110px;height:110px;background:var(--or);border-radius:50%;display:grid;place-items:center;text-align:center}
+.savoir-badge p{font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--noir);font-weight:600;line-height:1.5}
 
-    /* ─── SECTION SHARED ─────────────────────────────────── */
-    .section { padding-block: 7rem; }
-    .section-label {
-      font-size: .65rem;
-      letter-spacing: .28em;
-      text-transform: uppercase;
-      color: var(--or);
-      margin-bottom: 1rem;
-    }
-    .section-title { font-size: clamp(2rem, 4vw, 3rem); color: var(--ink); }
-    .section-title--light { color: var(--cream); }
-    .section-body {
-      font-size: .9rem;
-      line-height: 1.9;
-      color: var(--muted);
-      max-width: 52ch;
-    }
+/* PROCESS */
+.process{padding:8rem 5vw;background:var(--noir)}
+.process .section-label{color:var(--or)}
+.process .section-title{color:var(--blanc)}
+.process-header{margin-bottom:5rem}
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:rgba(255,255,255,.06)}
+.step{background:var(--noir);padding:3rem 2rem;transition:background .3s}
+.step:hover{background:#111}
+.step-n{font-family:'Playfair Display',serif;font-size:4rem;color:rgba(201,168,76,.15);line-height:1;margin-bottom:1rem;font-weight:900}
+.step-title{font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--blanc);margin-bottom:.6rem}
+.step-desc{font-size:.78rem;line-height:1.75;color:rgba(255,255,255,.38)}
+.step-icon{font-size:1.4rem;margin-bottom:1rem}
 
-    /* ─── COLLECTION ─────────────────────────────────────── */
-    .collection { background: var(--cream); }
-    .collection-header { text-align: center; margin-bottom: 5rem; }
-    .collection-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 3px;
-    }
+/* TEMOIGNAGES */
+.temoignages{padding:8rem 5vw;background:var(--gris)}
+.temoignages-header{margin-bottom:5rem}
+.temo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem}
+.temo{background:var(--blanc);padding:2.5rem}
+.temo-stars{color:var(--or);font-size:.8rem;margin-bottom:1rem;letter-spacing:.1em}
+.temo-text{font-family:'Playfair Display',serif;font-size:1rem;font-style:italic;line-height:1.75;color:var(--texte);margin-bottom:1.5rem;font-weight:400}
+.temo-author{display:flex;align-items:center;gap:.8rem}
+.temo-av{width:38px;height:38px;background:var(--or);border-radius:50%;display:grid;place-items:center;font-size:.75rem;font-weight:600;color:var(--noir);flex-shrink:0}
+.temo-name{font-size:.8rem;font-weight:500}
+.temo-city{font-size:.72rem;color:var(--muted)}
 
-    /* Product card */
-    .product-card { position: relative; overflow: hidden; background: var(--ink); cursor: pointer; }
-    .product-card--wide { grid-column: span 2; }
-    .product-visual {
-      position: relative;
-      aspect-ratio: 3/4;
-      overflow: hidden;
-    }
-    .product-card--wide .product-visual { aspect-ratio: 16/7; }
+/* COULEURS */
+.couleurs{padding:6rem 5vw;background:var(--blanc)}
+.couleurs-header{text-align:center;margin-bottom:4rem}
+.swatches{display:flex;justify-content:center;gap:2.5rem;flex-wrap:wrap}
+.swatch{text-align:center;cursor:pointer}
+.swatch-c{width:70px;height:70px;border-radius:50%;margin:0 auto .7rem;border:2px solid transparent;transition:all .3s}
+.swatch:hover .swatch-c,.swatch.on .swatch-c{border-color:var(--or);transform:scale(1.1)}
+.swatch-n{font-size:.65rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
 
-    /* Dress illustration using CSS */
-    .dress-canvas {
-      width: 100%; height: 100%;
-      display: flex; align-items: center; justify-content: center;
-      position: relative;
-      overflow: hidden;
-      transition: transform .6s ease;
-    }
-    .product-card:hover .dress-canvas { transform: scale(1.04); }
+/* COMMANDE */
+.commande{padding:8rem 5vw;background:var(--noir);display:grid;grid-template-columns:1fr 1fr;gap:6rem;align-items:start}
+.commande-info .section-label{color:var(--or)}
+.commande-info .section-title{color:var(--blanc);margin-bottom:1rem}
+.commande-sub{font-size:.88rem;line-height:1.85;color:rgba(255,255,255,.4);margin-bottom:3rem}
+.info-items{display:flex;flex-direction:column;gap:1.5rem}
+.info-item{display:flex;gap:1rem;align-items:flex-start}
+.info-icon{width:2.2rem;height:2.2rem;background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.25);display:grid;place-items:center;font-size:.9rem;flex-shrink:0}
+.info-label{font-size:.62rem;letter-spacing:.2em;text-transform:uppercase;color:var(--or);margin-bottom:.2rem}
+.info-val{font-size:.85rem;color:rgba(255,255,255,.55);line-height:1.5}
 
-    /* EL 3ALEL — Bordeaux Abaya + Tube Dress */
-    .dress-el3alel {
-      background: linear-gradient(160deg, #2D0F1A 0%, #5C0A1E 40%, #3D0D16 100%);
-    }
-    .dress-el3alel::before {
-      content: '';
-      position: absolute; inset: 0;
-      background:
-        repeating-linear-gradient(0deg, rgba(196,146,42,.12) 0, rgba(196,146,42,.12) 1px, transparent 1px, transparent 18px),
-        radial-gradient(ellipse 40% 70% at 50% 50%, rgba(92,10,30,.0) 0%, rgba(92,10,30,.6) 100%);
-    }
+/* FORM */
+form{display:flex;flex-direction:column;gap:1rem}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+.fg{display:flex;flex-direction:column;gap:.4rem}
+label{font-size:.62rem;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.35)}
+input,select,textarea{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:var(--blanc);padding:.85rem 1rem;font-family:'Inter',sans-serif;font-size:.85rem;font-weight:300;outline:none;transition:border .2s;resize:vertical;-webkit-appearance:none}
+input::placeholder,textarea::placeholder{color:rgba(255,255,255,.2)}
+input:focus,select:focus,textarea:focus{border-color:var(--or)}
+select option{background:#111}
+.form-submit{margin-top:.5rem;padding:1rem 2rem;background:var(--or);color:var(--noir);font-family:'Inter',sans-serif;font-size:.75rem;font-weight:600;letter-spacing:.2em;text-transform:uppercase;border:none;cursor:pointer;transition:all .2s}
+.form-submit:hover{background:var(--or2);transform:translateY(-2px)}
 
-    /* Purple Kaftan */
-    .dress-kaftan {
-      background: linear-gradient(160deg, #1A0A2A 0%, #3D1060 40%, #28084A 100%);
-    }
-    .dress-kaftan::before {
-      content: '';
-      position: absolute; inset: 0;
-      background:
-        repeating-linear-gradient(0deg, rgba(196,146,42,.15) 0, rgba(196,146,42,.15) 1px, transparent 1px, transparent 14px),
-        radial-gradient(ellipse 40% 70% at 50% 50%, transparent 0%, rgba(20,5,35,.6) 100%);
-    }
+/* FOOTER */
+footer{background:#050505;padding:3rem 5vw;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1.5rem}
+.footer-brand{font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--blanc);letter-spacing:.05em}
+.footer-brand span{color:var(--or);font-style:italic}
+.footer-copy{font-size:.68rem;letter-spacing:.1em;color:rgba(255,255,255,.2)}
 
-    /* SVG dress silhouettes */
-    .dress-svg {
-      position: relative; z-index: 1;
-      filter: drop-shadow(0 8px 32px rgba(0,0,0,.5));
-    }
+/* ANIMATIONS */
+@keyframes slide{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@keyframes up{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+.reveal{opacity:0;transform:translateY(30px);transition:opacity .7s ease,transform .7s ease}
+.reveal.in{opacity:1;transform:translateY(0)}
+.hero-left>*{animation:up .8s ease both}
+.hero-left>*:nth-child(1){animation-delay:.1s}
+.hero-left>*:nth-child(2){animation-delay:.2s}
+.hero-left>*:nth-child(3){animation-delay:.3s}
+.hero-left>*:nth-child(4){animation-delay:.4s}
 
-    /* Gold embroidery band */
-    .embroidery-band {
-      position: absolute;
-      left: 0; right: 0;
-      height: 3px;
-      background: linear-gradient(90deg, transparent, var(--or-light), var(--or), var(--or-light), transparent);
-      opacity: .8;
-    }
-    .embroidery-band--top    { top: 18%; }
-    .embroidery-band--bottom { bottom: 12%; }
-
-    /* pompom row */
-    .pompom-row {
-      position: absolute; bottom: 11%;
-      left: 50%; transform: translateX(-50%);
-      display: flex; gap: 4px;
-    }
-    .pompom {
-      width: 6px; height: 9px;
-      background: var(--or);
-      border-radius: 50% 50% 40% 40%;
-      opacity: .9;
-    }
-
-    .product-info {
-      padding: 2rem 2.2rem 2.4rem;
-      background: var(--ink);
-    }
-    .product-tag {
-      font-size: .62rem;
-      letter-spacing: .22em;
-      text-transform: uppercase;
-      color: var(--or);
-      margin-bottom: .8rem;
-    }
-    .product-name {
-      font-size: 1.55rem;
-      color: var(--cream);
-      margin-bottom: .5rem;
-    }
-    .product-desc {
-      font-size: .8rem;
-      line-height: 1.7;
-      color: rgba(255,255,255,.45);
-      margin-bottom: 1.4rem;
-    }
-    .product-footer {
-      display: flex; align-items: center; justify-content: space-between;
-    }
-    .product-colors { display: flex; gap: .45rem; }
-    .color-dot {
-      width: 14px; height: 14px;
-      border-radius: 50%;
-      border: 1.5px solid rgba(255,255,255,.15);
-      cursor: pointer;
-      transition: transform .2s, border-color .2s;
-    }
-    .color-dot:hover { transform: scale(1.25); border-color: var(--or); }
-    .product-price {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 1.3rem;
-      color: var(--or-light);
-    }
-    .product-price span {
-      font-size: .7rem;
-      font-family: 'Jost', sans-serif;
-      color: rgba(255,255,255,.3);
-      margin-left: .3rem;
-    }
-
-    /* ─── SAVOIR FAIRE ───────────────────────────────────── */
-    .savoir-faire {
-      background: var(--ink);
-      padding-block: 7rem;
-    }
-    .savoir-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 5rem;
-      align-items: center;
-    }
-    .savoir-visual {
-      position: relative;
-      aspect-ratio: 4/5;
-      background: var(--bordeaux-2);
-      overflow: hidden;
-    }
-    /* big ornate vertical stripe composition */
-    .savoir-visual::before {
-      content: '';
-      position: absolute; inset: 0;
-      background:
-        repeating-linear-gradient(
-          0deg,
-          rgba(196,146,42,.18) 0px, rgba(196,146,42,.18) 1px,
-          transparent 1px, transparent 16px
-        ),
-        repeating-linear-gradient(
-          90deg,
-          rgba(196,146,42,.08) 0px, rgba(196,146,42,.08) 1px,
-          transparent 1px, transparent 40px
-        );
-    }
-    .savoir-visual::after {
-      content: '';
-      position: absolute; inset: 12% 18%;
-      border: 1px solid rgba(196,146,42,.3);
-    }
-    .savoir-inner {
-      position: absolute; inset: 0;
-      display: flex; align-items: center; justify-content: center;
-    }
-    .savoir-inner svg { opacity: .6; }
-    .savoir-badge {
-      position: absolute; bottom: -1.5rem; right: -1.5rem;
-      width: 120px; height: 120px;
-      background: var(--or);
-      border-radius: 50%;
-      display: grid; place-items: center;
-      text-align: center;
-    }
-    .savoir-badge p {
-      font-size: .65rem;
-      letter-spacing: .1em;
-      text-transform: uppercase;
-      color: var(--ink);
-      font-weight: 500;
-      line-height: 1.4;
-    }
-    .savoir-content .section-body { color: rgba(255,255,255,.5); max-width: 44ch; }
-    .savoir-features {
-      margin-top: 2.5rem;
-      display: flex; flex-direction: column; gap: 1rem;
-    }
-    .savoir-feature {
-      display: grid; grid-template-columns: 2rem 1fr;
-      gap: .8rem; align-items: start;
-    }
-    .savoir-feature-icon {
-      width: 2rem; height: 2rem;
-      border: 1px solid rgba(196,146,42,.4);
-      display: grid; place-items: center;
-      font-size: .7rem; color: var(--or);
-      flex-shrink: 0;
-    }
-    .savoir-feature-text h4 {
-      font-size: .95rem; color: var(--cream);
-      font-family: 'Cormorant Garamond', serif;
-      margin-bottom: .2rem;
-    }
-    .savoir-feature-text p { font-size: .78rem; color: rgba(255,255,255,.4); line-height: 1.6; }
-
-    /* ─── PROCESS ────────────────────────────────────────── */
-    .process { background: var(--or-pale); padding-block: 6rem; }
-    .process-header { text-align: center; margin-bottom: 4rem; }
-    .process-steps {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 1px;
-      background: rgba(196,146,42,.25);
-    }
-    .process-step {
-      background: var(--or-pale);
-      padding: 2.5rem 1.8rem;
-      text-align: center;
-      transition: background .3s;
-    }
-    .process-step:hover { background: #EFE0BB; }
-    .step-num {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 3rem;
-      color: rgba(196,146,42,.25);
-      line-height: 1;
-      margin-bottom: 1rem;
-    }
-    .step-icon { font-size: 1.5rem; margin-bottom: 1rem; }
-    .step-title {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 1.1rem;
-      color: var(--bordeaux);
-      margin-bottom: .6rem;
-    }
-    .step-desc { font-size: .78rem; line-height: 1.7; color: var(--muted); }
-
-    /* ─── DETAILS ─────────────────────────────────────────── */
-    .details { background: var(--cream); padding-block: 6rem; }
-    .details-header { text-align: center; margin-bottom: 4rem; }
-    .details-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 2px;
-    }
-    .detail-card {
-      background: var(--ink);
-      padding: 3rem 2rem;
-      text-align: center;
-      position: relative;
-      overflow: hidden;
-    }
-    .detail-card::before {
-      content: '';
-      position: absolute; top: 0; left: 0; right: 0;
-      height: 2px;
-      background: linear-gradient(90deg, transparent, var(--or), transparent);
-    }
-    .detail-icon {
-      font-size: 2rem;
-      margin-bottom: 1.2rem;
-      display: block;
-    }
-    .detail-title {
-      font-size: 1.15rem;
-      color: var(--cream);
-      margin-bottom: .8rem;
-    }
-    .detail-text { font-size: .8rem; line-height: 1.75; color: rgba(255,255,255,.4); }
-
-    /* ─── COULEURS ────────────────────────────────────────── */
-    .couleurs { background: var(--ink); padding-block: 6rem; }
-    .couleurs-header { text-align: center; margin-bottom: 3rem; }
-    .couleur-swatches {
-      display: flex;
-      justify-content: center;
-      gap: 3rem;
-      flex-wrap: wrap;
-    }
-    .swatch-item { text-align: center; cursor: pointer; }
-    .swatch-circle {
-      width: 80px; height: 80px;
-      border-radius: 50%;
-      margin-inline: auto;
-      margin-bottom: .8rem;
-      border: 2px solid rgba(255,255,255,.08);
-      transition: transform .3s, box-shadow .3s;
-      position: relative;
-    }
-    .swatch-item:hover .swatch-circle { transform: scale(1.12); box-shadow: 0 0 0 3px var(--or); }
-    .swatch-item.active .swatch-circle { box-shadow: 0 0 0 3px var(--or); }
-    .swatch-name {
-      font-size: .7rem; letter-spacing: .16em;
-      text-transform: uppercase; color: rgba(255,255,255,.5);
-    }
-
-    /* ─── TEMOIGNAGES ─────────────────────────────────────── */
-    .temoignages { background: var(--bordeaux); padding-block: 6rem; }
-    .temoignages-header { text-align: center; margin-bottom: 3.5rem; }
-    .temoignages-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 2px;
-    }
-    .temoignage-card {
-      background: rgba(0,0,0,.25);
-      padding: 2.2rem;
-      position: relative;
-    }
-    .temoignage-card::before {
-      content: '"';
-      position: absolute; top: 1rem; right: 1.5rem;
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 5rem;
-      color: rgba(196,146,42,.2);
-      line-height: 1;
-    }
-    .temoignage-stars { color: var(--or); font-size: .75rem; margin-bottom: .8rem; letter-spacing: .1em; }
-    .temoignage-text { font-size: .85rem; line-height: 1.8; color: rgba(255,255,255,.7); margin-bottom: 1.5rem; font-style: italic; }
-    .temoignage-author { display: flex; align-items: center; gap: .8rem; }
-    .temoignage-avatar {
-      width: 36px; height: 36px; border-radius: 50%;
-      background: var(--or);
-      display: grid; place-items: center;
-      font-size: .75rem; font-weight: 500; color: var(--ink);
-      flex-shrink: 0;
-    }
-    .temoignage-name { font-size: .8rem; color: var(--cream); }
-    .temoignage-location { font-size: .72rem; color: rgba(255,255,255,.4); }
-
-    /* ─── CONTACT ─────────────────────────────────────────── */
-    .contact { background: var(--ink); padding-block: 7rem; }
-    .contact-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 5rem;
-      align-items: start;
-    }
-    .contact-info .section-body { color: rgba(255,255,255,.5); margin-top: .5rem; }
-    .contact-items { margin-top: 2.5rem; display: flex; flex-direction: column; gap: 1.5rem; }
-    .contact-item { display: flex; align-items: flex-start; gap: 1rem; }
-    .contact-item-icon {
-      width: 2.2rem; height: 2.2rem; flex-shrink: 0;
-      border: 1px solid rgba(196,146,42,.35);
-      display: grid; place-items: center;
-      color: var(--or); font-size: .85rem;
-    }
-    .contact-item-body { }
-    .contact-item-label { font-size: .65rem; letter-spacing: .2em; text-transform: uppercase; color: var(--or); margin-bottom: .2rem; }
-    .contact-item-value { font-size: .85rem; color: rgba(255,255,255,.65); line-height: 1.5; }
-
-    form { display: flex; flex-direction: column; gap: 1.2rem; }
-    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-    .form-group { display: flex; flex-direction: column; gap: .4rem; }
-    label { font-size: .65rem; letter-spacing: .2em; text-transform: uppercase; color: rgba(255,255,255,.4); }
-    input, select, textarea {
-      background: rgba(255,255,255,.04);
-      border: 1px solid rgba(255,255,255,.1);
-      color: var(--cream);
-      padding: .85rem 1rem;
-      font-family: 'Jost', sans-serif;
-      font-size: .85rem;
-      font-weight: 300;
-      outline: none;
-      transition: border-color .2s;
-      resize: vertical;
-    }
-    input:focus, select:focus, textarea:focus { border-color: var(--or); }
-    select option { background: var(--ink); }
-    .form-submit {
-      margin-top: .5rem;
-      padding: 1rem 2rem;
-      background: var(--or);
-      color: var(--ink);
-      font-family: 'Jost', sans-serif;
-      font-size: .78rem;
-      font-weight: 500;
-      letter-spacing: .16em;
-      text-transform: uppercase;
-      border: none; cursor: pointer;
-      transition: background .25s, transform .2s;
-    }
-    .form-submit:hover { background: var(--or-light); transform: translateY(-2px); }
-
-    /* ─── FOOTER ─────────────────────────────────────────── */
-    footer {
-      background: #0D0408;
-      padding: 3rem 4vw 1.5rem;
-      display: grid;
-      grid-template-columns: 1fr auto;
-      align-items: end;
-      gap: 2rem;
-    }
-    .footer-brand {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 1.1rem; letter-spacing: .2em;
-      text-transform: uppercase; color: var(--or-light);
-      margin-bottom: .5rem;
-    }
-    .footer-tagline { font-size: .72rem; color: rgba(255,255,255,.25); letter-spacing: .12em; }
-    .footer-copy { font-size: .68rem; color: rgba(255,255,255,.2); letter-spacing: .1em; text-align: right; }
-
-    /* ─── ANIMATIONS ─────────────────────────────────────── */
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(24px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-    @keyframes marquee {
-      from { transform: translateX(0); }
-      to   { transform: translateX(-50%); }
-    }
-    @keyframes pulse {
-      0%, 100% { opacity: .3; }
-      50%       { opacity: .7; }
-    }
-
-    .reveal {
-      opacity: 0; transform: translateY(28px);
-      transition: opacity .7s ease, transform .7s ease;
-    }
-    .reveal.visible { opacity: 1; transform: translateY(0); }
-
-    /* ─── RESPONSIVE ─────────────────────────────────────── */
-    @media (max-width: 900px) {
-      .collection-grid { grid-template-columns: 1fr; }
-      .product-card--wide { grid-column: span 1; }
-      .product-card--wide .product-visual { aspect-ratio: 3/4; }
-      .savoir-grid, .contact-grid { grid-template-columns: 1fr; gap: 3rem; }
-      .process-steps { grid-template-columns: 1fr 1fr; }
-      .temoignages-grid { grid-template-columns: 1fr; }
-      .details-grid { grid-template-columns: 1fr 1fr; }
-      .nav-links { display: none; }
-    }
-    @media (max-width: 600px) {
-      .process-steps, .details-grid { grid-template-columns: 1fr; }
-      .form-row { grid-template-columns: 1fr; }
-      footer { grid-template-columns: 1fr; }
-      .footer-copy { text-align: left; }
-    }
-  </style>
+/* RESPONSIVE */
+@media(max-width:900px){
+  .hero{grid-template-columns:1fr}
+  .hero-right{display:none}
+  .savoir{grid-template-columns:1fr;gap:3rem}
+  .savoir-order{order:-1}
+  .commande{grid-template-columns:1fr;gap:3rem}
+  .products{grid-template-columns:1fr 1fr}
+  .steps{grid-template-columns:1fr 1fr}
+  .temo-grid{grid-template-columns:1fr}
+  .section-header{flex-direction:column;align-items:flex-start;gap:1rem}
+  .nav-menu{display:none}
+}
+@media(max-width:600px){
+  .products{grid-template-columns:1fr}
+  .steps{grid-template-columns:1fr}
+  .frow{grid-template-columns:1fr}
+  footer{flex-direction:column;align-items:flex-start}
+}
+</style>
 </head>
 <body>
 
-<!-- ═══════════════════ NAV ═══════════════════ -->
-<nav id="navbar">
-  <span class="nav-brand">Yemma Création</span>
-  <ul class="nav-links">
+<!-- NAV -->
+<nav id="nav">
+  <div class="nav-logo">Yemma <span>Création</span></div>
+  <ul class="nav-menu">
     <li><a href="#collection">Collection</a></li>
-    <li><a href="#savoir-faire">Savoir-faire</a></li>
+    <li><a href="#savoir">Savoir-faire</a></li>
     <li><a href="#commande">Commander</a></li>
   </ul>
-  <a href="#commande" class="nav-cta">Sur mesure</a>
+  <a href="#commande" class="nav-btn">Sur mesure</a>
 </nav>
 
-<!-- ═══════════════════ HERO ══════════════════ -->
-<section class="hero" id="accueil">
-  <div class="hero-bg"></div>
-  <div class="hero-ornament left"></div>
-  <div class="hero-ornament right"></div>
-
-  <div class="hero-content">
-    <p class="hero-eyebrow">Couture Artisanale · Tunisie</p>
-    <h1 class="hero-title">
-      Maison
-      <em>Merati</em>
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-left">
+    <p class="hero-tag">Couture artisanale · Fait à la main</p>
+    <h1 class="hero-h1">
+      Robes<br>brodées<br><em>à la main</em>
     </h1>
-    <p class="hero-subtitle">Chaque pièce, brodée à la main · Éditions limitées</p>
-    <a href="#collection" class="hero-cta">
-      Découvrir la collection
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-        <path d="M5 12h14M12 5l7 7-7 7"/>
-      </svg>
-    </a>
+    <p class="hero-sub">Chaque pièce est unique — broderies dorées, pampilles métalliques, tissus nobles. Une tradition réinterprétée avec élégance.</p>
+    <div class="hero-actions">
+      <a href="#collection" class="btn-primary">Voir la collection</a>
+      <a href="#savoir" class="btn-link">Notre savoir-faire</a>
+    </div>
   </div>
-
-  <div class="hero-scroll">Défiler</div>
+  <div class="hero-right">
+    <div class="hero-visual">
+      <div class="hero-visual-inner">
+        <svg class="hero-dress-svg" viewBox="0 0 320 520" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Abaya silhouette -->
+          <path d="M100 40 Q160 25 220 40 L260 90 Q285 140 288 220 L292 440 Q280 480 250 490 L160 496 L70 490 Q40 480 28 440 L32 220 Q35 140 60 90 Z" fill="rgba(92,10,30,0.55)" stroke="rgba(201,168,76,0.4)" stroke-width="1"/>
+          <!-- Tube dress -->
+          <rect x="122" y="75" width="76" height="380" rx="3" fill="rgba(60,5,18,0.8)"/>
+          <!-- Top embroidery -->
+          <rect x="122" y="85" width="76" height="5" fill="rgba(201,168,76,0.8)"/>
+          <rect x="122" y="92" width="76" height="2" fill="rgba(232,201,106,0.4)"/>
+          <!-- Diamonds pattern -->
+          <path d="M135 100 L145 110 L135 120 L125 110 Z" fill="rgba(201,168,76,0.3)"/>
+          <path d="M155 100 L165 110 L155 120 L145 110 Z" fill="rgba(201,168,76,0.3)"/>
+          <path d="M175 100 L185 110 L175 120 L165 110 Z" fill="rgba(201,168,76,0.3)"/>
+          <!-- Bottom embroidery -->
+          <rect x="122" y="420" width="76" height="5" fill="rgba(201,168,76,0.8)"/>
+          <rect x="122" y="427" width="76" height="2" fill="rgba(232,201,106,0.4)"/>
+          <!-- Pompoms -->
+          <circle cx="128" cy="440" r="3.5" fill="rgba(201,168,76,0.9)"/>
+          <circle cx="140" cy="443" r="3.5" fill="rgba(201,168,76,0.9)"/>
+          <circle cx="152" cy="440" r="3.5" fill="rgba(201,168,76,0.9)"/>
+          <circle cx="164" cy="443" r="3.5" fill="rgba(201,168,76,0.9)"/>
+          <circle cx="176" cy="440" r="3.5" fill="rgba(201,168,76,0.9)"/>
+          <circle cx="188" cy="443" r="3.5" fill="rgba(201,168,76,0.9)"/>
+          <!-- Sleeve gold -->
+          <line x1="28" y1="220" x2="122" y2="250" stroke="rgba(201,168,76,0.5)" stroke-width="4"/>
+          <line x1="292" y1="220" x2="198" y2="250" stroke="rgba(201,168,76,0.5)" stroke-width="4"/>
+          <!-- Sleeve pompoms -->
+          <circle cx="30" cy="225" r="3" fill="rgba(201,168,76,0.8)"/>
+          <circle cx="25" cy="233" r="3" fill="rgba(201,168,76,0.8)"/>
+          <circle cx="290" cy="225" r="3" fill="rgba(201,168,76,0.8)"/>
+          <circle cx="295" cy="233" r="3" fill="rgba(201,168,76,0.8)"/>
+        </svg>
+      </div>
+    </div>
+    <div class="hero-scroll-hint">Défiler</div>
+  </div>
 </section>
 
-<!-- ═════════════════ MARQUEE ════════════════ -->
-<div class="marquee-strip">
-  <div class="marquee-track" aria-hidden="true">
-    <!-- doubled for seamless loop -->
-    <span class="marquee-item">Broderie artisanale</span><span class="marquee-dot">◆</span>
-    <span class="marquee-item">Fils métallisés dorés</span><span class="marquee-dot">◆</span>
-    <span class="marquee-item">Mousseline & Crepe</span><span class="marquee-dot">◆</span>
-    <span class="marquee-item">Fait à la main</span><span class="marquee-dot">◆</span>
-    <span class="marquee-item">Pampilles dorées</span><span class="marquee-dot">◆</span>
-    <span class="marquee-item">Sur mesure</span><span class="marquee-dot">◆</span>
-    <span class="marquee-item">Broderie artisanale</span><span class="marquee-dot">◆</span>
-    <span class="marquee-item">Fils métallisés dorés</span><span class="marquee-dot">◆</span>
-    <span class="marquee-item">Mousseline & Crepe</span><span class="marquee-dot">◆</span>
-    <span class="marquee-item">Fait à la main</span><span class="marquee-dot">◆</span>
-    <span class="marquee-item">Pampilles dorées</span><span class="marquee-dot">◆</span>
-    <span class="marquee-item">Sur mesure</span><span class="marquee-dot">◆</span>
+<!-- BANDE -->
+<div class="band">
+  <div class="band-track">
+    <span class="band-item">Broderie main</span><span class="band-sep">◆</span>
+    <span class="band-item">Pampilles dorées</span><span class="band-sep">◆</span>
+    <span class="band-item">Sur mesure</span><span class="band-sep">◆</span>
+    <span class="band-item">Fils métallisés</span><span class="band-sep">◆</span>
+    <span class="band-item">Mousseline & Crepe</span><span class="band-sep">◆</span>
+    <span class="band-item">Finitions couture</span><span class="band-sep">◆</span>
+    <span class="band-item">Broderie main</span><span class="band-sep">◆</span>
+    <span class="band-item">Pampilles dorées</span><span class="band-sep">◆</span>
+    <span class="band-item">Sur mesure</span><span class="band-sep">◆</span>
+    <span class="band-item">Fils métallisés</span><span class="band-sep">◆</span>
+    <span class="band-item">Mousseline & Crepe</span><span class="band-sep">◆</span>
+    <span class="band-item">Finitions couture</span><span class="band-sep">◆</span>
   </div>
 </div>
 
-<!-- ════════════════ COLLECTION ══════════════ -->
-<section class="section collection" id="collection">
-  <div class="container">
-    <div class="collection-header reveal">
-      <p class="section-label">Collection Printemps 2026</p>
-      <h2 class="section-title">Les Pièces Signature</h2>
-      <span class="gold-line"></span>
-      <p class="section-body" style="margin-inline:auto;text-align:center">
-        Deux modèles emblématiques, inspirés de la tradition tunisienne,
-        réinterprétés avec une élégance contemporaine.
-      </p>
+<!-- COLLECTION -->
+<section class="collection" id="collection">
+  <div class="section-header reveal">
+    <div>
+      <p class="section-label">Collection 2026</p>
+      <h2 class="section-title">Les pièces signature</h2>
     </div>
-
-    <div class="collection-grid">
-      <!-- CARD 1 — EL 3ALEL -->
-      <div class="product-card reveal">
-        <div class="product-visual">
-          <div class="dress-canvas dress-el3alel">
-            <div class="embroidery-band embroidery-band--top"></div>
-            <div class="embroidery-band embroidery-band--bottom"></div>
-            <!-- Abaya silhouette SVG -->
-            <svg class="dress-svg" width="200" height="340" viewBox="0 0 200 340" fill="none">
-              <!-- Abaya open robe -->
-              <path d="M60 30 Q100 20 140 30 L160 60 Q170 90 175 160 L180 300 Q170 320 150 325 L100 330 L50 325 Q30 320 20 300 L25 160 Q30 90 40 60 Z" fill="rgba(92,10,30,0.6)" stroke="rgba(196,146,42,0.5)" stroke-width="0.8"/>
-              <!-- Tube dress underneath -->
-              <rect x="75" y="55" width="50" height="240" rx="2" fill="rgba(72,5,20,0.8)" stroke="rgba(196,146,42,0.4)" stroke-width="0.6"/>
-              <!-- Gold embroidery stripes -->
-              <rect x="75" y="70" width="50" height="4" fill="rgba(196,146,42,0.7)"/>
-              <rect x="75" y="76" width="50" height="1.5" fill="rgba(232,195,106,0.5)"/>
-              <rect x="75" y="270" width="50" height="4" fill="rgba(196,146,42,0.7)"/>
-              <rect x="75" y="276" width="50" height="1.5" fill="rgba(232,195,106,0.5)"/>
-              <!-- Abaya sleeve bands -->
-              <line x1="20" y1="160" x2="80" y2="180" stroke="rgba(196,146,42,0.5)" stroke-width="2"/>
-              <line x1="20" y1="165" x2="80" y2="185" stroke="rgba(232,195,106,0.3)" stroke-width="1"/>
-              <line x1="180" y1="160" x2="120" y2="180" stroke="rgba(196,146,42,0.5)" stroke-width="2"/>
-              <!-- Gold dots pompon -->
-              <circle cx="75" cy="282" r="2.5" fill="rgba(196,146,42,0.8)"/>
-              <circle cx="84" cy="284" r="2.5" fill="rgba(196,146,42,0.8)"/>
-              <circle cx="93" cy="282" r="2.5" fill="rgba(196,146,42,0.8)"/>
-              <circle cx="102" cy="284" r="2.5" fill="rgba(196,146,42,0.8)"/>
-              <circle cx="111" cy="282" r="2.5" fill="rgba(196,146,42,0.8)"/>
-              <circle cx="120" cy="284" r="2.5" fill="rgba(196,146,42,0.8)"/>
-            </svg>
-          </div>
-        </div>
-        <div class="product-info">
-          <p class="product-tag">Modèle EL 3ALEL · Ensemble 2 pièces</p>
-          <h3 class="product-name serif">Abaya + Robe Tube</h3>
-          <p class="product-desc">Abaya ouverte fluide avec manches larges kimono, assortie d'une robe tube sans bretelles. Broderies dorées appliquées à la main, finitions en pampilles.</p>
-          <div class="product-footer">
-            <div class="product-colors" title="Couleurs disponibles">
-              <div class="color-dot" style="background:#5C0A1E" title="Bordeaux"></div>
-              <div class="color-dot" style="background:#1A1A1A" title="Noir"></div>
-              <div class="color-dot" style="background:#5A5940" title="Kaki"></div>
-              <div class="color-dot" style="background:#D4B896" title="Beige"></div>
-            </div>
-            <span class="product-price">Sur devis <span>/ pièce</span></span>
-          </div>
-        </div>
-      </div>
-
-      <!-- CARD 2 — KAFTAN MAJESTUEUX -->
-      <div class="product-card reveal">
-        <div class="product-visual">
-          <div class="dress-canvas dress-kaftan">
-            <div class="embroidery-band embroidery-band--top" style="opacity:.6"></div>
-            <div class="embroidery-band embroidery-band--bottom" style="opacity:.6"></div>
-            <!-- Kaftan silhouette SVG -->
-            <svg class="dress-svg" width="200" height="340" viewBox="0 0 200 340" fill="none">
-              <!-- Kaftan body -->
-              <path d="M55 25 Q100 15 145 25 L175 70 Q185 100 185 160 L182 295 Q175 320 155 328 L100 332 L45 328 Q25 320 18 295 L15 160 Q15 100 25 70 Z" fill="rgba(55,10,85,0.65)" stroke="rgba(196,146,42,0.45)" stroke-width="0.8"/>
-              <!-- V neck -->
-              <path d="M82 28 Q100 55 118 28" stroke="rgba(196,146,42,0.6)" stroke-width="1.5" fill="none"/>
-              <!-- Vertical embroidery bands -->
-              <rect x="62" y="28" width="8" height="270" fill="rgba(196,146,42,0.55)" rx="1"/>
-              <rect x="130" y="28" width="8" height="270" fill="rgba(196,146,42,0.55)" rx="1"/>
-              <rect x="96" y="28" width="8" height="270" fill="rgba(196,146,42,0.4)" rx="1"/>
-              <!-- Sleeve gold bands -->
-              <path d="M15 160 L62 180" stroke="rgba(196,146,42,0.5)" stroke-width="6"/>
-              <path d="M185 160 L138 180" stroke="rgba(196,146,42,0.5)" stroke-width="6"/>
-              <!-- Bottom pompom row -->
-              <circle cx="50"  cy="300" r="3" fill="rgba(196,146,42,0.85)"/>
-              <circle cx="63"  cy="303" r="3" fill="rgba(196,146,42,0.85)"/>
-              <circle cx="76"  cy="300" r="3" fill="rgba(196,146,42,0.85)"/>
-              <circle cx="89"  cy="303" r="3" fill="rgba(196,146,42,0.85)"/>
-              <circle cx="102" cy="300" r="3" fill="rgba(196,146,42,0.85)"/>
-              <circle cx="115" cy="303" r="3" fill="rgba(196,146,42,0.85)"/>
-              <circle cx="128" cy="300" r="3" fill="rgba(196,146,42,0.85)"/>
-              <circle cx="141" cy="303" r="3" fill="rgba(196,146,42,0.85)"/>
-              <circle cx="154" cy="300" r="3" fill="rgba(196,146,42,0.85)"/>
-              <!-- Sleeve pompoms -->
-              <circle cx="19"  cy="165" r="2.5" fill="rgba(196,146,42,0.8)"/>
-              <circle cx="14"  cy="173" r="2.5" fill="rgba(196,146,42,0.8)"/>
-              <circle cx="181" cy="165" r="2.5" fill="rgba(196,146,42,0.8)"/>
-              <circle cx="186" cy="173" r="2.5" fill="rgba(196,146,42,0.8)"/>
-            </svg>
-          </div>
-        </div>
-        <div class="product-info">
-          <p class="product-tag">Modèle Majestueux · Robe longue</p>
-          <h3 class="product-name serif">Kaftan Brodé</h3>
-          <p class="product-desc">Robe longue droite fluide, col tunisien fendu en V, manches larges kimono. Bandes verticales brodées en fils métallisés or et bordeaux. Pampilles dorées rondes cousues à la main.</p>
-          <div class="product-footer">
-            <div class="product-colors" title="Couleurs disponibles">
-              <div class="color-dot" style="background:#3D1060" title="Prune"></div>
-              <div class="color-dot" style="background:#5C0A1E" title="Bordeaux"></div>
-              <div class="color-dot" style="background:#0A1A3D" title="Marine"></div>
-              <div class="color-dot" style="background:#1A1A1A" title="Noir"></div>
-            </div>
-            <span class="product-price">Sur devis <span>/ pièce</span></span>
-          </div>
-        </div>
-      </div>
-    </div>
+    <a href="#commande" class="section-link">Commander →</a>
   </div>
-</section>
+  <div class="products">
 
-<!-- ══════════════ SAVOIR-FAIRE ══════════════ -->
-<section class="savoir-faire" id="savoir-faire">
-  <div class="container">
-    <div class="savoir-grid">
-      <div class="savoir-visual reveal">
-        <div class="savoir-inner">
-          <!-- Large decorative embroidery motif SVG -->
-          <svg width="260" height="320" viewBox="0 0 260 320" fill="none">
-            <!-- Central medallion -->
-            <polygon points="130,30 155,80 210,80 168,112 184,165 130,133 76,165 92,112 50,80 105,80" stroke="rgba(196,146,42,0.6)" stroke-width="1" fill="none"/>
-            <polygon points="130,50 149,90 192,90 158,114 170,158 130,133 90,158 102,114 68,90 111,90" stroke="rgba(196,146,42,0.35)" stroke-width="0.7" fill="none"/>
-            <!-- Vertical stripes -->
-            <line x1="80"  y1="0" x2="80"  y2="320" stroke="rgba(196,146,42,0.2)" stroke-width="1"/>
-            <line x1="130" y1="0" x2="130" y2="320" stroke="rgba(196,146,42,0.3)" stroke-width="1.5"/>
-            <line x1="180" y1="0" x2="180" y2="320" stroke="rgba(196,146,42,0.2)" stroke-width="1"/>
-            <!-- Geometric repeat motifs -->
-            <rect x="118" y="180" width="24" height="24" transform="rotate(45 130 192)" stroke="rgba(196,146,42,0.4)" stroke-width="0.8" fill="none"/>
-            <rect x="68"  y="200" width="18" height="18" transform="rotate(45 77 209)"  stroke="rgba(196,146,42,0.3)" stroke-width="0.8" fill="none"/>
-            <rect x="168" y="200" width="18" height="18" transform="rotate(45 177 209)" stroke="rgba(196,146,42,0.3)" stroke-width="0.8" fill="none"/>
-            <!-- pompom dots -->
-            <circle cx="50"  cy="305" r="4" fill="rgba(196,146,42,0.7)"/>
-            <circle cx="70"  cy="308" r="4" fill="rgba(196,146,42,0.7)"/>
-            <circle cx="90"  cy="305" r="4" fill="rgba(196,146,42,0.7)"/>
-            <circle cx="110" cy="308" r="4" fill="rgba(196,146,42,0.7)"/>
-            <circle cx="130" cy="305" r="4" fill="rgba(196,146,42,0.7)"/>
-            <circle cx="150" cy="308" r="4" fill="rgba(196,146,42,0.7)"/>
-            <circle cx="170" cy="305" r="4" fill="rgba(196,146,42,0.7)"/>
-            <circle cx="190" cy="308" r="4" fill="rgba(196,146,42,0.7)"/>
-            <circle cx="210" cy="305" r="4" fill="rgba(196,146,42,0.7)"/>
+    <!-- Produit 1 -->
+    <div class="product reveal">
+      <div class="product-img-wrap">
+        <div class="product-canvas dc-bordeaux">
+          <svg class="product-dress-svg" viewBox="0 0 220 360" fill="none" width="180">
+            <path d="M65 28 Q110 18 155 28 L178 62 Q192 95 194 158 L196 305 Q188 330 168 338 L110 343 L52 338 Q32 330 24 305 L26 158 Q28 95 42 62 Z" fill="rgba(80,8,25,0.6)" stroke="rgba(201,168,76,0.45)" stroke-width=".8"/>
+            <rect x="84" y="50" width="52" height="262" rx="2" fill="rgba(55,5,18,0.85)"/>
+            <rect x="84" y="58" width="52" height="4" fill="rgba(201,168,76,0.85)"/>
+            <rect x="84" y="64" width="52" height="1.5" fill="rgba(232,201,106,0.4)"/>
+            <path d="M93 72 L100 80 L93 88 L86 80Z" fill="rgba(201,168,76,0.35)"/>
+            <path d="M107 72 L114 80 L107 88 L100 80Z" fill="rgba(201,168,76,0.35)"/>
+            <path d="M121 72 L128 80 L121 88 L114 80Z" fill="rgba(201,168,76,0.35)"/>
+            <rect x="84" y="290" width="52" height="4" fill="rgba(201,168,76,0.85)"/>
+            <circle cx="90" cy="300" r="2.5" fill="rgba(201,168,76,0.9)"/>
+            <circle cx="99" cy="303" r="2.5" fill="rgba(201,168,76,0.9)"/>
+            <circle cx="108" cy="300" r="2.5" fill="rgba(201,168,76,0.9)"/>
+            <circle cx="117" cy="303" r="2.5" fill="rgba(201,168,76,0.9)"/>
+            <circle cx="126" cy="300" r="2.5" fill="rgba(201,168,76,0.9)"/>
+            <line x1="24" y1="158" x2="84" y2="178" stroke="rgba(201,168,76,0.5)" stroke-width="3.5"/>
+            <line x1="196" y1="158" x2="136" y2="178" stroke="rgba(201,168,76,0.5)" stroke-width="3.5"/>
           </svg>
         </div>
-        <div class="savoir-badge">
-          <p>100%<br/>Fait<br/>Main</p>
-        </div>
       </div>
-
-      <div class="savoir-content reveal">
-        <p class="section-label">Notre ADN</p>
-        <h2 class="section-title section-title--light">Un savoir-faire<br/>transmis</h2>
-        <span class="gold-line gold-line--left"></span>
-        <p class="section-body">
-          Chaque robe Yemma Création est une pièce unique, confectionnée selon les codes de la couture traditionnelle tunisienne. Les broderies sont réalisées à la main, fil métallisé après fil métallisé, sur des tissus sélectionnés pour leur fluidité et leur tenue.
-        </p>
-        <div class="savoir-features">
-          <div class="savoir-feature">
-            <div class="savoir-feature-icon">◆</div>
-            <div class="savoir-feature-text">
-              <h4>Broderie à la main</h4>
-              <p>Fils polyester métallisés or, motifs géométriques et floraux, alignés et symétriques à chaque pièce.</p>
-            </div>
+      <div class="product-info">
+        <p class="product-cat">Ensemble 2 pièces</p>
+        <h3 class="product-name">Abaya + Robe Tube</h3>
+        <p class="product-desc">Abaya ouverte fluide, manches larges, broderies dorées appliquées à la main. Robe tube assortie sans bretelles.</p>
+        <div class="product-footer">
+          <div class="dots">
+            <div class="dot" style="background:#5C0A1E" title="Bordeaux"></div>
+            <div class="dot" style="background:#111" title="Noir"></div>
+            <div class="dot" style="background:#5A5940" title="Kaki"></div>
+            <div class="dot" style="background:#C8A87A" title="Beige"></div>
           </div>
-          <div class="savoir-feature">
-            <div class="savoir-feature-icon">◈</div>
-            <div class="savoir-feature-text">
-              <h4>Pampilles dorées</h4>
-              <p>Cousues une à une, régulièrement espacées le long des manches et du bas de robe.</p>
-            </div>
-          </div>
-          <div class="savoir-feature">
-            <div class="savoir-feature-icon">◇</div>
-            <div class="savoir-feature-text">
-              <h4>Tissus nobles</h4>
-              <p>Mousseline, Nidah, Crêpe léger — des matières fluides, respirantes et à l'élégance naturelle.</p>
-            </div>
-          </div>
-          <div class="savoir-feature">
-            <div class="savoir-feature-icon">✦</div>
-            <div class="savoir-feature-text">
-              <h4>Finitions intérieures</h4>
-              <p>Surjets cachés, ceinture intérieure de cintrage, passants discrets. La qualité se voit aussi de l'intérieur.</p>
-            </div>
-          </div>
+          <span class="price">Sur devis</span>
         </div>
       </div>
     </div>
+
+    <!-- Produit 2 -->
+    <div class="product reveal">
+      <div class="product-img-wrap">
+        <div class="product-canvas dc-prune">
+          <svg class="product-dress-svg" viewBox="0 0 220 360" fill="none" width="180">
+            <path d="M60 22 Q110 12 160 22 L185 58 Q198 92 198 155 L195 305 Q186 332 164 340 L110 345 L56 340 Q34 332 25 305 L22 155 Q22 92 35 58 Z" fill="rgba(48,10,80,0.6)" stroke="rgba(201,168,76,0.4)" stroke-width=".8"/>
+            <path d="M88 24 Q110 45 132 24" stroke="rgba(201,168,76,0.6)" stroke-width="1.5" fill="none"/>
+            <rect x="48" y="22" width="7" height="280" fill="rgba(201,168,76,0.55)" rx="1"/>
+            <rect x="107" y="22" width="7" height="280" fill="rgba(201,168,76,0.4)" rx="1"/>
+            <rect x="165" y="22" width="7" height="280" fill="rgba(201,168,76,0.55)" rx="1"/>
+            <line x1="22" y1="155" x2="55" y2="175" stroke="rgba(201,168,76,0.55)" stroke-width="5"/>
+            <line x1="198" y1="155" x2="165" y2="175" stroke="rgba(201,168,76,0.55)" stroke-width="5"/>
+            <circle cx="24" cy="160" r="3" fill="rgba(201,168,76,0.85)"/>
+            <circle cx="20" cy="168" r="3" fill="rgba(201,168,76,0.85)"/>
+            <circle cx="196" cy="160" r="3" fill="rgba(201,168,76,0.85)"/>
+            <circle cx="200" cy="168" r="3" fill="rgba(201,168,76,0.85)"/>
+            <circle cx="42"  cy="308" r="3" fill="rgba(201,168,76,0.9)"/>
+            <circle cx="56"  cy="311" r="3" fill="rgba(201,168,76,0.9)"/>
+            <circle cx="70"  cy="308" r="3" fill="rgba(201,168,76,0.9)"/>
+            <circle cx="84"  cy="311" r="3" fill="rgba(201,168,76,0.9)"/>
+            <circle cx="98"  cy="308" r="3" fill="rgba(201,168,76,0.9)"/>
+            <circle cx="112" cy="311" r="3" fill="rgba(201,168,76,0.9)"/>
+            <circle cx="126" cy="308" r="3" fill="rgba(201,168,76,0.9)"/>
+            <circle cx="140" cy="311" r="3" fill="rgba(201,168,76,0.9)"/>
+            <circle cx="154" cy="308" r="3" fill="rgba(201,168,76,0.9)"/>
+            <circle cx="168" cy="311" r="3" fill="rgba(201,168,76,0.9)"/>
+          </svg>
+        </div>
+      </div>
+      <div class="product-info">
+        <p class="product-cat">Robe longue</p>
+        <h3 class="product-name">Kaftan Brodé</h3>
+        <p class="product-desc">Col tunisien fendu en V, bandes verticales brodées en fils métallisés or. Pampilles dorées rondes cousues une à une.</p>
+        <div class="product-footer">
+          <div class="dots">
+            <div class="dot" style="background:#3D1060" title="Prune"></div>
+            <div class="dot" style="background:#5C0A1E" title="Bordeaux"></div>
+            <div class="dot" style="background:#0A1A3D" title="Marine"></div>
+            <div class="dot" style="background:#111" title="Noir"></div>
+          </div>
+          <span class="price">Sur devis</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Produit 3 -->
+    <div class="product reveal">
+      <div class="product-img-wrap">
+        <div class="product-canvas dc-noir">
+          <svg class="product-dress-svg" viewBox="0 0 220 360" fill="none" width="180">
+            <path d="M70 30 Q110 18 150 30 L170 65 Q182 100 183 165 L182 305 Q175 330 155 338 L110 342 L65 338 Q45 330 38 305 L37 165 Q38 100 50 65 Z" fill="rgba(20,20,20,0.7)" stroke="rgba(201,168,76,0.35)" stroke-width=".8"/>
+            <!-- Wide sleeves -->
+            <path d="M38 165 L20 140 L18 200 L38 185Z" fill="rgba(15,15,15,0.8)"/>
+            <path d="M182 165 L200 140 L202 200 L182 185Z" fill="rgba(15,15,15,0.8)"/>
+            <!-- Gold center panel -->
+            <rect x="96" y="30" width="28" height="275" fill="rgba(201,168,76,0.12)" rx="1"/>
+            <rect x="102" y="30" width="16" height="275" fill="rgba(201,168,76,0.08)" rx="1"/>
+            <!-- Embroidery lines -->
+            <line x1="80" y1="30" x2="80" y2="308" stroke="rgba(201,168,76,0.3)" stroke-width="1.5"/>
+            <line x1="140" y1="30" x2="140" y2="308" stroke="rgba(201,168,76,0.3)" stroke-width="1.5"/>
+            <!-- Neckline -->
+            <path d="M92 32 Q110 52 128 32" stroke="rgba(201,168,76,0.5)" stroke-width="1.5" fill="none"/>
+            <!-- Bottom pompoms -->
+            <circle cx="60"  cy="314" r="3" fill="rgba(201,168,76,0.85)"/>
+            <circle cx="74"  cy="317" r="3" fill="rgba(201,168,76,0.85)"/>
+            <circle cx="88"  cy="314" r="3" fill="rgba(201,168,76,0.85)"/>
+            <circle cx="102" cy="317" r="3" fill="rgba(201,168,76,0.85)"/>
+            <circle cx="116" cy="314" r="3" fill="rgba(201,168,76,0.85)"/>
+            <circle cx="130" cy="317" r="3" fill="rgba(201,168,76,0.85)"/>
+            <circle cx="144" cy="314" r="3" fill="rgba(201,168,76,0.85)"/>
+            <circle cx="158" cy="317" r="3" fill="rgba(201,168,76,0.85)"/>
+            <!-- Sleeve edge pompoms -->
+            <circle cx="19"  cy="145" r="2.5" fill="rgba(201,168,76,0.8)"/>
+            <circle cx="18"  cy="155" r="2.5" fill="rgba(201,168,76,0.8)"/>
+            <circle cx="201" cy="145" r="2.5" fill="rgba(201,168,76,0.8)"/>
+            <circle cx="202" cy="155" r="2.5" fill="rgba(201,168,76,0.8)"/>
+          </svg>
+        </div>
+      </div>
+      <div class="product-info">
+        <p class="product-cat">Robe de cérémonie</p>
+        <h3 class="product-name">Jalabiya Noire</h3>
+        <p class="product-desc">Robe ample à manches larges, panneau central brodé en fils dorés, col en V. Sobriété et raffinement.</p>
+        <div class="product-footer">
+          <div class="dots">
+            <div class="dot" style="background:#111" title="Noir"></div>
+            <div class="dot" style="background:#1A1A3A" title="Marine nuit"></div>
+            <div class="dot" style="background:#2A1A0A" title="Brun nuit"></div>
+          </div>
+          <span class="price">Sur devis</span>
+        </div>
+      </div>
+    </div>
+
   </div>
 </section>
 
-<!-- ══════════════════ PROCESS ═══════════════ -->
-<section class="process" id="process">
-  <div class="container">
-    <div class="process-header reveal">
-      <p class="section-label">Comment ça marche</p>
-      <h2 class="section-title">De l'idée à la robe</h2>
-      <span class="gold-line"></span>
+<!-- SAVOIR-FAIRE -->
+<section class="savoir" id="savoir">
+  <div class="savoir-text reveal">
+    <p class="section-label">Notre ADN</p>
+    <h2 class="savoir-title">Un savoir-faire<br>transmis de mère<br>en fille</h2>
+    <p class="savoir-body">Chaque robe est confectionnée avec soin, dans le respect des codes de la couture traditionnelle. Les broderies sont réalisées à la main, fil après fil, sur des tissus choisis pour leur légèreté et leur élégance naturelle.</p>
+    <div class="features">
+      <div class="feature">
+        <div class="feat-num">01</div>
+        <div>
+          <p class="feat-title">Broderie à la main</p>
+          <p class="feat-desc">Fils polyester métallisés or, motifs géométriques et floraux, alignés avec précision.</p>
+        </div>
+      </div>
+      <div class="feature">
+        <div class="feat-num">02</div>
+        <div>
+          <p class="feat-title">Pampilles cousues une à une</p>
+          <p class="feat-desc">Chaque pampille dorée est fixée individuellement pour un tombé parfait.</p>
+        </div>
+      </div>
+      <div class="feature">
+        <div class="feat-num">03</div>
+        <div>
+          <p class="feat-title">Tissus nobles</p>
+          <p class="feat-desc">Mousseline, Nidah, Crêpe léger — des matières fluides et respirantes.</p>
+        </div>
+      </div>
+      <div class="feature">
+        <div class="feat-num">04</div>
+        <div>
+          <p class="feat-title">Finitions impeccables</p>
+          <p class="feat-desc">Surjets cachés, ceinture intérieure, passants discrets. La qualité invisible.</p>
+        </div>
+      </div>
     </div>
-    <div class="process-steps">
-      <div class="process-step reveal">
-        <div class="step-num">01</div>
-        <div class="step-icon">✉</div>
-        <h3 class="step-title">Contact & Brief</h3>
-        <p class="step-desc">Vous nous décrivez votre projet — modèle souhaité, couleur, occasion, vos mensurations.</p>
-      </div>
-      <div class="process-step reveal">
-        <div class="step-num">02</div>
-        <div class="step-icon">✂</div>
-        <h3 class="step-title">Devis & Choix</h3>
-        <p class="step-desc">Nous vous proposons un devis détaillé avec le choix du tissu et des broderies.</p>
-      </div>
-      <div class="process-step reveal">
-        <div class="step-num">03</div>
-        <div class="step-icon">🪡</div>
-        <h3 class="step-title">Confection</h3>
-        <p class="step-desc">La couturière réalise votre pièce à la main, en 2 à 4 semaines selon la complexité.</p>
-      </div>
-      <div class="process-step reveal">
-        <div class="step-num">04</div>
-        <div class="step-icon">✦</div>
-        <h3 class="step-title">Livraison</h3>
-        <p class="step-desc">Votre robe vous parvient soigneusement emballée, prête à être portée.</p>
-      </div>
+  </div>
+  <div class="savoir-visual savoir-order reveal">
+    <div class="savoir-img">
+      <svg viewBox="0 0 380 480" fill="none" width="300">
+        <defs>
+          <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+            <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(201,168,76,0.1)" stroke-width="0.5"/>
+          </pattern>
+        </defs>
+        <rect width="380" height="480" fill="url(#grid)"/>
+        <!-- Central kaftan -->
+        <path d="M110 40 Q190 24 270 40 L308 95 Q325 145 325 220 L320 400 Q308 438 280 448 L190 454 L100 448 Q72 438 60 400 L55 220 Q55 145 72 95 Z" fill="rgba(55,10,85,0.5)" stroke="rgba(201,168,76,0.5)" stroke-width="1"/>
+        <!-- Vertical embroidery bands -->
+        <rect x="102" y="40" width="10" height="360" fill="rgba(201,168,76,0.6)" rx="2"/>
+        <rect x="186" y="40" width="10" height="360" fill="rgba(201,168,76,0.45)" rx="2"/>
+        <rect x="270" y="40" width="10" height="360" fill="rgba(201,168,76,0.6)" rx="2"/>
+        <!-- Diamond motifs -->
+        <path d="M145 90 L165 115 L145 140 L125 115Z" stroke="rgba(201,168,76,0.5)" stroke-width="1" fill="rgba(201,168,76,0.08)"/>
+        <path d="M215 90 L235 115 L215 140 L195 115Z" stroke="rgba(201,168,76,0.5)" stroke-width="1" fill="rgba(201,168,76,0.08)"/>
+        <path d="M145 160 L165 185 L145 210 L125 185Z" stroke="rgba(201,168,76,0.4)" stroke-width="1" fill="rgba(201,168,76,0.06)"/>
+        <path d="M215 160 L235 185 L215 210 L195 185Z" stroke="rgba(201,168,76,0.4)" stroke-width="1" fill="rgba(201,168,76,0.06)"/>
+        <!-- V neck -->
+        <path d="M162 44 Q190 70 218 44" stroke="rgba(201,168,76,0.7)" stroke-width="2" fill="none"/>
+        <!-- Sleeve bands -->
+        <line x1="55" y1="220" x2="102" y2="240" stroke="rgba(201,168,76,0.6)" stroke-width="8"/>
+        <line x1="325" y1="220" x2="278" y2="240" stroke="rgba(201,168,76,0.6)" stroke-width="8"/>
+        <!-- Bottom pompoms row -->
+        <circle cx="75"  cy="415" r="5" fill="rgba(201,168,76,0.85)"/>
+        <circle cx="94"  cy="420" r="5" fill="rgba(201,168,76,0.85)"/>
+        <circle cx="113" cy="415" r="5" fill="rgba(201,168,76,0.85)"/>
+        <circle cx="132" cy="420" r="5" fill="rgba(201,168,76,0.85)"/>
+        <circle cx="151" cy="415" r="5" fill="rgba(201,168,76,0.85)"/>
+        <circle cx="170" cy="420" r="5" fill="rgba(201,168,76,0.85)"/>
+        <circle cx="189" cy="415" r="5" fill="rgba(201,168,76,0.85)"/>
+        <circle cx="208" cy="420" r="5" fill="rgba(201,168,76,0.85)"/>
+        <circle cx="227" cy="415" r="5" fill="rgba(201,168,76,0.85)"/>
+        <circle cx="246" cy="420" r="5" fill="rgba(201,168,76,0.85)"/>
+        <circle cx="265" cy="415" r="5" fill="rgba(201,168,76,0.85)"/>
+        <circle cx="284" cy="420" r="5" fill="rgba(201,168,76,0.85)"/>
+        <circle cx="303" cy="415" r="5" fill="rgba(201,168,76,0.85)"/>
+      </svg>
+    </div>
+    <div class="savoir-badge">
+      <p>100%<br>Fait<br>Main</p>
     </div>
   </div>
 </section>
 
-<!-- ═══════════════════ DETAILS ══════════════ -->
-<section class="details" id="details">
-  <div class="container">
-    <div class="details-header reveal">
-      <p class="section-label">Chaque détail compte</p>
-      <h2 class="section-title">L'art de la finition</h2>
-      <span class="gold-line"></span>
+<!-- PROCESS -->
+<section class="process">
+  <div class="process-header reveal">
+    <p class="section-label">Comment commander</p>
+    <h2 class="section-title" style="color:var(--blanc)">De l'idée à la robe</h2>
+  </div>
+  <div class="steps">
+    <div class="step reveal">
+      <div class="step-n">01</div>
+      <div class="step-icon">✉</div>
+      <h3 class="step-title">Contact</h3>
+      <p class="step-desc">Décrivez votre projet, le modèle voulu, la couleur et l'occasion.</p>
     </div>
-    <div class="details-grid">
-      <div class="detail-card reveal">
-        <span class="detail-icon">🧵</span>
-        <h3 class="detail-title serif">Broderie appliquée</h3>
-        <p class="detail-text">Motifs géométriques et floraux brodés en bandes verticales. Fils polyester métallisés or et bordeaux. Alignement parfait, pièces cousues à la main.</p>
-      </div>
-      <div class="detail-card reveal">
-        <span class="detail-icon">✦</span>
-        <h3 class="detail-title serif">Pampilles dorées</h3>
-        <p class="detail-text">Pampilles métalliques rondes cousues une à une tout le long des manches et du bas de robe. Embouts dorés aux extrémités des ceintures.</p>
-      </div>
-      <div class="detail-card reveal">
-        <span class="detail-icon">📏</span>
-        <h3 class="detail-title serif">Sur mesure</h3>
-        <p class="detail-text">Chaque pièce est coupée sur vos mesures. Emmanchure droite et confortable, encolure adaptée, ourlet aux pampilles dorées.</p>
-      </div>
+    <div class="step reveal">
+      <div class="step-n">02</div>
+      <div class="step-icon">✂</div>
+      <h3 class="step-title">Devis</h3>
+      <p class="step-desc">Devis personnalisé avec choix du tissu et des broderies sous 24h.</p>
+    </div>
+    <div class="step reveal">
+      <div class="step-n">03</div>
+      <div class="step-icon">🪡</div>
+      <h3 class="step-title">Confection</h3>
+      <p class="step-desc">Votre pièce est réalisée à la main en 2 à 4 semaines.</p>
+    </div>
+    <div class="step reveal">
+      <div class="step-n">04</div>
+      <div class="step-icon">✦</div>
+      <h3 class="step-title">Livraison</h3>
+      <p class="step-desc">Expédition soignée, partout en France et à l'international.</p>
     </div>
   </div>
 </section>
 
-<!-- ═══════════════════ COULEURS ════════════ -->
-<section class="couleurs">
-  <div class="container">
-    <div class="couleurs-header reveal">
-      <p class="section-label">Palette</p>
-      <h2 class="section-title section-title--light">Couleurs disponibles</h2>
-      <span class="gold-line"></span>
-    </div>
-    <div class="couleur-swatches">
-      <div class="swatch-item active">
-        <div class="swatch-circle" style="background:linear-gradient(135deg, #5C0A1E, #8A1030)"></div>
-        <p class="swatch-name">Bordeaux</p>
-      </div>
-      <div class="swatch-item">
-        <div class="swatch-circle" style="background:linear-gradient(135deg, #0D0408, #1A0A0D)"></div>
-        <p class="swatch-name">Noir</p>
-      </div>
-      <div class="swatch-item">
-        <div class="swatch-circle" style="background:linear-gradient(135deg, #3D1060, #6020A0)"></div>
-        <p class="swatch-name">Prune</p>
-      </div>
-      <div class="swatch-item">
-        <div class="swatch-circle" style="background:linear-gradient(135deg, #4A4830, #6B6845)"></div>
-        <p class="swatch-name">Kaki</p>
-      </div>
-      <div class="swatch-item">
-        <div class="swatch-circle" style="background:linear-gradient(135deg, #C8A87A, #E0C8A0)"></div>
-        <p class="swatch-name">Beige</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ════════════════ TEMOIGNAGES ═══════════ -->
+<!-- TEMOIGNAGES -->
 <section class="temoignages">
-  <div class="container">
-    <div class="temoignages-header reveal">
-      <p class="section-label">Ils nous font confiance</p>
-      <h2 class="section-title section-title--light">Ce qu'elles en disent</h2>
-      <span class="gold-line"></span>
+  <div class="temoignages-header reveal">
+    <p class="section-label">Avis clients</p>
+    <h2 class="section-title">Ce qu'elles disent</h2>
+  </div>
+  <div class="temo-grid">
+    <div class="temo reveal">
+      <div class="temo-stars">★★★★★</div>
+      <p class="temo-text">« Ma robe pour le mariage était absolument magnifique. Les broderies sont d'une précision incroyable. »</p>
+      <div class="temo-author">
+        <div class="temo-av">SR</div>
+        <div><p class="temo-name">Sana R.</p><p class="temo-city">Tunis</p></div>
+      </div>
     </div>
-    <div class="temoignages-grid">
-      <div class="temoignage-card reveal">
-        <div class="temoignage-stars">★★★★★</div>
-        <p class="temoignage-text">« Ma robe pour le mariage de ma cousine était absolument magnifique. Les broderies sont d'une précision incroyable et le tissu tombe parfaitement. »</p>
-        <div class="temoignage-author">
-          <div class="temoignage-avatar">SR</div>
-          <div>
-            <p class="temoignage-name">Sana R.</p>
-            <p class="temoignage-location">Tunis</p>
-          </div>
-        </div>
+    <div class="temo reveal">
+      <div class="temo-stars">★★★★★</div>
+      <p class="temo-text">« L'ensemble Abaya + Robe Tube est sublime. Les pampilles sont cousues avec un soin remarquable. »</p>
+      <div class="temo-author">
+        <div class="temo-av">LB</div>
+        <div><p class="temo-name">Leila B.</p><p class="temo-city">Paris</p></div>
       </div>
-      <div class="temoignage-card reveal">
-        <div class="temoignage-stars">★★★★★</div>
-        <p class="temoignage-text">« J'ai commandé l'ensemble Abaya + Robe Tube en bordeaux. Le rendu est élégant, les pampilles sont cousues avec soin. Je recommande sans hésiter. »</p>
-        <div class="temoignage-author">
-          <div class="temoignage-avatar">LB</div>
-          <div>
-            <p class="temoignage-name">Leila B.</p>
-            <p class="temoignage-location">Paris</p>
-          </div>
-        </div>
-      </div>
-      <div class="temoignage-card reveal">
-        <div class="temoignage-stars">★★★★★</div>
-        <p class="temoignage-text">« Une pièce unique qui allie tradition et modernité. La qualité est au rendez-vous, et les délais ont été parfaitement respectés. »</p>
-        <div class="temoignage-author">
-          <div class="temoignage-avatar">MA</div>
-          <div>
-            <p class="temoignage-name">Myriam A.</p>
-            <p class="temoignage-location">Lyon</p>
-          </div>
-        </div>
+    </div>
+    <div class="temo reveal">
+      <div class="temo-stars">★★★★★</div>
+      <p class="temo-text">« Une pièce unique qui allie tradition et modernité. Qualité irréprochable, délais tenus. »</p>
+      <div class="temo-author">
+        <div class="temo-av">MA</div>
+        <div><p class="temo-name">Myriam A.</p><p class="temo-city">Lyon</p></div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ═════════════════ CONTACT ════════════════ -->
-<section class="contact" id="commande">
-  <div class="container">
-    <div class="contact-grid">
-      <div class="contact-info reveal">
-        <p class="section-label">Commander</p>
-        <h2 class="section-title section-title--light">Votre pièce<br/>sur mesure</h2>
-        <span class="gold-line gold-line--left"></span>
-        <p class="section-body">Chaque commande est traitée personnellement. Décrivez-nous votre projet, nous vous répondons sous 24h avec un devis détaillé.</p>
-        <div class="contact-items">
-          <div class="contact-item">
-            <div class="contact-item-icon">✉</div>
-            <div class="contact-item-body">
-              <p class="contact-item-label">Email</p>
-              <p class="contact-item-value">contact@yemmacreation.com</p>
-            </div>
-          </div>
-          <div class="contact-item">
-            <div class="contact-item-icon">📱</div>
-            <div class="contact-item-body">
-              <p class="contact-item-label">WhatsApp</p>
-              <p class="contact-item-value">+216 XX XXX XXX</p>
-            </div>
-          </div>
-          <div class="contact-item">
-            <div class="contact-item-icon">⏱</div>
-            <div class="contact-item-body">
-              <p class="contact-item-label">Délai de confection</p>
-              <p class="contact-item-value">2 à 4 semaines<br/>selon la complexité</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="reveal">
-        <form onsubmit="handleSubmit(event)">
-          <div class="form-row">
-            <div class="form-group">
-              <label for="prenom">Prénom</label>
-              <input type="text" id="prenom" placeholder="Votre prénom" />
-            </div>
-            <div class="form-group">
-              <label for="nom">Nom</label>
-              <input type="text" id="nom" placeholder="Votre nom" />
-            </div>
-          </div>
-          <div class="form-group">
-            <label for="email">Email</label>
-            <input type="email" id="email" placeholder="votre@email.com" />
-          </div>
-          <div class="form-group">
-            <label for="modele">Modèle souhaité</label>
-            <select id="modele">
-              <option value="">Choisir un modèle</option>
-              <option>Ensemble Abaya + Robe Tube — Modèle EL 3ALEL</option>
-              <option>Kaftan Brodé — Modèle Majestueux</option>
-              <option>Sur mesure — Autre projet</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label for="couleur">Couleur</label>
-            <select id="couleur">
-              <option value="">Choisir une couleur</option>
-              <option>Bordeaux</option>
-              <option>Noir</option>
-              <option>Prune</option>
-              <option>Kaki</option>
-              <option>Beige</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label for="message">Votre projet &amp; mensurations</label>
-            <textarea id="message" rows="4" placeholder="Décrivez votre projet, l'occasion, vos mensurations (tour de poitrine, tour de taille, tour de hanches, longueur)..."></textarea>
-          </div>
-          <button type="submit" class="form-submit">
-            Envoyer ma demande →
-          </button>
-        </form>
-      </div>
-    </div>
+<!-- COULEURS -->
+<section class="couleurs">
+  <div class="couleurs-header reveal">
+    <p class="section-label">Palette disponible</p>
+    <h2 class="section-title">Choisissez votre couleur</h2>
+  </div>
+  <div class="swatches">
+    <div class="swatch on"><div class="swatch-c" style="background:linear-gradient(135deg,#5C0A1E,#8A1030)"></div><p class="swatch-n">Bordeaux</p></div>
+    <div class="swatch"><div class="swatch-c" style="background:linear-gradient(135deg,#0D0408,#1A0A0D)"></div><p class="swatch-n">Noir</p></div>
+    <div class="swatch"><div class="swatch-c" style="background:linear-gradient(135deg,#3D1060,#6020A0)"></div><p class="swatch-n">Prune</p></div>
+    <div class="swatch"><div class="swatch-c" style="background:linear-gradient(135deg,#0A1A3D,#1A3070)"></div><p class="swatch-n">Marine</p></div>
+    <div class="swatch"><div class="swatch-c" style="background:linear-gradient(135deg,#4A4830,#6B6845)"></div><p class="swatch-n">Kaki</p></div>
+    <div class="swatch"><div class="swatch-c" style="background:linear-gradient(135deg,#C8A87A,#E0C8A0)"></div><p class="swatch-n">Beige</p></div>
   </div>
 </section>
 
-<!-- ═══════════════════ FOOTER ═══════════════ -->
+<!-- COMMANDE -->
+<section class="commande" id="commande">
+  <div class="commande-info reveal">
+    <p class="section-label">Commander</p>
+    <h2 class="section-title" style="color:var(--blanc);font-family:'Playfair Display',serif;font-size:clamp(2rem,3.5vw,3rem);font-weight:700;line-height:1.1;margin-bottom:1rem">Votre pièce<br>sur mesure</h2>
+    <p class="commande-sub">Chaque commande est traitée personnellement. Nous vous répondons sous 24h avec un devis détaillé.</p>
+    <div class="info-items">
+      <div class="info-item">
+        <div class="info-icon">✉</div>
+        <div><p class="info-label">Email</p><p class="info-val">contact@yemmacreation.com</p></div>
+      </div>
+      <div class="info-item">
+        <div class="info-icon">📱</div>
+        <div><p class="info-label">WhatsApp</p><p class="info-val">+216 XX XXX XXX</p></div>
+      </div>
+      <div class="info-item">
+        <div class="info-icon">⏱</div>
+        <div><p class="info-label">Délai</p><p class="info-val">2 à 4 semaines selon complexité</p></div>
+      </div>
+    </div>
+  </div>
+  <div class="reveal">
+    <form onsubmit="send(event)">
+      <div class="frow">
+        <div class="fg"><label>Prénom</label><input type="text" placeholder="Votre prénom"/></div>
+        <div class="fg"><label>Nom</label><input type="text" placeholder="Votre nom"/></div>
+      </div>
+      <div class="fg"><label>Email</label><input type="email" placeholder="votre@email.com"/></div>
+      <div class="fg">
+        <label>Modèle</label>
+        <select>
+          <option value="">Choisir un modèle</option>
+          <option>Abaya + Robe Tube</option>
+          <option>Kaftan Brodé</option>
+          <option>Jalabiya Noire</option>
+          <option>Autre projet sur mesure</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>Couleur</label>
+        <select>
+          <option value="">Choisir une couleur</option>
+          <option>Bordeaux</option><option>Noir</option><option>Prune</option>
+          <option>Marine</option><option>Kaki</option><option>Beige</option>
+        </select>
+      </div>
+      <div class="fg"><label>Projet & mensurations</label><textarea rows="4" placeholder="Décrivez votre projet, l'occasion, vos mensurations (poitrine, taille, hanches, longueur)..."></textarea></div>
+      <button type="submit" class="form-submit">Envoyer ma demande →</button>
+    </form>
+  </div>
+</section>
+
+<!-- FOOTER -->
 <footer>
-  <div>
-    <p class="footer-brand">Yemma Création</p>
-    <p class="footer-tagline">Couture artisanale · Broderie traditionnelle · Fait à la main</p>
-  </div>
-  <p class="footer-copy">© 2026 Yemma Création<br/>Tous droits réservés</p>
+  <div class="footer-brand">Yemma <span>Création</span></div>
+  <p class="footer-copy">© 2026 Yemma Création · Couture artisanale faite à la main</p>
 </footer>
 
-<!-- ═══════════════════ JS ════════════════════ -->
 <script>
-  /* Navbar scroll effect */
-  const nav = document.getElementById('navbar')
-  window.addEventListener('scroll', () => {
-    nav.classList.toggle('scrolled', window.scrollY > 60)
-  }, { passive: true })
-
-  /* Scroll-reveal */
-  const io = new IntersectionObserver((entries) => {
-    entries.forEach(e => {
-      if (e.isIntersecting) {
-        e.target.classList.add('visible')
-        io.unobserve(e.target)
-      }
-    })
-  }, { threshold: 0.12 })
-  document.querySelectorAll('.reveal').forEach(el => io.observe(el))
-
-  /* Colour swatch toggle */
-  document.querySelectorAll('.swatch-item').forEach(item => {
-    item.addEventListener('click', () => {
-      document.querySelectorAll('.swatch-item').forEach(s => s.classList.remove('active'))
-      item.classList.add('active')
-    })
-  })
-
-  /* Form submit */
-  function handleSubmit(e) {
-    e.preventDefault()
-    const btn = e.target.querySelector('.form-submit')
-    btn.textContent = '✓ Demande envoyée'
-    btn.style.background = 'var(--bordeaux)'
-    btn.style.color = 'var(--cream)'
-    setTimeout(() => {
-      btn.textContent = 'Envoyer ma demande →'
-      btn.style.background = ''
-      btn.style.color = ''
-    }, 3000)
-  }
+const nav=document.getElementById('nav')
+window.addEventListener('scroll',()=>nav.classList.toggle('solid',scrollY>60),{passive:true})
+const io=new IntersectionObserver(e=>e.forEach(x=>{if(x.isIntersecting){x.target.classList.add('in');io.unobserve(x.target)}}),{threshold:.1})
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el))
+document.querySelectorAll('.swatch').forEach(s=>{
+  s.addEventListener('click',()=>{document.querySelectorAll('.swatch').forEach(x=>x.classList.remove('on'));s.classList.add('on')})
+})
+function send(e){
+  e.preventDefault()
+  const b=e.target.querySelector('.form-submit')
+  b.textContent='✓ Demande envoyée !'
+  b.style.background='#2a6a2a'
+  b.style.color='#fff'
+  setTimeout(()=>{b.textContent='Envoyer ma demande →';b.style.background='';b.style.color=''},3500)
+}
 </script>
 </body>
 </html>
