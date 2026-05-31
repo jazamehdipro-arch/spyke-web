@@ -1,4 +1,8 @@
 {
   "version": 2,
-  "name": "yemma-creation"
+  "name": "yemma-creation",
+  "framework": null,
+  "buildCommand": "",
+  "installCommand": "",
+  "outputDirectory": "."
 }
