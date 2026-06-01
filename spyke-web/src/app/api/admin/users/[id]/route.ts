@@ -27,21 +27,51 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const { id } = await params
   const supabase = getSupabaseAdmin()
 
-  const [userRes, profileRes, facturesRes, devisRes, clientsRes, contratsRes] = await Promise.all([
+  const [userRes, profileRes, invoicesRes, quotesRes, clientsRes, contractsRes] = await Promise.all([
     supabase.auth.admin.getUserById(id),
     supabase.from('profiles').select('*').eq('id', id).single(),
-    supabase.from('factures').select('id, numero, created_at, montant_ttc, statut, client_nom').eq('user_id', id).order('created_at', { ascending: false }).limit(50),
-    supabase.from('devis').select('id, numero, created_at, montant_ttc, statut, client_nom').eq('user_id', id).order('created_at', { ascending: false }).limit(50),
-    supabase.from('clients').select('id, nom, created_at').eq('user_id', id).order('created_at', { ascending: false }).limit(50),
-    supabase.from('contrats').select('id, titre, created_at, statut').eq('user_id', id).order('created_at', { ascending: false }).limit(50).then(r => r).catch(() => ({ data: [] })),
+    supabase.from('invoices').select('id, number, created_at, total_ttc, status, buyer_snapshot').eq('user_id', id).order('created_at', { ascending: false }).limit(50),
+    supabase.from('quotes').select('id, number, created_at, total_ttc, status, buyer_snapshot').eq('user_id', id).order('created_at', { ascending: false }).limit(50),
+    supabase.from('clients').select('id, name, created_at').eq('user_id', id).order('created_at', { ascending: false }).limit(50),
+    supabase.from('contracts').select('id, title, created_at, status').eq('user_id', id).order('created_at', { ascending: false }).limit(50).then(r => r).catch(() => ({ data: [] })),
   ])
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const clientName = (snapshot: any) => snapshot?.name ?? snapshot?.company_name ?? snapshot?.company ?? null
 
   return NextResponse.json({
     user: userRes.data.user,
     profile: profileRes.data,
-    factures: facturesRes.data ?? [],
-    devis: devisRes.data ?? [],
-    clients: clientsRes.data ?? [],
-    contrats: (contratsRes as { data: unknown[] }).data ?? [],
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    factures: (invoicesRes.data ?? []).map((inv: any) => ({
+      id: inv.id,
+      numero: inv.number,
+      created_at: inv.created_at,
+      montant_ttc: inv.total_ttc,
+      statut: inv.status,
+      client_nom: clientName(inv.buyer_snapshot),
+    })),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    devis: (quotesRes.data ?? []).map((q: any) => ({
+      id: q.id,
+      numero: q.number,
+      created_at: q.created_at,
+      montant_ttc: q.total_ttc,
+      statut: q.status,
+      client_nom: clientName(q.buyer_snapshot),
+    })),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    clients: (clientsRes.data ?? []).map((c: any) => ({
+      id: c.id,
+      nom: c.name,
+      created_at: c.created_at,
+    })),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    contrats: ((contractsRes as { data: any[] | null }).data ?? []).map((c: any) => ({
+      id: c.id,
+      titre: c.title,
+      created_at: c.created_at,
+      statut: c.status,
+    })),
   })
 }

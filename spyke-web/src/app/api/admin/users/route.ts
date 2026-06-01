@@ -31,12 +31,12 @@ export async function GET(req: NextRequest) {
 
   const ids = users.users.map((u) => u.id)
 
-  const [profilesRes, facturesRes, devisRes, clientsRes, contratsRes] = await Promise.all([
+  const [profilesRes, invoicesRes, quotesRes, clientsRes, contractsRes] = await Promise.all([
     supabase.from('profiles').select('id, plan, affiliate_ref, full_name').in('id', ids),
-    supabase.from('factures').select('user_id, created_at').in('user_id', ids),
-    supabase.from('devis').select('user_id, created_at').in('user_id', ids),
-    supabase.from('clients').select('user_id, created_at').in('user_id', ids),
-    supabase.from('contrats').select('user_id, created_at').in('user_id', ids).then(r => r).catch(() => ({ data: [] })),
+    supabase.from('invoices').select('user_id').in('user_id', ids),
+    supabase.from('quotes').select('user_id').in('user_id', ids),
+    supabase.from('clients').select('user_id').in('user_id', ids),
+    supabase.from('contracts').select('user_id').in('user_id', ids).then(r => r).catch(() => ({ data: [] })),
   ])
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -48,10 +48,10 @@ export async function GET(req: NextRequest) {
     return m
   }
 
-  const factureCounts = countBy(facturesRes.data)
-  const devisCounts = countBy(devisRes.data)
+  const factureCounts = countBy(invoicesRes.data)
+  const devisCounts = countBy(quotesRes.data)
   const clientCounts = countBy(clientsRes.data)
-  const contratCounts = countBy((contratsRes as { data: { user_id: string }[] | null }).data)
+  const contratCounts = countBy((contractsRes as { data: { user_id: string }[] | null }).data)
 
   const result = users.users
     .map((u) => {
