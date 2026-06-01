@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { CSSProperties, useEffect, useMemo, useState } from 'react'
 import { getSupabase } from '@/lib/supabaseClient'
 
 const ADMIN_EMAIL = 'Jazamehdi.pro@gmail.com'
@@ -49,33 +49,33 @@ function fmtEur(n?: number) {
 }
 
 const S = {
-  page: { minHeight: '100vh', background: '#0f0f13', color: '#e8e8f0', fontFamily: 'system-ui, sans-serif', padding: '0 0 80px' } as React.CSSProperties,
-  nav: { background: '#0a0a0a', borderBottom: '1px solid #1e1e2e', padding: '14px 28px', display: 'flex', alignItems: 'center', gap: 20 } as React.CSSProperties,
-  navLogo: { color: '#facc15', fontWeight: 800, fontSize: 18, textDecoration: 'none' } as React.CSSProperties,
-  navLink: { color: '#6b7280', fontSize: 13, textDecoration: 'none' } as React.CSSProperties,
-  header: { padding: '28px 28px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' as const, gap: 12 } as React.CSSProperties,
-  title: { fontSize: 22, fontWeight: 800, color: '#fff', letterSpacing: -0.5 } as React.CSSProperties,
-  badge: (color: string): React.CSSProperties => ({ background: color === 'pro' ? 'rgba(250,204,21,.15)' : 'rgba(255,255,255,.05)', color: color === 'pro' ? '#facc15' : '#6b7280', border: `1px solid ${color === 'pro' ? 'rgba(250,204,21,.25)' : 'rgba(255,255,255,.08)'}`, borderRadius: 6, fontSize: 10, fontWeight: 700, padding: '2px 7px', textTransform: 'uppercase', letterSpacing: .5 }),
-  search: { background: '#161622', border: '1px solid #1e1e2e', borderRadius: 10, padding: '9px 14px', color: '#e8e8f0', fontSize: 14, outline: 'none', width: 280 } as React.CSSProperties,
+  page: { minHeight: '100vh', background: '#0f0f13', color: '#e8e8f0', fontFamily: 'system-ui, sans-serif', padding: '0 0 80px' } as CSSProperties,
+  nav: { background: '#0a0a0a', borderBottom: '1px solid #1e1e2e', padding: '14px 28px', display: 'flex', alignItems: 'center', gap: 20 } as CSSProperties,
+  navLogo: { color: '#facc15', fontWeight: 800, fontSize: 18, textDecoration: 'none' } as CSSProperties,
+  navLink: { color: '#6b7280', fontSize: 13, textDecoration: 'none' } as CSSProperties,
+  header: { padding: '28px 28px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' as const, gap: 12 } as CSSProperties,
+  title: { fontSize: 22, fontWeight: 800, color: '#fff', letterSpacing: -0.5 } as CSSProperties,
+  badge: (color: string): CSSProperties => ({ background: color === 'pro' ? 'rgba(250,204,21,.15)' : 'rgba(255,255,255,.05)', color: color === 'pro' ? '#facc15' : '#6b7280', border: `1px solid ${color === 'pro' ? 'rgba(250,204,21,.25)' : 'rgba(255,255,255,.08)'}`, borderRadius: 6, fontSize: 10, fontWeight: 700, padding: '2px 7px', textTransform: 'uppercase', letterSpacing: .5 }),
+  search: { background: '#161622', border: '1px solid #1e1e2e', borderRadius: 10, padding: '9px 14px', color: '#e8e8f0', fontSize: 14, outline: 'none', width: 280 } as CSSProperties,
   table: { width: '100%', borderCollapse: 'collapse' as const },
-  th: { padding: '10px 16px', fontSize: 11, fontWeight: 700, color: '#4b5563', textTransform: 'uppercase' as const, letterSpacing: .5, textAlign: 'left' as const, borderBottom: '1px solid #1e1e2e' } as React.CSSProperties,
-  tr: (selected: boolean, hover: boolean): React.CSSProperties => ({ background: selected ? 'rgba(250,204,21,.06)' : hover ? '#161622' : 'transparent', cursor: 'pointer', borderBottom: '1px solid #0f0f13', transition: 'background .1s' }),
-  td: { padding: '12px 16px', fontSize: 13, verticalAlign: 'middle' } as React.CSSProperties,
-  email: { color: '#facc15', fontWeight: 600, fontSize: 13 } as React.CSSProperties,
-  stat: { fontWeight: 700, color: '#e8e8f0' } as React.CSSProperties,
-  muted: { color: '#4b5563', fontSize: 12 } as React.CSSProperties,
+  th: { padding: '10px 16px', fontSize: 11, fontWeight: 700, color: '#4b5563', textTransform: 'uppercase' as const, letterSpacing: .5, textAlign: 'left' as const, borderBottom: '1px solid #1e1e2e' } as CSSProperties,
+  tr: (selected: boolean, hover: boolean): CSSProperties => ({ background: selected ? 'rgba(250,204,21,.06)' : hover ? '#161622' : 'transparent', cursor: 'pointer', borderBottom: '1px solid #0f0f13', transition: 'background .1s' }),
+  td: { padding: '12px 16px', fontSize: 13, verticalAlign: 'middle' } as CSSProperties,
+  email: { color: '#facc15', fontWeight: 600, fontSize: 13 } as CSSProperties,
+  stat: { fontWeight: 700, color: '#e8e8f0' } as CSSProperties,
+  muted: { color: '#4b5563', fontSize: 12 } as CSSProperties,
   // Detail panel
-  panel: { background: '#161622', border: '1px solid #1e1e2e', borderRadius: 14, margin: '0 28px', padding: 24 } as React.CSSProperties,
-  panelTitle: { fontSize: 16, fontWeight: 800, color: '#fff', marginBottom: 16 } as React.CSSProperties,
-  tabs: { display: 'flex', gap: 4, marginBottom: 20, background: '#0f0f13', borderRadius: 10, padding: 4 } as React.CSSProperties,
-  tab: (active: boolean): React.CSSProperties => ({ flex: 1, padding: '8px 12px', border: 'none', borderRadius: 8, background: active ? '#facc15' : 'transparent', color: active ? '#0a0a0a' : '#6b7280', fontWeight: 600, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }),
-  docRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: '#0f0f13', borderRadius: 8, marginBottom: 6 } as React.CSSProperties,
-  docLeft: { display: 'flex', flexDirection: 'column' as const, gap: 2 } as React.CSSProperties,
-  empty: { textAlign: 'center' as const, color: '#4b5563', padding: 24, fontSize: 13 } as React.CSSProperties,
-  statGrid: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 20 } as React.CSSProperties,
-  statCard: { background: '#0f0f13', borderRadius: 10, padding: '14px 16px' } as React.CSSProperties,
-  statCardLabel: { fontSize: 10, fontWeight: 700, color: '#4b5563', textTransform: 'uppercase' as const, letterSpacing: .5, marginBottom: 4 } as React.CSSProperties,
-  statCardValue: { fontSize: 22, fontWeight: 900, color: '#facc15' } as React.CSSProperties,
+  panel: { background: '#161622', border: '1px solid #1e1e2e', borderRadius: 14, margin: '0 28px', padding: 24 } as CSSProperties,
+  panelTitle: { fontSize: 16, fontWeight: 800, color: '#fff', marginBottom: 16 } as CSSProperties,
+  tabs: { display: 'flex', gap: 4, marginBottom: 20, background: '#0f0f13', borderRadius: 10, padding: 4 } as CSSProperties,
+  tab: (active: boolean): CSSProperties => ({ flex: 1, padding: '8px 12px', border: 'none', borderRadius: 8, background: active ? '#facc15' : 'transparent', color: active ? '#0a0a0a' : '#6b7280', fontWeight: 600, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }),
+  docRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: '#0f0f13', borderRadius: 8, marginBottom: 6 } as CSSProperties,
+  docLeft: { display: 'flex', flexDirection: 'column' as const, gap: 2 } as CSSProperties,
+  empty: { textAlign: 'center' as const, color: '#4b5563', padding: 24, fontSize: 13 } as CSSProperties,
+  statGrid: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 20 } as CSSProperties,
+  statCard: { background: '#0f0f13', borderRadius: 10, padding: '14px 16px' } as CSSProperties,
+  statCardLabel: { fontSize: 10, fontWeight: 700, color: '#4b5563', textTransform: 'uppercase' as const, letterSpacing: .5, marginBottom: 4 } as CSSProperties,
+  statCardValue: { fontSize: 22, fontWeight: 900, color: '#facc15' } as CSSProperties,
 }
 
 export default function AdminUsersPage() {
@@ -92,7 +92,8 @@ export default function AdminUsersPage() {
   const [loadingUsers, setLoadingUsers] = useState(false)
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    supabase.auth.getSession().then(async ({ data: { session } }: any) => {
       if (!session || session.user.email?.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
         setStatus('forbidden')
         return

@@ -39,7 +39,8 @@ export async function GET(req: NextRequest) {
     supabase.from('contrats').select('user_id, created_at').in('user_id', ids).then(r => r).catch(() => ({ data: [] })),
   ])
 
-  const profiles = new Map((profilesRes.data ?? []).map((p) => [p.id, p]))
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const profiles = new Map((profilesRes.data ?? []).map((p: any) => [p.id, p]))
 
   const countBy = (rows: { user_id: string }[] | null) => {
     const m = new Map<string, number>()
@@ -54,15 +55,16 @@ export async function GET(req: NextRequest) {
 
   const result = users.users
     .map((u) => {
-      const p = profiles.get(u.id)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const p = profiles.get(u.id) as any
       return {
         id: u.id,
         email: u.email ?? '',
         created_at: u.created_at,
         last_sign_in: u.last_sign_in_at ?? null,
-        full_name: p?.full_name ?? null,
-        plan: p?.plan ?? 'free',
-        affiliate_ref: p?.affiliate_ref ?? null,
+        full_name: (p?.full_name as string | null) ?? null,
+        plan: (p?.plan as string) ?? 'free',
+        affiliate_ref: (p?.affiliate_ref as string | null) ?? null,
         nb_factures: factureCounts.get(u.id) ?? 0,
         nb_devis: devisCounts.get(u.id) ?? 0,
         nb_clients: clientCounts.get(u.id) ?? 0,
