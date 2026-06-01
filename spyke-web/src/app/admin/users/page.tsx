@@ -1,6 +1,6 @@
 'use client'
 
-import { CSSProperties, useEffect, useMemo, useState } from 'react'
+import { CSSProperties, Fragment, useEffect, useMemo, useState } from 'react'
 import { getSupabase } from '@/lib/supabaseClient'
 
 const ADMIN_EMAIL = 'Jazamehdi.pro@gmail.com'
@@ -185,9 +185,8 @@ export default function AdminUsersPage() {
             </thead>
             <tbody>
               {filtered.map((u) => (
-                <>
+                <Fragment key={u.id}>
                   <tr
-                    key={u.id}
                     style={S.tr(selected?.id === u.id, hoveredId === u.id)}
                     onClick={() => selectUser(u)}
                     onMouseEnter={() => setHoveredId(u.id)}
@@ -205,7 +204,7 @@ export default function AdminUsersPage() {
                   </tr>
 
                   {selected?.id === u.id && (
-                    <tr key={`${u.id}-detail`}>
+                    <tr>
                       <td colSpan={9} style={{ padding: '0 0 16px' }}>
                         {detailLoading ? (
                           <div style={{ ...S.panel, color: '#6b7280', textAlign: 'center' }}>Chargement de l&apos;activité…</div>
@@ -302,7 +301,7 @@ export default function AdminUsersPage() {
                       </td>
                     </tr>
                   )}
-                </>
+                </Fragment>
               ))}
             </tbody>
           </table>
