@@ -1,0 +1,32 @@
+{
+  "expo": {
+    "name": "Croisio",
+    "slug": "croisio",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.croisio.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Croisio utilise ta position pour détecter les croisements avec d'autres joueurs.",
+        "NSLocationAlwaysUsageDescription": "Croisio utilise ta position en arrière-plan pour détecter les croisements."
+      }
+    },
+    "android": {
+      "package": "com.croisio.app",
+      "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_BACKGROUND_LOCATION"],
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    }
+  }
+}
