@@ -2,7 +2,14 @@
   "expo": {
     "name": "Croisio",
     "slug": "croisio",
+    "owner": "Maza99",
     "version": "1.0.0",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/placeholder"
+    },
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "sdkVersion": "54.0.0",
