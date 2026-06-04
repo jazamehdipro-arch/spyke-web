@@ -15,7 +15,7 @@ import ParticleEffect from '../components/ParticleEffect'
 import SpeechBubble from '../components/SpeechBubble'
 import StatsPanel from '../components/StatsPanel'
 import { Creature, GameEvent, InventoryItem, JournalEntry, Quest } from '../types'
-import { addXP, decayStats, getMood, getCreatureEmoji } from '../utils/creature'
+import { addXP, decayStats, getMood } from '../utils/creature'
 import { generateRandomEvent, getRewardItem, shouldTriggerEvent } from '../utils/events'
 import { getCreatureSpeech, getReactionMessage } from '../utils/speech'
 import { addItemToInventory, addJournalEntry, saveCreature, saveEvents, saveInventory, saveJournal, saveQuests } from '../utils/storage'
@@ -177,8 +177,6 @@ export default function HomeScreen({ creature, inventory, events, quests, journa
     setRefreshing(false)
   }, [creature])
 
-  const creatureEmoji = getCreatureEmoji(creature.type, creature.stats.level)
-
   return (
     <SafeAreaView style={styles.safe}>
       <ParticleEffect trigger={particleTrigger} emojis={particleEmojis} />
@@ -212,7 +210,7 @@ export default function HomeScreen({ creature, inventory, events, quests, journa
       <MiniGame
         visible={showMiniGame}
         onClose={handleMiniGameEnd}
-        creatureEmoji={creatureEmoji}
+        creatureType={creature.type}
       />
 
       <EventModal event={pendingEvent} onClose={handleEventClose} />

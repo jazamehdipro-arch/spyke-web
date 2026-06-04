@@ -1,5 +1,5 @@
 export type CreatureMood = 'happy' | 'neutral' | 'sad' | 'excited'
-export type CreatureType = 'flame' | 'aqua' | 'leaf' | 'spark'
+export type CreatureType = 'ignis' | 'nemo' | 'sylva' | 'zapp'
 export type ItemRarity = 'common' | 'rare' | 'epic'
 
 export interface CreatureStats {

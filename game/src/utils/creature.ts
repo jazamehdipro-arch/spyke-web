@@ -1,31 +1,24 @@
 import { Creature, CreatureMood, CreatureStats, CreatureType } from '../types'
 
-export const CREATURE_EMOJIS: Record<CreatureType, string[]> = {
-  flame: ['🔥', '🦊', '🐲'],
-  aqua:  ['💧', '🐬', '🐉'],
-  leaf:  ['🌿', '🦎', '🦕'],
-  spark: ['⚡', '🐱', '🐯'],
-}
-
 export const CREATURE_COLORS: Record<CreatureType, string> = {
-  flame: '#FF6B35',
-  aqua:  '#4ECDC4',
-  leaf:  '#45B649',
-  spark: '#FFD93D',
+  ignis: '#C41E0F',
+  nemo:  '#1A3A6B',
+  sylva: '#2D6A2D',
+  zapp:  '#C47A00',
 }
 
 export const CREATURE_NAMES: Record<CreatureType, string[]> = {
-  flame: ['Ignis', 'Pyro', 'Ember', 'Blaze'],
-  aqua:  ['Aqua', 'Crest', 'Tide', 'Marine'],
-  leaf:  ['Fern', 'Grove', 'Mossy', 'Sprout'],
-  spark: ['Volt', 'Zappy', 'Flash', 'Bolt'],
+  ignis: ['Ignïs', 'Pyra', 'Ember', 'Flax'],
+  nemo:  ['Némo', 'Crest', 'Deeps', 'Mare'],
+  sylva: ['Sylva', 'Fern', 'Mossy', 'Grove'],
+  zapp:  ['Zapp', 'Volt', 'Flash', 'Bolt'],
 }
 
-export function getCreatureEmoji(type: CreatureType, level: number): string {
-  const emojis = CREATURE_EMOJIS[type]
-  if (level >= 20) return emojis[2]
-  if (level >= 10) return emojis[1]
-  return emojis[0]
+export const CREATURE_LABELS: Record<CreatureType, { name: string; description: string }> = {
+  ignis: { name: 'Ignïs',  description: 'Ardent et courageux' },
+  nemo:  { name: 'Némo',   description: 'Calme et mystérieux' },
+  sylva: { name: 'Sylva',  description: 'Sage et endurant' },
+  zapp:  { name: 'Zapp',   description: 'Rapide et espiègle' },
 }
 
 export function getMood(stats: CreatureStats): CreatureMood {

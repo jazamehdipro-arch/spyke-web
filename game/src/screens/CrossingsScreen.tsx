@@ -1,19 +1,28 @@
 import React, { useEffect, useState } from 'react'
 import {
   FlatList,
+  Image,
+  ImageSourcePropType,
   SafeAreaView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native'
-import { Crossing } from '../types'
-import { CREATURE_COLORS, CREATURE_EMOJIS } from '../utils/creature'
+import { Crossing, CreatureType } from '../types'
+import { CREATURE_COLORS } from '../utils/creature'
 import { loadCrossings } from '../utils/storage'
 
+const CROSSING_SPRITES: Record<CreatureType, ImageSourcePropType> = {
+  ignis: require('../../assets/sprites/ignis_f0.png'),
+  nemo:  require('../../assets/sprites/nemo_f0.png'),
+  sylva: require('../../assets/sprites/sylva_f0.png'),
+  zapp:  require('../../assets/sprites/zapp_f0.png'),
+}
+
 function CrossingCard({ item }: { item: Crossing }) {
-  const color = CREATURE_COLORS[item.creatureType]
-  const emoji = CREATURE_EMOJIS[item.creatureType][0]
+  const color  = CREATURE_COLORS[item.creatureType]
+  const sprite = CROSSING_SPRITES[item.creatureType]
 
   const interactionLabel = {
     friendly: '🤝 Amical',
@@ -34,7 +43,7 @@ function CrossingCard({ item }: { item: Crossing }) {
   return (
     <View style={styles.card}>
       <View style={[styles.avatarCircle, { backgroundColor: color + '22' }]}>
-        <Text style={styles.avatarEmoji}>{emoji}</Text>
+        <Image source={sprite} style={styles.avatarSprite} resizeMode="contain" />
       </View>
       <View style={styles.cardInfo}>
         <Text style={styles.cardName}>{item.username}</Text>
@@ -143,8 +152,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarEmoji: {
-    fontSize: 28,
+  avatarSprite: {
+    width: 40,
+    height: 40,
   },
   cardInfo: {
     flex: 1,

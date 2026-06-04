@@ -1,5 +1,7 @@
 import React, { useState } from 'react'
 import {
+  Image,
+  ImageSourcePropType,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -9,18 +11,20 @@ import {
   View,
 } from 'react-native'
 import { CreatureType } from '../types'
-import { CREATURE_COLORS, CREATURE_EMOJIS, CREATURE_NAMES } from '../utils/creature'
+import { CREATURE_COLORS, CREATURE_LABELS, CREATURE_NAMES } from '../utils/creature'
+
+const CREATURE_SPRITES: Record<CreatureType, ImageSourcePropType> = {
+  ignis: require('../../assets/sprites/ignis_f2.png'),
+  nemo:  require('../../assets/sprites/nemo_f2.png'),
+  sylva: require('../../assets/sprites/sylva_f2.png'),
+  zapp:  require('../../assets/sprites/zapp_f2.png'),
+}
+
+const CREATURE_TYPES: CreatureType[] = ['ignis', 'nemo', 'sylva', 'zapp']
 
 interface Props {
   onComplete: (username: string, creatureType: CreatureType) => void
 }
-
-const CREATURE_TYPES: { type: CreatureType; label: string; description: string }[] = [
-  { type: 'flame', label: 'Flamme',   description: 'Ardent et courageux' },
-  { type: 'aqua',  label: 'Aqua',     description: 'Calme et mystérieux' },
-  { type: 'leaf',  label: 'Nature',   description: 'Sage et endurant' },
-  { type: 'spark', label: 'Étincelle', description: 'Rapide et espiègle' },
-]
 
 export default function OnboardingScreen({ onComplete }: Props) {
   const [step, setStep] = useState<'username' | 'creature'>('username')
@@ -60,10 +64,10 @@ export default function OnboardingScreen({ onComplete }: Props) {
           <View style={styles.stepContainer}>
             <Text style={styles.stepTitle}>Choisis ta créature</Text>
             <View style={styles.creatureGrid}>
-              {CREATURE_TYPES.map(({ type, label, description }) => {
+              {CREATURE_TYPES.map((type) => {
                 const color = CREATURE_COLORS[type]
-                const emoji = CREATURE_EMOJIS[type][0]
-                const name = CREATURE_NAMES[type][0]
+                const { name: label, description } = CREATURE_LABELS[type]
+                const firstName = CREATURE_NAMES[type][0]
                 const selected = selectedType === type
 
                 return (
@@ -71,15 +75,18 @@ export default function OnboardingScreen({ onComplete }: Props) {
                     key={type}
                     style={[
                       styles.creatureCard,
-                      selected && { borderColor: color, borderWidth: 2 },
+                      selected && { borderColor: color, borderWidth: 2, backgroundColor: color + '11' },
                     ]}
                     onPress={() => setSelectedType(type)}
                     activeOpacity={0.8}
                   >
-                    <Text style={styles.creatureEmoji}>{emoji}</Text>
-                    <Text style={[styles.creatureLabel, selected && { color }]}>
-                      {label}
-                    </Text>
+                    <Image
+                      source={CREATURE_SPRITES[type]}
+                      style={styles.creatureSprite}
+                      resizeMode="contain"
+                    />
+                    <Text style={[styles.creatureLabel, selected && { color }]}>{label}</Text>
+                    <Text style={styles.firstName}>{firstName}</Text>
                     <Text style={styles.creatureDesc}>{description}</Text>
                     {selected && (
                       <View style={[styles.selectedDot, { backgroundColor: color }]} />
@@ -166,7 +173,7 @@ const styles = StyleSheet.create({
     width: '47%',
     backgroundColor: '#fff',
     borderRadius: 16,
-    padding: 16,
+    padding: 12,
     alignItems: 'center',
     borderWidth: 2,
     borderColor: 'transparent',
@@ -176,14 +183,20 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
   },
-  creatureEmoji: {
-    fontSize: 44,
-    marginBottom: 8,
+  creatureSprite: {
+    width: 72,
+    height: 72,
+    marginBottom: 6,
   },
   creatureLabel: {
     fontSize: 16,
     fontWeight: '700',
     color: '#1a1a2e',
+  },
+  firstName: {
+    fontSize: 12,
+    color: '#aaa',
+    marginTop: 2,
   },
   creatureDesc: {
     fontSize: 11,

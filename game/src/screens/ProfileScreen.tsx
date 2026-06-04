@@ -1,20 +1,22 @@
 import React from 'react'
 import {
-  Alert,
+  Image,
+  ImageSourcePropType,
   SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from 'react-native'
-import { Creature } from '../types'
-import {
-  CREATURE_COLORS,
-  getCreatureEmoji,
-  getMood,
-  getMoodEmoji,
-} from '../utils/creature'
+import { Creature, CreatureType } from '../types'
+import { CREATURE_COLORS, CREATURE_LABELS, getMood, getMoodEmoji } from '../utils/creature'
+
+const CREATURE_SPRITES: Record<CreatureType, ImageSourcePropType> = {
+  ignis: require('../../assets/sprites/ignis_f0.png'),
+  nemo:  require('../../assets/sprites/nemo_f0.png'),
+  sylva: require('../../assets/sprites/sylva_f0.png'),
+  zapp:  require('../../assets/sprites/zapp_f0.png'),
+}
 
 interface Props {
   creature: Creature
@@ -24,9 +26,9 @@ interface Props {
 
 export default function ProfileScreen({ creature, username, crossingsCount }: Props) {
   const color = CREATURE_COLORS[creature.type]
-  const emoji = getCreatureEmoji(creature.type, creature.stats.level)
-  const mood = getMood(creature.stats)
+  const mood  = getMood(creature.stats)
   const moodEmoji = getMoodEmoji(mood)
+  const { name: typeName } = CREATURE_LABELS[creature.type]
 
   const createdAt = new Date(creature.createdAt)
   const daysTogether = Math.floor(
@@ -34,10 +36,10 @@ export default function ProfileScreen({ creature, username, crossingsCount }: Pr
   )
 
   const stats = [
-    { label: 'Niveau',       value: String(creature.stats.level), icon: '⭐' },
-    { label: 'Croisements',  value: String(crossingsCount),         icon: '🤝' },
-    { label: 'Jours ensemble', value: String(daysTogether),         icon: '📅' },
-    { label: 'XP total',     value: String(creature.stats.xp),      icon: '✨' },
+    { label: 'Niveau',         value: String(creature.stats.level), icon: '⭐' },
+    { label: 'Croisements',    value: String(crossingsCount),        icon: '🤝' },
+    { label: 'Jours ensemble', value: String(daysTogether),          icon: '📅' },
+    { label: 'XP total',       value: String(creature.stats.xp),     icon: '✨' },
   ]
 
   return (
@@ -47,7 +49,7 @@ export default function ProfileScreen({ creature, username, crossingsCount }: Pr
 
         <View style={[styles.creatureCard, { borderColor: color + '44' }]}>
           <View style={[styles.avatarBg, { backgroundColor: color + '22' }]}>
-            <Text style={styles.avatarEmoji}>{emoji}</Text>
+            <Image source={CREATURE_SPRITES[creature.type]} style={styles.avatarSprite} resizeMode="contain" />
           </View>
           <Text style={styles.creatureName}>{creature.name}</Text>
           <Text style={styles.username}>@{username}</Text>
@@ -77,7 +79,7 @@ export default function ProfileScreen({ creature, username, crossingsCount }: Pr
               year: 'numeric',
             })}
             {'\n'}
-            Type : {creature.type.charAt(0).toUpperCase() + creature.type.slice(1)}
+            Type : {typeName}
           </Text>
         </View>
       </ScrollView>
@@ -115,15 +117,16 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   avatarBg: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    width: 110,
+    height: 110,
+    borderRadius: 55,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
   },
-  avatarEmoji: {
-    fontSize: 56,
+  avatarSprite: {
+    width: 88,
+    height: 88,
   },
   creatureName: {
     fontSize: 24,

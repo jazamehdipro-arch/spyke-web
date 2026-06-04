@@ -2,12 +2,22 @@ import React, { useCallback, useEffect, useRef, useState } from 'react'
 import {
   Animated,
   Dimensions,
+  Image,
+  ImageSourcePropType,
   Modal,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native'
+import { CreatureType } from '../types'
+
+const CREATURE_IDLE: Record<CreatureType, ImageSourcePropType> = {
+  ignis: require('../../assets/sprites/ignis_f2.png'),
+  nemo:  require('../../assets/sprites/nemo_f2.png'),
+  sylva: require('../../assets/sprites/sylva_f2.png'),
+  zapp:  require('../../assets/sprites/zapp_f2.png'),
+}
 
 const { width: W, height: H } = Dimensions.get('window')
 const GAME_DURATION = 12
@@ -25,12 +35,12 @@ interface Target {
 interface Props {
   visible: boolean
   onClose: (score: number) => void
-  creatureEmoji: string
+  creatureType: CreatureType
 }
 
 const EMOJIS = ['⭐', '🌟', '💫', '✨', '🎯']
 
-export default function MiniGame({ visible, onClose, creatureEmoji }: Props) {
+export default function MiniGame({ visible, onClose, creatureType }: Props) {
   const [started, setStarted] = useState(false)
   const [score, setScore] = useState(0)
   const [timeLeft, setTimeLeft] = useState(GAME_DURATION)
@@ -136,7 +146,7 @@ export default function MiniGame({ visible, onClose, creatureEmoji }: Props) {
         <View style={styles.container}>
           {!started ? (
             <View style={styles.intro}>
-              <Text style={styles.introEmoji}>{creatureEmoji}</Text>
+              <Image source={CREATURE_IDLE[creatureType]} style={styles.introSprite} resizeMode="contain" />
               <Text style={styles.introTitle}>Mini-jeu !</Text>
               <Text style={styles.introText}>
                 Tape le plus d'étoiles possible en {GAME_DURATION} secondes !
@@ -203,8 +213,9 @@ const styles = StyleSheet.create({
     padding: 32,
     gap: 16,
   },
-  introEmoji: {
-    fontSize: 72,
+  introSprite: {
+    width: 108,
+    height: 108,
   },
   introTitle: {
     fontSize: 32,
