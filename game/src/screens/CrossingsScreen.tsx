@@ -67,7 +67,7 @@ export default function CrossingsScreen() {
 
   useEffect(() => {
     loadCrossings().then((data) => {
-      setCrossings(data)
+      setCrossings(data ?? [])
       setLoading(false)
     })
   }, [])

@@ -1,42 +1,73 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import { Creature, Crossing, Player } from '../types'
+import { Creature, Crossing, GameEvent, InventoryItem, JournalEntry, Player, Quest } from '../types'
 
 const KEYS = {
-  PLAYER: 'croisio:player',
-  CREATURE: 'croisio:creature',
+  PLAYER:    'croisio:player',
+  CREATURE:  'croisio:creature',
   CROSSINGS: 'croisio:crossings',
+  INVENTORY: 'croisio:inventory',
+  EVENTS:    'croisio:events',
+  QUESTS:    'croisio:quests',
+  JOURNAL:   'croisio:journal',
 }
 
-export async function saveCreature(creature: Creature): Promise<void> {
-  await AsyncStorage.setItem(KEYS.CREATURE, JSON.stringify(creature))
-}
-
-export async function loadCreature(): Promise<Creature | null> {
-  const raw = await AsyncStorage.getItem(KEYS.CREATURE)
+async function get<T>(key: string): Promise<T | null> {
+  const raw = await AsyncStorage.getItem(key)
   return raw ? JSON.parse(raw) : null
 }
 
-export async function savePlayer(player: Omit<Player, 'creature'>): Promise<void> {
-  await AsyncStorage.setItem(KEYS.PLAYER, JSON.stringify(player))
+async function set(key: string, value: unknown): Promise<void> {
+  await AsyncStorage.setItem(key, JSON.stringify(value))
 }
 
-export async function loadPlayer(): Promise<Omit<Player, 'creature'> | null> {
-  const raw = await AsyncStorage.getItem(KEYS.PLAYER)
-  return raw ? JSON.parse(raw) : null
-}
+export const saveCreature   = (c: Creature)               => set(KEYS.CREATURE, c)
+export const loadCreature   = ()                           => get<Creature>(KEYS.CREATURE)
+export const savePlayer     = (p: Omit<Player, 'creature'>) => set(KEYS.PLAYER, p)
+export const loadPlayer     = ()                           => get<Omit<Player, 'creature'>>(KEYS.PLAYER)
+export const saveInventory  = (i: InventoryItem[])         => set(KEYS.INVENTORY, i)
+export const loadInventory  = ()                           => get<InventoryItem[]>(KEYS.INVENTORY)
+export const saveEvents     = (e: GameEvent[])             => set(KEYS.EVENTS, e)
+export const loadEvents     = ()                           => get<GameEvent[]>(KEYS.EVENTS)
+export const saveQuests     = (q: Quest[])                 => set(KEYS.QUESTS, q)
+export const loadQuests     = ()                           => get<Quest[]>(KEYS.QUESTS)
+export const saveJournal    = (j: JournalEntry[])          => set(KEYS.JOURNAL, j.slice(0, 100))
+export const loadJournal    = ()                           => get<JournalEntry[]>(KEYS.JOURNAL)
 
 export async function saveCrossings(crossings: Crossing[]): Promise<void> {
-  await AsyncStorage.setItem(KEYS.CROSSINGS, JSON.stringify(crossings.slice(0, 50)))
+  await set(KEYS.CROSSINGS, crossings.slice(0, 50))
 }
-
-export async function loadCrossings(): Promise<Crossing[]> {
-  const raw = await AsyncStorage.getItem(KEYS.CROSSINGS)
-  return raw ? JSON.parse(raw) : []
-}
+export const loadCrossings = () => get<Crossing[]>(KEYS.CROSSINGS)
 
 export async function addCrossing(crossing: Crossing): Promise<Crossing[]> {
-  const existing = await loadCrossings()
+  const existing = (await loadCrossings()) ?? []
   const updated = [crossing, ...existing].slice(0, 50)
   await saveCrossings(updated)
   return updated
+}
+
+export function addJournalEntry(
+  entries: JournalEntry[],
+  message: string,
+  emoji: string
+): JournalEntry[] {
+  const entry: JournalEntry = {
+    id: Math.random().toString(36).slice(2),
+    message,
+    emoji,
+    timestamp: new Date().toISOString(),
+  }
+  return [entry, ...entries].slice(0, 100)
+}
+
+export function addItemToInventory(
+  inventory: InventoryItem[],
+  newItem: InventoryItem
+): InventoryItem[] {
+  const existing = inventory.find((i) => i.id === newItem.id)
+  if (existing) {
+    return inventory.map((i) =>
+      i.id === newItem.id ? { ...i, quantity: i.quantity + newItem.quantity } : i
+    )
+  }
+  return [...inventory, newItem]
 }
