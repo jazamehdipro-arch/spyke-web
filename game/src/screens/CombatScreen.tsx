@@ -69,21 +69,24 @@ interface Props {
 }
 
 interface CombatModifiers {
-  maxEnergy: number        // 4 normally, 3 if energy<60, 2 if energy<30
-  damageMult: number       // based on hunger; *1.1 if excited, *0.85 if sad; *1.2 if courageux
-  confusionChance: number  // 0 if happiness>=60, 0.20 if <60, 0.40 if <30
-  dodgeChance: number      // 0.15 if chanceux, else 0
-  timideChance: number     // 0.25 if timide, else 0
-  sickDot: number          // 3 if isSick, else 0 (every 3 turns)
-  hpMult: number           // 0.75 if isSick, else 1.0
+  maxEnergy: number           // 4 normally, 3 if energy<60, 2 if energy<30
+  damageMult: number          // hunger + mood + traits; floor at 0.55
+  timerReduction: number      // 0 normally, 1 if happiness<60 (timer = TIMER_SECONDS - timerReduction)
+  hideOpponentEnergy: boolean // true if happiness<30 (can't read opponent energy)
+  dodgeChance: number         // 0.15 if chanceux, else 0
+  timideChance: number        // 0.25 if timide, else 0
+  sickDot: number             // 3 if isSick, else 0 (every 3 turns)
+  hpMult: number              // 0.75 if isSick, else 1.0
 }
+
+const DAMAGE_FLOOR = 0.55
 
 function computeModifiers(creature: Creature): CombatModifiers {
   const { hunger, happiness, energy, isSick } = creature.stats
   const traits: PersonalityTrait[] | undefined = creature.traits
   const mood = creature.mood
 
-  // maxEnergy
+  // maxEnergy based on energy stat
   let maxEnergy = 4
   if (energy < 30) maxEnergy = 2
   else if (energy < 60) maxEnergy = 3
@@ -95,17 +98,19 @@ function computeModifiers(creature: Creature): CombatModifiers {
   else if (hunger >= 20) damageMult = 0.65
   else damageMult = 0.45
 
-  // mood modifier
+  // mood modifier stacks multiplicatively
   if (mood === 'excited') damageMult *= 1.1
   else if (mood === 'sad') damageMult *= 0.85
 
-  // courageux trait
+  // courageux trait bonus
   if (hasTrait(traits, 'courageux')) damageMult *= 1.2
 
-  // confusionChance
-  let confusionChance = 0
-  if (happiness < 30) confusionChance = 0.40
-  else if (happiness < 60) confusionChance = 0.20
+  // global floor — a neglected creature stays competitive with good play
+  damageMult = Math.max(DAMAGE_FLOOR, damageMult)
+
+  // happiness → timer pressure + information penalty (replaces random confusion)
+  const timerReduction = happiness < 60 ? 1 : 0
+  const hideOpponentEnergy = happiness < 30
 
   // dodgeChance
   const dodgeChance = hasTrait(traits, 'chanceux') ? 0.15 : 0
@@ -117,7 +122,7 @@ function computeModifiers(creature: Creature): CombatModifiers {
   const sickDot = isSick ? 3 : 0
   const hpMult = isSick ? 0.75 : 1.0
 
-  return { maxEnergy, damageMult, confusionChance, dodgeChance, timideChance, sickDot, hpMult }
+  return { maxEnergy, damageMult, timerReduction, hideOpponentEnergy, dodgeChance, timideChance, sickDot, hpMult }
 }
 
 const OPPONENT_MAX_ENERGY = 4
@@ -231,15 +236,20 @@ interface DebuffItem {
 
 function DebuffPanel({ mods }: { mods: CombatModifiers }) {
   const debuffs: DebuffItem[] = []
+  const buffs: DebuffItem[] = []
 
   if (mods.damageMult < 0.95) {
     const pct = Math.round((1 - mods.damageMult) * 100)
-    debuffs.push({ emoji: '🍖', text: `Faim critique : -${pct}% dégâts` })
+    debuffs.push({ emoji: '🍖', text: `Faim/humeur : -${pct}% dégâts (×${mods.damageMult.toFixed(2)})` })
+  } else if (mods.damageMult > 1.05) {
+    const pct = Math.round((mods.damageMult - 1.0) * 100)
+    buffs.push({ emoji: '💪', text: `Bonus offensif : +${pct}% dégâts (×${mods.damageMult.toFixed(2)})` })
   }
-  if (mods.confusionChance >= 0.40) {
-    debuffs.push({ emoji: '😵', text: 'Confus : 40% chance d\'hésiter' })
-  } else if (mods.confusionChance > 0) {
-    debuffs.push({ emoji: '😵', text: 'Confus : 20% chance d\'hésiter' })
+  if (mods.timerReduction > 0) {
+    debuffs.push({ emoji: '😟', text: `Malheureux : timer réduit (-${mods.timerReduction}s)` })
+  }
+  if (mods.hideOpponentEnergy) {
+    debuffs.push({ emoji: '🙈', text: 'Triste : énergie ennemie masquée' })
   }
   if (mods.sickDot > 0) {
     debuffs.push({ emoji: '🤒', text: 'Malade : -25% PV + 3 dégâts/3 tours' })
@@ -248,13 +258,19 @@ function DebuffPanel({ mods }: { mods: CombatModifiers }) {
     debuffs.push({ emoji: '⚡', text: `Fatigué : énergie max ${mods.maxEnergy}` })
   }
 
-  if (debuffs.length === 0) return null
+  if (debuffs.length === 0 && buffs.length === 0) return null
 
   return (
     <View style={s.debuffPanel}>
-      <Text style={s.debuffTitle}>Malus actifs</Text>
+      {debuffs.length > 0 && <Text style={s.debuffTitle}>Malus actifs</Text>}
       {debuffs.map((d, i) => (
         <Text key={i} style={s.debuffItem}>{d.emoji} {d.text}</Text>
+      ))}
+      {buffs.length > 0 && (
+        <Text style={[s.debuffTitle, { color: '#6BFF8B', marginTop: debuffs.length > 0 ? 8 : 0 }]}>Bonus actifs</Text>
+      )}
+      {buffs.map((b, i) => (
+        <Text key={`b${i}`} style={[s.debuffItem, { color: '#B3FFB3' }]}>{b.emoji} {b.text}</Text>
       ))}
     </View>
   )
@@ -297,10 +313,11 @@ export default function CombatScreen({ player, opponent, onFinish }: Props) {
   }
 
   const startTimer = useCallback(() => {
-    setTimeLeft(TIMER_SECONDS)
+    const effectiveSeconds = Math.max(2, TIMER_SECONDS - playerMods.timerReduction)
+    setTimeLeft(effectiveSeconds)
     setChose(false)
     timerAnim.setValue(1)
-    Animated.timing(timerAnim, { toValue: 0, duration: TIMER_SECONDS * 1000, useNativeDriver: false }).start()
+    Animated.timing(timerAnim, { toValue: 0, duration: effectiveSeconds * 1000, useNativeDriver: false }).start()
     timerRef.current = setInterval(() => {
       setTimeLeft((t) => {
         if (t <= 1) {
@@ -324,21 +341,14 @@ export default function CombatScreen({ player, opponent, onFinish }: Props) {
     setChose(true)
     clearInterval(timerRef.current!)
 
-    // Apply confusion: randomly override to 'defend' or 'charge'
-    let action = rawAction
-    let confusionLog = ''
-    if (playerMods.confusionChance > 0 && Math.random() < playerMods.confusionChance) {
-      const override: ActionKind = Math.random() < 0.5 ? 'defend' : 'charge'
-      action = { kind: override, energy: 0 }
-      confusionLog = `😵 Confus ! ${player.name} hésite et ${override === 'defend' ? 'se défend' : 'charge'} à la place !`
-    }
-
     // Apply timide: 25% chance to defend if HP < 50%
-    if (!confusionLog && playerMods.timideChance > 0) {
+    let action = rawAction
+    let behaviorLog = ''
+    if (playerMods.timideChance > 0) {
       const hpPct = pState.hp / playerMaxHP
       if (hpPct < 0.5 && Math.random() < playerMods.timideChance) {
         action = { kind: 'defend', energy: 0 }
-        confusionLog = `🐣 Timide ! ${player.name} préfère se défendre...`
+        behaviorLog = `🐣 Timide ! ${player.name} préfère se défendre...`
       }
     }
 
@@ -377,8 +387,13 @@ export default function CombatScreen({ player, opponent, onFinish }: Props) {
     if (finalPlayerDmg > 0)  shake(playerShake)
     if (finalOpponentDmg > 0) shake(opponentShake)
 
-    // Build log message
-    let logMsg = confusionLog || result.log
+    // Build log message — show damageMult when attack deals damage
+    let logMsg = behaviorLog || result.log
+    if (!behaviorLog && finalOpponentDmg > 0 && Math.abs(playerMods.damageMult - 1.0) > 0.04) {
+      const sign = playerMods.damageMult > 1.0 ? '+' : ''
+      const pct  = Math.round((playerMods.damageMult - 1.0) * 100)
+      logMsg += ` (×${playerMods.damageMult.toFixed(2)}, ${sign}${pct}%)`
+    }
     if (dodgeLog) logMsg += ` ${dodgeLog}`
     if (sickDotLog) logMsg += sickDotLog
 
@@ -459,7 +474,10 @@ export default function CombatScreen({ player, opponent, onFinish }: Props) {
           <Animated.View style={{ transform: [{ translateX: opponentShake }, { scaleX: -1 }] }}>
             <Image source={opponentSprite} style={s.sprite} resizeMode="contain" />
           </Animated.View>
-          <EnergyDots energy={oState.energy} maxEnergy={OPPONENT_MAX_ENERGY} color={oColor} />
+          {playerMods.hideOpponentEnergy
+            ? <Text style={s.hiddenEnergy}>⚡ ???</Text>
+            : <EnergyDots energy={oState.energy} maxEnergy={OPPONENT_MAX_ENERGY} color={oColor} />
+          }
         </View>
       </View>
 
@@ -550,6 +568,7 @@ const s = StyleSheet.create({
   sprite: { width: 100, height: 100, marginTop: 4 },
   energyRow: { flexDirection: 'row', gap: 5, marginTop: 4 },
   dot: { width: 10, height: 10, borderRadius: 5 },
+  hiddenEnergy: { color: '#555', fontSize: 13, fontWeight: '800', marginTop: 4 },
 
   resolvePanel: { alignItems: 'center', gap: 2 },
   resolveVs: { fontSize: 12 },
