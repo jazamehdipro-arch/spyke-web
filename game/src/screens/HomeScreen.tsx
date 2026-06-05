@@ -208,6 +208,9 @@ export default function HomeScreen({ creature, inventory, events, quests, journa
       case 'heal':
         updated = { ...updated, stats: { ...updated.stats, isSick: false } }
         break
+      case 'lv1':
+        updated = { ...updated, stats: { ...updated.stats, level: 1, xp: 0, xpToNextLevel: 100 } }
+        break
       case 'lv10':
         updated = { ...updated, stats: { ...updated.stats, level: 10, xp: 0, xpToNextLevel: 1000 } }
         break
@@ -294,7 +297,7 @@ export default function HomeScreen({ creature, inventory, events, quests, journa
 
             <Text style={styles.adminSection}>Niveau direct</Text>
             <View style={styles.adminRow}>
-              {([['lv10', 'Niveau 10'], ['lv20', 'Niveau 20']] as const).map(([act, lbl]) => (
+              {([['lv1', 'Niveau 1'], ['lv10', 'Niveau 10'], ['lv20', 'Niveau 20']] as const).map(([act, lbl]) => (
                 <TouchableOpacity key={act} style={[styles.adminBtn, { backgroundColor: '#A855F7' }]} onPress={() => adminAction(act)}>
                   <Text style={styles.adminBtnText}>{lbl}</Text>
                 </TouchableOpacity>
