@@ -4,6 +4,13 @@ export type ItemRarity = 'common' | 'rare' | 'epic'
 export type PersonalityTrait = 'gourmand' | 'joueur' | 'timide' | 'courageux' | 'paresseux' | 'chanceux'
 export type WeatherType = 'sunny' | 'cloudy' | 'rainy' | 'stormy' | 'foggy' | 'clear'
 
+export interface TrainingStats {
+  strength: number   // 0-20: +1% damageMult per point
+  reflexes: number   // 0-20: +0.1s timer per point
+  endurance: number  // 0-20: +1 maxEnergy per 5 points
+  defense: number    // 0-20: +0.5% dodgeChance per point
+}
+
 export interface CreatureStats {
   hunger: number
   happiness: number
@@ -27,6 +34,8 @@ export interface Creature {
   totalPlayed: number
   totalSlept: number
   traits?: PersonalityTrait[]
+  training?: TrainingStats
+  activeCombatBuff?: { damageMult: number; expiresAt: string }
 }
 
 export interface Player {
@@ -66,6 +75,7 @@ export interface InventoryItem {
     energy?: number
     xp?: number
     healsSickness?: boolean
+    combatBuff?: { damageMult: number; durationMin: number; sickChance?: number }
   }
   quantity: number
 }

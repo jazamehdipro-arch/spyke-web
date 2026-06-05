@@ -321,7 +321,15 @@ export default function App() {
               let updated = addXP(state.creature, xpGained)
               updated = { ...updated, mood: getMood(updated.stats) }
               await saveCreature(updated)
-              handleUpdate(updated)
+              let newInventory = state.inventory
+              if (won) {
+                newInventory = addItemToInventory(state.inventory, { ...ITEM_CATALOG.croquettes, quantity: 2 })
+                if (Math.random() < 0.25) {
+                  newInventory = addItemToInventory(newInventory, { ...ITEM_CATALOG.steak, quantity: 1 })
+                }
+                await saveInventory(newInventory)
+              }
+              handleUpdate(updated, newInventory)
             }}
           />
         )}

@@ -17,13 +17,33 @@ import MiniGame from '../components/MiniGame'
 import ParticleEffect from '../components/ParticleEffect'
 import SpeechBubble from '../components/SpeechBubble'
 import StatsPanel from '../components/StatsPanel'
-import { Creature, CreatureType, GameEvent, InventoryItem, JournalEntry, Quest } from '../types'
+import { Creature, CreatureType, GameEvent, InventoryItem, JournalEntry, Quest, TrainingStats } from '../types'
 import { addXP, decayStats, getMood } from '../utils/creature'
 import { generateRandomEvent, getRewardItem, shouldTriggerEvent } from '../utils/events'
 import { getCreatureSpeech, getReactionMessage } from '../utils/speech'
 import { addItemToInventory, addJournalEntry, saveCreature, saveEvents, saveInventory, saveJournal, saveQuests } from '../utils/storage'
 import { updateQuestsAfterAction } from '../utils/quests'
 import { getDailyWeather, WEATHER_EMOJI, WEATHER_LABEL } from '../utils/weather'
+
+const TRAINING_CONFIG: Record<keyof TrainingStats, { label: string; emoji: string; desc: string; costEnergy: number; costHunger: number }> = {
+  strength:  { label: 'Force',     emoji: '💪', desc: '+1% dégâts',      costEnergy: 15, costHunger: 10 },
+  reflexes:  { label: 'Réflexes',  emoji: '⚡', desc: '+0.1s timer',      costEnergy: 10, costHunger: 8  },
+  endurance: { label: 'Endurance', emoji: '🛡️', desc: '+1 énergie max/5', costEnergy: 20, costHunger: 15 },
+  defense:   { label: 'Défense',   emoji: '🎯', desc: '+0.5% esquive',    costEnergy: 12, costHunger: 8  },
+}
+
+function formatFoodEffects(item: InventoryItem): string {
+  const p: string[] = []
+  if (item.effect.hunger)    p.push(`🍖+${item.effect.hunger}`)
+  if (item.effect.happiness) p.push(item.effect.happiness > 0 ? `😊+${item.effect.happiness}` : `😞${item.effect.happiness}`)
+  if (item.effect.energy)    p.push(item.effect.energy > 0 ? `⚡+${item.effect.energy}` : `⚡${item.effect.energy}`)
+  if (item.effect.combatBuff) {
+    const pct = Math.round((item.effect.combatBuff.damageMult - 1) * 100)
+    p.push(`⚔️+${pct}% (${item.effect.combatBuff.durationMin}min)`)
+    if (item.effect.combatBuff.sickChance) p.push(`⚠️${item.effect.combatBuff.sickChance * 100}%maladie`)
+  }
+  return p.join(' · ')
+}
 
 function getTimeOfDay(): 'dawn' | 'day' | 'dusk' | 'night' {
   const h = new Date().getHours()
@@ -69,6 +89,7 @@ export default function HomeScreen({ creature, inventory, events, quests, journa
   const textColor = TIME_TEXT[timeOfDay]
   const weather = getDailyWeather()
   const [refreshing, setRefreshing] = useState(false)
+  const [showFoodPicker, setShowFoodPicker] = useState(false)
   const [particleTrigger, setParticleTrigger] = useState(0)
   const [particleEmojis, setParticleEmojis] = useState(['❤️', '⭐', '✨'])
   const [showMiniGame, setShowMiniGame] = useState(false)
@@ -129,23 +150,74 @@ export default function HomeScreen({ creature, inventory, events, quests, journa
     []
   )
 
-  const handleFeed = async () => {
+  const foodItems = inventory.filter((i) => i.effect.hunger !== undefined && i.effect.hunger > 0)
+
+  const handleFeed = () => {
     if (creature.stats.hunger >= 95) { showSpeech('Je suis rassasié ! 🙅'); return }
+    setShowFoodPicker(true)
+  }
+
+  const handleFeedWith = async (item: InventoryItem) => {
+    setShowFoodPicker(false)
+    let isSick = creature.stats.isSick
+    if (item.effect.combatBuff?.sickChance && Math.random() < item.effect.combatBuff.sickChance) {
+      isSick = true
+    }
+    let activeCombatBuff = creature.activeCombatBuff
+    if (item.effect.combatBuff) {
+      const expiresAt = new Date(Date.now() + item.effect.combatBuff.durationMin * 60 * 1000).toISOString()
+      activeCombatBuff = { damageMult: item.effect.combatBuff.damageMult, expiresAt }
+    }
     let updated: Creature = {
       ...creature,
       lastFed: new Date().toISOString(),
       totalFed: creature.totalFed + 1,
-      stats: { ...creature.stats, hunger: Math.min(100, creature.stats.hunger + 30), happiness: Math.min(100, creature.stats.happiness + 5) },
+      activeCombatBuff,
+      stats: {
+        ...creature.stats,
+        hunger:    Math.min(100, creature.stats.hunger    + (item.effect.hunger    ?? 0)),
+        happiness: Math.min(100, Math.max(0, creature.stats.happiness + (item.effect.happiness ?? 0))),
+        energy:    Math.min(100, Math.max(0, creature.stats.energy    + (item.effect.energy    ?? 0))),
+        isSick,
+      },
     }
-    updated = { ...addXP(updated, 10), mood: getMood(updated.stats) }
+    updated = { ...addXP(updated, 8), mood: getMood(updated.stats) }
+    const newInventory = inventory
+      .map((i) => i.id === item.id ? { ...i, quantity: i.quantity - 1 } : i)
+      .filter((i) => i.quantity > 0)
     let newQuests = updateQuestsAfterAction(quests, 'feed')
     newQuests = updateQuestsAfterAction(newQuests, 'level', updated.stats.level)
-    let newJournal = addJournalEntry(journal, `${creature.name} a mangé avec appétit.`, '🍖')
+    let newJournal = addJournalEntry(journal, `${creature.name} a mangé ${item.emoji} ${item.name}.`, item.emoji)
     const { updatedEvents, updatedQuests: q2, updatedJournal: j2 } = maybeSpawnEvent(updated, events, newQuests, newJournal)
     showSpeech(getReactionMessage('feed'))
-    triggerParticles(['🍖', '❤️', '✨'])
-    await Promise.all([saveCreature(updated), saveEvents(updatedEvents), saveQuests(q2), saveJournal(j2)])
-    onUpdate(updated, inventory, updatedEvents, q2, j2)
+    triggerParticles([item.emoji, '❤️', '✨'])
+    await Promise.all([saveCreature(updated), saveInventory(newInventory), saveEvents(updatedEvents), saveQuests(q2), saveJournal(j2)])
+    onUpdate(updated, newInventory, updatedEvents, q2, j2)
+  }
+
+  const handleTrain = async (type: keyof TrainingStats) => {
+    const cfg = TRAINING_CONFIG[type]
+    const training = creature.training ?? { strength: 0, reflexes: 0, endurance: 0, defense: 0 }
+    const current = training[type]
+    if (current >= 20) { showSpeech(`${cfg.emoji} Stat maximale !`); return }
+    if (creature.stats.energy < cfg.costEnergy) { showSpeech(`Trop fatigué pour s'entraîner ! ⚡`); return }
+    if (creature.stats.hunger < cfg.costHunger) { showSpeech(`Trop affamé pour s'entraîner ! 🍖`); return }
+    const newTraining: TrainingStats = { ...training, [type]: current + 1 }
+    let updated: Creature = {
+      ...creature,
+      training: newTraining,
+      stats: {
+        ...creature.stats,
+        energy: creature.stats.energy - cfg.costEnergy,
+        hunger: Math.max(0, creature.stats.hunger - cfg.costHunger),
+      },
+    }
+    updated = { ...addXP(updated, 5), mood: getMood(updated.stats) }
+    const newJournal = addJournalEntry(journal, `${creature.name} s'est entraîné : ${cfg.label} Lv ${current + 1} !`, cfg.emoji)
+    showSpeech(`${cfg.emoji} ${cfg.label} Lv ${current + 1} !`)
+    triggerParticles([cfg.emoji, '⭐', '💪'])
+    await Promise.all([saveCreature(updated), saveJournal(newJournal)])
+    onUpdate(updated, inventory, events, quests, newJournal)
   }
 
   const handlePlay = () => {
@@ -299,6 +371,13 @@ export default function HomeScreen({ creature, inventory, events, quests, journa
         <SpeechBubble message={speechMsg} visible={speechVisible} />
         <CreatureDisplay creature={creature} onEvolve={handleEvolve} />
         <StatsPanel stats={creature.stats} />
+        {creature.activeCombatBuff && creature.activeCombatBuff.expiresAt > new Date().toISOString() && (
+          <View style={styles.buffBadge}>
+            <Text style={styles.buffText}>
+              ⚔️ +{Math.round((creature.activeCombatBuff.damageMult - 1) * 100)}% dégâts actif
+            </Text>
+          </View>
+        )}
         <View style={styles.spacer} />
         <ActionButtons
           onFeed={handleFeed}
@@ -307,6 +386,36 @@ export default function HomeScreen({ creature, inventory, events, quests, journa
           hungerFull={creature.stats.hunger >= 95}
           energyFull={creature.stats.energy >= 95}
         />
+        <View style={styles.trainSection}>
+          <Text style={[styles.trainTitle, { color: textColor }]}>⚔️ Entraînement</Text>
+          <View style={styles.trainGrid}>
+            {(Object.keys(TRAINING_CONFIG) as (keyof TrainingStats)[]).map((type) => {
+              const cfg = TRAINING_CONFIG[type]
+              const training = creature.training ?? { strength: 0, reflexes: 0, endurance: 0, defense: 0 }
+              const current = training[type]
+              const canTrain = current < 20
+                && creature.stats.energy >= cfg.costEnergy
+                && creature.stats.hunger >= cfg.costHunger
+              return (
+                <TouchableOpacity
+                  key={type}
+                  style={[styles.trainCard, !canTrain && styles.trainCardDisabled]}
+                  onPress={() => handleTrain(type)}
+                  activeOpacity={canTrain ? 0.7 : 1}
+                >
+                  <Text style={styles.trainEmoji}>{cfg.emoji}</Text>
+                  <Text style={styles.trainLabel}>{cfg.label}</Text>
+                  <Text style={styles.trainDesc}>{cfg.desc}</Text>
+                  <View style={styles.trainBarBg}>
+                    <View style={[styles.trainBarFill, { width: `${(current / 20) * 100}%` as any }]} />
+                  </View>
+                  <Text style={styles.trainLevel}>Lv {current}/20</Text>
+                  <Text style={styles.trainCost}>-{cfg.costEnergy}⚡ -{cfg.costHunger}🍖</Text>
+                </TouchableOpacity>
+              )
+            })}
+          </View>
+        </View>
       </ScrollView>
 
       <MiniGame
@@ -316,6 +425,35 @@ export default function HomeScreen({ creature, inventory, events, quests, journa
       />
 
       <EventModal event={pendingEvent} onClose={handleEventClose} />
+
+      <Modal visible={showFoodPicker} transparent animationType="slide">
+        <TouchableOpacity style={styles.foodOverlay} onPress={() => setShowFoodPicker(false)} activeOpacity={1}>
+          <View style={styles.foodCard}>
+            <Text style={styles.foodTitle}>🍽️ Que donner à manger ?</Text>
+            {foodItems.length === 0 ? (
+              <View style={styles.foodEmpty}>
+                <Text style={styles.foodEmptyText}>Aucune nourriture disponible</Text>
+                <Text style={styles.foodEmptyHint}>Gagne des combats pour obtenir des croquettes ! ⚔️</Text>
+              </View>
+            ) : (
+              foodItems.map((item) => (
+                <TouchableOpacity key={item.id} style={styles.foodItemRow} onPress={() => handleFeedWith(item)}>
+                  <Text style={styles.foodItemEmoji}>{item.emoji}</Text>
+                  <View style={styles.foodItemInfo}>
+                    <View style={styles.foodItemHeader}>
+                      <Text style={styles.foodItemName}>{item.name}</Text>
+                      <View style={[styles.foodQtyBadge, { backgroundColor: item.rarity === 'rare' ? '#FF8C00' : item.rarity === 'epic' ? '#9B59B6' : '#666' }]}>
+                        <Text style={styles.foodQtyText}>×{item.quantity}</Text>
+                      </View>
+                    </View>
+                    <Text style={styles.foodItemEffects}>{formatFoodEffects(item)}</Text>
+                  </View>
+                </TouchableOpacity>
+              ))
+            )}
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
       <Modal visible={showAdmin} transparent animationType="slide">
         <View style={styles.adminOverlay}>
@@ -430,6 +568,68 @@ const styles = StyleSheet.create({
   },
   sickTagText: { fontSize: 12, fontWeight: '700', color: '#856404' },
   spacer: { height: 4 },
+  buffBadge: {
+    marginHorizontal: 20,
+    backgroundColor: '#FFD70022',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderColor: '#FFD70066',
+  },
+  buffText: { fontSize: 12, fontWeight: '700', color: '#C47A00' },
+  trainSection: { paddingHorizontal: 16, gap: 10 },
+  trainTitle: { fontSize: 15, fontWeight: '800', letterSpacing: -0.3 },
+  trainGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  trainCard: {
+    width: '47%',
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    padding: 12,
+    gap: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  trainCardDisabled: { opacity: 0.4 },
+  trainEmoji: { fontSize: 20 },
+  trainLabel: { fontSize: 13, fontWeight: '800', color: '#1a1a2e' },
+  trainDesc: { fontSize: 10, color: '#888', marginBottom: 4 },
+  trainBarBg: { height: 4, backgroundColor: '#eee', borderRadius: 2, overflow: 'hidden' },
+  trainBarFill: { height: 4, backgroundColor: '#7C3AED', borderRadius: 2 },
+  trainLevel: { fontSize: 11, fontWeight: '700', color: '#555', marginTop: 2 },
+  trainCost: { fontSize: 10, color: '#FF6B35' },
+  foodOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  foodCard: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    padding: 24,
+    paddingBottom: 40,
+    gap: 12,
+  },
+  foodTitle: { fontSize: 18, fontWeight: '800', color: '#1a1a2e', textAlign: 'center', marginBottom: 4 },
+  foodEmpty: { alignItems: 'center', paddingVertical: 20, gap: 8 },
+  foodEmptyText: { fontSize: 15, color: '#888', fontWeight: '600' },
+  foodEmptyHint: { fontSize: 13, color: '#bbb', textAlign: 'center' },
+  foodItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    backgroundColor: '#F8F7FF',
+    borderRadius: 14,
+    padding: 12,
+  },
+  foodItemEmoji: { fontSize: 28 },
+  foodItemInfo: { flex: 1, gap: 3 },
+  foodItemHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  foodItemName: { fontSize: 14, fontWeight: '700', color: '#1a1a2e', flex: 1 },
+  foodQtyBadge: { borderRadius: 8, paddingHorizontal: 7, paddingVertical: 2 },
+  foodQtyText: { color: '#fff', fontSize: 11, fontWeight: '700' },
+  foodItemEffects: { fontSize: 11, color: '#888', lineHeight: 16 },
   adminOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.7)',

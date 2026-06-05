@@ -41,11 +41,32 @@ export const ITEM_CATALOG: Record<string, Omit<InventoryItem, 'quantity'>> = {
     description: 'Donne beaucoup d\'expérience.',
     effect: { xp: 50 },
   },
+  croquettes: {
+    id: 'croquettes', name: 'Croquettes', emoji: '🥣', rarity: 'common',
+    description: 'Nourriture basique. Gagnée en combat.',
+    effect: { hunger: 20 },
+  },
+  steak: {
+    id: 'steak', name: 'Steak cru', emoji: '🥩', rarity: 'rare',
+    description: 'Boost de combat puissant. Risque de maladie (10%).',
+    effect: { hunger: 40, energy: 10, combatBuff: { damageMult: 1.15, durationMin: 45, sickChance: 0.10 } },
+  },
+  herbes: {
+    id: 'herbes', name: 'Herbes amères', emoji: '🌿', rarity: 'common',
+    description: 'Sain et énergisant. Infect au goût.',
+    effect: { hunger: 25, energy: 20, happiness: -15 },
+  },
+  bonbon_epice: {
+    id: 'bonbon_epice', name: 'Bonbon pimenté', emoji: '🌶️', rarity: 'common',
+    description: 'Boost de combat léger. Épuise.',
+    effect: { hunger: 5, happiness: 20, energy: -10, combatBuff: { damageMult: 1.10, durationMin: 30 } },
+  },
 }
 
 export function getStarterInventory(): InventoryItem[] {
   return [
-    { ...ITEM_CATALOG.apple, quantity: 3 },
-    { ...ITEM_CATALOG.candy, quantity: 2 },
+    { ...ITEM_CATALOG.croquettes,   quantity: 5 },
+    { ...ITEM_CATALOG.apple,        quantity: 2 },
+    { ...ITEM_CATALOG.bonbon_epice, quantity: 1 },
   ]
 }

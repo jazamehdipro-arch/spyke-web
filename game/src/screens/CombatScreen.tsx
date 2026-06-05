@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native'
-import { Creature, CreatureType, PersonalityTrait } from '../types'
+import { Creature, CreatureType, PersonalityTrait, TrainingStats } from '../types'
 import { CREATURE_COLORS } from '../utils/creature'
 import { hasTrait } from '../utils/traits'
 
@@ -72,6 +72,8 @@ interface CombatModifiers {
   maxEnergy: number           // 4 normally, 3 if energy<60, 2 if energy<30
   damageMult: number          // hunger + mood + traits; floor at 0.55
   timerReduction: number      // 0 normally, 1 if happiness<60 (timer = TIMER_SECONDS - timerReduction)
+  timerBonus: number          // from training.reflexes (+0.1s per point)
+  activeFoodBuff: boolean     // whether a food combat buff is currently active
   hideOpponentEnergy: boolean // true if happiness<30 (can't read opponent energy)
   dodgeChance: number         // 0.15 if chanceux, else 0
   timideChance: number        // 0.25 if timide, else 0
@@ -108,12 +110,28 @@ function computeModifiers(creature: Creature): CombatModifiers {
   // global floor — a neglected creature stays competitive with good play
   damageMult = Math.max(DAMAGE_FLOOR, damageMult)
 
+  // Training bonuses
+  const training: TrainingStats = creature.training ?? { strength: 0, reflexes: 0, endurance: 0, defense: 0 }
+  damageMult = Math.max(DAMAGE_FLOOR, damageMult + training.strength * 0.01)
+  const trainingMaxEnergy = Math.floor(training.endurance / 5)
+  maxEnergy = Math.min(6, maxEnergy + trainingMaxEnergy)
+  const trainingDodge = training.defense * 0.005
+
+  // Active food combat buff
+  const now = new Date().toISOString()
+  const activeFoodBuff = !!(creature.activeCombatBuff && creature.activeCombatBuff.expiresAt > now)
+  if (activeFoodBuff) {
+    damageMult = Math.max(DAMAGE_FLOOR, damageMult * creature.activeCombatBuff!.damageMult)
+  }
+
+  const timerBonus = parseFloat((training.reflexes * 0.1).toFixed(1))
+
   // happiness → timer pressure + information penalty (replaces random confusion)
   const timerReduction = happiness < 60 ? 1 : 0
   const hideOpponentEnergy = happiness < 30
 
   // dodgeChance
-  const dodgeChance = hasTrait(traits, 'chanceux') ? 0.15 : 0
+  const dodgeChance = Math.min(0.35, (hasTrait(traits, 'chanceux') ? 0.15 : 0) + trainingDodge)
 
   // timideChance
   const timideChance = hasTrait(traits, 'timide') ? 0.25 : 0
@@ -122,7 +140,7 @@ function computeModifiers(creature: Creature): CombatModifiers {
   const sickDot = isSick ? 3 : 0
   const hpMult = isSick ? 0.75 : 1.0
 
-  return { maxEnergy, damageMult, timerReduction, hideOpponentEnergy, dodgeChance, timideChance, sickDot, hpMult }
+  return { maxEnergy, damageMult, timerReduction, timerBonus, activeFoodBuff, hideOpponentEnergy, dodgeChance, timideChance, sickDot, hpMult }
 }
 
 const OPPONENT_MAX_ENERGY = 4
@@ -245,6 +263,12 @@ function DebuffPanel({ mods }: { mods: CombatModifiers }) {
     const pct = Math.round((mods.damageMult - 1.0) * 100)
     buffs.push({ emoji: '💪', text: `Bonus offensif : +${pct}% dégâts (×${mods.damageMult.toFixed(2)})` })
   }
+  if (mods.activeFoodBuff) {
+    buffs.push({ emoji: '🥩', text: 'Repas boost actif !' })
+  }
+  if (mods.timerBonus > 0) {
+    buffs.push({ emoji: '⚡', text: `Réflexes : +${mods.timerBonus.toFixed(1)}s timer` })
+  }
   if (mods.timerReduction > 0) {
     debuffs.push({ emoji: '😟', text: `Malheureux : timer réduit (-${mods.timerReduction}s)` })
   }
@@ -313,7 +337,7 @@ export default function CombatScreen({ player, opponent, onFinish }: Props) {
   }
 
   const startTimer = useCallback(() => {
-    const effectiveSeconds = Math.max(2, TIMER_SECONDS - playerMods.timerReduction)
+    const effectiveSeconds = Math.max(2, TIMER_SECONDS - playerMods.timerReduction + playerMods.timerBonus)
     setTimeLeft(effectiveSeconds)
     setChose(false)
     timerAnim.setValue(1)
