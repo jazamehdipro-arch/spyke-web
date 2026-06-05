@@ -1,4 +1,5 @@
-import { Creature, CreatureMood, CreatureStats, CreatureType } from '../types'
+import { Creature, CreatureMood, CreatureStats, CreatureType, PersonalityTrait } from '../types'
+import { hasTrait } from './traits'
 
 export const CREATURE_COLORS: Record<CreatureType, string> = {
   ignis: '#C41E0F',
@@ -39,14 +40,20 @@ export function getMoodEmoji(mood: CreatureMood): string {
   return map[mood]
 }
 
-export function decayStats(creature: Creature): CreatureStats {
+export function decayStats(
+  creature: Creature,
+  traits?: PersonalityTrait[]
+): CreatureStats {
   const now = Date.now()
   const lastFed = new Date(creature.lastFed).getTime()
   const hoursSinceFed = (now - lastFed) / (1000 * 60 * 60)
 
+  const effectiveTraits = traits ?? creature.traits
+  const energySlowdown = hasTrait(effectiveTraits, 'paresseux') ? 0.7 : 1.0
+
   const hungerDecay = Math.min(hoursSinceFed * 8, 100)
   const happinessDecay = Math.min(hoursSinceFed * 4, 100)
-  const energyDecay = Math.min(hoursSinceFed * 6, 100)
+  const energyDecay = Math.min(hoursSinceFed * 6 * energySlowdown, 100)
 
   return {
     ...creature.stats,

@@ -23,6 +23,29 @@ import { generateRandomEvent, getRewardItem, shouldTriggerEvent } from '../utils
 import { getCreatureSpeech, getReactionMessage } from '../utils/speech'
 import { addItemToInventory, addJournalEntry, saveCreature, saveEvents, saveInventory, saveJournal, saveQuests } from '../utils/storage'
 import { updateQuestsAfterAction } from '../utils/quests'
+import { getDailyWeather, WEATHER_EMOJI, WEATHER_LABEL } from '../utils/weather'
+
+function getTimeOfDay(): 'dawn' | 'day' | 'dusk' | 'night' {
+  const h = new Date().getHours()
+  if (h >= 5 && h < 7) return 'dawn'
+  if (h >= 7 && h < 19) return 'day'
+  if (h >= 19 && h < 22) return 'dusk'
+  return 'night'
+}
+
+const TIME_BG: Record<string, string> = {
+  dawn:  '#FFF3E0',
+  day:   '#F8F7FF',
+  dusk:  '#F3E5F5',
+  night: '#1a1a2e',
+}
+
+const TIME_TEXT: Record<string, string> = {
+  dawn:  '#1a1a2e',
+  day:   '#1a1a2e',
+  dusk:  '#1a1a2e',
+  night: '#ffffff',
+}
 
 interface Props {
   creature: Creature
@@ -30,6 +53,7 @@ interface Props {
   events: GameEvent[]
   quests: Quest[]
   journal: JournalEntry[]
+  streak?: number
   onUpdate: (
     creature: Creature,
     inventory?: InventoryItem[],
@@ -39,7 +63,11 @@ interface Props {
   ) => void
 }
 
-export default function HomeScreen({ creature, inventory, events, quests, journal, onUpdate }: Props) {
+export default function HomeScreen({ creature, inventory, events, quests, journal, streak, onUpdate }: Props) {
+  const timeOfDay = getTimeOfDay()
+  const bgColor = TIME_BG[timeOfDay]
+  const textColor = TIME_TEXT[timeOfDay]
+  const weather = getDailyWeather()
   const [refreshing, setRefreshing] = useState(false)
   const [particleTrigger, setParticleTrigger] = useState(0)
   const [particleEmojis, setParticleEmojis] = useState(['❤️', '⭐', '✨'])
@@ -239,7 +267,7 @@ export default function HomeScreen({ creature, inventory, events, quests, journa
   }, [creature.stats.level])
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: bgColor }]}>
       <ParticleEffect trigger={particleTrigger} emojis={particleEmojis} />
 
       <ScrollView
@@ -248,12 +276,23 @@ export default function HomeScreen({ creature, inventory, events, quests, journa
       >
         <View style={styles.header}>
           <TouchableOpacity onPress={handleTitleTap} activeOpacity={1}>
-            <Text style={styles.title}>Croisio</Text>
+            <Text style={[styles.title, { color: textColor }]}>Croisio</Text>
           </TouchableOpacity>
           {creature.stats.isSick && (
             <View style={styles.sickTag}>
               <Text style={styles.sickTagText}>🤒 Malade</Text>
             </View>
+          )}
+        </View>
+
+        <View style={styles.weatherRow}>
+          <Text style={[styles.weatherText, { color: textColor === '#ffffff' ? '#ccc' : '#555' }]}>
+            {WEATHER_EMOJI[weather]} {WEATHER_LABEL[weather]}
+          </Text>
+          {streak != null && streak > 0 && (
+            <Text style={[styles.weatherText, { color: textColor === '#ffffff' ? '#ccc' : '#555' }]}>
+              {'  ·  '}🔥 {streak} jour{streak > 1 ? 's' : ''}
+            </Text>
           )}
         </View>
 
@@ -377,6 +416,12 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   title: { fontSize: 32, fontWeight: '800', color: '#1a1a2e', letterSpacing: -1 },
+  weatherRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    alignItems: 'center',
+  },
+  weatherText: { fontSize: 13, fontWeight: '500' },
   sickTag: {
     backgroundColor: '#FFF3CD',
     borderRadius: 20,

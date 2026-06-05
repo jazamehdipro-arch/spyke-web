@@ -1,6 +1,8 @@
 export type CreatureMood = 'happy' | 'neutral' | 'sad' | 'excited'
 export type CreatureType = 'ignis' | 'nemo' | 'sylva' | 'zapp'
 export type ItemRarity = 'common' | 'rare' | 'epic'
+export type PersonalityTrait = 'gourmand' | 'joueur' | 'timide' | 'courageux' | 'paresseux' | 'chanceux'
+export type WeatherType = 'sunny' | 'cloudy' | 'rainy' | 'stormy' | 'foggy' | 'clear'
 
 export interface CreatureStats {
   hunger: number
@@ -24,6 +26,7 @@ export interface Creature {
   totalFed: number
   totalPlayed: number
   totalSlept: number
+  traits?: PersonalityTrait[]
 }
 
 export interface Player {
@@ -33,6 +36,9 @@ export interface Player {
   latitude?: number
   longitude?: number
   lastSeen?: string
+  coins?: number
+  streak?: number
+  lastLoginDate?: string
 }
 
 export interface Crossing {
@@ -86,6 +92,21 @@ export interface Quest {
   completed: boolean
   claimed: boolean
   type: 'feed' | 'play' | 'sleep' | 'level' | 'events'
+}
+
+export interface DailyQuest {
+  id: string
+  date: string
+  templateId: string
+  title: string
+  description: string
+  emoji: string
+  action: string
+  progress: number
+  target: number
+  completed: boolean
+  claimed: boolean
+  reward: { xp: number; coins: number }
 }
 
 export interface JournalEntry {

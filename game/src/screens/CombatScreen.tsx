@@ -8,8 +8,9 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native'
-import { Creature, CreatureType } from '../types'
+import { Creature, CreatureType, PersonalityTrait } from '../types'
 import { CREATURE_COLORS } from '../utils/creature'
+import { hasTrait } from '../utils/traits'
 
 // ─── sprites ────────────────────────────────────────────
 const SPRITES: Record<string, ImageSourcePropType> = {
@@ -67,11 +68,65 @@ interface Props {
   onFinish: (won: boolean, xpGained: number) => void
 }
 
-const MAX_ENERGY = 4
+interface CombatModifiers {
+  maxEnergy: number        // 4 normally, 3 if energy<60, 2 if energy<30
+  damageMult: number       // based on hunger; *1.1 if excited, *0.85 if sad; *1.2 if courageux
+  confusionChance: number  // 0 if happiness>=60, 0.20 if <60, 0.40 if <30
+  dodgeChance: number      // 0.15 if chanceux, else 0
+  timideChance: number     // 0.25 if timide, else 0
+  sickDot: number          // 3 if isSick, else 0 (every 3 turns)
+  hpMult: number           // 0.75 if isSick, else 1.0
+}
+
+function computeModifiers(creature: Creature): CombatModifiers {
+  const { hunger, happiness, energy, isSick } = creature.stats
+  const traits: PersonalityTrait[] | undefined = creature.traits
+  const mood = creature.mood
+
+  // maxEnergy
+  let maxEnergy = 4
+  if (energy < 30) maxEnergy = 2
+  else if (energy < 60) maxEnergy = 3
+
+  // damageMult based on hunger
+  let damageMult: number
+  if (hunger >= 60) damageMult = 1.0
+  else if (hunger >= 40) damageMult = 0.80
+  else if (hunger >= 20) damageMult = 0.65
+  else damageMult = 0.45
+
+  // mood modifier
+  if (mood === 'excited') damageMult *= 1.1
+  else if (mood === 'sad') damageMult *= 0.85
+
+  // courageux trait
+  if (hasTrait(traits, 'courageux')) damageMult *= 1.2
+
+  // confusionChance
+  let confusionChance = 0
+  if (happiness < 30) confusionChance = 0.40
+  else if (happiness < 60) confusionChance = 0.20
+
+  // dodgeChance
+  const dodgeChance = hasTrait(traits, 'chanceux') ? 0.15 : 0
+
+  // timideChance
+  const timideChance = hasTrait(traits, 'timide') ? 0.25 : 0
+
+  // sick effects
+  const sickDot = isSick ? 3 : 0
+  const hpMult = isSick ? 0.75 : 1.0
+
+  return { maxEnergy, damageMult, confusionChance, dodgeChance, timideChance, sickDot, hpMult }
+}
+
+const OPPONENT_MAX_ENERGY = 4
 const TIMER_SECONDS = 4
 const BASE_HP = 30
 
-function calcHP(level: number) { return BASE_HP + (level - 1) * 2 }
+function calcHP(level: number, hpMult = 1.0) {
+  return Math.round((BASE_HP + (level - 1) * 2) * hpMult)
+}
 
 // ─── resolution logic ───────────────────────────────────
 function resolveRound(p: Action, o: Action): ResolveResult {
@@ -142,10 +197,10 @@ function botAction(botEnergy: number, playerEnergy: number, lastPlayerAction: Ac
 }
 
 // ─── sub-components ─────────────────────────────────────
-function EnergyDots({ energy, color }: { energy: number; color: string }) {
+function EnergyDots({ energy, maxEnergy, color }: { energy: number; maxEnergy: number; color: string }) {
   return (
     <View style={s.energyRow}>
-      {Array.from({ length: MAX_ENERGY }, (_, i) => (
+      {Array.from({ length: maxEnergy }, (_, i) => (
         <View key={i} style={[s.dot, { backgroundColor: i < energy ? color : '#333' }]} />
       ))}
     </View>
@@ -169,9 +224,48 @@ function ActionLabel({ action }: { action: Action | null }) {
   return <Text style={s.actionLabel}>⚔️ Attaque ×{action.energy}</Text>
 }
 
+interface DebuffItem {
+  emoji: string
+  text: string
+}
+
+function DebuffPanel({ mods }: { mods: CombatModifiers }) {
+  const debuffs: DebuffItem[] = []
+
+  if (mods.damageMult < 0.95) {
+    const pct = Math.round((1 - mods.damageMult) * 100)
+    debuffs.push({ emoji: '🍖', text: `Faim critique : -${pct}% dégâts` })
+  }
+  if (mods.confusionChance >= 0.40) {
+    debuffs.push({ emoji: '😵', text: 'Confus : 40% chance d\'hésiter' })
+  } else if (mods.confusionChance > 0) {
+    debuffs.push({ emoji: '😵', text: 'Confus : 20% chance d\'hésiter' })
+  }
+  if (mods.sickDot > 0) {
+    debuffs.push({ emoji: '🤒', text: 'Malade : -25% PV + 3 dégâts/3 tours' })
+  }
+  if (mods.maxEnergy < 4) {
+    debuffs.push({ emoji: '⚡', text: `Fatigué : énergie max ${mods.maxEnergy}` })
+  }
+
+  if (debuffs.length === 0) return null
+
+  return (
+    <View style={s.debuffPanel}>
+      <Text style={s.debuffTitle}>Malus actifs</Text>
+      {debuffs.map((d, i) => (
+        <Text key={i} style={s.debuffItem}>{d.emoji} {d.text}</Text>
+      ))}
+    </View>
+  )
+}
+
 // ─── main component ─────────────────────────────────────
 export default function CombatScreen({ player, opponent, onFinish }: Props) {
-  const playerMaxHP  = calcHP(player.stats.level)
+  // Compute player modifiers once at component init
+  const playerMods = useRef<CombatModifiers>(computeModifiers(player)).current
+
+  const playerMaxHP  = calcHP(player.stats.level, playerMods.hpMult)
   const opponentMaxHP = calcHP(opponent.level)
 
   const [phase, setPhase]       = useState<CombatPhase>('intro')
@@ -225,10 +319,28 @@ export default function CombatScreen({ player, opponent, onFinish }: Props) {
     if (!chose) commitAction({ kind: 'defend', energy: 0 })
   }, [timeLeft, phase, chose])
 
-  const commitAction = useCallback((action: Action) => {
+  const commitAction = useCallback((rawAction: Action) => {
     if (chose) return
     setChose(true)
     clearInterval(timerRef.current!)
+
+    // Apply confusion: randomly override to 'defend' or 'charge'
+    let action = rawAction
+    let confusionLog = ''
+    if (playerMods.confusionChance > 0 && Math.random() < playerMods.confusionChance) {
+      const override: ActionKind = Math.random() < 0.5 ? 'defend' : 'charge'
+      action = { kind: override, energy: 0 }
+      confusionLog = `😵 Confus ! ${player.name} hésite et ${override === 'defend' ? 'se défend' : 'charge'} à la place !`
+    }
+
+    // Apply timide: 25% chance to defend if HP < 50%
+    if (!confusionLog && playerMods.timideChance > 0) {
+      const hpPct = pState.hp / playerMaxHP
+      if (hpPct < 0.5 && Math.random() < playerMods.timideChance) {
+        action = { kind: 'defend', energy: 0 }
+        confusionLog = `🐣 Timide ! ${player.name} préfère se défendre...`
+      }
+    }
 
     const botAct = botAction(oState.energy, pState.energy, lastPlayerActionRef.current)
     lastPlayerActionRef.current = action
@@ -239,15 +351,38 @@ export default function CombatScreen({ player, opponent, onFinish }: Props) {
 
     const result = resolveRound(action, botAct)
 
-    const newPHP  = Math.max(0, pState.hp - result.playerDmg)
-    const newOHP  = Math.max(0, oState.hp - result.opponentDmg)
-    const newPEn  = Math.max(0, Math.min(MAX_ENERGY, pState.energy + result.playerEnergyDelta))
-    const newOEn  = Math.max(0, Math.min(MAX_ENERGY, oState.energy + result.opponentEnergyDelta))
+    // Apply damageMult to player-dealt damage
+    let finalOpponentDmg = Math.round(result.opponentDmg * playerMods.damageMult)
 
-    if (result.playerDmg > 0)  shake(playerShake)
-    if (result.opponentDmg > 0) shake(opponentShake)
+    // Apply dodge: if opponent attacks and dodge triggers, player takes 0 damage
+    let finalPlayerDmg = result.playerDmg
+    let dodgeLog = ''
+    if (result.playerDmg > 0 && playerMods.dodgeChance > 0 && Math.random() < playerMods.dodgeChance) {
+      finalPlayerDmg = 0
+      dodgeLog = 'Esquivé ! 💨'
+    }
 
-    setLog(result.log)
+    // Apply sick dot every 3 turns
+    let sickDotLog = ''
+    if (playerMods.sickDot > 0 && round % 3 === 0) {
+      finalPlayerDmg += playerMods.sickDot
+      sickDotLog = ` 🤒 Empoisonné -${playerMods.sickDot} PV`
+    }
+
+    const newPHP  = Math.max(0, pState.hp - finalPlayerDmg)
+    const newOHP  = Math.max(0, oState.hp - finalOpponentDmg)
+    const newPEn  = Math.max(0, Math.min(playerMods.maxEnergy, pState.energy + result.playerEnergyDelta))
+    const newOEn  = Math.max(0, Math.min(OPPONENT_MAX_ENERGY, oState.energy + result.opponentEnergyDelta))
+
+    if (finalPlayerDmg > 0)  shake(playerShake)
+    if (finalOpponentDmg > 0) shake(opponentShake)
+
+    // Build log message
+    let logMsg = confusionLog || result.log
+    if (dodgeLog) logMsg += ` ${dodgeLog}`
+    if (sickDotLog) logMsg += sickDotLog
+
+    setLog(logMsg)
     setPState({ hp: newPHP, energy: newPEn })
     setOState({ hp: newOHP, energy: newOEn })
 
@@ -262,7 +397,7 @@ export default function CombatScreen({ player, opponent, onFinish }: Props) {
         startTimer()
       }
     }, 1800)
-  }, [chose, pState, oState, round, startTimer])
+  }, [chose, pState, oState, round, startTimer, playerMods, playerMaxHP, player.name])
 
   // start game
   useEffect(() => {
@@ -301,7 +436,7 @@ export default function CombatScreen({ player, opponent, onFinish }: Props) {
           <Animated.View style={{ transform: [{ translateX: playerShake }] }}>
             <Image source={playerSprite} style={s.sprite} resizeMode="contain" />
           </Animated.View>
-          <EnergyDots energy={pState.energy} color={pColor} />
+          <EnergyDots energy={pState.energy} maxEnergy={playerMods.maxEnergy} color={pColor} />
         </View>
 
         {/* VS */}
@@ -324,7 +459,7 @@ export default function CombatScreen({ player, opponent, onFinish }: Props) {
           <Animated.View style={{ transform: [{ translateX: opponentShake }, { scaleX: -1 }] }}>
             <Image source={opponentSprite} style={s.sprite} resizeMode="contain" />
           </Animated.View>
-          <EnergyDots energy={oState.energy} color={oColor} />
+          <EnergyDots energy={oState.energy} maxEnergy={OPPONENT_MAX_ENERGY} color={oColor} />
         </View>
       </View>
 
@@ -347,23 +482,24 @@ export default function CombatScreen({ player, opponent, onFinish }: Props) {
             <TouchableOpacity style={[s.actionBtn, s.chargeBtn]} onPress={() => commitAction({ kind: 'charge', energy: 0 })}>
               <Text style={s.actionIcon}>⚡</Text>
               <Text style={s.actionLabel2}>Charger</Text>
-              <Text style={s.actionSub}>{pState.energy}/{MAX_ENERGY} ⚡</Text>
+              <Text style={s.actionSub}>{pState.energy}/{playerMods.maxEnergy} ⚡</Text>
             </TouchableOpacity>
           </View>
           <View style={s.actionsRow}>
             {[1, 2, 3, 4].map((e) => {
-              const canAttack = pState.energy >= e
+              const canAttack = pState.energy >= e && e <= playerMods.maxEnergy
+              const isDisabledByMax = e > playerMods.maxEnergy
               return (
                 <TouchableOpacity
                   key={e}
-                  style={[s.attackBtn, !canAttack && s.attackBtnDisabled]}
+                  style={[s.attackBtn, (!canAttack || isDisabledByMax) && s.attackBtnDisabled]}
                   onPress={() => canAttack && commitAction({ kind: 'attack', energy: e })}
                   activeOpacity={canAttack ? 0.7 : 1}
                 >
-                  <Text style={[s.attackBtnText, !canAttack && s.attackBtnTextDisabled]}>
+                  <Text style={[s.attackBtnText, (!canAttack || isDisabledByMax) && s.attackBtnTextDisabled]}>
                     ⚔️×{e}
                   </Text>
-                  <Text style={[s.attackBtnSub, !canAttack && s.attackBtnTextDisabled]}>
+                  <Text style={[s.attackBtnSub, (!canAttack || isDisabledByMax) && s.attackBtnTextDisabled]}>
                     {e * 4} dmg
                   </Text>
                 </TouchableOpacity>
@@ -377,6 +513,7 @@ export default function CombatScreen({ player, opponent, onFinish }: Props) {
         <View style={s.introOverlay}>
           <Text style={s.introTitle}>COMBAT !</Text>
           <Text style={s.introSub}>{player.name} vs {opponent.creatureName}</Text>
+          <DebuffPanel mods={playerMods} />
         </View>
       )}
 
@@ -463,9 +600,23 @@ const s = StyleSheet.create({
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
     backgroundColor: 'rgba(0,0,0,0.85)',
     alignItems: 'center', justifyContent: 'center',
+    gap: 12,
   },
   introTitle: { fontSize: 48, fontWeight: '900', color: '#FFD700', letterSpacing: 4 },
   introSub: { fontSize: 16, color: '#aaa', marginTop: 8 },
+
+  debuffPanel: {
+    backgroundColor: 'rgba(255,60,60,0.12)',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    marginTop: 12,
+    gap: 4,
+    minWidth: 220,
+    alignItems: 'flex-start',
+  },
+  debuffTitle: { color: '#FF6B6B', fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 },
+  debuffItem: { color: '#FFB3B3', fontSize: 12 },
 
   finishOverlay: {
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,

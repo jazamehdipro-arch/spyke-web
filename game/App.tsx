@@ -7,25 +7,30 @@ import JournalScreen from './src/screens/JournalScreen'
 import OnboardingScreen from './src/screens/OnboardingScreen'
 import ProfileScreen from './src/screens/ProfileScreen'
 import QuestsScreen from './src/screens/QuestsScreen'
-import { Creature, Crossing, CreatureType, GameEvent, InventoryItem, JournalEntry, Quest } from './src/types'
+import { Creature, Crossing, CreatureType, DailyQuest, GameEvent, InventoryItem, JournalEntry, Quest } from './src/types'
 import { addXP, createNewCreature, decayStats, getMood } from './src/utils/creature'
 import { ITEM_CATALOG, getStarterInventory } from './src/utils/items'
 import { QUEST_DEFINITIONS } from './src/utils/quests'
+import { generateDailyQuests, isDailyQuestStale } from './src/utils/dailyQuests'
 import {
   addItemToInventory,
   addJournalEntry,
   loadCreature,
   loadCrossings,
+  loadDailyQuests,
   loadEvents,
   loadInventory,
   loadJournal,
   loadPlayer,
   loadQuests,
+  loadStreak,
   saveCreature,
+  saveDailyQuests,
   saveInventory,
   saveJournal,
   savePlayer,
   saveQuests,
+  saveStreak,
 } from './src/utils/storage'
 
 type Tab = 'home' | 'inventory' | 'quests' | 'crossings' | 'profile'
@@ -38,6 +43,9 @@ interface GameState {
   events: GameEvent[]
   quests: Quest[]
   journal: JournalEntry[]
+  dailyQuests: DailyQuest[]
+  coins: number
+  streak: number
 }
 
 export default function App() {
@@ -48,12 +56,64 @@ export default function App() {
 
   useEffect(() => {
     const init = async () => {
-      const [savedCreature, savedPlayer, savedCrossings, savedInventory, savedEvents, savedQuests, savedJournal] =
-        await Promise.all([loadCreature(), loadPlayer(), loadCrossings(), loadInventory(), loadEvents(), loadQuests(), loadJournal()])
+      const today = new Date().toISOString().slice(0, 10)
+
+      const [
+        savedCreature,
+        savedPlayer,
+        savedCrossings,
+        savedInventory,
+        savedEvents,
+        savedQuests,
+        savedJournal,
+        savedDailyQuests,
+        savedStreakData,
+      ] = await Promise.all([
+        loadCreature(),
+        loadPlayer(),
+        loadCrossings(),
+        loadInventory(),
+        loadEvents(),
+        loadQuests(),
+        loadJournal(),
+        loadDailyQuests(),
+        loadStreak(),
+      ])
 
       if (savedCreature && savedPlayer) {
         const decayed = { ...savedCreature, stats: decayStats(savedCreature) }
         const withMood = { ...decayed, mood: getMood(decayed.stats) }
+
+        // Resolve daily quests (refresh if stale)
+        let dailyQuests: DailyQuest[]
+        if (!savedDailyQuests || isDailyQuestStale(savedDailyQuests)) {
+          dailyQuests = generateDailyQuests()
+          await saveDailyQuests(dailyQuests)
+        } else {
+          dailyQuests = savedDailyQuests
+        }
+
+        // Resolve streak
+        let streak = savedStreakData?.streak ?? 0
+        const lastLoginDate = savedStreakData?.lastLoginDate ?? ''
+
+        if (lastLoginDate !== today) {
+          // Check if yesterday
+          const yesterday = new Date()
+          yesterday.setDate(yesterday.getDate() - 1)
+          const yesterdayStr = yesterday.toISOString().slice(0, 10)
+
+          if (lastLoginDate === yesterdayStr) {
+            streak += 1
+          } else if (lastLoginDate !== today) {
+            streak = 1
+          }
+          await saveStreak(streak, today)
+        }
+
+        // Coins from player data or default 0
+        const coins = savedPlayer.coins ?? 0
+
         setState({
           creature: withMood,
           username: savedPlayer.username,
@@ -62,6 +122,9 @@ export default function App() {
           events: savedEvents ?? [],
           quests: savedQuests ?? QUEST_DEFINITIONS,
           journal: savedJournal ?? [],
+          dailyQuests,
+          coins,
+          streak,
         })
       }
       setReady(true)
@@ -72,8 +135,9 @@ export default function App() {
   useEffect(() => {
     if (!state) return
     const claimable = state.quests.filter((q) => q.completed && !q.claimed).length
-    setQuestBadge(claimable)
-  }, [state?.quests])
+    const dailyClaimable = state.dailyQuests.filter((q) => q.completed && !q.claimed).length
+    setQuestBadge(claimable + dailyClaimable)
+  }, [state?.quests, state?.dailyQuests])
 
   const handleUpdate = useCallback(
     (
@@ -81,7 +145,9 @@ export default function App() {
       inventory?: InventoryItem[],
       events?: GameEvent[],
       quests?: Quest[],
-      journal?: JournalEntry[]
+      journal?: JournalEntry[],
+      dailyQuests?: DailyQuest[],
+      coins?: number
     ) => {
       setState((prev) => {
         if (!prev) return prev
@@ -92,6 +158,8 @@ export default function App() {
           events: events ?? prev.events,
           quests: quests ?? prev.quests,
           journal: journal ?? prev.journal,
+          dailyQuests: dailyQuests ?? prev.dailyQuests,
+          coins: coins ?? prev.coins,
         }
       })
     },
@@ -102,7 +170,19 @@ export default function App() {
     const creature = createNewCreature(type)
     const inv = getStarterInventory()
     const j = addJournalEntry([], `${creature.name} est né ! Bienvenue dans le monde !`, '🎉')
-    await Promise.all([saveCreature(creature), savePlayer({ id: username, username }), saveInventory(inv), saveJournal(j), saveQuests(QUEST_DEFINITIONS)])
+    const today = new Date().toISOString().slice(0, 10)
+    const dailyQuests = generateDailyQuests()
+
+    await Promise.all([
+      saveCreature(creature),
+      savePlayer({ id: username, username }),
+      saveInventory(inv),
+      saveJournal(j),
+      saveQuests(QUEST_DEFINITIONS),
+      saveDailyQuests(dailyQuests),
+      saveStreak(1, today),
+    ])
+
     setState({
       creature,
       username,
@@ -111,6 +191,9 @@ export default function App() {
       events: [],
       quests: QUEST_DEFINITIONS,
       journal: j,
+      dailyQuests,
+      coins: 0,
+      streak: 1,
     })
   }, [])
 
@@ -163,6 +246,34 @@ export default function App() {
     handleUpdate(updatedCreature, newInventory, state.events, updatedQuests, newJournal)
   }, [state, handleUpdate])
 
+  const handleClaimDailyReward = useCallback(async (quest: DailyQuest) => {
+    if (!state) return
+    const { creature, dailyQuests, journal } = state
+
+    const updatedDailyQuests = dailyQuests.map((q) =>
+      q.id === quest.id ? { ...q, claimed: true } : q
+    )
+
+    let updatedCreature = addXP(creature, quest.reward.xp)
+    updatedCreature = { ...updatedCreature, mood: getMood(updatedCreature.stats) }
+
+    const newCoins = state.coins + quest.reward.coins
+    const newJournal = addJournalEntry(
+      journal,
+      `Quête du jour "${quest.title}" complétée ! +${quest.reward.xp} XP +${quest.reward.coins} pièces`,
+      quest.emoji
+    )
+
+    await Promise.all([
+      saveCreature(updatedCreature),
+      saveDailyQuests(updatedDailyQuests),
+      saveJournal(newJournal),
+      savePlayer({ id: state.username, username: state.username, coins: newCoins }),
+    ])
+
+    handleUpdate(updatedCreature, state.inventory, state.events, state.quests, newJournal, updatedDailyQuests, newCoins)
+  }, [state, handleUpdate])
+
   if (!ready) return null
   if (!state) return <OnboardingScreen onComplete={handleOnboarding} />
 
@@ -184,6 +295,7 @@ export default function App() {
             events={state.events}
             quests={state.quests}
             journal={state.journal}
+            streak={state.streak}
             onUpdate={handleUpdate}
           />
         )}
@@ -195,7 +307,12 @@ export default function App() {
           />
         )}
         {activeTab === 'quests' && (
-          <QuestsScreen quests={state.quests} onClaimReward={handleClaimReward} />
+          <QuestsScreen
+            quests={state.quests}
+            onClaimReward={handleClaimReward}
+            dailyQuests={state.dailyQuests}
+            onClaimDailyReward={handleClaimDailyReward}
+          />
         )}
         {activeTab === 'crossings' && (
           <CrossingsScreen

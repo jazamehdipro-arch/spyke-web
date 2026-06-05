@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import { Creature, Crossing, CreatureType, GameEvent, InventoryItem, JournalEntry, Player, Quest } from '../types'
+import { Creature, Crossing, CreatureType, DailyQuest, GameEvent, InventoryItem, JournalEntry, Player, Quest } from '../types'
 
 // Migrate old type names (flame→ignis, aqua→nemo, leaf→sylva, spark→zapp)
 const TYPE_MIGRATION: Record<string, CreatureType> = {
@@ -15,13 +15,15 @@ function migrateCreature(c: Creature): Creature {
 }
 
 const KEYS = {
-  PLAYER:    'croisio:player',
-  CREATURE:  'croisio:creature',
-  CROSSINGS: 'croisio:crossings',
-  INVENTORY: 'croisio:inventory',
-  EVENTS:    'croisio:events',
-  QUESTS:    'croisio:quests',
-  JOURNAL:   'croisio:journal',
+  PLAYER:       'croisio:player',
+  CREATURE:     'croisio:creature',
+  CROSSINGS:    'croisio:crossings',
+  INVENTORY:    'croisio:inventory',
+  EVENTS:       'croisio:events',
+  QUESTS:       'croisio:quests',
+  JOURNAL:      'croisio:journal',
+  DAILY_QUESTS: 'croisio:dailyquests',
+  STREAK:       'croisio:streak',
 }
 
 async function get<T>(key: string): Promise<T | null> {
@@ -74,6 +76,14 @@ export function addJournalEntry(
   }
   return [entry, ...entries].slice(0, 100)
 }
+
+export const saveDailyQuests = (q: DailyQuest[]) => set(KEYS.DAILY_QUESTS, q)
+export const loadDailyQuests = () => get<DailyQuest[]>(KEYS.DAILY_QUESTS)
+
+interface StreakData { streak: number; lastLoginDate: string }
+export const saveStreak = (streak: number, lastLoginDate: string) =>
+  set(KEYS.STREAK, { streak, lastLoginDate } satisfies StreakData)
+export const loadStreak = () => get<StreakData>(KEYS.STREAK)
 
 export function addItemToInventory(
   inventory: InventoryItem[],
