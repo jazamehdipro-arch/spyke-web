@@ -197,7 +197,17 @@ export default function App() {
         {activeTab === 'quests' && (
           <QuestsScreen quests={state.quests} onClaimReward={handleClaimReward} />
         )}
-        {activeTab === 'crossings' && <CrossingsScreen />}
+        {activeTab === 'crossings' && (
+          <CrossingsScreen
+            player={state.creature}
+            onCombatEnd={async (won, xpGained) => {
+              let updated = addXP(state.creature, xpGained)
+              updated = { ...updated, mood: getMood(updated.stats) }
+              await saveCreature(updated)
+              handleUpdate(updated)
+            }}
+          />
+        )}
         {activeTab === 'profile' && (
           <ProfileScreen
             creature={state.creature}
