@@ -794,7 +794,7 @@ export default function CombatScreen({ player, opponent, onFinish }: Props) {
         setPhase('choosing')
         startTimer()
       }
-    }, 1800)
+    }, 3200)
   }, [chose, pState, oState, round, startTimer, playerMods, playerMaxHP, player.name, player.type, opponent.creatureType, pMech, oMech, opponentCounterBonus, opponentMaxHP])
 
   // start game
