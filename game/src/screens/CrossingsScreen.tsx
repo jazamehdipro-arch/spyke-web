@@ -22,10 +22,12 @@ const CROSSING_SPRITES: Record<CreatureType, ImageSourcePropType> = {
 }
 
 const BOT_OPPONENTS: CombatOpponent[] = [
-  { username: 'IzunaBot',  creatureName: 'Pyra',  creatureType: 'ignis', level: 3 },
-  { username: 'OcéanBot',  creatureName: 'Deeps', creatureType: 'nemo',  level: 5 },
-  { username: 'ForêtBot',  creatureName: 'Mossy', creatureType: 'sylva', level: 4 },
-  { username: 'TempêteBot', creatureName: 'Bolt', creatureType: 'zapp',  level: 6 },
+  { username: 'IzunaBot',    creatureName: 'Pyra',   creatureType: 'ignis', level: 3  },
+  { username: 'OcéanBot',    creatureName: 'Deeps',  creatureType: 'nemo',  level: 5  },
+  { username: 'ForêtBot',    creatureName: 'Mossy',  creatureType: 'sylva', level: 4  },
+  { username: 'TempêteBot',  creatureName: 'Bolt',   creatureType: 'zapp',  level: 6  },
+  { username: 'IzunaMaster', creatureName: 'Vulcan', creatureType: 'ignis', level: 12 },
+  { username: 'OcéanMaster', creatureName: 'Tidal',  creatureType: 'nemo',  level: 15 },
 ]
 
 interface Props {
