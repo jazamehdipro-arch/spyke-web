@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { Animated, Image, ImageSourcePropType, StyleSheet, TouchableWithoutFeedback, View, Text } from 'react-native'
+import { Animated, Image, ImageSourcePropType, StyleSheet, Text, TouchableWithoutFeedback, View } from 'react-native'
 import { Creature, CreatureMood, CreatureType } from '../types'
-import { CREATURE_COLORS, getMood, getMoodEmoji } from '../utils/creature'
+
+import { CREATURE_COLORS, getMood } from '../utils/creature'
 
 // All requires must be static in React Native bundler
 const SPRITES: Record<string, ImageSourcePropType> = {
@@ -137,7 +138,6 @@ export default function CreatureDisplay({ creature, onEvolve }: Props) {
 
   const mood  = getMood(creature.stats)
   const color = CREATURE_COLORS[creature.type]
-  const moodEmoji = getMoodEmoji(mood)
   const seq   = FRAME_SEQ[mood]
   const stage = getStageKey(creature.stats.level)
 
@@ -189,29 +189,43 @@ export default function CreatureDisplay({ creature, onEvolve }: Props) {
 
   return (
     <View style={styles.container}>
-      <View style={[styles.aura, { backgroundColor: color + '22' }]} />
-      <FloatingParticles color={color} type={creature.type} />
-      <TouchableWithoutFeedback onPress={handlePress}>
-        <Animated.View style={[styles.spriteWrapper, { transform: [{ translateY: bounce }, { scale }] }]}>
-          <Image source={sprite} style={styles.sprite} resizeMode="contain" />
-        </Animated.View>
-      </TouchableWithoutFeedback>
-      <Text style={styles.moodEmoji}>{moodEmoji}</Text>
-      <Text style={styles.name}>{creature.name}</Text>
-      <View style={styles.badges}>
-        <View style={[styles.levelBadge, { backgroundColor: color }]}>
-          <Text style={styles.levelText}>Niv. {creature.stats.level}</Text>
+      {/* Game Boy-style screen frame */}
+      <View style={styles.gbFrame}>
+        {/* Top notch bar */}
+        <View style={styles.gbTopBar}>
+          <View style={[styles.gbDot, { backgroundColor: color }]} />
+          <View style={[styles.gbDot, { backgroundColor: color, opacity: 0.5 }]} />
+          <View style={[styles.gbDot, { backgroundColor: color, opacity: 0.25 }]} />
         </View>
-        {creature.stats.level >= 20 && (
-          <View style={[styles.stageBadge, { backgroundColor: '#FFD700' }]}>
-            <Text style={styles.stageText}>★ MAX</Text>
+
+        {/* Screen */}
+        <View style={[styles.gbScreen, { backgroundColor: color + '14' }]}>
+          <FloatingParticles color={color} type={creature.type} />
+          {/* Screen glare */}
+          <View style={styles.gbGlare} pointerEvents="none" />
+          <TouchableWithoutFeedback onPress={handlePress}>
+            <Animated.View style={{ transform: [{ translateY: bounce }, { scale }] }}>
+              <Image source={sprite} style={styles.sprite} resizeMode="contain" />
+            </Animated.View>
+          </TouchableWithoutFeedback>
+        </View>
+
+        {/* Bottom bar with badges */}
+        <View style={styles.gbBottomBar}>
+          <View style={[styles.levelBadge, { backgroundColor: color }]}>
+            <Text style={styles.levelText}>Niv. {creature.stats.level}</Text>
           </View>
-        )}
-        {creature.stats.level >= 10 && creature.stats.level < 20 && (
-          <View style={[styles.stageBadge, { backgroundColor: color + 'AA' }]}>
-            <Text style={styles.stageText}>★ ADO</Text>
-          </View>
-        )}
+          {creature.stats.level >= 20 && (
+            <View style={[styles.stageBadge, { backgroundColor: '#FFD700' }]}>
+              <Text style={styles.stageText}>★ MAX</Text>
+            </View>
+          )}
+          {creature.stats.level >= 10 && creature.stats.level < 20 && (
+            <View style={[styles.stageBadge, { backgroundColor: color + 'BB' }]}>
+              <Text style={styles.stageText}>★ ADO</Text>
+            </View>
+          )}
+        </View>
       </View>
     </View>
   )
@@ -220,55 +234,82 @@ export default function CreatureDisplay({ creature, onEvolve }: Props) {
 const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
+    paddingVertical: 12,
+  },
+  // ── Game Boy frame ──────────────────────────────────────
+  gbFrame: {
+    width: 230,
+    backgroundColor: '#1c1c1e',
+    borderRadius: 16,
+    padding: 10,
+    gap: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.55,
+    shadowRadius: 14,
+    elevation: 14,
+    borderWidth: 2,
+    borderColor: '#333',
+  },
+  gbTopBar: {
+    flexDirection: 'row',
+    gap: 5,
+    paddingHorizontal: 4,
+    alignItems: 'center',
+  },
+  gbDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  gbScreen: {
+    height: 196,
+    borderRadius: 8,
+    alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 20,
+    overflow: 'hidden',
+    borderWidth: 1.5,
+    borderColor: '#0a0a0a',
   },
-  aura: {
+  gbGlare: {
     position: 'absolute',
-    width: 200,
-    height: 200,
-    borderRadius: 100,
+    top: 6,
+    right: 8,
+    width: 28,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: 'rgba(255,255,255,0.07)',
+    transform: [{ rotate: '-30deg' }],
   },
-  spriteWrapper: {
-    marginBottom: 8,
+  gbBottomBar: {
+    flexDirection: 'row',
+    gap: 6,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingBottom: 2,
   },
   sprite: {
     width: 160,
     height: 160,
   },
-  moodEmoji: {
-    fontSize: 28,
-    marginBottom: 4,
-  },
-  name: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#1a1a2e',
-    marginBottom: 6,
-  },
-  badges: {
-    flexDirection: 'row',
-    gap: 6,
-    alignItems: 'center',
-  },
   levelBadge: {
-    paddingHorizontal: 14,
-    paddingVertical: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 3,
     borderRadius: 20,
   },
   levelText: {
     color: '#fff',
     fontWeight: '700',
-    fontSize: 13,
+    fontSize: 12,
   },
   stageBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingHorizontal: 9,
+    paddingVertical: 3,
     borderRadius: 20,
   },
   stageText: {
     color: '#fff',
     fontWeight: '800',
-    fontSize: 11,
+    fontSize: 10,
   },
 })
