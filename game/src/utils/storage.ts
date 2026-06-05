@@ -1,5 +1,18 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import { Creature, Crossing, GameEvent, InventoryItem, JournalEntry, Player, Quest } from '../types'
+import { Creature, Crossing, CreatureType, GameEvent, InventoryItem, JournalEntry, Player, Quest } from '../types'
+
+// Migrate old type names (flame→ignis, aqua→nemo, leaf→sylva, spark→zapp)
+const TYPE_MIGRATION: Record<string, CreatureType> = {
+  flame: 'ignis',
+  aqua:  'nemo',
+  leaf:  'sylva',
+  spark: 'zapp',
+}
+
+function migrateCreature(c: Creature): Creature {
+  const mapped = TYPE_MIGRATION[c.type]
+  return mapped ? { ...c, type: mapped } : c
+}
 
 const KEYS = {
   PLAYER:    'croisio:player',
@@ -20,8 +33,11 @@ async function set(key: string, value: unknown): Promise<void> {
   await AsyncStorage.setItem(key, JSON.stringify(value))
 }
 
-export const saveCreature   = (c: Creature)               => set(KEYS.CREATURE, c)
-export const loadCreature   = ()                           => get<Creature>(KEYS.CREATURE)
+export const saveCreature = (c: Creature) => set(KEYS.CREATURE, c)
+export async function loadCreature(): Promise<Creature | null> {
+  const c = await get<Creature>(KEYS.CREATURE)
+  return c ? migrateCreature(c) : null
+}
 export const savePlayer     = (p: Omit<Player, 'creature'>) => set(KEYS.PLAYER, p)
 export const loadPlayer     = ()                           => get<Omit<Player, 'creature'>>(KEYS.PLAYER)
 export const saveInventory  = (i: InventoryItem[])         => set(KEYS.INVENTORY, i)
