@@ -17,7 +17,7 @@ import MiniGame from '../components/MiniGame'
 import ParticleEffect from '../components/ParticleEffect'
 import SpeechBubble from '../components/SpeechBubble'
 import StatsPanel from '../components/StatsPanel'
-import { Creature, GameEvent, InventoryItem, JournalEntry, Quest } from '../types'
+import { Creature, CreatureType, GameEvent, InventoryItem, JournalEntry, Quest } from '../types'
 import { addXP, decayStats, getMood } from '../utils/creature'
 import { generateRandomEvent, getRewardItem, shouldTriggerEvent } from '../utils/events'
 import { getCreatureSpeech, getReactionMessage } from '../utils/speech'
@@ -214,6 +214,10 @@ export default function HomeScreen({ creature, inventory, events, quests, journa
       case 'lv20':
         updated = { ...updated, stats: { ...updated.stats, level: 20, xp: 0, xpToNextLevel: 2000 } }
         break
+      case 'type_ignis': updated = { ...updated, type: 'ignis' }; break
+      case 'type_nemo':  updated = { ...updated, type: 'nemo'  }; break
+      case 'type_sylva': updated = { ...updated, type: 'sylva' }; break
+      case 'type_zapp':  updated = { ...updated, type: 'zapp'  }; break
     }
     updated = { ...updated, mood: getMood(updated.stats) }
     await saveCreature(updated)
@@ -295,6 +299,27 @@ export default function HomeScreen({ creature, inventory, events, quests, journa
                   <Text style={styles.adminBtnText}>{lbl}</Text>
                 </TouchableOpacity>
               ))}
+            </View>
+
+            <Text style={styles.adminSection}>Monstre</Text>
+            <View style={styles.adminRow}>
+              {([
+                ['type_ignis', '🔥 Ignis', '#C41E0F'],
+                ['type_nemo',  '🌊 Némo',  '#1A3A6B'],
+                ['type_sylva', '🌿 Sylva', '#2D6A2D'],
+                ['type_zapp',  '⚡ Zapp',  '#C47A00'],
+              ] as [string, string, string][]).map(([act, lbl, col]) => {
+                const t = act.replace('type_', '') as CreatureType
+                return (
+                  <TouchableOpacity
+                    key={act}
+                    style={[styles.adminBtn, { backgroundColor: col, opacity: creature.type === t ? 1 : 0.45 }]}
+                    onPress={() => adminAction(act)}
+                  >
+                    <Text style={styles.adminBtnText}>{lbl}</Text>
+                  </TouchableOpacity>
+                )
+              })}
             </View>
 
             <Text style={styles.adminSection}>Stats</Text>
