@@ -49,8 +49,21 @@ export default function HomeScreen({ creature, inventory, events, quests, journa
   const [speechVisible, setSpeechVisible] = useState(false)
   const [showEvolve, setShowEvolve] = useState(false)
   const [evolveStage, setEvolveStage] = useState(2)
+  const [showAdmin, setShowAdmin] = useState(false)
   const evolveScale = useRef(new Animated.Value(0)).current
   const speechTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const titleTapCount = useRef(0)
+  const titleTapTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const handleTitleTap = () => {
+    titleTapCount.current += 1
+    if (titleTapTimer.current) clearTimeout(titleTapTimer.current)
+    titleTapTimer.current = setTimeout(() => { titleTapCount.current = 0 }, 2000)
+    if (titleTapCount.current >= 5) {
+      titleTapCount.current = 0
+      setShowAdmin(true)
+    }
+  }
 
   const showSpeech = useCallback((msg: string) => {
     setSpeechMsg(msg)
@@ -183,6 +196,32 @@ export default function HomeScreen({ creature, inventory, events, quests, journa
     setRefreshing(false)
   }, [creature])
 
+  const adminAction = async (action: string) => {
+    let updated = { ...creature }
+    switch (action) {
+      case 'xp100':   updated = addXP(updated, 100); break
+      case 'xp500':   updated = addXP(updated, 500); break
+      case 'xp9999':  updated = addXP(updated, 9999); break
+      case 'maxstats':
+        updated = { ...updated, stats: { ...updated.stats, hunger: 100, happiness: 100, energy: 100 } }
+        break
+      case 'heal':
+        updated = { ...updated, stats: { ...updated.stats, isSick: false } }
+        break
+      case 'lv10':
+        updated = { ...updated, stats: { ...updated.stats, level: 10, xp: 0, xpToNextLevel: 1000 } }
+        break
+      case 'lv20':
+        updated = { ...updated, stats: { ...updated.stats, level: 20, xp: 0, xpToNextLevel: 2000 } }
+        break
+    }
+    updated = { ...updated, mood: getMood(updated.stats) }
+    await saveCreature(updated)
+    onUpdate(updated)
+    triggerParticles(['⚡', '✨', '🔧'])
+    showSpeech('Admin cheat activé ! 👾')
+  }
+
   const handleEvolve = useCallback(() => {
     const stage = creature.stats.level >= 20 ? 3 : 2
     setEvolveStage(stage)
@@ -201,7 +240,9 @@ export default function HomeScreen({ creature, inventory, events, quests, journa
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         <View style={styles.header}>
-          <Text style={styles.title}>Croisio</Text>
+          <TouchableOpacity onPress={handleTitleTap} activeOpacity={1}>
+            <Text style={styles.title}>Croisio</Text>
+          </TouchableOpacity>
           {creature.stats.isSick && (
             <View style={styles.sickTag}>
               <Text style={styles.sickTagText}>🤒 Malade</Text>
@@ -229,6 +270,49 @@ export default function HomeScreen({ creature, inventory, events, quests, journa
       />
 
       <EventModal event={pendingEvent} onClose={handleEventClose} />
+
+      <Modal visible={showAdmin} transparent animationType="slide">
+        <View style={styles.adminOverlay}>
+          <View style={styles.adminCard}>
+            <Text style={styles.adminTitle}>👾 Panel Admin</Text>
+            <Text style={styles.adminSub}>
+              Lv {creature.stats.level} · {creature.stats.xp}/{creature.stats.xpToNextLevel} XP
+            </Text>
+
+            <Text style={styles.adminSection}>XP</Text>
+            <View style={styles.adminRow}>
+              {([['xp100', '+100 XP'], ['xp500', '+500 XP'], ['xp9999', '+9999 XP']] as const).map(([act, lbl]) => (
+                <TouchableOpacity key={act} style={styles.adminBtn} onPress={() => adminAction(act)}>
+                  <Text style={styles.adminBtnText}>{lbl}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <Text style={styles.adminSection}>Niveau direct</Text>
+            <View style={styles.adminRow}>
+              {([['lv10', 'Niveau 10'], ['lv20', 'Niveau 20']] as const).map(([act, lbl]) => (
+                <TouchableOpacity key={act} style={[styles.adminBtn, { backgroundColor: '#A855F7' }]} onPress={() => adminAction(act)}>
+                  <Text style={styles.adminBtnText}>{lbl}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <Text style={styles.adminSection}>Stats</Text>
+            <View style={styles.adminRow}>
+              <TouchableOpacity style={[styles.adminBtn, { backgroundColor: '#22C55E' }]} onPress={() => adminAction('maxstats')}>
+                <Text style={styles.adminBtnText}>Max tout</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.adminBtn, { backgroundColor: '#3B82F6' }]} onPress={() => adminAction('heal')}>
+                <Text style={styles.adminBtnText}>Soigner</Text>
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity style={styles.adminClose} onPress={() => setShowAdmin(false)}>
+              <Text style={styles.adminCloseText}>Fermer</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       <Modal visible={showEvolve} transparent animationType="fade">
         <View style={styles.evolveOverlay}>
@@ -273,6 +357,67 @@ const styles = StyleSheet.create({
   },
   sickTagText: { fontSize: 12, fontWeight: '700', color: '#856404' },
   spacer: { height: 4 },
+  adminOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'flex-end',
+  },
+  adminCard: {
+    backgroundColor: '#1a1a2e',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    padding: 28,
+    paddingBottom: 40,
+    gap: 10,
+  },
+  adminTitle: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#fff',
+    textAlign: 'center',
+  },
+  adminSub: {
+    fontSize: 13,
+    color: '#888',
+    textAlign: 'center',
+    marginBottom: 6,
+  },
+  adminSection: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#666',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginTop: 8,
+  },
+  adminRow: {
+    flexDirection: 'row',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  adminBtn: {
+    backgroundColor: '#FF6B35',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  adminBtnText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 13,
+  },
+  adminClose: {
+    marginTop: 16,
+    alignItems: 'center',
+    paddingVertical: 14,
+    backgroundColor: '#2a2a3e',
+    borderRadius: 16,
+  },
+  adminCloseText: {
+    color: '#888',
+    fontWeight: '600',
+    fontSize: 15,
+  },
   evolveOverlay: {
     flex: 1,
     backgroundColor: 'rgba(26,26,46,0.92)',
