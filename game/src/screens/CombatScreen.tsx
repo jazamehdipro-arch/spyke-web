@@ -188,7 +188,7 @@ function computeModifiers(creature: Creature, opponentType: CreatureType): Comba
 }
 
 const OPPONENT_MAX_ENERGY = 4
-const TIMER_SECONDS = 4
+const TIMER_SECONDS = 10
 const BASE_HP = 30
 
 function calcHP(level: number, hpMult = 1.0, creatureType?: CreatureType) {
