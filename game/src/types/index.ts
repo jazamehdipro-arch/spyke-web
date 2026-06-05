@@ -21,6 +21,42 @@ export interface CreatureStats {
   isSick: boolean
 }
 
+export type SpellId =
+  | 'frappe_ardente' | 'explosion' | 'carapace_chauffee' | 'provocation' | 'immolation' | 'brasier'
+  | 'vague' | 'siphon' | 'regeneration' | 'barriere' | 'malediction' | 'raz_de_maree'
+  | 'coup_voile' | 'ecran_fumee' | 'volute' | 'dissipation' | 'embuscade' | 'brouillard_total'
+  | 'decharge' | 'arc_paralysant' | 'esquive_vive' | 'rafale' | 'surcharge' | 'tempete'
+
+export type StatusType =
+  | 'burn'        // dégâts par tour
+  | 'paralyzed'   // saute ce tour
+  | 'cursed'      // sort bloqué
+  | 'barrier'     // réduction dégâts reçus
+  | 'dodge_up'    // esquive bonus
+  | 'smoke'       // action cachée (soi)
+  | 'fog'         // info ennemie masquée
+  | 'exhausted'   // malus énergie prochain tour
+  | 'provoked'    // +30% dégâts reçus ce tour
+  | 'dodge_ready' // esquive garantie prochain coup
+
+export interface StatusEffect {
+  type: StatusType
+  turnsLeft: number
+  value?: number   // ex: 4 = 4 dmg/tour pour burn; 50 = 50% pour barrier
+  data?: string    // ex: spellId bloqué par cursed
+}
+
+export interface Spell {
+  id: SpellId
+  name: string
+  emoji: string
+  energyCost: number
+  cooldown: number   // 0 = pas de cooldown
+  description: string
+}
+
+export type SpellLoadout = [SpellId, SpellId, SpellId, SpellId]
+
 export interface Creature {
   id: string
   name: string
@@ -36,6 +72,7 @@ export interface Creature {
   traits?: PersonalityTrait[]
   training?: TrainingStats
   activeCombatBuff?: { damageMult: number; expiresAt: string }
+  spellLoadout?: SpellLoadout
 }
 
 export interface Player {

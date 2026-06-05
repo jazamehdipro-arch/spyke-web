@@ -8,9 +8,23 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native'
-import { Creature, CreatureType, PersonalityTrait, TrainingStats } from '../types'
+import {
+  Creature,
+  CreatureType,
+  PersonalityTrait,
+  SpellId,
+  SpellLoadout,
+  StatusEffect,
+  StatusType,
+  TrainingStats,
+} from '../types'
 import { CREATURE_COLORS } from '../utils/creature'
 import { hasTrait } from '../utils/traits'
+import {
+  SPELL_CATALOG,
+  getLoadout,
+  getPassiveLevel,
+} from '../utils/spells'
 
 // ─── sprites ────────────────────────────────────────────
 const SPRITES: Record<string, ImageSourcePropType> = {
@@ -55,55 +69,19 @@ const COUNTER_TABLE: Record<CreatureType, CreatureType> = {
 }
 
 // ─── types ──────────────────────────────────────────────
-type ActionKind = 'defend' | 'charge' | 'attack' | 'drain' | 'convert' | 'smoke' | 'chain'
-type CombatPhase = 'intro' | 'choosing' | 'resolving' | 'finished'
+type CombatAction =
+  | { kind: 'spell'; spellId: SpellId }
+  | { kind: 'charge' }
+  | { kind: 'defend' }
 
-interface Action {
-  kind: ActionKind
-  energy: number
-}
+type CombatPhase = 'intro' | 'choosing' | 'resolving' | 'finished'
 
 interface Combatant {
   hp: number
   energy: number
-}
-
-interface CombatMechanics {
-  embers: number
-  consecutiveDefends: number
-  smokeNextTurn: boolean
-  paralyzed: boolean
-}
-
-const initialMechanics: CombatMechanics = {
-  embers: 0,
-  consecutiveDefends: 0,
-  smokeNextTurn: false,
-  paralyzed: false,
-}
-
-interface ResolveResult {
-  playerDmg: number
-  opponentDmg: number
-  playerEnergyDelta: number
-  opponentEnergyDelta: number
-  log: string
-  playerHeal: number
-  opponentDrainDmg: number   // for drain: if opponent energy 0, deal 3 dmg
-  opponentEnergySteal: boolean // drain: steal 1 energy
-}
-
-export interface CombatOpponent {
-  username: string
-  creatureName: string
-  creatureType: CreatureType
-  level: number
-}
-
-interface Props {
-  player: Creature
-  opponent: CombatOpponent
-  onFinish: (won: boolean, xpGained: number) => void
+  cooldowns: Partial<Record<SpellId, number>>
+  statuses: StatusEffect[]
+  embers: number   // ignis seulement
 }
 
 interface CombatModifiers {
@@ -128,60 +106,47 @@ function computeModifiers(creature: Creature, opponentType: CreatureType): Comba
   const mood = creature.mood
   const profile = CREATURE_PROFILES[creature.type]
 
-  // maxEnergy based on energy stat
   let maxEnergy = 4
   if (energy < 30) maxEnergy = 2
   else if (energy < 60) maxEnergy = 3
 
-  // damageMult based on hunger
   let damageMult: number
   if (hunger >= 60) damageMult = 1.0
   else if (hunger >= 40) damageMult = 0.80
   else if (hunger >= 20) damageMult = 0.65
   else damageMult = 0.45
 
-  // mood modifier stacks multiplicatively
   if (mood === 'excited') damageMult *= 1.1
   else if (mood === 'sad') damageMult *= 0.85
 
-  // courageux trait bonus
   if (hasTrait(traits, 'courageux')) damageMult *= 1.2
 
-  // global floor
   damageMult = Math.max(DAMAGE_FLOOR, damageMult)
 
-  // Training bonuses
   const training: TrainingStats = creature.training ?? { strength: 0, reflexes: 0, endurance: 0, defense: 0 }
   damageMult = Math.max(DAMAGE_FLOOR, damageMult + training.strength * 0.01)
   const trainingMaxEnergy = Math.floor(training.endurance / 5)
   maxEnergy = Math.min(6, maxEnergy + trainingMaxEnergy)
   const trainingDodge = training.defense * 0.005
 
-  // Active food combat buff
   const now = new Date().toISOString()
   const activeFoodBuff = !!(creature.activeCombatBuff && creature.activeCombatBuff.expiresAt > now)
   if (activeFoodBuff) {
     damageMult = Math.max(DAMAGE_FLOOR, damageMult * creature.activeCombatBuff!.damageMult)
   }
 
-  // Apply creature type base damage mult
   damageMult *= profile.baseDamageMult
   damageMult = Math.max(DAMAGE_FLOOR, damageMult)
 
   const timerBonus = parseFloat((training.reflexes * 0.1).toFixed(1))
-
   const timerReduction = happiness < 60 ? 1 : 0
   const hideOpponentEnergy = happiness < 30
 
-  // dodgeChance: base from profile + trait + training
   const dodgeChance = Math.min(0.55, profile.dodgeBase + (hasTrait(traits, 'chanceux') ? 0.15 : 0) + trainingDodge)
-
   const timideChance = hasTrait(traits, 'timide') ? 0.25 : 0
-
   const sickDot = isSick ? 3 : 0
   const hpMult = isSick ? 0.75 : 1.0
 
-  // counter bonus: +15% if this creature counters opponent type
   const counterBonus = COUNTER_TABLE[creature.type] === opponentType ? 1.15 : 1.0
 
   return { maxEnergy, damageMult, timerReduction, timerBonus, activeFoodBuff, hideOpponentEnergy, dodgeChance, timideChance, sickDot, hpMult, counterBonus }
@@ -196,207 +161,397 @@ function calcHP(level: number, hpMult = 1.0, creatureType?: CreatureType) {
   return Math.round((BASE_HP + (level - 1) * 2) * hpMult * typeMult)
 }
 
-// ─── defense diminishing returns ────────────────────────
-function defenseMultiplier(consecutiveDefends: number): number {
-  if (consecutiveDefends <= 1) return 0
-  if (consecutiveDefends === 2) return 0.4
-  return 0.7
+// ─── status helpers ──────────────────────────────────────
+function hasStatus(c: Combatant, t: StatusType): boolean {
+  return c.statuses.some(s => s.type === t && s.turnsLeft > 0)
 }
 
-// ─── resolution logic ───────────────────────────────────
-function resolveRound(p: Action, o: Action, pType: CreatureType, oType: CreatureType): ResolveResult {
-  const empty: ResolveResult = { playerDmg: 0, opponentDmg: 0, playerEnergyDelta: 0, opponentEnergyDelta: 0, log: '', playerHeal: 0, opponentDrainDmg: 0, opponentEnergySteal: false }
+function getStatus(c: Combatant, t: StatusType): StatusEffect | undefined {
+  return c.statuses.find(s => s.type === t && s.turnsLeft > 0)
+}
 
-  // ── nemo drain ──
-  if (p.kind === 'drain') {
-    // handled in commitAction; set flag for energy steal
-    return { ...empty, opponentEnergySteal: true, log: '💧 Drain ! -1⚡ ennemi' }
+function addStatus(c: Combatant, s: StatusEffect): Combatant {
+  // Replace if same type exists
+  const filtered = c.statuses.filter(ex => ex.type !== s.type)
+  return { ...c, statuses: [...filtered, s] }
+}
+
+function removeStatus(c: Combatant, t: StatusType): Combatant {
+  return { ...c, statuses: c.statuses.filter(s => s.type !== t) }
+}
+
+function tickStatuses(c: Combatant): Combatant {
+  const statuses = c.statuses
+    .map(s => ({ ...s, turnsLeft: s.turnsLeft - 1 }))
+    .filter(s => s.turnsLeft > 0)
+  return { ...c, statuses }
+}
+
+function tickCooldowns(cd: Partial<Record<SpellId, number>>): Partial<Record<SpellId, number>> {
+  const result: Partial<Record<SpellId, number>> = {}
+  for (const key of Object.keys(cd) as SpellId[]) {
+    const v = (cd[key] ?? 0) - 1
+    if (v > 0) result[key] = v
   }
-  // ── nemo convert ──
-  if (p.kind === 'convert') {
-    return { ...empty, playerEnergyDelta: -2, playerHeal: 8, log: '💧 Conversion : +8 PV !' }
+  return result
+}
+
+// ─── spell resolve ───────────────────────────────────────
+interface SpellResolveResult {
+  casterHpDelta: number
+  casterEnergyDelta: number
+  casterStatusesToAdd: StatusEffect[]
+  casterStatusesToRemove: StatusType[]
+  newCasterEmbers?: number
+  targetHpDelta: number
+  targetEnergyDelta: number
+  targetStatusesToAdd: StatusEffect[]
+  targetStatusesToRemove: StatusType[]
+  log: string
+}
+
+function targetMostExpensiveSpell(target: Combatant, loadout: SpellLoadout): string {
+  let best: SpellId = loadout[0]
+  let bestCost = 0
+  for (const spellId of loadout) {
+    const spell = SPELL_CATALOG[spellId]
+    if (spell.energyCost > bestCost && !(target.cooldowns[spellId] && (target.cooldowns[spellId] ?? 0) > 0)) {
+      bestCost = spell.energyCost
+      best = spellId
+    }
   }
-  // ── sylva smoke ──
-  if (p.kind === 'smoke') {
-    return { ...empty, log: '💨 Fumée ! Prochaine action cachée...' }
-  }
-  // ── zapp chain ──
-  if (p.kind === 'chain') {
-    if (o.kind === 'defend') {
-      return { ...empty, opponentDmg: 3, playerEnergyDelta: -1, log: '⚡ Chaîne à travers la garde ! 3 dmg' }
-    }
-    if (o.kind === 'charge') {
-      return { ...empty, opponentDmg: 6, playerEnergyDelta: -1, log: '⚡ Chaîne ! Il chargeait ! 6 dmg 💥' }
-    }
-    if (o.kind === 'attack') {
-      // treat chain as attack with energy 1 equivalent
-      if (1 === o.energy) {
-        return { ...empty, playerDmg: 5, opponentDmg: 5, playerEnergyDelta: -1, opponentEnergyDelta: -o.energy, log: '⚡ Clash ! Chaîne égale, vous vous blessez ! ⚔️' }
-      }
-      if (1 > o.energy) {
-        const dmg = (1 - o.energy) * 4
-        return { ...empty, opponentDmg: dmg, playerEnergyDelta: -1, opponentEnergyDelta: -o.energy, log: `⚡ Chaîne domine ! +${dmg} dégâts ⚔️` }
-      }
-      const dmg = (o.energy - 1) * 4
-      return { ...empty, playerDmg: dmg, playerEnergyDelta: -1, opponentEnergyDelta: -o.energy, log: `⚡ Chaîne étouffée ! -${dmg} HP ⚔️` }
-    }
-    return { ...empty, opponentDmg: 6, playerEnergyDelta: -1, log: '⚡ Frappe en chaîne ! 6 dmg' }
+  return best
+}
+
+function resolveSpell(
+  spellId: SpellId,
+  caster: Combatant,
+  target: Combatant,
+  _casterType: CreatureType,
+  _targetType: CreatureType,
+  passiveLevel: 1 | 2 | 3,
+  opponentMissedThisTurn: boolean,
+  targetLoadout?: SpellLoadout,
+): SpellResolveResult {
+  const empty: SpellResolveResult = {
+    casterHpDelta: 0,
+    casterEnergyDelta: 0,
+    casterStatusesToAdd: [],
+    casterStatusesToRemove: [],
+    newCasterEmbers: undefined,
+    targetHpDelta: 0,
+    targetEnergyDelta: 0,
+    targetStatusesToAdd: [],
+    targetStatusesToRemove: [],
+    log: '',
   }
 
-  // ── opponent special actions (bot) ──
-  if (o.kind === 'drain') {
-    // bot drain: steal player energy
-    return { ...empty, playerEnergyDelta: -1, log: '💧 Drain ennemi ! -1⚡' }
-  }
-  if (o.kind === 'convert') {
-    return { ...empty, opponentEnergyDelta: -2, log: '💧 Conversion ennemie...' }
-  }
-  if (o.kind === 'smoke') {
-    return { ...empty, log: '💨 Fumée ennemie !' }
-  }
-  if (o.kind === 'chain') {
-    if (p.kind === 'defend') {
-      return { ...empty, playerDmg: 3, opponentEnergyDelta: -1, log: '⚡ Chaîne ennemie à travers ta garde ! -3 HP' }
-    }
-    if (p.kind === 'charge') {
-      return { ...empty, playerDmg: 6, opponentEnergyDelta: -1, log: '⚡ Chaîne ennemie ! Tu chargeais ! -6 HP 💥' }
-    }
-    if (p.kind === 'attack') {
-      if (p.energy === 1) {
-        return { ...empty, playerDmg: 5, opponentDmg: 5, playerEnergyDelta: -p.energy, opponentEnergyDelta: -1, log: '⚡ Clash ! Chaîne égale ! ⚔️' }
+  switch (spellId) {
+    // ── ignis ──
+    case 'frappe_ardente': {
+      const provoked = hasStatus(target, 'provoked')
+      const baseDmg = provoked ? Math.round(6 * 1.3) : 6
+      const newEmbers = Math.min(3, caster.embers + 2)
+      return {
+        ...empty,
+        targetHpDelta: -baseDmg,
+        newCasterEmbers: newEmbers,
+        log: `🔥 Frappe ardente ! -${baseDmg} HP${provoked ? ' (provoqué!)' : ''}. Braises: ${newEmbers}`,
       }
-      if (p.energy < 1) {
-        const dmg = (1 - p.energy) * 4
-        return { ...empty, playerDmg: dmg, playerEnergyDelta: -p.energy, opponentEnergyDelta: -1, log: `⚡ Chaîne ennemie domine ! -${dmg} HP ⚔️` }
-      }
-      const dmg = (p.energy - 1) * 4
-      return { ...empty, opponentDmg: dmg, playerEnergyDelta: -p.energy, opponentEnergyDelta: -1, log: `⚡ Tu domines la chaîne ! +${dmg} dégâts ⚔️` }
     }
-    return { ...empty, playerDmg: 6, opponentEnergyDelta: -1, log: '⚡ Frappe en chaîne ennemie ! -6 HP' }
-  }
+    case 'explosion': {
+      const embers = caster.embers
+      const dmgMap: Record<number, number> = { 0: 8, 1: 14, 2: 20, 3: 26 }
+      const dmg = dmgMap[Math.min(3, embers)] ?? 8
+      return {
+        ...empty,
+        targetHpDelta: -dmg,
+        newCasterEmbers: 0,
+        log: `💥 Explosion (${embers} braises) ! -${dmg} HP !`,
+      }
+    }
+    case 'carapace_chauffee': {
+      return {
+        ...empty,
+        casterStatusesToAdd: [{ type: 'barrier', turnsLeft: 1, value: 30, data: 'reflect' }],
+        log: '🛡️ Carapace chauffée ! +barrière réfléchissante',
+      }
+    }
+    case 'provocation': {
+      return {
+        ...empty,
+        targetStatusesToAdd: [{ type: 'provoked', turnsLeft: 1, value: 30 }],
+        log: '😤 Provocation ! Ennemi +30% dégâts reçus ce tour',
+      }
+    }
+    case 'immolation': {
+      return {
+        ...empty,
+        casterHpDelta: -10,
+        targetHpDelta: -20,
+        log: '🩸 Immolation ! -10 PV sur soi → -20 HP ennemi',
+      }
+    }
+    case 'brasier': {
+      return {
+        ...empty,
+        targetHpDelta: -15,
+        targetStatusesToAdd: [{ type: 'burn', turnsLeft: 3, value: 4 }],
+        log: '🌋 Brasier ! -15 HP + brûlure 3 tours',
+      }
+    }
 
-  // attack vs charge
-  if (p.kind === 'attack' && o.kind === 'charge') {
-    return { ...empty, opponentDmg: p.energy * 4, playerEnergyDelta: -p.energy, opponentEnergyDelta: 1, log: `Attaque ×${p.energy} ! Il chargeait, il prend cher ! 💥` }
-  }
-  if (o.kind === 'attack' && p.kind === 'charge') {
-    return { ...empty, playerDmg: o.energy * 4, playerEnergyDelta: 1, opponentEnergyDelta: -o.energy, log: `Tu chargeais, il t'a eu ! -${o.energy * 4} HP 💥` }
-  }
-  // attack vs defend → energy wasted
-  if (p.kind === 'attack' && o.kind === 'defend') {
-    return { ...empty, playerEnergyDelta: -p.energy, log: `Bloqué ! Tu perds ${p.energy} ⚡ pour rien. 🛡️` }
-  }
-  if (o.kind === 'attack' && p.kind === 'defend') {
-    return { ...empty, opponentEnergyDelta: -o.energy, log: `Tu bloques son attaque ×${o.energy} ! 🛡️` }
-  }
-  // attack vs attack
-  if (p.kind === 'attack' && o.kind === 'attack') {
-    if (p.energy === o.energy) {
-      // zapp priority: if player is zapp, takes 0 damage
-      if (pType === 'zapp') {
-        return { ...empty, playerDmg: 0, opponentDmg: 5, playerEnergyDelta: -p.energy, opponentEnergyDelta: -o.energy, log: `Clash ! Zapp trop rapide ! ⚔️⚡` }
+    // ── nemo ──
+    case 'vague': {
+      const healSelf = passiveLevel >= 3 ? 2 : 0
+      return {
+        ...empty,
+        casterHpDelta: healSelf,
+        targetHpDelta: -5,
+        log: `🌊 Vague ! -5 HP ennemi${healSelf ? ' +2 PV' : ''}`,
       }
-      if (oType === 'zapp') {
-        return { ...empty, playerDmg: 5, opponentDmg: 0, playerEnergyDelta: -p.energy, opponentEnergyDelta: -o.energy, log: `Clash ! L'ennemi Zapp trop rapide ! ⚔️⚡` }
+    }
+    case 'siphon': {
+      const steal = passiveLevel >= 2 ? 2 : 1
+      const healSelf = passiveLevel >= 3 ? 4 : 0
+      return {
+        ...empty,
+        casterEnergyDelta: steal,
+        casterHpDelta: healSelf,
+        targetEnergyDelta: -steal,
+        log: `💧 Siphon ! Vol ${steal}⚡ ennemi${healSelf ? ` +${healSelf} PV` : ''}`,
       }
-      return { ...empty, playerDmg: 5, opponentDmg: 5, playerEnergyDelta: -p.energy, opponentEnergyDelta: -o.energy, log: `Clash ! Attaques égales, vous vous blessez ! ⚔️` }
     }
-    if (p.energy > o.energy) {
-      const dmg = (p.energy - o.energy) * 4
-      return { ...empty, opponentDmg: dmg, playerEnergyDelta: -p.energy, opponentEnergyDelta: -o.energy, log: `Clash ! Ton ×${p.energy} domine ! +${dmg} dégâts ⚔️` }
+    case 'regeneration': {
+      return {
+        ...empty,
+        casterHpDelta: 10,
+        log: '💚 Régénération ! +10 PV',
+      }
     }
-    const dmg = (o.energy - p.energy) * 4
-    return { ...empty, playerDmg: dmg, playerEnergyDelta: -p.energy, opponentEnergyDelta: -o.energy, log: `Clash ! Son ×${o.energy} domine ! -${dmg} HP ⚔️` }
+    case 'barriere': {
+      return {
+        ...empty,
+        casterStatusesToAdd: [{ type: 'barrier', turnsLeft: 2, value: 50 }],
+        log: '🔷 Barrière ! -50% dégâts reçus 2 tours',
+      }
+    }
+    case 'malediction': {
+      const defaultLoadout: SpellLoadout = ['vague', 'siphon', 'regeneration', 'barriere']
+      const blocked = targetLoadout
+        ? targetMostExpensiveSpell(target, targetLoadout)
+        : 'vague'
+      return {
+        ...empty,
+        targetStatusesToAdd: [{ type: 'cursed', turnsLeft: 2, data: blocked }],
+        log: `🔮 Malédiction ! Sort ${SPELL_CATALOG[blocked as SpellId]?.name ?? blocked} bloqué 2 tours`,
+      }
+    }
+    case 'raz_de_maree': {
+      return {
+        ...empty,
+        targetHpDelta: -15,
+        targetEnergyDelta: -2,
+        casterEnergyDelta: 2,
+        log: '🌊💥 Raz-de-marée ! -15 HP + vol 2⚡',
+      }
+    }
+
+    // ── sylva ──
+    case 'coup_voile': {
+      const fogChance = Math.random() < 0.2
+      const fogStatus: StatusEffect[] = fogChance ? [{ type: 'fog', turnsLeft: 1 }] : []
+      return {
+        ...empty,
+        targetHpDelta: -5,
+        targetStatusesToAdd: fogStatus,
+        log: `👊 Coup voilé ! -5 HP${fogChance ? ' + brouillage !' : ''}`,
+      }
+    }
+    case 'ecran_fumee': {
+      const smokeTurns = passiveLevel >= 3 ? 2 : 1
+      return {
+        ...empty,
+        casterStatusesToAdd: [{ type: 'smoke', turnsLeft: smokeTurns }],
+        log: `💨 Écran de fumée ! Action cachée ${smokeTurns} tour(s)`,
+      }
+    }
+    case 'volute': {
+      return {
+        ...empty,
+        casterStatusesToAdd: [{ type: 'dodge_up', turnsLeft: 3, value: 15 }],
+        log: '🌀 Volute ! +15% esquive 3 tours',
+      }
+    }
+    case 'dissipation': {
+      const negativeOrder: StatusType[] = ['burn', 'paralyzed', 'cursed', 'exhausted']
+      const toRemove = negativeOrder.find(t => hasStatus(caster, t))
+      if (toRemove) {
+        return {
+          ...empty,
+          casterStatusesToRemove: [toRemove],
+          log: `✨ Dissipation ! Statut ${toRemove} retiré`,
+        }
+      }
+      return { ...empty, log: '✨ Dissipation ! Aucun statut à retirer' }
+    }
+    case 'embuscade': {
+      if (opponentMissedThisTurn) {
+        return {
+          ...empty,
+          targetHpDelta: -15,
+          log: '🗡️ Embuscade ! Ennemi a raté ! -15 HP',
+        }
+      }
+      return { ...empty, log: '🗡️ Embuscade ! Ennemi n\'a pas raté...' }
+    }
+    case 'brouillard_total': {
+      return {
+        ...empty,
+        targetStatusesToAdd: [{ type: 'fog', turnsLeft: 2 }],
+        log: '🌫️ Brouillard total ! Info ennemie masquée 2 tours',
+      }
+    }
+
+    // ── zapp ──
+    case 'decharge': {
+      return {
+        ...empty,
+        targetHpDelta: -6,
+        log: '⚡ Décharge ! -6 HP (priorité)',
+      }
+    }
+    case 'arc_paralysant': {
+      const paralyzed = Math.random() < 0.4
+      const paralysisStatus: StatusEffect[] = paralyzed ? [{ type: 'paralyzed', turnsLeft: 1 }] : []
+      return {
+        ...empty,
+        targetStatusesToAdd: paralysisStatus,
+        log: `🎯 Arc paralysant !${paralyzed ? ' Ennemi paralysé !' : ' Rate la paralysie.'}`,
+      }
+    }
+    case 'esquive_vive': {
+      return {
+        ...empty,
+        casterStatusesToAdd: [{ type: 'dodge_ready', turnsLeft: 1 }],
+        log: '💨⚡ Esquive vive ! Prochain coup esquivé',
+      }
+    }
+    case 'rafale': {
+      const hits = passiveLevel >= 3 ? 3 : 2
+      const dmg = hits * 4
+      return {
+        ...empty,
+        targetHpDelta: -dmg,
+        log: `⚡⚡ Rafale ! ${hits}×4 = -${dmg} HP`,
+      }
+    }
+    case 'surcharge': {
+      return {
+        ...empty,
+        targetHpDelta: -12,
+        casterStatusesToAdd: [{ type: 'exhausted', turnsLeft: 1, value: 2 }],
+        log: '🔋 Surcharge ! -12 HP + épuisement prochain tour',
+      }
+    }
+    case 'tempete': {
+      return {
+        ...empty,
+        targetHpDelta: -20,
+        log: '⛈️ Tempête ! 4×5 = -20 HP',
+      }
+    }
+
+    default:
+      return { ...empty, log: `Sort inconnu: ${spellId}` }
   }
-  // defend vs defend
-  if (p.kind === 'defend' && o.kind === 'defend')
-    return { ...empty, log: `Vous vous observez... Rien ne se passe. 👀` }
-  // charge vs defend
-  if (p.kind === 'charge' && o.kind === 'defend')
-    return { ...empty, playerEnergyDelta: 1, log: `Tu charges tranquillement. +1 ⚡` }
-  if (o.kind === 'charge' && p.kind === 'defend')
-    return { ...empty, opponentEnergyDelta: 1, log: `Il charge tranquillement...` }
-  // charge vs charge
-  return { ...empty, playerEnergyDelta: 1, opponentEnergyDelta: 1, log: `Vous chargez tous les deux. +1 ⚡ chacun.` }
+}
+
+// ─── canUseSpell ─────────────────────────────────────────
+function canUseSpell(spellId: SpellId, state: Combatant, _maxEnergy: number): boolean {
+  const spell = SPELL_CATALOG[spellId]
+  if (state.energy < spell.energyCost) return false
+  if ((state.cooldowns[spellId] ?? 0) > 0) return false
+  // Check cursed
+  const cursed = getStatus(state, 'cursed')
+  if (cursed && cursed.data === spellId) return false
+  return true
 }
 
 // ─── bot AI ─────────────────────────────────────────────
-function botActionForType(
-  creatureType: CreatureType,
-  botEnergy: number,
-  playerEnergy: number,
-  lastPlayerAction: Action | null,
-  botHP: number,
-  botMaxHP: number,
-  round: number
-): Action {
-  const rand = Math.random()
+function botChooseAction(
+  _type: CreatureType,
+  botState: Combatant,
+  _playerState: Combatant,
+  loadout: SpellLoadout,
+  _passiveLevel: 1 | 2 | 3,
+): CombatAction {
+  const maxEnergy = OPPONENT_MAX_ENERGY
 
-  // Type-specific AI
-  switch (creatureType) {
-    case 'nemo': {
-      const hpPct = botHP / botMaxHP
-      // drain when opponent energy >= 3
-      if (playerEnergy >= 3 && rand < 0.6) return { kind: 'drain', energy: 0 }
-      // convert when HP < 40%
-      if (hpPct < 0.4 && botEnergy >= 2 && rand < 0.7) return { kind: 'convert', energy: 2 }
-      if (botEnergy === 0) return rand < 0.5 ? { kind: 'drain', energy: 0 } : { kind: 'charge', energy: 0 }
-      if (rand < 0.35) return { kind: 'attack', energy: Math.min(botEnergy, 2) }
-      if (rand < 0.6) return { kind: 'charge', energy: 0 }
-      return { kind: 'drain', energy: 0 }
-    }
-    case 'sylva': {
-      // smoke every ~3-4 turns
-      if (round % 4 === 0 && rand < 0.6) return { kind: 'smoke', energy: 0 }
-      if (round % 3 === 0 && rand < 0.4) return { kind: 'smoke', energy: 0 }
-      // heavy dodge reliant, prefers defend
-      if (botEnergy === 0) return rand < 0.5 ? { kind: 'charge', energy: 0 } : { kind: 'defend', energy: 0 }
-      if (rand < 0.35) return { kind: 'defend', energy: 0 }
-      if (rand < 0.6) return { kind: 'attack', energy: Math.min(botEnergy, 2) }
-      return { kind: 'charge', energy: 0 }
-    }
-    case 'zapp': {
-      // uses chain frequently (50% when energy >= 1)
-      if (botEnergy >= 1 && rand < 0.5) return { kind: 'chain', energy: 1 }
-      if (botEnergy === 0) return rand < 0.6 ? { kind: 'charge', energy: 0 } : { kind: 'defend', energy: 0 }
-      // aggressive
-      if (rand < 0.55) return { kind: 'attack', energy: Math.min(botEnergy, botEnergy) }
-      return { kind: 'charge', energy: 0 }
-    }
-    default: {
-      // ignis and fallback: aggressive
-      if (lastPlayerAction?.kind === 'attack' && rand < 0.4) return { kind: 'charge', energy: 0 }
-      if (lastPlayerAction?.kind === 'charge' && rand < 0.45) {
-        const atk = Math.min(botEnergy, Math.max(1, botEnergy))
-        if (atk > 0) return { kind: 'attack', energy: atk }
+  // Spells that heal self
+  const healSpells: SpellId[] = ['regeneration', 'barriere', 'carapace_chauffee', 'volute', 'esquive_vive', 'dissipation']
+  // HP threshold for heal
+  const hpPct = botState.hp / Math.max(1, botState.hp + 1) // approx - we don't know maxHP here, use absolute
+  const isLowHP = botState.hp < 20
+
+  // 1. Low HP → heal if possible
+  if (isLowHP) {
+    for (const spellId of loadout) {
+      if (healSpells.includes(spellId) && canUseSpell(spellId, botState, maxEnergy)) {
+        return { kind: 'spell', spellId }
       }
-      if (botEnergy === 0) return rand < 0.7 ? { kind: 'charge', energy: 0 } : { kind: 'defend', energy: 0 }
-      if (playerEnergy >= 3) {
-        if (rand < 0.5) return { kind: 'defend', energy: 0 }
-        if (rand < 0.75) return { kind: 'charge', energy: 0 }
-        return { kind: 'attack', energy: Math.min(botEnergy, 2) }
-      }
-      if (rand < 0.40) {
-        const e = Math.ceil(Math.random() * botEnergy)
-        return { kind: 'attack', energy: e }
-      }
-      if (rand < 0.70) return { kind: 'charge', energy: 0 }
-      return { kind: 'defend', energy: 0 }
     }
   }
+
+  // 2. High energy → use expensive spell
+  if (botState.energy >= 3) {
+    // Sort spells by cost descending, pick highest cost available
+    const sorted = [...loadout].sort((a, b) => SPELL_CATALOG[b].energyCost - SPELL_CATALOG[a].energyCost)
+    for (const spellId of sorted) {
+      const spell = SPELL_CATALOG[spellId]
+      if (spell.energyCost >= 3 && canUseSpell(spellId, botState, maxEnergy)) {
+        return { kind: 'spell', spellId }
+      }
+    }
+  }
+
+  // 3. Use cheapest damage spell
+  const damageSpells: SpellId[] = [
+    'frappe_ardente', 'explosion', 'immolation', 'brasier', 'provocation',
+    'vague', 'siphon', 'raz_de_maree', 'malediction',
+    'coup_voile', 'embuscade', 'brouillard_total', 'ecran_fumee',
+    'decharge', 'arc_paralysant', 'rafale', 'surcharge', 'tempete',
+  ]
+  const sorted = [...loadout].sort((a, b) => SPELL_CATALOG[a].energyCost - SPELL_CATALOG[b].energyCost)
+  for (const spellId of sorted) {
+    if (damageSpells.includes(spellId) && canUseSpell(spellId, botState, maxEnergy)) {
+      return { kind: 'spell', spellId }
+    }
+  }
+
+  // 4. Any usable spell
+  for (const spellId of loadout) {
+    if (canUseSpell(spellId, botState, maxEnergy)) {
+      return { kind: 'spell', spellId }
+    }
+  }
+
+  // 5. Charge
+  return { kind: 'charge' }
 }
 
-// ─── action icon helper ──────────────────────────────────
-function actionKindIcon(kind: ActionKind): string {
-  switch (kind) {
-    case 'defend': return '🛡️'
-    case 'charge': return '⚡'
-    case 'attack': return '⚔️'
-    case 'drain': return '💧'
-    case 'convert': return '💊'
-    case 'smoke': return '💨'
-    case 'chain': return '⚡⚡'
-  }
+// ─── status icon mapping ─────────────────────────────────
+const STATUS_ICONS: Record<StatusType, string> = {
+  burn: '🔥',
+  paralyzed: '⚡',
+  cursed: '🔮',
+  barrier: '🔷',
+  dodge_up: '🌀',
+  smoke: '💨',
+  fog: '🌫️',
+  exhausted: '😴',
+  provoked: '😤',
+  dodge_ready: '💨⚡',
 }
 
 // ─── sub-components ─────────────────────────────────────
@@ -420,16 +575,26 @@ function HPBar({ hp, maxHp, color }: { hp: number; maxHp: number; color: string 
   )
 }
 
-function ActionLabel({ action, masked }: { action: Action | null; masked?: boolean }) {
+function StatusBadges({ statuses }: { statuses: StatusEffect[] }) {
+  const active = statuses.filter(s => s.turnsLeft > 0)
+  if (active.length === 0) return null
+  return (
+    <View style={s.statusBadgesRow}>
+      {active.map((st, i) => (
+        <Text key={i} style={s.statusBadge}>
+          {STATUS_ICONS[st.type] ?? '?'}×{st.turnsLeft}
+        </Text>
+      ))}
+    </View>
+  )
+}
+
+function ActionLabel({ action }: { action: CombatAction | null }) {
   if (!action) return <Text style={s.actionLabel}>?</Text>
-  if (masked) return <Text style={s.actionLabel}>💨 ???</Text>
   if (action.kind === 'defend') return <Text style={s.actionLabel}>🛡️ Défend</Text>
   if (action.kind === 'charge') return <Text style={s.actionLabel}>⚡ Charge</Text>
-  if (action.kind === 'drain') return <Text style={s.actionLabel}>💧 Drain</Text>
-  if (action.kind === 'convert') return <Text style={s.actionLabel}>💊 Convertit</Text>
-  if (action.kind === 'smoke') return <Text style={s.actionLabel}>💨 Fumée</Text>
-  if (action.kind === 'chain') return <Text style={s.actionLabel}>⚡⚡ Chaîne</Text>
-  return <Text style={s.actionLabel}>⚔️ Attaque ×{action.energy}</Text>
+  const spell = SPELL_CATALOG[action.spellId]
+  return <Text style={s.actionLabel}>{spell.emoji} {spell.name}</Text>
 }
 
 interface DebuffItem {
@@ -467,19 +632,17 @@ function DebuffPanel({ mods, playerType, opponentType }: { mods: CombatModifiers
     debuffs.push({ emoji: '⚡', text: `Fatigué : énergie max ${mods.maxEnergy}` })
   }
 
-  // Counter advantage/disadvantage
   if (COUNTER_TABLE[playerType] === opponentType) {
     buffs.push({ emoji: '⚔️', text: 'Avantage de type : +15% dégâts' })
   } else if (COUNTER_TABLE[opponentType] === playerType) {
     debuffs.push({ emoji: '⚠️', text: 'Désavantage de type : ennemi +15%' })
   }
 
-  // Creature type specialty
   switch (playerType) {
-    case 'ignis': buffs.push({ emoji: '🔥', text: 'Braises disponibles (passif)' }); break
-    case 'nemo':  buffs.push({ emoji: '💧', text: 'Drain & Conversion disponibles' }); break
-    case 'sylva': buffs.push({ emoji: '💨', text: 'Fumée & Esquive (25%) disponibles' }); break
-    case 'zapp':  buffs.push({ emoji: '⚡', text: 'Chaîne & Vitesse disponibles' }); break
+    case 'ignis': buffs.push({ emoji: '🔥', text: 'Sorts ignis disponibles' }); break
+    case 'nemo':  buffs.push({ emoji: '💧', text: 'Sorts nemo disponibles' }); break
+    case 'sylva': buffs.push({ emoji: '💨', text: 'Sorts sylva disponibles' }); break
+    case 'zapp':  buffs.push({ emoji: '⚡', text: 'Sorts zapp disponibles' }); break
   }
 
   if (debuffs.length === 0 && buffs.length === 0) return null
@@ -500,44 +663,133 @@ function DebuffPanel({ mods, playerType, opponentType }: { mods: CombatModifiers
   )
 }
 
+// ─── SpellButton ─────────────────────────────────────────
+function SpellButton({
+  spellId,
+  state,
+  maxEnergy,
+  color,
+  onPress,
+}: {
+  spellId: SpellId
+  state: Combatant
+  maxEnergy: number
+  color: string
+  onPress: () => void
+}) {
+  const spell = SPELL_CATALOG[spellId]
+  const usable = canUseSpell(spellId, state, maxEnergy)
+  const cd = state.cooldowns[spellId] ?? 0
+
+  return (
+    <TouchableOpacity
+      style={[s.spellBtn, !usable && s.spellBtnDisabled]}
+      onPress={() => usable && onPress()}
+      activeOpacity={usable ? 0.7 : 1}
+    >
+      <View style={s.spellBtnTop}>
+        <Text style={s.spellEmoji}>{spell.emoji}</Text>
+        <Text style={[s.spellName, !usable && s.spellNameDisabled]} numberOfLines={1}>
+          {spell.name}
+        </Text>
+      </View>
+      {cd > 0 ? (
+        <Text style={s.spellCooldown}>⏳ {cd}t</Text>
+      ) : (
+        <View style={s.spellCostRow}>
+          {Array.from({ length: spell.energyCost }, (_, i) => (
+            <View
+              key={i}
+              style={[s.spellCostDot, { backgroundColor: state.energy > i ? color : '#333' }]}
+            />
+          ))}
+          {spell.energyCost === 0 && <Text style={s.spellFreeBadge}>Gratuit</Text>}
+        </View>
+      )}
+    </TouchableOpacity>
+  )
+}
+
+// ─── exported types ──────────────────────────────────────
+export interface CombatOpponent {
+  username: string
+  creatureName: string
+  creatureType: CreatureType
+  level: number
+  loadout?: SpellLoadout
+}
+
+interface Props {
+  player: Creature
+  opponent: CombatOpponent
+  onFinish: (won: boolean, xpGained: number) => void
+  debugOverride?: {
+    playerType: CreatureType
+    playerLevel: number
+    playerLoadout: SpellLoadout
+    playerEnergy: number
+  }
+}
+
 // ─── main component ─────────────────────────────────────
-export default function CombatScreen({ player, opponent, onFinish }: Props) {
-  // Compute player modifiers once at component init
+export default function CombatScreen({ player, opponent, onFinish, debugOverride }: Props) {
   const playerMods = useRef<CombatModifiers>(computeModifiers(player, opponent.creatureType)).current
 
-  const playerProfile  = CREATURE_PROFILES[player.type]
+  const playerType = debugOverride?.playerType ?? player.type
+  const playerLevel = debugOverride?.playerLevel ?? player.stats.level
+  const playerProfile = CREATURE_PROFILES[playerType]
   const opponentProfile = CREATURE_PROFILES[opponent.creatureType]
 
-  const playerMaxHP  = calcHP(player.stats.level, playerMods.hpMult, player.type)
+  const playerMaxHP  = calcHP(playerLevel, playerMods.hpMult, playerType)
   const opponentMaxHP = calcHP(opponent.level, 1.0, opponent.creatureType)
 
-  // opponent counter bonus (does opponent counter player?)
-  const opponentCounterBonus = COUNTER_TABLE[opponent.creatureType] === player.type ? 1.15 : 1.0
+  const opponentCounterBonus = COUNTER_TABLE[opponent.creatureType] === playerType ? 1.15 : 1.0
+
+  const pPassiveLevel = getPassiveLevel(playerLevel)
+  const oPassiveLevel = getPassiveLevel(opponent.level)
+
+  const playerLoadout: SpellLoadout = debugOverride?.playerLoadout
+    ?? getLoadout(playerType, playerLevel, player.spellLoadout)
+  const opponentLoadout: SpellLoadout = getLoadout(opponent.creatureType, opponent.level, opponent.loadout)
+
+  const startEnergy = debugOverride?.playerEnergy ?? playerProfile.startEnergy
 
   const [phase, setPhase]       = useState<CombatPhase>('intro')
   const [round, setRound]       = useState(1)
-  const [pState, setPState]     = useState<Combatant>({ hp: playerMaxHP,  energy: playerProfile.startEnergy })
-  const [oState, setOState]     = useState<Combatant>({ hp: opponentMaxHP, energy: opponentProfile.startEnergy })
-  const [playerAction, setPlayerAction] = useState<Action | null>(null)
-  const [opponentAction, setOpponentAction] = useState<Action | null>(null)
+  const [pState, setPState]     = useState<Combatant>({
+    hp: playerMaxHP,
+    energy: startEnergy,
+    cooldowns: {},
+    statuses: [],
+    embers: 0,
+  })
+  const [oState, setOState]     = useState<Combatant>({
+    hp: opponentMaxHP,
+    energy: opponentProfile.startEnergy,
+    cooldowns: {},
+    statuses: [],
+    embers: 0,
+  })
+
+  const pStateRef = useRef(pState)
+  const oStateRef = useRef(oState)
+  useEffect(() => { pStateRef.current = pState }, [pState])
+  useEffect(() => { oStateRef.current = oState }, [oState])
+
+  const [playerAction, setPlayerAction]   = useState<CombatAction | null>(null)
+  const [opponentAction, setOpponentAction] = useState<CombatAction | null>(null)
   const [log, setLog]           = useState('Prêt pour le combat !')
   const [timeLeft, setTimeLeft] = useState(TIMER_SECONDS)
   const [chose, setChose]       = useState(false)
 
-  // Signature mechanic states
-  const [pMech, setPMech] = useState<CombatMechanics>(initialMechanics)
-  const [oMech, setOMech] = useState<CombatMechanics>(initialMechanics)
+  const [opponentHistory, setOpponentHistory] = useState<string[]>([])
 
-  // Action history (last 3 opponent actions)
-  const [opponentHistory, setOpponentHistory] = useState<ActionKind[]>([])
-
-  const lastPlayerActionRef = useRef<Action | null>(null)
   const timerRef  = useRef<ReturnType<typeof setInterval> | null>(null)
   const timerAnim = useRef(new Animated.Value(1)).current
   const playerShake = useRef(new Animated.Value(0)).current
   const opponentShake = useRef(new Animated.Value(0)).current
 
-  const pColor = CREATURE_COLORS[player.type]
+  const pColor = CREATURE_COLORS[playerType]
   const oColor = CREATURE_COLORS[opponent.creatureType]
 
   const shake = (anim: Animated.Value) => {
@@ -564,240 +816,263 @@ export default function CombatScreen({ player, opponent, onFinish }: Props) {
         return t - 1
       })
     }, 1000)
-  }, [])
+  }, [playerMods.timerReduction, playerMods.timerBonus, timerAnim])
 
-  // auto-defend if timer runs out
   useEffect(() => {
     if (phase !== 'choosing') return
     if (timeLeft > 0) return
-    if (!chose) commitAction({ kind: 'defend', energy: 0 })
+    if (!chose) commitAction({ kind: 'defend' })
   }, [timeLeft, phase, chose])
 
-  const commitAction = useCallback((rawAction: Action) => {
+  const commitAction = useCallback((rawAction: CombatAction) => {
     if (chose) return
     setChose(true)
     clearInterval(timerRef.current!)
 
-    // Apply timide: 25% chance to defend if HP < 50%
-    let action = rawAction
-    let behaviorLog = ''
-    if (playerMods.timideChance > 0) {
-      const hpPct = pState.hp / playerMaxHP
-      if (hpPct < 0.5 && Math.random() < playerMods.timideChance) {
-        action = { kind: 'defend', energy: 0 }
-        behaviorLog = `🐣 Timide ! ${player.name} préfère se défendre...`
-      }
+    const curP = pStateRef.current
+    const curO = oStateRef.current
+
+    // 1. Paralysie → force defend
+    let pAction = rawAction
+    if (hasStatus(curP, 'paralyzed')) {
+      pAction = { kind: 'defend' }
     }
 
-    // Check player paralysis — force defend
-    let paralyzedLog = ''
-    if (pMech.paralyzed) {
-      action = { kind: 'defend', energy: 0 }
-      paralyzedLog = `⚡ Paralysé ! ${player.name} ne peut que se défendre !`
-      setPMech(prev => ({ ...prev, paralyzed: false }))
-    }
-
-    // Check opponent paralysis — force defend
-    let botAct: Action
-    if (oMech.paralyzed) {
-      botAct = { kind: 'defend', energy: 0 }
-      setOMech(prev => ({ ...prev, paralyzed: false }))
+    // 2. Bot choisit son action
+    let oAction: CombatAction
+    if (hasStatus(curO, 'paralyzed')) {
+      oAction = { kind: 'defend' }
     } else {
-      botAct = botActionForType(
-        opponent.creatureType,
-        oState.energy,
-        pState.energy,
-        lastPlayerActionRef.current,
-        oState.hp,
-        opponentMaxHP,
-        round
-      )
+      oAction = botChooseAction(opponent.creatureType, curO, curP, opponentLoadout, oPassiveLevel)
     }
-    lastPlayerActionRef.current = action
 
-    setPlayerAction(action)
-    setOpponentAction(botAct)
+    setPlayerAction(pAction)
+    setOpponentAction(oAction)
     setPhase('resolving')
 
-    const result = resolveRound(action, botAct, player.type, opponent.creatureType)
+    let newP: Combatant = { ...curP }
+    let newO: Combatant = { ...curO }
 
-    // ── Apply damageMult + counter bonuses to player-dealt damage ──
-    let finalOpponentDmg = Math.round(result.opponentDmg * playerMods.damageMult * playerMods.counterBonus)
+    // Remove paralyzed if forced defend
+    if (hasStatus(curP, 'paralyzed')) newP = removeStatus(newP, 'paralyzed')
+    if (hasStatus(curO, 'paralyzed')) newO = removeStatus(newO, 'paralyzed')
 
-    // Opponent counter bonus on player damage
-    let finalPlayerDmg = Math.round(result.playerDmg * opponentCounterBonus)
+    const logParts: string[] = []
 
-    // ── Ignis ember mechanic ──
-    let emberLog = ''
-    let newPEmbers = pMech.embers
-    if (player.type === 'ignis') {
-      // If embers full (3), multiply outgoing damage
-      if (pMech.embers === 3 && finalOpponentDmg > 0) {
-        finalOpponentDmg = Math.round(finalOpponentDmg * 1.5)
-        newPEmbers = 0
-        emberLog = ' 🔥🔥🔥 BRAISES !'
-      } else if (finalOpponentDmg > 0 && pMech.embers < 3) {
-        // Increment embers if hit landed
-        newPEmbers = Math.min(3, pMech.embers + 1)
+    // ── Player turn ──
+    if (pAction.kind === 'charge') {
+      if (hasStatus(newP, 'exhausted')) {
+        logParts.push('😴 Épuisé ! Pas de charge.')
+      } else {
+        newP = { ...newP, energy: Math.min(playerMods.maxEnergy, newP.energy + 1) }
+        logParts.push('⚡ Charge !')
       }
-      // Reset embers if player takes damage
-      if (finalPlayerDmg > 0) {
-        newPEmbers = 0
-      }
-    }
+      newP = removeStatus(newP, 'exhausted')
+    } else if (pAction.kind === 'spell') {
+      const spell = SPELL_CATALOG[pAction.spellId]
+      if (newP.energy >= spell.energyCost) {
+        newP = { ...newP, energy: newP.energy - spell.energyCost }
+        if (spell.cooldown > 0) {
+          newP = { ...newP, cooldowns: { ...newP.cooldowns, [spell.id]: spell.cooldown } }
+        }
 
-    // ── Nemo drain special handling ──
-    let drainLog = ''
-    let opponentEnergyStealDmg = 0
-    if (action.kind === 'drain') {
-      if (oState.energy === 0) {
-        opponentEnergyStealDmg = 3
-        drainLog = ' 💧 Drain ! Ennemi vide ! -3 HP !'
-      }
-      // energy change is handled below
-    }
+        const result = resolveSpell(
+          pAction.spellId, newP, newO,
+          playerType, opponent.creatureType,
+          pPassiveLevel, false,
+          opponentLoadout,
+        )
 
-    // ── Apply dodge: if opponent attacks and dodge triggers, player takes 0 damage ──
-    let dodgeLog = ''
-    if (result.playerDmg > 0 && playerMods.dodgeChance > 0 && Math.random() < playerMods.dodgeChance) {
-      finalPlayerDmg = 0
-      dodgeLog = 'Esquivé ! 💨'
-    }
+        // Apply caster deltas to newP
+        newP = {
+          ...newP,
+          hp: Math.min(playerMaxHP, Math.max(0, newP.hp + result.casterHpDelta)),
+          energy: Math.max(0, Math.min(playerMods.maxEnergy, newP.energy + result.casterEnergyDelta)),
+          embers: result.newCasterEmbers !== undefined ? result.newCasterEmbers : newP.embers,
+        }
+        for (const st of result.casterStatusesToAdd) newP = addStatus(newP, st)
+        for (const t of result.casterStatusesToRemove) newP = removeStatus(newP, t)
 
-    // ── Apply sick dot every 3 turns ──
-    let sickDotLog = ''
-    if (playerMods.sickDot > 0 && round % 3 === 0) {
-      finalPlayerDmg += playerMods.sickDot
-      sickDotLog = ` 🤒 Empoisonné -${playerMods.sickDot} PV`
-    }
+        // Apply target deltas to newO with dodge + barrier checks
+        let finalDmg = Math.max(0, -result.targetHpDelta)
+        if (finalDmg > 0) {
+          const dodgeChance =
+            (hasStatus(newO, 'dodge_up') ? 0.15 : 0) +
+            (hasStatus(newO, 'dodge_ready') ? 1.0 : 0)
+          if (Math.random() < dodgeChance) {
+            finalDmg = 0
+            logParts.push('Ennemi esquive ! 💨')
+            newO = removeStatus(newO, 'dodge_ready')
+          } else {
+            finalDmg = Math.round(finalDmg * playerMods.damageMult * playerMods.counterBonus)
+            if (hasStatus(newO, 'barrier')) {
+              const b = getStatus(newO, 'barrier')!
+              finalDmg = Math.round(finalDmg * (1 - (b.value ?? 50) / 100))
+            }
+          }
+        }
+        newO = { ...newO, hp: Math.max(0, newO.hp - finalDmg) }
+        newO = { ...newO, energy: Math.max(0, Math.min(OPPONENT_MAX_ENERGY, newO.energy + result.targetEnergyDelta)) }
+        for (const st of result.targetStatusesToAdd) newO = addStatus(newO, st)
+        for (const t of result.targetStatusesToRemove) newO = removeStatus(newO, t)
 
-    // ── Defense diminishing returns ──
-    let defWeakenedPlayerLog = ''
-    let defWeakenedOpponentLog = ''
-    let newPConsecDef = pMech.consecutiveDefends
-    let newOConsecDef = oMech.consecutiveDefends
-
-    // Player defending (opponent attacking or using chain)
-    const opponentDealtDamage = result.playerDmg > 0 || (botAct.kind === 'chain')
-    if (action.kind === 'defend') {
-      newPConsecDef = pMech.consecutiveDefends + 1
-      if (opponentDealtDamage) {
-        const mult = defenseMultiplier(newPConsecDef)
-        finalPlayerDmg = Math.round(finalPlayerDmg * mult)
-        if (newPConsecDef >= 2) defWeakenedPlayerLog = ' (défense affaiblie !)'
-      }
-    } else {
-      newPConsecDef = 0
-    }
-
-    // Opponent defending (player attacking or using chain)
-    const playerDealtDamage = result.opponentDmg > 0 || action.kind === 'chain'
-    if (botAct.kind === 'defend') {
-      newOConsecDef = oMech.consecutiveDefends + 1
-      if (playerDealtDamage) {
-        const mult = defenseMultiplier(newOConsecDef)
-        finalOpponentDmg = Math.round(finalOpponentDmg * mult)
-        if (newOConsecDef >= 2) defWeakenedOpponentLog = ' (défense ennemie affaiblie !)'
+        logParts.push(result.log)
       }
     } else {
-      newOConsecDef = 0
+      // defend
+      logParts.push('🛡️ Défense !')
     }
 
-    // ── Compute new HP ──
-    const playerHeal = result.playerHeal
-    const newPHP = Math.max(0, Math.min(playerMaxHP, pState.hp - finalPlayerDmg + playerHeal))
-    const newOHP = Math.max(0, oState.hp - finalOpponentDmg - opponentEnergyStealDmg)
+    // ── Opponent turn ──
+    // Track if opponent dealt damage (for embuscade)
+    let opponentDmgToPlayer = 0
 
-    // ── Compute new energy ──
-    let newPEnDelta = result.playerEnergyDelta
-    let newOEnDelta = result.opponentEnergyDelta
+    if (oAction.kind === 'charge') {
+      if (hasStatus(newO, 'exhausted')) {
+        // exhausted, skip gain
+      } else {
+        newO = { ...newO, energy: Math.min(OPPONENT_MAX_ENERGY, newO.energy + 1) }
+      }
+      newO = removeStatus(newO, 'exhausted')
+      logParts.push('Ennemi charge.')
+    } else if (oAction.kind === 'spell') {
+      const spell = SPELL_CATALOG[oAction.spellId]
+      if (newO.energy >= spell.energyCost) {
+        newO = { ...newO, energy: Math.max(0, newO.energy - spell.energyCost) }
+        if (spell.cooldown > 0) {
+          newO = { ...newO, cooldowns: { ...newO.cooldowns, [spell.id]: spell.cooldown } }
+        }
 
-    // Drain: steal opponent energy
-    if (action.kind === 'drain' && oState.energy > 0) {
-      newOEnDelta = -1
+        const result = resolveSpell(
+          oAction.spellId, newO, newP,
+          opponent.creatureType, playerType,
+          oPassiveLevel, false,
+          playerLoadout,
+        )
+
+        // Apply caster (opponent) deltas
+        newO = {
+          ...newO,
+          hp: Math.min(opponentMaxHP, Math.max(0, newO.hp + result.casterHpDelta)),
+          energy: Math.max(0, Math.min(OPPONENT_MAX_ENERGY, newO.energy + result.casterEnergyDelta)),
+          embers: result.newCasterEmbers !== undefined ? result.newCasterEmbers : newO.embers,
+        }
+        for (const st of result.casterStatusesToAdd) newO = addStatus(newO, st)
+        for (const t of result.casterStatusesToRemove) newO = removeStatus(newO, t)
+
+        // Apply target (player) deltas
+        let finalDmgToPlayer = Math.max(0, -result.targetHpDelta)
+        if (finalDmgToPlayer > 0) {
+          const playerDodge =
+            playerMods.dodgeChance +
+            (hasStatus(newP, 'dodge_up') ? 0.15 : 0) +
+            (hasStatus(newP, 'dodge_ready') ? 1.0 : 0)
+          if (Math.random() < playerDodge) {
+            finalDmgToPlayer = 0
+            logParts.push('Tu esquives ! 💨')
+            newP = removeStatus(newP, 'dodge_ready')
+          } else {
+            finalDmgToPlayer = Math.round(finalDmgToPlayer * opponentCounterBonus)
+            if (hasStatus(newP, 'barrier')) {
+              const b = getStatus(newP, 'barrier')!
+              finalDmgToPlayer = Math.round(finalDmgToPlayer * (1 - (b.value ?? 50) / 100))
+            }
+            // carapace_chauffee reflect
+            if (pAction.kind === 'spell' && pAction.spellId === 'carapace_chauffee') {
+              const reflected = Math.round(finalDmgToPlayer * 0.30)
+              newO = { ...newO, hp: Math.max(0, newO.hp - reflected) }
+              logParts.push(`🛡️🔥 Réflexion : ${reflected} dmg !`)
+            }
+            // ignis embers reset on damage received
+            if (playerType === 'ignis' && finalDmgToPlayer > 0) {
+              if (pPassiveLevel >= 3) {
+                newP = { ...newP, embers: Math.floor(newP.embers / 2) }
+              } else {
+                newP = { ...newP, embers: 0 }
+              }
+              logParts.push('💨 Braises perdues !')
+            }
+          }
+          opponentDmgToPlayer = finalDmgToPlayer
+        }
+
+        newP = { ...newP, hp: Math.max(0, newP.hp - finalDmgToPlayer) }
+        newP = { ...newP, energy: Math.max(0, Math.min(playerMods.maxEnergy, newP.energy + result.targetEnergyDelta)) }
+        for (const st of result.targetStatusesToAdd) newP = addStatus(newP, st)
+        for (const t of result.targetStatusesToRemove) newP = removeStatus(newP, t)
+
+        logParts.push(result.log)
+      }
+    } else {
+      logParts.push('Ennemi se défend.')
     }
-    // Opponent drain: steal player energy
-    if (botAct.kind === 'drain' && pState.energy > 0) {
-      newPEnDelta = -1
+
+    // Re-resolve embuscade if player used it — now we know if opponent missed
+    if (pAction.kind === 'spell' && pAction.spellId === 'embuscade') {
+      const opponentMissed = opponentDmgToPlayer === 0 && oAction.kind !== 'charge'
+      const embResult = resolveSpell(
+        'embuscade', newP, newO,
+        playerType, opponent.creatureType,
+        pPassiveLevel, opponentMissed,
+        opponentLoadout,
+      )
+      if (embResult.targetHpDelta < 0) {
+        let embDmg = Math.max(0, -embResult.targetHpDelta)
+        embDmg = Math.round(embDmg * playerMods.damageMult * playerMods.counterBonus)
+        if (hasStatus(newO, 'barrier')) {
+          const b = getStatus(newO, 'barrier')!
+          embDmg = Math.round(embDmg * (1 - (b.value ?? 50) / 100))
+        }
+        newO = { ...newO, hp: Math.max(0, newO.hp - embDmg) }
+        logParts.push(embResult.log)
+      }
     }
 
-    const newPEn = Math.max(0, Math.min(playerMods.maxEnergy, pState.energy + newPEnDelta))
-    const newOEn = Math.max(0, Math.min(OPPONENT_MAX_ENERGY, oState.energy + newOEnDelta))
-
-    // ── Zapp chain paralysis ──
-    let paralysisLog = ''
-    let newOParalyzed = oMech.paralyzed
-    if (action.kind === 'chain' && Math.random() < 0.25) {
-      newOParalyzed = true
-      paralysisLog = ' ⚡ Paralysie !'
+    // Burn DoT
+    const pBurn = getStatus(newP, 'burn')
+    if (pBurn) {
+      newP = { ...newP, hp: Math.max(0, newP.hp - (pBurn.value ?? 4)) }
+      logParts.push(`🔥 Brûlure -${pBurn.value ?? 4}PV`)
     }
-    // Opponent chain paralysis
-    let newPParalyzed = pMech.paralyzed
-    if (botAct.kind === 'chain' && Math.random() < 0.25) {
-      newPParalyzed = true
+    const oBurn = getStatus(newO, 'burn')
+    if (oBurn) {
+      newO = { ...newO, hp: Math.max(0, newO.hp - (oBurn.value ?? 4)) }
     }
 
-    // ── Sylva smoke: update smokeNextTurn flag ──
-    let smokeLog = ''
-    let newPSmoke = pMech.smokeNextTurn
-    if (action.kind === 'smoke') {
-      newPSmoke = true
-    } else if (pMech.smokeNextTurn) {
-      // Smoke resolves this turn
-      newPSmoke = false
-      smokeLog = ' 💨 Fumée se dissipe.'
-    }
+    // Tick statuses and cooldowns
+    newP = tickStatuses(newP)
+    newO = tickStatuses(newO)
+    newP = { ...newP, cooldowns: tickCooldowns(newP.cooldowns) }
+    newO = { ...newO, cooldowns: tickCooldowns(newO.cooldowns) }
 
-    if (finalPlayerDmg > 0)  shake(playerShake)
-    if (finalOpponentDmg > 0) shake(opponentShake)
+    if (newP.hp < curP.hp) shake(playerShake)
+    if (newO.hp < curO.hp) shake(opponentShake)
 
-    // ── Build log message ──
-    let logMsg = paralyzedLog || behaviorLog || result.log
-    if (!behaviorLog && !paralyzedLog && finalOpponentDmg > 0 && Math.abs(playerMods.damageMult - 1.0) > 0.04) {
-      const sign = playerMods.damageMult > 1.0 ? '+' : ''
-      const pct  = Math.round((playerMods.damageMult - 1.0) * 100)
-      logMsg += ` (×${playerMods.damageMult.toFixed(2)}, ${sign}${pct}%)`
-    }
-    if (emberLog) logMsg += emberLog
-    if (drainLog) logMsg += drainLog
-    if (dodgeLog) logMsg += ` ${dodgeLog}`
-    if (sickDotLog) logMsg += sickDotLog
-    if (defWeakenedPlayerLog) logMsg += defWeakenedPlayerLog
-    if (defWeakenedOpponentLog) logMsg += defWeakenedOpponentLog
-    if (paralysisLog) logMsg += paralysisLog
-    if (smokeLog) logMsg += smokeLog
+    const logMsg = logParts.filter(Boolean).join(' ')
+    setLog(logMsg || '...')
+    setPState(newP)
+    setOState(newO)
 
-    setLog(logMsg)
-    setPState({ hp: newPHP, energy: newPEn })
-    setOState({ hp: newOHP, energy: newOEn })
-    setPMech({
-      embers: newPEmbers,
-      consecutiveDefends: newPConsecDef,
-      smokeNextTurn: newPSmoke,
-      paralyzed: newPParalyzed,
-    })
-    setOMech({
-      embers: oMech.embers,
-      consecutiveDefends: newOConsecDef,
-      smokeNextTurn: false,
-      paralyzed: newOParalyzed,
-    })
-    setOpponentHistory(prev => [botAct.kind, ...prev].slice(0, 3))
+    const histEntry = oAction.kind === 'spell'
+      ? SPELL_CATALOG[oAction.spellId].emoji
+      : oAction.kind === 'charge' ? '⚡' : '🛡️'
+    setOpponentHistory(prev => [histEntry, ...prev].slice(0, 3))
 
     setTimeout(() => {
-      if (newPHP <= 0 || newOHP <= 0 || round >= 10) {
+      if (newP.hp <= 0 || newO.hp <= 0 || round >= 10) {
         setPhase('finished')
       } else {
         setPlayerAction(null)
         setOpponentAction(null)
-        setRound((r) => r + 1)
+        setRound(r => r + 1)
         setPhase('choosing')
         startTimer()
       }
     }, 3200)
-  }, [chose, pState, oState, round, startTimer, playerMods, playerMaxHP, player.name, player.type, opponent.creatureType, pMech, oMech, opponentCounterBonus, opponentMaxHP])
+  }, [chose, startTimer, playerMods, playerMaxHP, playerType, playerLevel, opponent.creatureType,
+      opponent.level, opponentCounterBonus, opponentMaxHP, playerLoadout, opponentLoadout, round,
+      pPassiveLevel, oPassiveLevel, playerShake, opponentShake])
 
-  // start game
   useEffect(() => {
     const t = setTimeout(() => {
       setPhase('choosing')
@@ -809,13 +1084,10 @@ export default function CombatScreen({ player, opponent, onFinish }: Props) {
   const won = pState.hp > oState.hp || (pState.hp > 0 && oState.hp <= 0)
   const xpGained = won ? 60 + opponent.level * 5 : 20
 
-  const playerSprite  = SPRITES[spriteKey(player.type, player.stats.level)]
+  const playerSprite  = SPRITES[spriteKey(playerType, playerLevel)]
   const opponentSprite = SPRITES[spriteKey(opponent.creatureType, opponent.level)]
 
-  // Smoke mask: hide player action during resolving if smokeNextTurn was active last choose phase
-  // Actually smokeNextTurn means the action chosen NEXT turn is hidden from opponent
-  // In single-device: when pMech.smokeNextTurn during choosing, show player energy as 💨
-  const showSmokeEnergy = pMech.smokeNextTurn && phase === 'choosing'
+  const opponentFogged = hasStatus(oState, 'fog')
 
   return (
     <View style={s.root}>
@@ -855,17 +1127,17 @@ export default function CombatScreen({ player, opponent, onFinish }: Props) {
               <HPBar hp={oState.hp} maxHp={opponentMaxHP} color={oColor} />
               <Text style={s.hpText}>{oState.hp} / {opponentMaxHP} HP</Text>
               <View style={s.statusRow}>
-                {playerMods.hideOpponentEnergy
+                {playerMods.hideOpponentEnergy || opponentFogged
                   ? <Text style={s.hiddenEnergy}>⚡ ???</Text>
                   : <EnergyDots energy={oState.energy} maxEnergy={OPPONENT_MAX_ENERGY} color={oColor} />
                 }
-                {oMech.paralyzed && <Text style={s.paralyzedBadge}>⚡ Paralysé</Text>}
               </View>
+              <StatusBadges statuses={oState.statuses} />
               {opponentHistory.length > 0 && (
                 <View style={s.historyRow}>
                   <Text style={s.historyLabel}>Hist :</Text>
-                  {opponentHistory.map((k, i) => (
-                    <Text key={i} style={s.historyIcon}>{actionKindIcon(k)}</Text>
+                  {opponentHistory.map((icon, i) => (
+                    <Text key={i} style={s.historyIcon}>{icon}</Text>
                   ))}
                 </View>
               )}
@@ -876,13 +1148,13 @@ export default function CombatScreen({ player, opponent, onFinish }: Props) {
           </View>
         </View>
 
-        {/* Resolve strip — always rendered to prevent layout jump */}
+        {/* Resolve strip */}
         <View style={s.resolveStrip}>
           {phase === 'resolving' && (
             <>
               <ActionLabel action={playerAction} />
               <Text style={s.resolveVs}>⚔️</Text>
-              <ActionLabel action={opponentAction} masked={oMech.smokeNextTurn} />
+              <ActionLabel action={hasStatus(oState, 'smoke') ? null : opponentAction} />
             </>
           )}
         </View>
@@ -897,25 +1169,22 @@ export default function CombatScreen({ player, opponent, onFinish }: Props) {
               <View style={s.nameRow}>
                 <Text style={s.fighterName} numberOfLines={1}>{player.name}</Text>
                 <View style={[s.levelPill, { backgroundColor: pColor + '33' }]}>
-                  <Text style={[s.levelText, { color: pColor }]}>Lv {player.stats.level}</Text>
+                  <Text style={[s.levelText, { color: pColor }]}>Lv {playerLevel}</Text>
                 </View>
               </View>
               <HPBar hp={pState.hp} maxHp={playerMaxHP} color={pColor} />
               <Text style={s.hpText}>{pState.hp} / {playerMaxHP} HP</Text>
               <View style={s.statusRow}>
-                {showSmokeEnergy
-                  ? <Text style={s.smokeEnergy}>💨</Text>
-                  : <EnergyDots energy={pState.energy} maxEnergy={playerMods.maxEnergy} color={pColor} />
-                }
-                {player.type === 'ignis' && (
+                <EnergyDots energy={pState.energy} maxEnergy={playerMods.maxEnergy} color={pColor} />
+                {playerType === 'ignis' && (
                   <View style={s.embersRow}>
                     {[0, 1, 2].map(i => (
-                      <Text key={i} style={[s.emberDot, { opacity: i < pMech.embers ? 1 : 0.2 }]}>🔥</Text>
+                      <Text key={i} style={[s.emberDot, { opacity: i < pState.embers ? 1 : 0.2 }]}>🔥</Text>
                     ))}
                   </View>
                 )}
-                {pMech.paralyzed && <Text style={s.paralyzedBadge}>⚡ Paralysé</Text>}
               </View>
+              <StatusBadges statuses={pState.statuses} />
             </View>
           </View>
         </View>
@@ -931,91 +1200,28 @@ export default function CombatScreen({ player, opponent, onFinish }: Props) {
       {phase === 'choosing' && (
         <View style={s.actions}>
 
-          {/* Row 1: Défendre + Charger */}
-          <View style={s.actionRow}>
-            <TouchableOpacity
-              style={[s.mainBtn, s.defendBtn]}
-              onPress={() => commitAction({ kind: 'defend', energy: 0 })}
-            >
-              <Text style={s.mainBtnIcon}>🛡️</Text>
-              <Text style={s.mainBtnLabel}>Défendre</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[s.mainBtn, s.chargeBtn]}
-              onPress={() => commitAction({ kind: 'charge', energy: 0 })}
-            >
-              <Text style={s.mainBtnIcon}>⚡</Text>
-              <Text style={s.mainBtnLabel}>Charger</Text>
-              <Text style={s.mainBtnSub}>{pState.energy} / {playerMods.maxEnergy} ⚡</Text>
-            </TouchableOpacity>
-          </View>
+          {/* Row 1: Charger */}
+          <TouchableOpacity
+            style={s.chargeBtn}
+            onPress={() => commitAction({ kind: 'charge' })}
+          >
+            <Text style={s.chargeBtnIcon}>⚡</Text>
+            <Text style={s.chargeBtnLabel}>Charger</Text>
+            <Text style={s.chargeBtnSub}>{pState.energy} / {playerMods.maxEnergy} ⚡  +1 énergie</Text>
+          </TouchableOpacity>
 
-          {/* Nemo specials */}
-          {player.type === 'nemo' && (
-            <View style={s.actionRow}>
-              <TouchableOpacity
-                style={[s.mainBtn, { backgroundColor: '#001E44' }]}
-                onPress={() => commitAction({ kind: 'drain', energy: 0 })}
-              >
-                <Text style={s.mainBtnIcon}>💧</Text>
-                <Text style={s.mainBtnLabel}>Drain</Text>
-                <Text style={s.mainBtnSub}>Gratuit</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[s.mainBtn, { backgroundColor: pState.energy >= 2 ? '#002E66' : '#111' }]}
-                onPress={() => pState.energy >= 2 && commitAction({ kind: 'convert', energy: 2 })}
-                activeOpacity={pState.energy >= 2 ? 0.7 : 1}
-              >
-                <Text style={s.mainBtnIcon}>💊</Text>
-                <Text style={[s.mainBtnLabel, pState.energy < 2 && { color: '#444' }]}>Convertir</Text>
-                <Text style={[s.mainBtnSub, pState.energy < 2 && { color: '#333' }]}>×2⚡ → +8 PV</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-
-          {/* Sylva special */}
-          {player.type === 'sylva' && (
-            <View style={s.actionRow}>
-              <TouchableOpacity
-                style={[s.mainBtn, { backgroundColor: '#001A00', flex: 0.5 }]}
-                onPress={() => commitAction({ kind: 'smoke', energy: 0 })}
-              >
-                <Text style={s.mainBtnIcon}>💨</Text>
-                <Text style={s.mainBtnLabel}>Fumée</Text>
-                <Text style={s.mainBtnSub}>Gratuit</Text>
-              </TouchableOpacity>
-              <View style={{ flex: 0.5 }} />
-            </View>
-          )}
-
-          {/* Attack row */}
-          <View style={s.attackRow}>
-            {player.type === 'zapp' && (
-              <TouchableOpacity
-                style={[s.attackBtn, s.chainBtn, pState.energy < 1 && s.btnDisabled]}
-                onPress={() => pState.energy >= 1 && commitAction({ kind: 'chain', energy: 1 })}
-                activeOpacity={pState.energy >= 1 ? 0.7 : 1}
-              >
-                <Text style={[s.attackIcon, { color: '#FFE066' }, pState.energy < 1 && { color: '#333' }]}>⚡⚡</Text>
-                <Text style={[s.attackLabel, pState.energy < 1 && { color: '#333' }]}>Chaîne</Text>
-                <Text style={[s.attackSub, pState.energy < 1 && { color: '#222' }]}>6 dmg</Text>
-              </TouchableOpacity>
-            )}
-            {[1, 2, 3, 4].map((e) => {
-              const can = pState.energy >= e && e <= playerMods.maxEnergy
-              return (
-                <TouchableOpacity
-                  key={e}
-                  style={[s.attackBtn, !can && s.btnDisabled]}
-                  onPress={() => can && commitAction({ kind: 'attack', energy: e })}
-                  activeOpacity={can ? 0.7 : 1}
-                >
-                  <Text style={[s.attackIcon, !can && { color: '#333' }]}>⚔️</Text>
-                  <Text style={[s.attackLabel, !can && { color: '#333' }]}>×{e}</Text>
-                  <Text style={[s.attackSub, !can && { color: '#222' }]}>{e * 4} dmg</Text>
-                </TouchableOpacity>
-              )
-            })}
+          {/* Rows 2-3: 4 sorts équipés en grille 2×2 */}
+          <View style={s.spellGrid}>
+            {playerLoadout.map((spellId) => (
+              <SpellButton
+                key={spellId}
+                spellId={spellId}
+                state={pState}
+                maxEnergy={playerMods.maxEnergy}
+                color={pColor}
+                onPress={() => commitAction({ kind: 'spell', spellId })}
+              />
+            ))}
           </View>
 
         </View>
@@ -1026,7 +1232,7 @@ export default function CombatScreen({ player, opponent, onFinish }: Props) {
         <View style={s.overlay}>
           <Text style={s.introTitle}>COMBAT !</Text>
           <Text style={s.introSub}>{player.name} vs {opponent.creatureName}</Text>
-          <DebuffPanel mods={playerMods} playerType={player.type} opponentType={opponent.creatureType} />
+          <DebuffPanel mods={playerMods} playerType={playerType} opponentType={opponent.creatureType} />
         </View>
       )}
 
@@ -1057,7 +1263,7 @@ const s = StyleSheet.create({
   timerBarBg: { height: 5, backgroundColor: '#222', borderRadius: 3, overflow: 'hidden' },
   timerBarFill: { height: 5, backgroundColor: '#FFD700', borderRadius: 3 },
 
-  // arena — vertical layout, space-between keeps cards at top/bottom
+  // arena
   arena: {
     flex: 1,
     paddingHorizontal: 14,
@@ -1086,10 +1292,11 @@ const s = StyleSheet.create({
   energyRow: { flexDirection: 'row', gap: 5 },
   dot: { width: 11, height: 11, borderRadius: 6 },
   hiddenEnergy: { color: '#555', fontSize: 12, fontWeight: '800' },
-  smokeEnergy: { fontSize: 16 },
   embersRow: { flexDirection: 'row', gap: 2 },
   emberDot: { fontSize: 13 },
-  paralyzedBadge: { color: '#FFE066', fontSize: 11, fontWeight: '800' },
+
+  statusBadgesRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 2 },
+  statusBadge: { fontSize: 11, color: '#ccc', backgroundColor: '#222', borderRadius: 6, paddingHorizontal: 4, paddingVertical: 1 },
 
   historyRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 2 },
   historyLabel: { color: '#444', fontSize: 10, fontWeight: '600' },
@@ -1097,7 +1304,6 @@ const s = StyleSheet.create({
 
   sprite: { width: 100, height: 100 },
 
-  // resolve strip — fixed height so layout doesn't jump between phases
   resolveStrip: {
     height: 44,
     flexDirection: 'row',
@@ -1124,30 +1330,47 @@ const s = StyleSheet.create({
 
   // actions
   actions: { paddingHorizontal: 14, paddingBottom: 14, gap: 8 },
-  actionRow: { flexDirection: 'row', gap: 8 },
-  mainBtn: {
-    flex: 1, borderRadius: 14,
-    paddingVertical: 13, alignItems: 'center', gap: 2,
-  },
-  defendBtn: { backgroundColor: '#162D56' },
-  chargeBtn: { backgroundColor: '#302600' },
-  mainBtnIcon: { fontSize: 22 },
-  mainBtnLabel: { color: '#fff', fontWeight: '800', fontSize: 13 },
-  mainBtnSub: { color: '#888', fontSize: 11 },
 
-  attackRow: { flexDirection: 'row', gap: 6 },
-  attackBtn: {
-    flex: 1, backgroundColor: '#280600',
-    borderRadius: 11, paddingVertical: 9, alignItems: 'center', gap: 1,
+  chargeBtn: {
+    backgroundColor: '#302600',
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
-  chainBtn: {
-    backgroundColor: '#221500',
-    borderWidth: 1, borderColor: '#FFE06655',
+  chargeBtnIcon: { fontSize: 22 },
+  chargeBtnLabel: { color: '#fff', fontWeight: '800', fontSize: 14, flex: 1 },
+  chargeBtnSub: { color: '#888', fontSize: 11 },
+
+  spellGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
   },
-  btnDisabled: { backgroundColor: '#0F0F0F' },
-  attackIcon: { color: '#FF6B35', fontSize: 16 },
-  attackLabel: { color: '#FF6B35', fontWeight: '800', fontSize: 12 },
-  attackSub: { color: '#FF6B3555', fontSize: 10 },
+  spellBtn: {
+    width: '48%',
+    backgroundColor: '#1A1A3A',
+    borderRadius: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    gap: 4,
+    borderWidth: 1,
+    borderColor: '#2A2A4A',
+  },
+  spellBtnDisabled: {
+    backgroundColor: '#0F0F1A',
+    borderColor: '#1A1A2A',
+  },
+  spellBtnTop: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  spellEmoji: { fontSize: 18 },
+  spellName: { color: '#fff', fontSize: 12, fontWeight: '700', flexShrink: 1 },
+  spellNameDisabled: { color: '#444' },
+  spellCostRow: { flexDirection: 'row', gap: 3, alignItems: 'center' },
+  spellCostDot: { width: 8, height: 8, borderRadius: 4 },
+  spellFreeBadge: { color: '#6BFF8B', fontSize: 10, fontWeight: '700' },
+  spellCooldown: { color: '#FF9933', fontSize: 11, fontWeight: '700' },
 
   // overlays
   overlay: {
