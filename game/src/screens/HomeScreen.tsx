@@ -1,10 +1,13 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import {
+  Animated,
+  Modal,
   RefreshControl,
   SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from 'react-native'
 import ActionButtons from '../components/ActionButtons'
@@ -44,6 +47,9 @@ export default function HomeScreen({ creature, inventory, events, quests, journa
   const [pendingEvent, setPendingEvent] = useState<GameEvent | null>(null)
   const [speechMsg, setSpeechMsg] = useState('')
   const [speechVisible, setSpeechVisible] = useState(false)
+  const [showEvolve, setShowEvolve] = useState(false)
+  const [evolveStage, setEvolveStage] = useState(2)
+  const evolveScale = useRef(new Animated.Value(0)).current
   const speechTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const showSpeech = useCallback((msg: string) => {
@@ -177,6 +183,15 @@ export default function HomeScreen({ creature, inventory, events, quests, journa
     setRefreshing(false)
   }, [creature])
 
+  const handleEvolve = useCallback(() => {
+    const stage = creature.stats.level >= 20 ? 3 : 2
+    setEvolveStage(stage)
+    setShowEvolve(true)
+    evolveScale.setValue(0)
+    Animated.spring(evolveScale, { toValue: 1, bounciness: 14, useNativeDriver: true }).start()
+    triggerParticles(['⭐', '✨', '💫', '🌟'])
+  }, [creature.stats.level])
+
   return (
     <SafeAreaView style={styles.safe}>
       <ParticleEffect trigger={particleTrigger} emojis={particleEmojis} />
@@ -195,7 +210,7 @@ export default function HomeScreen({ creature, inventory, events, quests, journa
         </View>
 
         <SpeechBubble message={speechMsg} visible={speechVisible} />
-        <CreatureDisplay creature={creature} />
+        <CreatureDisplay creature={creature} onEvolve={handleEvolve} />
         <StatsPanel stats={creature.stats} />
         <View style={styles.spacer} />
         <ActionButtons
@@ -214,6 +229,27 @@ export default function HomeScreen({ creature, inventory, events, quests, journa
       />
 
       <EventModal event={pendingEvent} onClose={handleEventClose} />
+
+      <Modal visible={showEvolve} transparent animationType="fade">
+        <View style={styles.evolveOverlay}>
+          <Animated.View style={[styles.evolveCard, { transform: [{ scale: evolveScale }] }]}>
+            <Text style={styles.evolveEmoji}>✨</Text>
+            <Text style={styles.evolveTitle}>ÉVOLUTION !</Text>
+            <Text style={styles.evolveName}>{creature.name}</Text>
+            <Text style={styles.evolveDesc}>
+              {evolveStage === 3
+                ? 'A atteint sa forme finale !\nLes ailes se déploient...'
+                : 'A grandi et est devenu plus fort !\nSes cornes ont poussé...'}
+            </Text>
+            <Text style={styles.evolveStage}>
+              {evolveStage === 3 ? '★ FORME ULTIME' : '★ FORME ADO'}
+            </Text>
+            <TouchableOpacity style={styles.evolveBtn} onPress={() => setShowEvolve(false)}>
+              <Text style={styles.evolveBtnText}>Incroyable !</Text>
+            </TouchableOpacity>
+          </Animated.View>
+        </View>
+      </Modal>
     </SafeAreaView>
   )
 }
@@ -237,4 +273,62 @@ const styles = StyleSheet.create({
   },
   sickTagText: { fontSize: 12, fontWeight: '700', color: '#856404' },
   spacer: { height: 4 },
+  evolveOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(26,26,46,0.92)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 32,
+  },
+  evolveCard: {
+    backgroundColor: '#fff',
+    borderRadius: 28,
+    padding: 32,
+    alignItems: 'center',
+    width: '100%',
+    gap: 8,
+    shadowColor: '#FFD700',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 24,
+    elevation: 20,
+  },
+  evolveEmoji: { fontSize: 52 },
+  evolveTitle: {
+    fontSize: 32,
+    fontWeight: '900',
+    color: '#1a1a2e',
+    letterSpacing: 2,
+  },
+  evolveName: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#555',
+  },
+  evolveDesc: {
+    fontSize: 15,
+    color: '#888',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginTop: 4,
+  },
+  evolveStage: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#FFD700',
+    letterSpacing: 1,
+    marginTop: 4,
+  },
+  evolveBtn: {
+    backgroundColor: '#1a1a2e',
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 40,
+    marginTop: 12,
+  },
+  evolveBtnText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
+  },
 })

@@ -1,25 +1,114 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { Animated, Image, ImageSourcePropType, StyleSheet, TouchableWithoutFeedback, View, Text } from 'react-native'
-import { Creature, CreatureMood } from '../types'
+import { Creature, CreatureMood, CreatureType } from '../types'
 import { CREATURE_COLORS, getMood, getMoodEmoji } from '../utils/creature'
 
 // All requires must be static in React Native bundler
 const SPRITES: Record<string, ImageSourcePropType> = {
-  ignis_0: require('../../assets/sprites/ignis_f0.png'),
-  ignis_1: require('../../assets/sprites/ignis_f1.png'),
-  ignis_2: require('../../assets/sprites/ignis_f2.png'),
-  nemo_0:  require('../../assets/sprites/nemo_f0.png'),
-  nemo_1:  require('../../assets/sprites/nemo_f1.png'),
-  nemo_2:  require('../../assets/sprites/nemo_f2.png'),
-  sylva_0: require('../../assets/sprites/sylva_f0.png'),
-  sylva_1: require('../../assets/sprites/sylva_f1.png'),
-  sylva_2: require('../../assets/sprites/sylva_f2.png'),
-  zapp_0:  require('../../assets/sprites/zapp_f0.png'),
-  zapp_1:  require('../../assets/sprites/zapp_f1.png'),
-  zapp_2:  require('../../assets/sprites/zapp_f2.png'),
+  ignis_0:    require('../../assets/sprites/ignis_f0.png'),
+  ignis_1:    require('../../assets/sprites/ignis_f1.png'),
+  ignis_2:    require('../../assets/sprites/ignis_f2.png'),
+  ignis_e2_0: require('../../assets/sprites/ignis_e2_f0.png'),
+  ignis_e2_1: require('../../assets/sprites/ignis_e2_f1.png'),
+  ignis_e2_2: require('../../assets/sprites/ignis_e2_f2.png'),
+  ignis_e3_0: require('../../assets/sprites/ignis_e3_f0.png'),
+  ignis_e3_1: require('../../assets/sprites/ignis_e3_f1.png'),
+  ignis_e3_2: require('../../assets/sprites/ignis_e3_f2.png'),
+  nemo_0:     require('../../assets/sprites/nemo_f0.png'),
+  nemo_1:     require('../../assets/sprites/nemo_f1.png'),
+  nemo_2:     require('../../assets/sprites/nemo_f2.png'),
+  nemo_e2_0:  require('../../assets/sprites/nemo_e2_f0.png'),
+  nemo_e2_1:  require('../../assets/sprites/nemo_e2_f1.png'),
+  nemo_e2_2:  require('../../assets/sprites/nemo_e2_f2.png'),
+  nemo_e3_0:  require('../../assets/sprites/nemo_e3_f0.png'),
+  nemo_e3_1:  require('../../assets/sprites/nemo_e3_f1.png'),
+  nemo_e3_2:  require('../../assets/sprites/nemo_e3_f2.png'),
+  sylva_0:    require('../../assets/sprites/sylva_f0.png'),
+  sylva_1:    require('../../assets/sprites/sylva_f1.png'),
+  sylva_2:    require('../../assets/sprites/sylva_f2.png'),
+  sylva_e2_0: require('../../assets/sprites/sylva_e2_f0.png'),
+  sylva_e2_1: require('../../assets/sprites/sylva_e2_f1.png'),
+  sylva_e2_2: require('../../assets/sprites/sylva_e2_f2.png'),
+  sylva_e3_0: require('../../assets/sprites/sylva_e3_f0.png'),
+  sylva_e3_1: require('../../assets/sprites/sylva_e3_f1.png'),
+  sylva_e3_2: require('../../assets/sprites/sylva_e3_f2.png'),
+  zapp_0:     require('../../assets/sprites/zapp_f0.png'),
+  zapp_1:     require('../../assets/sprites/zapp_f1.png'),
+  zapp_2:     require('../../assets/sprites/zapp_f2.png'),
+  zapp_e2_0:  require('../../assets/sprites/zapp_e2_f0.png'),
+  zapp_e2_1:  require('../../assets/sprites/zapp_e2_f1.png'),
+  zapp_e2_2:  require('../../assets/sprites/zapp_e2_f2.png'),
+  zapp_e3_0:  require('../../assets/sprites/zapp_e3_f0.png'),
+  zapp_e3_1:  require('../../assets/sprites/zapp_e3_f1.png'),
+  zapp_e3_2:  require('../../assets/sprites/zapp_e3_f2.png'),
 }
 
-// frame sequences per mood: [f0=idle, f1=bounce, f2=happy]
+function getStageKey(level: number): string {
+  if (level >= 20) return '_e3'
+  if (level >= 10) return '_e2'
+  return ''
+}
+
+// Particle colors per type
+const PARTICLE_COLORS: Record<CreatureType, string[]> = {
+  ignis: ['#FF6600', '#FF9900', '#FF3300', '#FFCC00'],
+  nemo:  ['#00BBDD', '#00DDFF', '#0099BB', '#88EEFF'],
+  sylva: ['#8BC34A', '#CDDC39', '#66BB6A', '#A5D6A7'],
+  zapp:  ['#FFD700', '#FFEE00', '#FFB300', '#FFFFFF'],
+}
+
+function FloatingParticles({ color, type }: { color: string; type: CreatureType }) {
+  const colors = PARTICLE_COLORS[type]
+  const particles = useRef(
+    Array.from({ length: 6 }, (_, i) => ({
+      x: 20 + i * 28,
+      y: useRef(new Animated.Value(60 + Math.random() * 40)).current,
+      opacity: useRef(new Animated.Value(0)).current,
+      size: 4 + (i % 3) * 2,
+      color: colors[i % colors.length],
+      delay: i * 300,
+    }))
+  ).current
+
+  useEffect(() => {
+    particles.forEach((p) => {
+      const loop = () => {
+        p.y.setValue(80 + Math.random() * 40)
+        p.opacity.setValue(0)
+        Animated.sequence([
+          Animated.delay(p.delay),
+          Animated.parallel([
+            Animated.timing(p.opacity, { toValue: 0.7, duration: 400, useNativeDriver: true }),
+            Animated.timing(p.y, { toValue: -20, duration: 2000, useNativeDriver: true }),
+          ]),
+          Animated.timing(p.opacity, { toValue: 0, duration: 300, useNativeDriver: true }),
+        ]).start(loop)
+      }
+      loop()
+    })
+  }, [])
+
+  return (
+    <View style={StyleSheet.absoluteFill} pointerEvents="none">
+      {particles.map((p, i) => (
+        <Animated.View
+          key={i}
+          style={{
+            position: 'absolute',
+            left: p.x,
+            width: p.size,
+            height: p.size,
+            borderRadius: p.size / 2,
+            backgroundColor: p.color,
+            opacity: p.opacity,
+            transform: [{ translateY: p.y }],
+          }}
+        />
+      ))}
+    </View>
+  )
+}
+
 const FRAME_SEQ: Record<CreatureMood, number[]> = {
   excited: [0, 1, 2, 1, 0, 2],
   happy:   [0, 1, 0, 1],
@@ -36,33 +125,43 @@ const FRAME_MS: Record<CreatureMood, number> = {
 
 interface Props {
   creature: Creature
+  onEvolve?: () => void
 }
 
-export default function CreatureDisplay({ creature }: Props) {
+export default function CreatureDisplay({ creature, onEvolve }: Props) {
   const bounce = useRef(new Animated.Value(0)).current
   const scale  = useRef(new Animated.Value(1)).current
   const [frameIdx, setFrameIdx] = useState(0)
   const [reacting, setReacting] = useState(false)
+  const prevLevelRef = useRef(creature.stats.level)
 
   const mood  = getMood(creature.stats)
   const color = CREATURE_COLORS[creature.type]
   const moodEmoji = getMoodEmoji(mood)
   const seq   = FRAME_SEQ[mood]
+  const stage = getStageKey(creature.stats.level)
 
-  // cycle animation frames
+  // detect evolution (level crossed 10 or 20)
+  useEffect(() => {
+    const prev = prevLevelRef.current
+    const curr = creature.stats.level
+    prevLevelRef.current = curr
+    if ((prev < 10 && curr >= 10) || (prev < 20 && curr >= 20)) {
+      onEvolve?.()
+    }
+  }, [creature.stats.level])
+
+  // cycle frames
   useEffect(() => {
     setFrameIdx(0)
-    const id = setInterval(() => {
-      setFrameIdx((i) => (i + 1) % seq.length)
-    }, FRAME_MS[mood])
+    const id = setInterval(() => setFrameIdx((i) => (i + 1) % seq.length), FRAME_MS[mood])
     return () => clearInterval(id)
   }, [mood])
 
-  // vertical bounce loop
+  // vertical bounce
   useEffect(() => {
     const lift = mood === 'excited' ? 14 : mood === 'happy' ? 8 : 4
     const ms   = FRAME_MS[mood] * seq.length
-
     const anim = Animated.loop(
       Animated.sequence([
         Animated.timing(bounce, { toValue: -lift, duration: ms / 2, useNativeDriver: true }),
@@ -80,18 +179,18 @@ export default function CreatureDisplay({ creature }: Props) {
       Animated.timing(scale, { toValue: 1.25, duration: 80, useNativeDriver: true }),
       Animated.timing(scale, { toValue: 1,    duration: 80, useNativeDriver: true }),
     ]).start()
-    // flash the happy frame briefly
     setFrameIdx(seq.indexOf(2) >= 0 ? seq.indexOf(2) : 1)
     setTimeout(() => setReacting(false), 600)
   }
 
   const currentFrame = reacting ? 2 : seq[frameIdx]
-  const spriteKey    = `${creature.type}_${currentFrame}`
+  const spriteKey    = `${creature.type}${stage}_${currentFrame}`
   const sprite       = SPRITES[spriteKey]
 
   return (
     <View style={styles.container}>
       <View style={[styles.aura, { backgroundColor: color + '22' }]} />
+      <FloatingParticles color={color} type={creature.type} />
       <TouchableWithoutFeedback onPress={handlePress}>
         <Animated.View style={[styles.spriteWrapper, { transform: [{ translateY: bounce }, { scale }] }]}>
           <Image source={sprite} style={styles.sprite} resizeMode="contain" />
@@ -99,8 +198,20 @@ export default function CreatureDisplay({ creature }: Props) {
       </TouchableWithoutFeedback>
       <Text style={styles.moodEmoji}>{moodEmoji}</Text>
       <Text style={styles.name}>{creature.name}</Text>
-      <View style={[styles.levelBadge, { backgroundColor: color }]}>
-        <Text style={styles.levelText}>Niv. {creature.stats.level}</Text>
+      <View style={styles.badges}>
+        <View style={[styles.levelBadge, { backgroundColor: color }]}>
+          <Text style={styles.levelText}>Niv. {creature.stats.level}</Text>
+        </View>
+        {creature.stats.level >= 20 && (
+          <View style={[styles.stageBadge, { backgroundColor: '#FFD700' }]}>
+            <Text style={styles.stageText}>★ MAX</Text>
+          </View>
+        )}
+        {creature.stats.level >= 10 && creature.stats.level < 20 && (
+          <View style={[styles.stageBadge, { backgroundColor: color + 'AA' }]}>
+            <Text style={styles.stageText}>★ ADO</Text>
+          </View>
+        )}
       </View>
     </View>
   )
@@ -135,6 +246,11 @@ const styles = StyleSheet.create({
     color: '#1a1a2e',
     marginBottom: 6,
   },
+  badges: {
+    flexDirection: 'row',
+    gap: 6,
+    alignItems: 'center',
+  },
   levelBadge: {
     paddingHorizontal: 14,
     paddingVertical: 4,
@@ -144,5 +260,15 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '700',
     fontSize: 13,
+  },
+  stageBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+  },
+  stageText: {
+    color: '#fff',
+    fontWeight: '800',
+    fontSize: 11,
   },
 })
