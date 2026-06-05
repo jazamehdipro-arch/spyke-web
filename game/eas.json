@@ -4,11 +4,11 @@
   },
   "build": {
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "channel": "main"
     },
-    "production": {}
-  },
-  "update": {
-    "channel": "main"
+    "production": {
+      "channel": "main"
+    }
   }
 }
