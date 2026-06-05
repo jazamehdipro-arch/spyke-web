@@ -575,20 +575,6 @@ function HPBar({ hp, maxHp, color }: { hp: number; maxHp: number; color: string 
   )
 }
 
-function StatusBadges({ statuses }: { statuses: StatusEffect[] }) {
-  const active = statuses.filter(s => s.turnsLeft > 0)
-  if (active.length === 0) return null
-  return (
-    <View style={s.statusBadgesRow}>
-      {active.map((st, i) => (
-        <Text key={i} style={s.statusBadge}>
-          {STATUS_ICONS[st.type] ?? '?'}×{st.turnsLeft}
-        </Text>
-      ))}
-    </View>
-  )
-}
-
 function ActionLabel({ action }: { action: CombatAction | null }) {
   if (!action) return <Text style={s.actionLabel}>?</Text>
   if (action.kind === 'defend') return <Text style={s.actionLabel}>🛡️ Défend</Text>
@@ -683,29 +669,21 @@ function SpellButton({
 
   return (
     <TouchableOpacity
-      style={[s.spellBtn, !usable && s.spellBtnDisabled]}
-      onPress={() => usable && onPress()}
-      activeOpacity={usable ? 0.7 : 1}
+      style={[s.spellBtn, usable ? [s.spellBtnUsable, { borderColor: color }] : s.spellBtnDisabled]}
+      onPress={onPress}
+      disabled={!usable}
+      activeOpacity={0.7}
     >
-      <View style={s.spellBtnTop}>
-        <Text style={s.spellEmoji}>{spell.emoji}</Text>
-        <Text style={[s.spellName, !usable && s.spellNameDisabled]} numberOfLines={1}>
-          {spell.name}
-        </Text>
-      </View>
-      {cd > 0 ? (
-        <Text style={s.spellCooldown}>⏳ {cd}t</Text>
-      ) : (
-        <View style={s.spellCostRow}>
-          {Array.from({ length: spell.energyCost }, (_, i) => (
-            <View
-              key={i}
-              style={[s.spellCostDot, { backgroundColor: state.energy > i ? color : '#333' }]}
-            />
-          ))}
-          {spell.energyCost === 0 && <Text style={s.spellFreeBadge}>Gratuit</Text>}
-        </View>
-      )}
+      <Text style={s.spellEmoji}>{spell.emoji}</Text>
+      <Text style={[s.spellName, !usable && s.spellNameDisabled]} numberOfLines={1}>
+        {spell.name}
+      </Text>
+      {cd > 0
+        ? <Text style={s.spellCdBadge}>⏳ {cd}t</Text>
+        : <Text style={[s.spellCostBadge, !usable && s.spellCostBadgeLow]}>
+            {spell.energyCost === 0 ? 'libre' : `${spell.energyCost}⚡`}
+          </Text>
+      }
     </TouchableOpacity>
   )
 }
@@ -783,6 +761,9 @@ export default function CombatScreen({ player, opponent, onFinish, debugOverride
   const [chose, setChose]       = useState(false)
 
   const [opponentHistory, setOpponentHistory] = useState<string[]>([])
+  const [playerHistory, setPlayerHistory]     = useState<string[]>([])
+  const [pDelta, setPDelta]                   = useState<string>('')
+  const [oDelta, setODelta]                   = useState<string>('')
 
   const timerRef  = useRef<ReturnType<typeof setInterval> | null>(null)
   const timerAnim = useRef(new Animated.Value(1)).current
@@ -1058,7 +1039,19 @@ export default function CombatScreen({ player, opponent, onFinish, debugOverride
       : oAction.kind === 'charge' ? '⚡' : '🛡️'
     setOpponentHistory(prev => [histEntry, ...prev].slice(0, 3))
 
+    const pHistEntry = pAction.kind === 'spell'
+      ? SPELL_CATALOG[pAction.spellId].emoji
+      : pAction.kind === 'charge' ? '⚡' : '🛡️'
+    setPlayerHistory(prev => [pHistEntry, ...prev].slice(0, 3))
+
+    const pHpChange = newP.hp - curP.hp
+    const oHpChange = newO.hp - curO.hp
+    setPDelta(pHpChange < 0 ? `${pHpChange}` : pHpChange > 0 ? `+${pHpChange}` : '')
+    setODelta(oHpChange < 0 ? `${oHpChange}` : oHpChange > 0 ? `+${oHpChange}` : '')
+
     setTimeout(() => {
+      setPDelta('')
+      setODelta('')
       if (newP.hp <= 0 || newO.hp <= 0 || round >= 10) {
         setPhase('finished')
       } else {
@@ -1092,142 +1085,143 @@ export default function CombatScreen({ player, opponent, onFinish, debugOverride
   return (
     <View style={s.root}>
 
-      {/* ── HEADER: round + timer ── */}
+      {/* HEADER */}
       <View style={s.header}>
         <View style={s.headerRow}>
           <Text style={s.roundText}>Tour {round} / 10</Text>
-          {phase === 'choosing' && (
-            <Text style={s.timerCountdown}>{timeLeft}s</Text>
-          )}
+          <Text style={[s.timerCountdown, phase !== 'choosing' && s.timerDim]}>
+            {phase === 'choosing' ? `${timeLeft}s` : '···'}
+          </Text>
         </View>
         <View style={s.timerBarBg}>
-          {phase === 'choosing' && (
-            <Animated.View
-              style={[s.timerBarFill, {
-                width: timerAnim.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }),
-              }]}
-            />
-          )}
+          <Animated.View style={[s.timerBarFill, {
+            width: timerAnim.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }),
+          }]} />
         </View>
       </View>
 
-      {/* ── ARENA ── */}
-      <View style={s.arena}>
-
-        {/* Opponent card */}
-        <View style={s.fighterCard}>
-          <View style={s.fighterRow}>
-            <View style={s.fighterInfo}>
-              <View style={s.nameRow}>
-                <Text style={s.fighterName} numberOfLines={1}>{opponent.creatureName}</Text>
-                <View style={[s.levelPill, { backgroundColor: oColor + '33' }]}>
-                  <Text style={[s.levelText, { color: oColor }]}>Lv {opponent.level}</Text>
-                </View>
+      {/* OPPONENT */}
+      <View style={[s.fighterCard, { borderColor: oColor + '66' }]}>
+        <View style={s.fighterRow}>
+          <Animated.View style={{ transform: [{ translateX: opponentShake }, { scaleX: -1 }] }}>
+            <Image source={opponentSprite} style={s.sprite} resizeMode="contain" />
+          </Animated.View>
+          <View style={s.fighterInfo}>
+            <View style={s.nameRow}>
+              <Text style={s.fighterName} numberOfLines={1}>{opponent.creatureName}</Text>
+              <View style={[s.levelPill, { backgroundColor: oColor + '33' }]}>
+                <Text style={[s.levelText, { color: oColor }]}>Nv {opponent.level}</Text>
               </View>
+              {oState.statuses.filter(st => st.turnsLeft > 0).map((st, i) => (
+                <Text key={i} style={s.statusIcon}>{STATUS_ICONS[st.type]}</Text>
+              ))}
+            </View>
+            <View style={s.hpRow}>
               <HPBar hp={oState.hp} maxHp={opponentMaxHP} color={oColor} />
-              <Text style={s.hpText}>{oState.hp} / {opponentMaxHP} HP</Text>
-              <View style={s.statusRow}>
-                {playerMods.hideOpponentEnergy || opponentFogged
-                  ? <Text style={s.hiddenEnergy}>⚡ ???</Text>
-                  : <EnergyDots energy={oState.energy} maxEnergy={OPPONENT_MAX_ENERGY} color={oColor} />
-                }
+              {oDelta !== '' && (
+                <Text style={[s.dmgBadge, { color: oDelta.startsWith('-') ? '#FF4444' : '#6BFF8B' }]}>
+                  {oDelta}
+                </Text>
+              )}
+            </View>
+            <View style={s.subRow}>
+              <Text style={s.hpText}>{oState.hp}/{opponentMaxHP} PV</Text>
+              {playerMods.hideOpponentEnergy || opponentFogged
+                ? <Text style={s.hiddenEnergy}>⚡ ???</Text>
+                : <EnergyDots energy={oState.energy} maxEnergy={OPPONENT_MAX_ENERGY} color={oColor} />
+              }
+            </View>
+            {opponentHistory.length > 0 && (
+              <View style={s.historyRow}>
+                {opponentHistory.map((icon, i) => (
+                  <View key={i} style={s.histBadge}><Text style={s.histIcon}>{icon}</Text></View>
+                ))}
               </View>
-              <StatusBadges statuses={oState.statuses} />
-              {opponentHistory.length > 0 && (
-                <View style={s.historyRow}>
-                  <Text style={s.historyLabel}>Hist :</Text>
-                  {opponentHistory.map((icon, i) => (
-                    <Text key={i} style={s.historyIcon}>{icon}</Text>
+            )}
+          </View>
+        </View>
+      </View>
+
+      {/* CENTER STRIP — resolution or last log */}
+      <View style={s.centerStrip}>
+        {phase === 'resolving' && playerAction ? (
+          <>
+            <ActionLabel action={playerAction} />
+            <Text style={s.resolveVs}>⚔️</Text>
+            <ActionLabel action={hasStatus(oState, 'smoke') ? null : opponentAction} />
+          </>
+        ) : (
+          <Text style={s.centerLog} numberOfLines={1}>{log}</Text>
+        )}
+      </View>
+
+      {/* PLAYER */}
+      <View style={[s.fighterCard, { borderColor: pColor + '66' }]}>
+        <View style={s.fighterRow}>
+          <View style={s.fighterInfo}>
+            <View style={s.nameRow}>
+              <Text style={s.fighterName} numberOfLines={1}>{player.name}</Text>
+              <View style={[s.levelPill, { backgroundColor: pColor + '33' }]}>
+                <Text style={[s.levelText, { color: pColor }]}>Nv {playerLevel}</Text>
+              </View>
+              {pState.statuses.filter(st => st.turnsLeft > 0).map((st, i) => (
+                <Text key={i} style={s.statusIcon}>{STATUS_ICONS[st.type]}</Text>
+              ))}
+            </View>
+            <View style={s.hpRow}>
+              <HPBar hp={pState.hp} maxHp={playerMaxHP} color={pColor} />
+              {pDelta !== '' && (
+                <Text style={[s.dmgBadge, { color: pDelta.startsWith('-') ? '#FF4444' : '#6BFF8B' }]}>
+                  {pDelta}
+                </Text>
+              )}
+            </View>
+            <View style={s.subRow}>
+              <Text style={s.hpText}>{pState.hp}/{playerMaxHP} PV</Text>
+              <EnergyDots energy={pState.energy} maxEnergy={playerMods.maxEnergy} color={pColor} />
+              {playerType === 'ignis' && (
+                <View style={s.embersRow}>
+                  {[0, 1, 2].map(i => (
+                    <Text key={i} style={[s.emberDot, { opacity: i < pState.embers ? 1 : 0.2 }]}>🔥</Text>
                   ))}
                 </View>
               )}
             </View>
-            <Animated.View style={{ transform: [{ translateX: opponentShake }, { scaleX: -1 }] }}>
-              <Image source={opponentSprite} style={s.sprite} resizeMode="contain" />
-            </Animated.View>
-          </View>
-        </View>
-
-        {/* Resolve strip */}
-        <View style={s.resolveStrip}>
-          {phase === 'resolving' && (
-            <>
-              <ActionLabel action={playerAction} />
-              <Text style={s.resolveVs}>⚔️</Text>
-              <ActionLabel action={hasStatus(oState, 'smoke') ? null : opponentAction} />
-            </>
-          )}
-        </View>
-
-        {/* Player card */}
-        <View style={s.fighterCard}>
-          <View style={s.fighterRow}>
-            <Animated.View style={{ transform: [{ translateX: playerShake }] }}>
-              <Image source={playerSprite} style={s.sprite} resizeMode="contain" />
-            </Animated.View>
-            <View style={s.fighterInfo}>
-              <View style={s.nameRow}>
-                <Text style={s.fighterName} numberOfLines={1}>{player.name}</Text>
-                <View style={[s.levelPill, { backgroundColor: pColor + '33' }]}>
-                  <Text style={[s.levelText, { color: pColor }]}>Lv {playerLevel}</Text>
-                </View>
+            {playerHistory.length > 0 && (
+              <View style={s.historyRow}>
+                {playerHistory.map((icon, i) => (
+                  <View key={i} style={s.histBadge}><Text style={s.histIcon}>{icon}</Text></View>
+                ))}
               </View>
-              <HPBar hp={pState.hp} maxHp={playerMaxHP} color={pColor} />
-              <Text style={s.hpText}>{pState.hp} / {playerMaxHP} HP</Text>
-              <View style={s.statusRow}>
-                <EnergyDots energy={pState.energy} maxEnergy={playerMods.maxEnergy} color={pColor} />
-                {playerType === 'ignis' && (
-                  <View style={s.embersRow}>
-                    {[0, 1, 2].map(i => (
-                      <Text key={i} style={[s.emberDot, { opacity: i < pState.embers ? 1 : 0.2 }]}>🔥</Text>
-                    ))}
-                  </View>
-                )}
-              </View>
-              <StatusBadges statuses={pState.statuses} />
-            </View>
+            )}
           </View>
+          <Animated.View style={{ transform: [{ translateX: playerShake }] }}>
+            <Image source={playerSprite} style={s.sprite} resizeMode="contain" />
+          </Animated.View>
         </View>
-
       </View>
 
-      {/* ── LOG ── */}
-      <View style={s.logBox}>
-        <Text style={s.logText} numberOfLines={2}>{log}</Text>
-      </View>
-
-      {/* ── ACTIONS ── */}
-      {phase === 'choosing' && (
-        <View style={s.actions}>
-
-          {/* Row 1: Charger */}
-          <TouchableOpacity
-            style={s.chargeBtn}
-            onPress={() => commitAction({ kind: 'charge' })}
-          >
+      {/* ACTIONS — always rendered to prevent layout shift */}
+      <View
+        pointerEvents={phase === 'choosing' ? 'auto' : 'none'}
+        style={[s.actions, phase !== 'choosing' && s.actionsDisabled]}
+      >
+        <View style={s.spellRow}>
+          <TouchableOpacity style={s.chargeBtn} onPress={() => commitAction({ kind: 'charge' })}>
             <Text style={s.chargeBtnIcon}>⚡</Text>
-            <Text style={s.chargeBtnLabel}>Charger</Text>
-            <Text style={s.chargeBtnSub}>{pState.energy} / {playerMods.maxEnergy} ⚡  +1 énergie</Text>
+            <Text style={s.chargeBtnLabel}>+1</Text>
+            <Text style={s.chargeBtnSub}>{pState.energy}/{playerMods.maxEnergy}</Text>
           </TouchableOpacity>
-
-          {/* Rows 2-3: 4 sorts équipés en grille 2×2 */}
-          <View style={s.spellGrid}>
-            {playerLoadout.map((spellId) => (
-              <SpellButton
-                key={spellId}
-                spellId={spellId}
-                state={pState}
-                maxEnergy={playerMods.maxEnergy}
-                color={pColor}
-                onPress={() => commitAction({ kind: 'spell', spellId })}
-              />
-            ))}
-          </View>
-
+          <SpellButton spellId={playerLoadout[0]} state={pState} maxEnergy={playerMods.maxEnergy} color={pColor} onPress={() => commitAction({ kind: 'spell', spellId: playerLoadout[0] })} />
+          <SpellButton spellId={playerLoadout[1]} state={pState} maxEnergy={playerMods.maxEnergy} color={pColor} onPress={() => commitAction({ kind: 'spell', spellId: playerLoadout[1] })} />
         </View>
-      )}
+        <View style={s.spellRow}>
+          <SpellButton spellId={playerLoadout[2]} state={pState} maxEnergy={playerMods.maxEnergy} color={pColor} onPress={() => commitAction({ kind: 'spell', spellId: playerLoadout[2] })} />
+          <SpellButton spellId={playerLoadout[3]} state={pState} maxEnergy={playerMods.maxEnergy} color={pColor} onPress={() => commitAction({ kind: 'spell', spellId: playerLoadout[3] })} />
+        </View>
+      </View>
 
-      {/* ── INTRO OVERLAY ── */}
+      {/* INTRO overlay */}
       {phase === 'intro' && (
         <View style={s.overlay}>
           <Text style={s.introTitle}>COMBAT !</Text>
@@ -1236,7 +1230,7 @@ export default function CombatScreen({ player, opponent, onFinish, debugOverride
         </View>
       )}
 
-      {/* ── FINISH OVERLAY ── */}
+      {/* FINISH overlay */}
       {phase === 'finished' && (
         <View style={s.overlay}>
           <Text style={s.finishEmoji}>{won ? '🏆' : '💀'}</Text>
@@ -1256,126 +1250,120 @@ const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#0D0D1A' },
 
   // header
-  header: { paddingTop: 16, paddingHorizontal: 20, paddingBottom: 8, gap: 6 },
+  header: { paddingTop: 14, paddingHorizontal: 16, paddingBottom: 6, gap: 5 },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  roundText: { color: '#aaa', fontSize: 14, fontWeight: '700' },
-  timerCountdown: { color: '#FFD700', fontSize: 24, fontWeight: '900' },
-  timerBarBg: { height: 5, backgroundColor: '#222', borderRadius: 3, overflow: 'hidden' },
+  roundText: { color: '#888', fontSize: 13, fontWeight: '700' },
+  timerCountdown: { color: '#FFD700', fontSize: 26, fontWeight: '900' },
+  timerDim: { color: '#333' },
+  timerBarBg: { height: 5, backgroundColor: '#1A1A2A', borderRadius: 3, overflow: 'hidden' },
   timerBarFill: { height: 5, backgroundColor: '#FFD700', borderRadius: 3 },
 
-  // arena
-  arena: {
-    flex: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    justifyContent: 'space-between',
-  },
-
+  // fighter cards
   fighterCard: {
     backgroundColor: '#13132A',
-    borderRadius: 18,
-    padding: 14,
+    borderRadius: 16,
+    padding: 12,
+    marginHorizontal: 12,
+    borderWidth: 1.5,
+    borderColor: '#2A2A4A',
   },
-  fighterRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  fighterInfo: { flex: 1, gap: 5 },
+  fighterRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  fighterInfo: { flex: 1, gap: 4 },
 
-  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  fighterName: { color: '#fff', fontSize: 15, fontWeight: '800', flexShrink: 1 },
-  levelPill: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 20 },
-  levelText: { fontSize: 11, fontWeight: '800' },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
+  fighterName: { color: '#fff', fontSize: 14, fontWeight: '800', flexShrink: 1 },
+  levelPill: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 20 },
+  levelText: { fontSize: 10, fontWeight: '800' },
+  statusIcon: { fontSize: 13 },
 
-  hpBarBg: { height: 10, backgroundColor: '#222', borderRadius: 5, overflow: 'hidden' },
+  hpRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  hpBarBg: { flex: 1, height: 10, backgroundColor: '#222', borderRadius: 5, overflow: 'hidden' },
   hpBarFill: { height: 10, borderRadius: 5 },
-  hpText: { color: '#666', fontSize: 11, marginTop: 2 },
+  dmgBadge: { fontSize: 16, fontWeight: '900', minWidth: 40, textAlign: 'right' },
 
-  statusRow: { flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' },
+  subRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  hpText: { color: '#666', fontSize: 11, fontWeight: '600' },
   energyRow: { flexDirection: 'row', gap: 5 },
-  dot: { width: 11, height: 11, borderRadius: 6 },
-  hiddenEnergy: { color: '#555', fontSize: 12, fontWeight: '800' },
+  dot: { width: 10, height: 10, borderRadius: 5 },
+  hiddenEnergy: { color: '#555', fontSize: 11, fontWeight: '700' },
   embersRow: { flexDirection: 'row', gap: 2 },
-  emberDot: { fontSize: 13 },
+  emberDot: { fontSize: 12 },
 
-  statusBadgesRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 2 },
-  statusBadge: { fontSize: 11, color: '#ccc', backgroundColor: '#222', borderRadius: 6, paddingHorizontal: 4, paddingVertical: 1 },
+  historyRow: { flexDirection: 'row', gap: 5, marginTop: 3 },
+  histBadge: { backgroundColor: '#ffffff14', borderRadius: 8, paddingHorizontal: 7, paddingVertical: 3 },
+  histIcon: { fontSize: 15 },
 
-  historyRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 2 },
-  historyLabel: { color: '#444', fontSize: 10, fontWeight: '600' },
-  historyIcon: { fontSize: 14 },
+  sprite: { width: 88, height: 88 },
 
-  sprite: { width: 100, height: 100 },
-
-  resolveStrip: {
-    height: 44,
+  // center strip
+  centerStrip: {
+    height: 52,
+    marginHorizontal: 12,
+    marginVertical: 6,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 20,
-    backgroundColor: '#ffffff06',
-    borderRadius: 12,
+    gap: 12,
+    backgroundColor: '#ffffff08',
+    borderRadius: 14,
+    paddingHorizontal: 14,
   },
-  resolveVs: { color: '#555', fontSize: 16, fontWeight: '900' },
-  actionLabel: { color: '#fff', fontSize: 13, fontWeight: '700' },
-
-  // log
-  logBox: {
-    marginHorizontal: 14,
-    marginBottom: 8,
-    backgroundColor: '#13132A',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    minHeight: 46,
-  },
-  logText: { color: '#ccc', fontSize: 13, lineHeight: 19 },
+  resolveVs: { color: '#555', fontSize: 18, fontWeight: '900' },
+  actionLabel: { color: '#fff', fontSize: 13, fontWeight: '700', flex: 1, textAlign: 'center' },
+  centerLog: { color: '#999', fontSize: 12, textAlign: 'center', flex: 1 },
 
   // actions
-  actions: { paddingHorizontal: 14, paddingBottom: 14, gap: 8 },
+  actions: { paddingHorizontal: 12, paddingBottom: 12, gap: 7 },
+  actionsDisabled: { opacity: 0.3 },
+
+  spellRow: { flexDirection: 'row', gap: 7 },
 
   chargeBtn: {
-    backgroundColor: '#302600',
-    borderRadius: 14,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  chargeBtnIcon: { fontSize: 22 },
-  chargeBtnLabel: { color: '#fff', fontWeight: '800', fontSize: 14, flex: 1 },
-  chargeBtnSub: { color: '#888', fontSize: 11 },
-
-  spellGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  spellBtn: {
-    width: '48%',
-    backgroundColor: '#1A1A3A',
+    flex: 1,
+    backgroundColor: '#251E00',
     borderRadius: 14,
     paddingVertical: 10,
-    paddingHorizontal: 12,
-    gap: 4,
-    borderWidth: 1,
-    borderColor: '#2A2A4A',
+    paddingHorizontal: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: '#FFD70044',
+    gap: 2,
+  },
+  chargeBtnIcon: { fontSize: 20 },
+  chargeBtnLabel: { color: '#FFD700', fontWeight: '900', fontSize: 13 },
+  chargeBtnSub: { color: '#888', fontSize: 10 },
+
+  spellBtn: {
+    flex: 1,
+    backgroundColor: '#0F0F1E',
+    borderRadius: 14,
+    paddingVertical: 9,
+    paddingHorizontal: 8,
+    gap: 2,
+    borderWidth: 1.5,
+    borderColor: '#1E1E3A',
+    alignItems: 'flex-start',
+  },
+  spellBtnUsable: {
+    backgroundColor: '#16163A',
+    borderWidth: 2,
   },
   spellBtnDisabled: {
-    backgroundColor: '#0F0F1A',
-    borderColor: '#1A1A2A',
+    backgroundColor: '#0A0A12',
+    borderColor: '#141422',
   },
-  spellBtnTop: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  spellEmoji: { fontSize: 18 },
-  spellName: { color: '#fff', fontSize: 12, fontWeight: '700', flexShrink: 1 },
-  spellNameDisabled: { color: '#444' },
-  spellCostRow: { flexDirection: 'row', gap: 3, alignItems: 'center' },
-  spellCostDot: { width: 8, height: 8, borderRadius: 4 },
-  spellFreeBadge: { color: '#6BFF8B', fontSize: 10, fontWeight: '700' },
-  spellCooldown: { color: '#FF9933', fontSize: 11, fontWeight: '700' },
+  spellEmoji: { fontSize: 20 },
+  spellName: { color: '#ddd', fontSize: 11, fontWeight: '700' },
+  spellNameDisabled: { color: '#333' },
+  spellCostBadge: { color: '#FFD700', fontSize: 10, fontWeight: '700' },
+  spellCostBadgeLow: { color: '#444' },
+  spellCdBadge: { color: '#FF9933', fontSize: 10, fontWeight: '700' },
 
   // overlays
   overlay: {
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.88)',
+    backgroundColor: 'rgba(0,0,0,0.90)',
     alignItems: 'center', justifyContent: 'center', gap: 12,
   },
   introTitle: { fontSize: 48, fontWeight: '900', color: '#FFD700', letterSpacing: 4 },
