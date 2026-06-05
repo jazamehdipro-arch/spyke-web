@@ -233,8 +233,8 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   sprite: {
-    width: 144,
-    height: 144,
+    width: 160,
+    height: 160,
   },
   moodEmoji: {
     fontSize: 28,
