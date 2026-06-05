@@ -819,186 +819,220 @@ export default function CombatScreen({ player, opponent, onFinish }: Props) {
 
   return (
     <View style={s.root}>
-      {/* header */}
+
+      {/* ── HEADER: round + timer ── */}
       <View style={s.header}>
-        <Text style={s.roundText}>Tour {round}/10</Text>
-        {phase === 'choosing' && (
-          <View style={s.timerBarBg}>
-            <Animated.View style={[s.timerBarFill, { width: timerAnim.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }) }]} />
-          </View>
-        )}
+        <View style={s.headerRow}>
+          <Text style={s.roundText}>Tour {round} / 10</Text>
+          {phase === 'choosing' && (
+            <Text style={s.timerCountdown}>{timeLeft}s</Text>
+          )}
+        </View>
+        <View style={s.timerBarBg}>
+          {phase === 'choosing' && (
+            <Animated.View
+              style={[s.timerBarFill, {
+                width: timerAnim.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }),
+              }]}
+            />
+          )}
+        </View>
       </View>
 
-      {/* arena */}
+      {/* ── ARENA ── */}
       <View style={s.arena}>
-        {/* player side */}
-        <View style={s.side}>
-          <Text style={s.playerName} numberOfLines={1}>{player.name}</Text>
-          <HPBar hp={pState.hp} maxHp={playerMaxHP} color={pColor} />
-          <Text style={s.hpText}>{pState.hp}/{playerMaxHP}</Text>
-          <Animated.View style={{ transform: [{ translateX: playerShake }] }}>
-            <Image source={playerSprite} style={s.sprite} resizeMode="contain" />
-          </Animated.View>
-          {showSmokeEnergy
-            ? <Text style={s.hiddenEnergy}>💨</Text>
-            : <EnergyDots energy={pState.energy} maxEnergy={playerMods.maxEnergy} color={pColor} />
-          }
-          {/* Ignis ember dots */}
-          {player.type === 'ignis' && (
-            <View style={s.emberRow}>
-              {[0, 1, 2].map(i => (
-                <Text key={i} style={[s.emberDot, { opacity: i < pMech.embers ? 1 : 0.2 }]}>🔥</Text>
-              ))}
+
+        {/* Opponent card */}
+        <View style={s.fighterCard}>
+          <View style={s.fighterRow}>
+            <View style={s.fighterInfo}>
+              <View style={s.nameRow}>
+                <Text style={s.fighterName} numberOfLines={1}>{opponent.creatureName}</Text>
+                <View style={[s.levelPill, { backgroundColor: oColor + '33' }]}>
+                  <Text style={[s.levelText, { color: oColor }]}>Lv {opponent.level}</Text>
+                </View>
+              </View>
+              <HPBar hp={oState.hp} maxHp={opponentMaxHP} color={oColor} />
+              <Text style={s.hpText}>{oState.hp} / {opponentMaxHP} HP</Text>
+              <View style={s.statusRow}>
+                {playerMods.hideOpponentEnergy
+                  ? <Text style={s.hiddenEnergy}>⚡ ???</Text>
+                  : <EnergyDots energy={oState.energy} maxEnergy={OPPONENT_MAX_ENERGY} color={oColor} />
+                }
+                {oMech.paralyzed && <Text style={s.paralyzedBadge}>⚡ Paralysé</Text>}
+              </View>
+              {opponentHistory.length > 0 && (
+                <View style={s.historyRow}>
+                  <Text style={s.historyLabel}>Hist :</Text>
+                  {opponentHistory.map((k, i) => (
+                    <Text key={i} style={s.historyIcon}>{actionKindIcon(k)}</Text>
+                  ))}
+                </View>
+              )}
             </View>
-          )}
-          {/* Paralysis indicator */}
-          {pMech.paralyzed && <Text style={s.paralysisText}>⚡ Paralysé!</Text>}
+            <Animated.View style={{ transform: [{ translateX: opponentShake }, { scaleX: -1 }] }}>
+              <Image source={opponentSprite} style={s.sprite} resizeMode="contain" />
+            </Animated.View>
+          </View>
         </View>
 
-        {/* VS */}
-        <View style={s.vsCol}>
-          <Text style={s.vs}>VS</Text>
+        {/* Resolve strip — always rendered to prevent layout jump */}
+        <View style={s.resolveStrip}>
           {phase === 'resolving' && (
-            <View style={s.resolvePanel}>
+            <>
               <ActionLabel action={playerAction} />
               <Text style={s.resolveVs}>⚔️</Text>
               <ActionLabel action={opponentAction} masked={oMech.smokeNextTurn} />
-            </View>
+            </>
           )}
         </View>
 
-        {/* opponent side */}
-        <View style={s.side}>
-          <Text style={s.playerName} numberOfLines={1}>{opponent.creatureName}</Text>
-          <HPBar hp={oState.hp} maxHp={opponentMaxHP} color={oColor} />
-          <Text style={s.hpText}>{oState.hp}/{opponentMaxHP}</Text>
-          <Animated.View style={{ transform: [{ translateX: opponentShake }, { scaleX: -1 }] }}>
-            <Image source={opponentSprite} style={s.sprite} resizeMode="contain" />
-          </Animated.View>
-          {playerMods.hideOpponentEnergy
-            ? <Text style={s.hiddenEnergy}>⚡ ???</Text>
-            : <EnergyDots energy={oState.energy} maxEnergy={OPPONENT_MAX_ENERGY} color={oColor} />
-          }
-          {/* Opponent action history */}
-          {opponentHistory.length > 0 && (
-            <View style={s.historyRow}>
-              <Text style={s.historyLabel}>Hist:</Text>
-              {opponentHistory.map((k, i) => (
-                <Text key={i} style={s.historyIcon}>{actionKindIcon(k)}</Text>
-              ))}
+        {/* Player card */}
+        <View style={s.fighterCard}>
+          <View style={s.fighterRow}>
+            <Animated.View style={{ transform: [{ translateX: playerShake }] }}>
+              <Image source={playerSprite} style={s.sprite} resizeMode="contain" />
+            </Animated.View>
+            <View style={s.fighterInfo}>
+              <View style={s.nameRow}>
+                <Text style={s.fighterName} numberOfLines={1}>{player.name}</Text>
+                <View style={[s.levelPill, { backgroundColor: pColor + '33' }]}>
+                  <Text style={[s.levelText, { color: pColor }]}>Lv {player.stats.level}</Text>
+                </View>
+              </View>
+              <HPBar hp={pState.hp} maxHp={playerMaxHP} color={pColor} />
+              <Text style={s.hpText}>{pState.hp} / {playerMaxHP} HP</Text>
+              <View style={s.statusRow}>
+                {showSmokeEnergy
+                  ? <Text style={s.smokeEnergy}>💨</Text>
+                  : <EnergyDots energy={pState.energy} maxEnergy={playerMods.maxEnergy} color={pColor} />
+                }
+                {player.type === 'ignis' && (
+                  <View style={s.embersRow}>
+                    {[0, 1, 2].map(i => (
+                      <Text key={i} style={[s.emberDot, { opacity: i < pMech.embers ? 1 : 0.2 }]}>🔥</Text>
+                    ))}
+                  </View>
+                )}
+                {pMech.paralyzed && <Text style={s.paralyzedBadge}>⚡ Paralysé</Text>}
+              </View>
             </View>
-          )}
-          {/* Opponent paralysis indicator */}
-          {oMech.paralyzed && <Text style={s.paralysisText}>⚡ Paralysé!</Text>}
+          </View>
         </View>
+
       </View>
 
-      {/* log */}
+      {/* ── LOG ── */}
       <View style={s.logBox}>
-        <Text style={s.logText}>{log}</Text>
-        {phase === 'choosing' && (
-          <Text style={s.timerText}>{timeLeft}s</Text>
-        )}
+        <Text style={s.logText} numberOfLines={2}>{log}</Text>
       </View>
 
-      {/* actions */}
+      {/* ── ACTIONS ── */}
       {phase === 'choosing' && (
         <View style={s.actions}>
-          {/* Row 1: defend + charge */}
-          <View style={s.actionsRow}>
-            <TouchableOpacity style={[s.actionBtn, s.defendBtn]} onPress={() => commitAction({ kind: 'defend', energy: 0 })}>
-              <Text style={s.actionIcon}>🛡️</Text>
-              <Text style={s.actionLabel2}>Défendre</Text>
+
+          {/* Row 1: Défendre + Charger */}
+          <View style={s.actionRow}>
+            <TouchableOpacity
+              style={[s.mainBtn, s.defendBtn]}
+              onPress={() => commitAction({ kind: 'defend', energy: 0 })}
+            >
+              <Text style={s.mainBtnIcon}>🛡️</Text>
+              <Text style={s.mainBtnLabel}>Défendre</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[s.actionBtn, s.chargeBtn]} onPress={() => commitAction({ kind: 'charge', energy: 0 })}>
-              <Text style={s.actionIcon}>⚡</Text>
-              <Text style={s.actionLabel2}>Charger</Text>
-              <Text style={s.actionSub}>{pState.energy}/{playerMods.maxEnergy} ⚡</Text>
+            <TouchableOpacity
+              style={[s.mainBtn, s.chargeBtn]}
+              onPress={() => commitAction({ kind: 'charge', energy: 0 })}
+            >
+              <Text style={s.mainBtnIcon}>⚡</Text>
+              <Text style={s.mainBtnLabel}>Charger</Text>
+              <Text style={s.mainBtnSub}>{pState.energy} / {playerMods.maxEnergy} ⚡</Text>
             </TouchableOpacity>
           </View>
 
-          {/* Row special: nemo */}
+          {/* Nemo specials */}
           {player.type === 'nemo' && (
-            <View style={s.actionsRow}>
+            <View style={s.actionRow}>
               <TouchableOpacity
-                style={[s.specialBtn, { backgroundColor: '#003366' }]}
+                style={[s.mainBtn, { backgroundColor: '#001E44' }]}
                 onPress={() => commitAction({ kind: 'drain', energy: 0 })}
               >
-                <Text style={s.actionIcon}>💧</Text>
-                <Text style={s.actionLabel2}>Drain</Text>
-                <Text style={s.actionSub}>Gratuit</Text>
+                <Text style={s.mainBtnIcon}>💧</Text>
+                <Text style={s.mainBtnLabel}>Drain</Text>
+                <Text style={s.mainBtnSub}>Gratuit</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[s.specialBtn, { backgroundColor: pState.energy >= 2 ? '#004488' : '#1A1A2A' }]}
+                style={[s.mainBtn, { backgroundColor: pState.energy >= 2 ? '#002E66' : '#111' }]}
                 onPress={() => pState.energy >= 2 && commitAction({ kind: 'convert', energy: 2 })}
                 activeOpacity={pState.energy >= 2 ? 0.7 : 1}
               >
-                <Text style={s.actionIcon}>💊</Text>
-                <Text style={[s.actionLabel2, pState.energy < 2 && { color: '#444' }]}>Convertir</Text>
-                <Text style={[s.actionSub, pState.energy < 2 && { color: '#333' }]}>×2⚡ → +8 PV</Text>
+                <Text style={s.mainBtnIcon}>💊</Text>
+                <Text style={[s.mainBtnLabel, pState.energy < 2 && { color: '#444' }]}>Convertir</Text>
+                <Text style={[s.mainBtnSub, pState.energy < 2 && { color: '#333' }]}>×2⚡ → +8 PV</Text>
               </TouchableOpacity>
             </View>
           )}
 
-          {/* Row special: sylva */}
+          {/* Sylva special */}
           {player.type === 'sylva' && (
-            <View style={s.actionsRow}>
+            <View style={s.actionRow}>
               <TouchableOpacity
-                style={[s.specialBtn, { backgroundColor: '#1A3300', flex: 0.5 }]}
+                style={[s.mainBtn, { backgroundColor: '#001A00', flex: 0.5 }]}
                 onPress={() => commitAction({ kind: 'smoke', energy: 0 })}
               >
-                <Text style={s.actionIcon}>💨</Text>
-                <Text style={s.actionLabel2}>Fumée</Text>
-                <Text style={s.actionSub}>Gratuit</Text>
+                <Text style={s.mainBtnIcon}>💨</Text>
+                <Text style={s.mainBtnLabel}>Fumée</Text>
+                <Text style={s.mainBtnSub}>Gratuit</Text>
               </TouchableOpacity>
+              <View style={{ flex: 0.5 }} />
             </View>
           )}
 
-          {/* Row 2: attack buttons (with chain highlight for zapp) */}
-          <View style={s.actionsRow}>
+          {/* Attack row */}
+          <View style={s.attackRow}>
             {player.type === 'zapp' && (
               <TouchableOpacity
-                style={[s.chainBtn, pState.energy < 1 && s.attackBtnDisabled]}
+                style={[s.attackBtn, s.chainBtn, pState.energy < 1 && s.btnDisabled]}
                 onPress={() => pState.energy >= 1 && commitAction({ kind: 'chain', energy: 1 })}
                 activeOpacity={pState.energy >= 1 ? 0.7 : 1}
               >
-                <Text style={[s.attackBtnText, { color: '#FFE066' }, pState.energy < 1 && s.attackBtnTextDisabled]}>⚡⚡ Chaîne</Text>
-                <Text style={[s.attackBtnSub, pState.energy < 1 && s.attackBtnTextDisabled]}>6 dmg / ×1⚡</Text>
+                <Text style={[s.attackIcon, { color: '#FFE066' }, pState.energy < 1 && { color: '#333' }]}>⚡⚡</Text>
+                <Text style={[s.attackLabel, pState.energy < 1 && { color: '#333' }]}>Chaîne</Text>
+                <Text style={[s.attackSub, pState.energy < 1 && { color: '#222' }]}>6 dmg</Text>
               </TouchableOpacity>
             )}
             {[1, 2, 3, 4].map((e) => {
-              const canAttack = pState.energy >= e && e <= playerMods.maxEnergy
-              const isDisabledByMax = e > playerMods.maxEnergy
+              const can = pState.energy >= e && e <= playerMods.maxEnergy
               return (
                 <TouchableOpacity
                   key={e}
-                  style={[s.attackBtn, (!canAttack || isDisabledByMax) && s.attackBtnDisabled]}
-                  onPress={() => canAttack && commitAction({ kind: 'attack', energy: e })}
-                  activeOpacity={canAttack ? 0.7 : 1}
+                  style={[s.attackBtn, !can && s.btnDisabled]}
+                  onPress={() => can && commitAction({ kind: 'attack', energy: e })}
+                  activeOpacity={can ? 0.7 : 1}
                 >
-                  <Text style={[s.attackBtnText, (!canAttack || isDisabledByMax) && s.attackBtnTextDisabled]}>
-                    ⚔️×{e}
-                  </Text>
-                  <Text style={[s.attackBtnSub, (!canAttack || isDisabledByMax) && s.attackBtnTextDisabled]}>
-                    {e * 4} dmg
-                  </Text>
+                  <Text style={[s.attackIcon, !can && { color: '#333' }]}>⚔️</Text>
+                  <Text style={[s.attackLabel, !can && { color: '#333' }]}>×{e}</Text>
+                  <Text style={[s.attackSub, !can && { color: '#222' }]}>{e * 4} dmg</Text>
                 </TouchableOpacity>
               )
             })}
           </View>
+
         </View>
       )}
 
+      {/* ── INTRO OVERLAY ── */}
       {phase === 'intro' && (
-        <View style={s.introOverlay}>
+        <View style={s.overlay}>
           <Text style={s.introTitle}>COMBAT !</Text>
           <Text style={s.introSub}>{player.name} vs {opponent.creatureName}</Text>
           <DebuffPanel mods={playerMods} playerType={player.type} opponentType={opponent.creatureType} />
         </View>
       )}
 
+      {/* ── FINISH OVERLAY ── */}
       {phase === 'finished' && (
-        <View style={s.finishOverlay}>
+        <View style={s.overlay}>
           <Text style={s.finishEmoji}>{won ? '🏆' : '💀'}</Text>
           <Text style={s.finishTitle}>{won ? 'VICTOIRE !' : 'DÉFAITE...'}</Text>
           <Text style={s.finishXP}>+{xpGained} XP</Text>
@@ -1007,128 +1041,135 @@ export default function CombatScreen({ player, opponent, onFinish }: Props) {
           </TouchableOpacity>
         </View>
       )}
+
     </View>
   )
 }
 
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#0D0D1A' },
-  header: { paddingTop: 16, paddingHorizontal: 20, gap: 8 },
-  roundText: { color: '#888', fontSize: 13, fontWeight: '700', textAlign: 'center' },
-  timerBarBg: { height: 6, backgroundColor: '#222', borderRadius: 3, overflow: 'hidden' },
-  timerBarFill: { height: 6, backgroundColor: '#FFD700', borderRadius: 3 },
 
-  arena: { flexDirection: 'row', paddingHorizontal: 12, paddingTop: 16, alignItems: 'flex-start', flex: 1 },
-  side: { flex: 1, alignItems: 'center', gap: 4 },
-  vsCol: { width: 44, alignItems: 'center', paddingTop: 60, gap: 8 },
-  vs: { color: '#444', fontSize: 14, fontWeight: '900' },
+  // header
+  header: { paddingTop: 16, paddingHorizontal: 20, paddingBottom: 8, gap: 6 },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  roundText: { color: '#aaa', fontSize: 14, fontWeight: '700' },
+  timerCountdown: { color: '#FFD700', fontSize: 24, fontWeight: '900' },
+  timerBarBg: { height: 5, backgroundColor: '#222', borderRadius: 3, overflow: 'hidden' },
+  timerBarFill: { height: 5, backgroundColor: '#FFD700', borderRadius: 3 },
 
-  playerName: { color: '#fff', fontSize: 12, fontWeight: '700', maxWidth: 110 },
-  hpBarBg: { width: '85%', height: 8, backgroundColor: '#222', borderRadius: 4, overflow: 'hidden' },
-  hpBarFill: { height: 8, borderRadius: 4 },
-  hpText: { color: '#666', fontSize: 11 },
-  sprite: { width: 100, height: 100, marginTop: 4 },
-  energyRow: { flexDirection: 'row', gap: 5, marginTop: 4 },
-  dot: { width: 10, height: 10, borderRadius: 5 },
-  hiddenEnergy: { color: '#555', fontSize: 13, fontWeight: '800', marginTop: 4 },
+  // arena — vertical layout, space-between keeps cards at top/bottom
+  arena: {
+    flex: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    justifyContent: 'space-between',
+  },
 
-  emberRow: { flexDirection: 'row', gap: 2, marginTop: 2 },
-  emberDot: { fontSize: 12 },
-  paralysisText: { color: '#FFE066', fontSize: 11, fontWeight: '800', marginTop: 2 },
+  fighterCard: {
+    backgroundColor: '#13132A',
+    borderRadius: 18,
+    padding: 14,
+  },
+  fighterRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  fighterInfo: { flex: 1, gap: 5 },
 
-  historyRow: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 4 },
-  historyLabel: { color: '#555', fontSize: 10 },
-  historyIcon: { fontSize: 12 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  fighterName: { color: '#fff', fontSize: 15, fontWeight: '800', flexShrink: 1 },
+  levelPill: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 20 },
+  levelText: { fontSize: 11, fontWeight: '800' },
 
-  resolvePanel: { alignItems: 'center', gap: 2 },
-  resolveVs: { fontSize: 12 },
-  actionLabel: { color: '#fff', fontSize: 10, textAlign: 'center' },
+  hpBarBg: { height: 10, backgroundColor: '#222', borderRadius: 5, overflow: 'hidden' },
+  hpBarFill: { height: 10, borderRadius: 5 },
+  hpText: { color: '#666', fontSize: 11, marginTop: 2 },
 
+  statusRow: { flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' },
+  energyRow: { flexDirection: 'row', gap: 5 },
+  dot: { width: 11, height: 11, borderRadius: 6 },
+  hiddenEnergy: { color: '#555', fontSize: 12, fontWeight: '800' },
+  smokeEnergy: { fontSize: 16 },
+  embersRow: { flexDirection: 'row', gap: 2 },
+  emberDot: { fontSize: 13 },
+  paralyzedBadge: { color: '#FFE066', fontSize: 11, fontWeight: '800' },
+
+  historyRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 2 },
+  historyLabel: { color: '#444', fontSize: 10, fontWeight: '600' },
+  historyIcon: { fontSize: 14 },
+
+  sprite: { width: 100, height: 100 },
+
+  // resolve strip — fixed height so layout doesn't jump between phases
+  resolveStrip: {
+    height: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 20,
+    backgroundColor: '#ffffff06',
+    borderRadius: 12,
+  },
+  resolveVs: { color: '#555', fontSize: 16, fontWeight: '900' },
+  actionLabel: { color: '#fff', fontSize: 13, fontWeight: '700' },
+
+  // log
   logBox: {
-    marginHorizontal: 16,
-    backgroundColor: '#1A1A2E',
+    marginHorizontal: 14,
+    marginBottom: 8,
+    backgroundColor: '#13132A',
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 10,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    minHeight: 42,
+    minHeight: 46,
   },
-  logText: { color: '#ccc', fontSize: 13, flex: 1 },
-  timerText: { color: '#FFD700', fontSize: 20, fontWeight: '900', marginLeft: 8 },
+  logText: { color: '#ccc', fontSize: 13, lineHeight: 19 },
 
-  actions: { padding: 16, gap: 10 },
-  actionsRow: { flexDirection: 'row', gap: 10 },
-  actionBtn: {
-    flex: 1,
-    borderRadius: 14,
-    paddingVertical: 14,
-    alignItems: 'center',
-    gap: 2,
+  // actions
+  actions: { paddingHorizontal: 14, paddingBottom: 14, gap: 8 },
+  actionRow: { flexDirection: 'row', gap: 8 },
+  mainBtn: {
+    flex: 1, borderRadius: 14,
+    paddingVertical: 13, alignItems: 'center', gap: 2,
   },
-  defendBtn: { backgroundColor: '#1E3A5F' },
-  chargeBtn: { backgroundColor: '#3A2E00' },
-  actionIcon: { fontSize: 24 },
-  actionLabel2: { color: '#fff', fontWeight: '700', fontSize: 13 },
-  actionSub: { color: '#888', fontSize: 11 },
-  specialBtn: {
-    flex: 1,
-    borderRadius: 14,
-    paddingVertical: 12,
-    alignItems: 'center',
-    gap: 2,
+  defendBtn: { backgroundColor: '#162D56' },
+  chargeBtn: { backgroundColor: '#302600' },
+  mainBtnIcon: { fontSize: 22 },
+  mainBtnLabel: { color: '#fff', fontWeight: '800', fontSize: 13 },
+  mainBtnSub: { color: '#888', fontSize: 11 },
+
+  attackRow: { flexDirection: 'row', gap: 6 },
+  attackBtn: {
+    flex: 1, backgroundColor: '#280600',
+    borderRadius: 11, paddingVertical: 9, alignItems: 'center', gap: 1,
   },
   chainBtn: {
-    flex: 1,
-    backgroundColor: '#2A1A00',
-    borderRadius: 12,
-    paddingVertical: 12,
-    alignItems: 'center',
-    gap: 2,
-    borderWidth: 1,
-    borderColor: '#FFE06644',
+    backgroundColor: '#221500',
+    borderWidth: 1, borderColor: '#FFE06655',
   },
-  attackBtn: {
-    flex: 1,
-    backgroundColor: '#3A0A00',
-    borderRadius: 12,
-    paddingVertical: 12,
-    alignItems: 'center',
-    gap: 2,
-  },
-  attackBtnDisabled: { backgroundColor: '#1A1A1A' },
-  attackBtnText: { color: '#FF6B35', fontWeight: '800', fontSize: 13 },
-  attackBtnSub: { color: '#FF6B3588', fontSize: 10 },
-  attackBtnTextDisabled: { color: '#333' },
+  btnDisabled: { backgroundColor: '#0F0F0F' },
+  attackIcon: { color: '#FF6B35', fontSize: 16 },
+  attackLabel: { color: '#FF6B35', fontWeight: '800', fontSize: 12 },
+  attackSub: { color: '#FF6B3555', fontSize: 10 },
 
-  introOverlay: {
+  // overlays
+  overlay: {
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.85)',
-    alignItems: 'center', justifyContent: 'center',
-    gap: 12,
-  },
-  introTitle: { fontSize: 48, fontWeight: '900', color: '#FFD700', letterSpacing: 4 },
-  introSub: { fontSize: 16, color: '#aaa', marginTop: 8 },
-
-  debuffPanel: {
-    backgroundColor: 'rgba(255,60,60,0.12)',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    marginTop: 12,
-    gap: 4,
-    minWidth: 220,
-    alignItems: 'flex-start',
-  },
-  debuffTitle: { color: '#FF6B6B', fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 },
-  debuffItem: { color: '#FFB3B3', fontSize: 12 },
-
-  finishOverlay: {
-    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.92)',
+    backgroundColor: 'rgba(0,0,0,0.88)',
     alignItems: 'center', justifyContent: 'center', gap: 12,
   },
+  introTitle: { fontSize: 48, fontWeight: '900', color: '#FFD700', letterSpacing: 4 },
+  introSub: { fontSize: 16, color: '#aaa' },
+
+  debuffPanel: {
+    backgroundColor: 'rgba(255,60,60,0.1)',
+    borderRadius: 12,
+    paddingHorizontal: 16, paddingVertical: 10,
+    marginTop: 8, gap: 4, minWidth: 220, alignItems: 'flex-start',
+  },
+  debuffTitle: {
+    color: '#FF6B6B', fontSize: 11, fontWeight: '800',
+    textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4,
+  },
+  debuffItem: { color: '#FFB3B3', fontSize: 12 },
+
   finishEmoji: { fontSize: 64 },
   finishTitle: { fontSize: 40, fontWeight: '900', color: '#fff', letterSpacing: 2 },
   finishXP: { fontSize: 22, color: '#FFD700', fontWeight: '800' },
