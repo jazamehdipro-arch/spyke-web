@@ -58,7 +58,7 @@ const CREATURE_PROFILES: Record<CreatureType, {
 }> = {
   ignis: { hpMult: 0.85, baseDamageMult: 1.2,  startEnergy: 0, dodgeBase: 0.0  },
   nemo:  { hpMult: 1.15, baseDamageMult: 0.75, startEnergy: 1, dodgeBase: 0.0  },
-  sylva: { hpMult: 1.0,  baseDamageMult: 0.9,  startEnergy: 0, dodgeBase: 0.25 },
+  sylva: { hpMult: 1.0,  baseDamageMult: 0.9,  startEnergy: 0, dodgeBase: 0.16 },
   zapp:  { hpMult: 0.9,  baseDamageMult: 1.0,  startEnergy: 0, dodgeBase: 0.0  },
 }
 
@@ -108,7 +108,7 @@ function computeModifiers(creature: Creature, opponentType: CreatureType): Comba
   const mood = creature.mood
   const profile = CREATURE_PROFILES[creature.type]
 
-  let maxEnergy = 4
+  let maxEnergy = 5
   if (energy < 30) maxEnergy = 2
   else if (energy < 60) maxEnergy = 3
 
@@ -154,9 +154,9 @@ function computeModifiers(creature: Creature, opponentType: CreatureType): Comba
   return { maxEnergy, damageMult, timerReduction, timerBonus, activeFoodBuff, hideOpponentEnergy, dodgeChance, timideChance, sickDot, hpMult, counterBonus }
 }
 
-const OPPONENT_MAX_ENERGY = 4
+const OPPONENT_MAX_ENERGY = 5
 const TIMER_SECONDS = 10
-const BASE_HP = 30
+const BASE_HP = 68
 
 function calcHP(level: number, hpMult = 1.0, creatureType?: CreatureType) {
   const typeMult = creatureType ? CREATURE_PROFILES[creatureType].hpMult : 1.0
@@ -252,8 +252,8 @@ function resolveSpell(
     // ── ignis ──
     case 'frappe_ardente': {
       const provoked = hasStatus(target, 'provoked')
-      const baseDmg = provoked ? Math.round(6 * 1.3) : 6
-      const newEmbers = Math.min(3, caster.embers + 2)
+      const baseDmg = provoked ? Math.round(9 * 1.3) : 9
+      const newEmbers = Math.min(3, caster.embers + 1)
       return {
         ...empty,
         targetHpDelta: -baseDmg,
@@ -289,9 +289,9 @@ function resolveSpell(
     case 'immolation': {
       return {
         ...empty,
-        casterHpDelta: -10,
-        targetHpDelta: -20,
-        log: '🩸 Immolation ! -10 PV sur soi → -20 HP ennemi',
+        casterHpDelta: -8,
+        targetHpDelta: -15,
+        log: '🩸 Immolation ! -8 PV sur soi → -15 HP ennemi',
       }
     }
     case 'brasier': {
@@ -314,21 +314,21 @@ function resolveSpell(
       }
     }
     case 'siphon': {
-      const steal = passiveLevel >= 2 ? 2 : 1
       const healSelf = passiveLevel >= 3 ? 4 : 0
       return {
         ...empty,
-        casterEnergyDelta: steal,
+        casterEnergyDelta: 2,
         casterHpDelta: healSelf,
-        targetEnergyDelta: -steal,
-        log: `💧 Siphon ! Vol ${steal}⚡ ennemi${healSelf ? ` +${healSelf} PV` : ''}`,
+        targetEnergyDelta: -2,
+        targetHpDelta: -5,
+        log: `💧 Siphon ! -5 HP + vol 2⚡ ennemi${healSelf ? ` +${healSelf} PV` : ''}`,
       }
     }
     case 'regeneration': {
       return {
         ...empty,
-        casterHpDelta: 10,
-        log: '💚 Régénération ! +10 PV',
+        casterHpDelta: 16,
+        log: '💚 Régénération ! +16 PV',
       }
     }
     case 'barriere': {
@@ -351,10 +351,10 @@ function resolveSpell(
     case 'raz_de_maree': {
       return {
         ...empty,
-        targetHpDelta: -15,
+        targetHpDelta: -19,
         targetEnergyDelta: -2,
         casterEnergyDelta: 2,
-        log: '🌊💥 Raz-de-marée ! -15 HP + vol 2⚡',
+        log: '🌊💥 Raz-de-marée ! -19 HP + vol 2⚡',
       }
     }
 
@@ -364,9 +364,9 @@ function resolveSpell(
       const fogStatus: StatusEffect[] = fogChance ? [{ type: 'fog', turnsLeft: 2 }] : []
       return {
         ...empty,
-        targetHpDelta: -5,
+        targetHpDelta: -7,
         targetStatusesToAdd: fogStatus,
-        log: `👊 Coup voilé ! -5 HP${fogChance ? ' + brouillage ennemi !' : ''}`,
+        log: `👊 Coup voilé ! -7 HP${fogChance ? ' + brouillage ennemi !' : ''}`,
       }
     }
     case 'ecran_fumee': {
@@ -418,17 +418,18 @@ function resolveSpell(
     case 'decharge': {
       return {
         ...empty,
-        targetHpDelta: -6,
-        log: '⚡ Décharge ! -6 HP (priorité)',
+        targetHpDelta: -8,
+        log: '⚡ Décharge ! -8 HP (priorité)',
       }
     }
     case 'arc_paralysant': {
-      const paralyzed = Math.random() < 0.4
+      const paralyzed = Math.random() < 0.3
       const paralysisStatus: StatusEffect[] = paralyzed ? [{ type: 'paralyzed', turnsLeft: 2 }] : []
       return {
         ...empty,
+        targetHpDelta: -5,
         targetStatusesToAdd: paralysisStatus,
-        log: `🎯 Arc paralysant !${paralyzed ? ' Ennemi paralysé prochain tour !' : ' Rate la paralysie.'}`,
+        log: `🎯 Arc paralysant ! -5 HP${paralyzed ? ' · Ennemi paralysé prochain tour !' : ' · Rate la paralysie.'}`,
       }
     }
     case 'esquive_vive': {
@@ -450,9 +451,9 @@ function resolveSpell(
     case 'surcharge': {
       return {
         ...empty,
-        targetHpDelta: -12,
+        targetHpDelta: -14,
         casterStatusesToAdd: [{ type: 'exhausted', turnsLeft: 2, value: 2 }],
-        log: '🔋 Surcharge ! -12 HP + épuisement prochain tour',
+        log: '🔋 Surcharge ! -14 HP + épuisement prochain tour',
       }
     }
     case 'tempete': {
@@ -624,7 +625,7 @@ function DebuffPanel({ mods, playerType, opponentType }: { mods: CombatModifiers
   if (mods.sickDot > 0) {
     debuffs.push({ emoji: '🤒', text: 'Malade : -25% PV + 3 dégâts/3 tours' })
   }
-  if (mods.maxEnergy < 4) {
+  if (mods.maxEnergy < 5) {
     debuffs.push({ emoji: '⚡', text: `Fatigué : énergie max ${mods.maxEnergy}` })
   }
 
