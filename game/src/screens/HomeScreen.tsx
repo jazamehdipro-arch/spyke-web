@@ -11,7 +11,7 @@ import {
   View,
 } from 'react-native'
 import ActionButtons from '../components/ActionButtons'
-import CreatureDisplay from '../components/CreatureDisplay'
+import CreatureDisplay, { CreaturePose } from '../components/CreatureDisplay'
 import EventModal from '../components/EventModal'
 import MiniGame from '../components/MiniGame'
 import ParticleEffect from '../components/ParticleEffect'
@@ -107,6 +107,8 @@ export default function HomeScreen({ creature, inventory, events, quests, journa
   const [particleTrigger, setParticleTrigger] = useState(0)
   const [particleEmojis, setParticleEmojis] = useState(['❤️', '⭐', '✨'])
   const [showMiniGame, setShowMiniGame] = useState(false)
+  const [currentPose, setCurrentPose]   = useState<CreaturePose>(null)
+  const poseTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [pendingEvent, setPendingEvent] = useState<GameEvent | null>(null)
   const [speechMsg, setSpeechMsg] = useState('')
   const [speechVisible, setSpeechVisible] = useState(false)
@@ -173,8 +175,15 @@ export default function HomeScreen({ creature, inventory, events, quests, journa
     setShowFoodPicker(true)
   }
 
+  const triggerPose = (p: CreaturePose, ms = 2800) => {
+    if (poseTimer.current) clearTimeout(poseTimer.current)
+    setCurrentPose(p)
+    poseTimer.current = setTimeout(() => setCurrentPose(null), ms)
+  }
+
   const handleFeedWith = async (item: InventoryItem) => {
     setShowFoodPicker(false)
+    triggerPose('eat')
     let isSick = creature.stats.isSick
     if (item.effect.combatBuff?.sickChance && Math.random() < item.effect.combatBuff.sickChance) {
       isSick = true
@@ -253,10 +262,12 @@ export default function HomeScreen({ creature, inventory, events, quests, journa
     setPendingActivity(actKey)
     setShowActivityPicker(false)
     setShowMiniGame(true)
+    triggerPose('train', 999999)  // hold train pose during mini-game
   }
 
   const handleMiniGameEnd = async (score: number) => {
     setShowMiniGame(false)
+    setCurrentPose(null)  // clear train pose
     const act = pendingActivity ? PLAY_ACTIVITIES[pendingActivity] : null
     const xpGained = score * 3 + 10
     const happinessGain = Math.min(40, act ? act.happinessGain + score : score * 2 + 10)
@@ -300,6 +311,7 @@ export default function HomeScreen({ creature, inventory, events, quests, journa
 
   const handleSleep = async () => {
     if (creature.stats.energy >= 95) { showSpeech('Je suis en pleine forme ! ⚡'); return }
+    triggerPose('sleep', 3500)
     let updated: Creature = {
       ...creature,
       totalSlept: creature.totalSlept + 1,
@@ -426,7 +438,7 @@ export default function HomeScreen({ creature, inventory, events, quests, journa
         </View>
 
         <SpeechBubble message={speechMsg} visible={speechVisible} />
-        <CreatureDisplay creature={creature} onEvolve={handleEvolve} />
+        <CreatureDisplay creature={creature} pose={currentPose} onEvolve={handleEvolve} />
         <StatsPanel stats={creature.stats} />
         {creature.activeCombatBuff && creature.activeCombatBuff.expiresAt > new Date().toISOString() && (
           <View style={styles.buffBadge}>

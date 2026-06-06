@@ -15,7 +15,10 @@ const SPRITES: Record<string, ImageSourcePropType> = {
   ignis_e3_0: require('../../assets/sprites/ignis_e3_f0.png'),
   ignis_e3_1: require('../../assets/sprites/ignis_e3_f1.png'),
   ignis_e3_2: require('../../assets/sprites/ignis_e3_f2.png'),
-  ignis_sick: require('../../assets/sprites/ignis_sick.png'),
+  ignis_sick:  require('../../assets/sprites/ignis_sick.png'),
+  ignis_eat:   require('../../assets/sprites/ignis_eat.png'),
+  ignis_train: require('../../assets/sprites/ignis_train.png'),
+  ignis_sleep: require('../../assets/sprites/ignis_sleep.png'),
   nemo_0:     require('../../assets/sprites/nemo_f0.png'),
   nemo_1:     require('../../assets/sprites/nemo_f1.png'),
   nemo_2:     require('../../assets/sprites/nemo_f2.png'),
@@ -25,7 +28,10 @@ const SPRITES: Record<string, ImageSourcePropType> = {
   nemo_e3_0:  require('../../assets/sprites/nemo_e3_f0.png'),
   nemo_e3_1:  require('../../assets/sprites/nemo_e3_f1.png'),
   nemo_e3_2:  require('../../assets/sprites/nemo_e3_f2.png'),
-  nemo_sick:  require('../../assets/sprites/nemo_sick.png'),
+  nemo_sick:   require('../../assets/sprites/nemo_sick.png'),
+  nemo_eat:    require('../../assets/sprites/nemo_eat.png'),
+  nemo_train:  require('../../assets/sprites/nemo_train.png'),
+  nemo_sleep:  require('../../assets/sprites/nemo_sleep.png'),
   sylva_0:    require('../../assets/sprites/sylva_f0.png'),
   sylva_1:    require('../../assets/sprites/sylva_f1.png'),
   sylva_2:    require('../../assets/sprites/sylva_f2.png'),
@@ -35,7 +41,10 @@ const SPRITES: Record<string, ImageSourcePropType> = {
   sylva_e3_0: require('../../assets/sprites/sylva_e3_f0.png'),
   sylva_e3_1: require('../../assets/sprites/sylva_e3_f1.png'),
   sylva_e3_2: require('../../assets/sprites/sylva_e3_f2.png'),
-  sylva_sick: require('../../assets/sprites/sylva_sick.png'),
+  sylva_sick:  require('../../assets/sprites/sylva_sick.png'),
+  sylva_eat:   require('../../assets/sprites/sylva_eat.png'),
+  sylva_train: require('../../assets/sprites/sylva_train.png'),
+  sylva_sleep: require('../../assets/sprites/sylva_sleep.png'),
   zapp_0:     require('../../assets/sprites/zapp_f0.png'),
   zapp_1:     require('../../assets/sprites/zapp_f1.png'),
   zapp_2:     require('../../assets/sprites/zapp_f2.png'),
@@ -45,7 +54,10 @@ const SPRITES: Record<string, ImageSourcePropType> = {
   zapp_e3_0:  require('../../assets/sprites/zapp_e3_f0.png'),
   zapp_e3_1:  require('../../assets/sprites/zapp_e3_f1.png'),
   zapp_e3_2:  require('../../assets/sprites/zapp_e3_f2.png'),
-  zapp_sick:  require('../../assets/sprites/zapp_sick.png'),
+  zapp_sick:   require('../../assets/sprites/zapp_sick.png'),
+  zapp_eat:    require('../../assets/sprites/zapp_eat.png'),
+  zapp_train:  require('../../assets/sprites/zapp_train.png'),
+  zapp_sleep:  require('../../assets/sprites/zapp_sleep.png'),
 }
 
 function getStageKey(level: number): string {
@@ -128,12 +140,15 @@ const FRAME_MS: Record<CreatureMood, number> = {
   sad:     1200,
 }
 
+export type CreaturePose = 'eat' | 'train' | 'sleep' | null
+
 interface Props {
   creature: Creature
+  pose?: CreaturePose
   onEvolve?: () => void
 }
 
-export default function CreatureDisplay({ creature, onEvolve }: Props) {
+export default function CreatureDisplay({ creature, pose, onEvolve }: Props) {
   const bounce = useRef(new Animated.Value(0)).current
   const scale  = useRef(new Animated.Value(1)).current
   const [frameIdx, setFrameIdx] = useState(0)
@@ -162,9 +177,10 @@ export default function CreatureDisplay({ creature, onEvolve }: Props) {
     return () => clearInterval(id)
   }, [mood])
 
-  // vertical bounce — barely moves when sick
+  // vertical bounce — still during poses, tiny when sick
   useEffect(() => {
     const isSick = creature.stats.isSick
+    if (pose) { bounce.setValue(0); return }
     const lift = isSick ? 1 : (mood === 'excited' ? 14 : mood === 'happy' ? 8 : 4)
     const ms   = isSick ? 3000 : FRAME_MS[mood] * seq.length
     const anim = Animated.loop(
@@ -175,7 +191,7 @@ export default function CreatureDisplay({ creature, onEvolve }: Props) {
     )
     anim.start()
     return () => anim.stop()
-  }, [mood, creature.stats.isSick])
+  }, [mood, creature.stats.isSick, pose])
 
   const handlePress = () => {
     if (reacting) return
@@ -189,9 +205,10 @@ export default function CreatureDisplay({ creature, onEvolve }: Props) {
   }
 
   const currentFrame = reacting ? 2 : seq[frameIdx]
-  const isSick = creature.stats.isSick
-  const spriteKey = isSick
-    ? `${creature.type}_sick`
+  const isSick    = creature.stats.isSick
+  const activePose = isSick ? 'sick' : pose ?? null
+  const spriteKey  = activePose
+    ? `${creature.type}_${activePose}`
     : `${creature.type}${stage}_${currentFrame}`
   const sprite = SPRITES[spriteKey] ?? SPRITES[`${creature.type}${stage}_0`]
 
@@ -216,7 +233,7 @@ export default function CreatureDisplay({ creature, onEvolve }: Props) {
               <Image source={sprite} style={styles.sprite} resizeMode="contain" />
             </Animated.View>
           </TouchableWithoutFeedback>
-          {isSick && (
+          {isSick && !pose && (
             <View style={styles.sickOverlay} pointerEvents="none">
               <Text style={styles.sickEmoji}>🤒</Text>
             </View>
