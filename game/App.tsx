@@ -318,16 +318,20 @@ export default function App() {
         {activeTab === 'crossings' && (
           <CrossingsScreen
             player={state.creature}
-            onCombatEnd={async (won, xpGained) => {
+            onCombatEnd={async (won, xpGained, coinsGained) => {
               let updated = addXP(state.creature, xpGained)
               updated = { ...updated, mood: getMood(updated.stats) }
               await saveCreature(updated)
               let newInventory = state.inventory
-              const coinsEarned = won
-                ? 15 + Math.floor(Math.random() * 11)   // 15-25 on win
-                : 3 + Math.floor(Math.random() * 4)     // 3-6 consolation
+              // adventure mode passes explicit coinsGained; regular combat uses random
+              const coinsEarned = coinsGained !== undefined
+                ? coinsGained
+                : won
+                  ? 15 + Math.floor(Math.random() * 11)
+                  : 3 + Math.floor(Math.random() * 4)
               const newCoins = state.coins + coinsEarned
-              if (won) {
+              if (won && coinsGained === undefined) {
+                // item drops only for non-adventure combat
                 newInventory = addItemToInventory(state.inventory, { ...ITEM_CATALOG.croquettes, quantity: 2 })
                 if (Math.random() < 0.25) {
                   newInventory = addItemToInventory(newInventory, { ...ITEM_CATALOG.steak, quantity: 1 })

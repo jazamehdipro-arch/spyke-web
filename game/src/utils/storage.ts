@@ -24,6 +24,7 @@ const KEYS = {
   JOURNAL:      'croisio:journal',
   DAILY_QUESTS: 'croisio:dailyquests',
   STREAK:       'croisio:streak',
+  ADVENTURE:    'croisio:adventure',
 }
 
 async function get<T>(key: string): Promise<T | null> {
@@ -77,8 +78,10 @@ export function addJournalEntry(
   return [entry, ...entries].slice(0, 100)
 }
 
-export const saveDailyQuests = (q: DailyQuest[]) => set(KEYS.DAILY_QUESTS, q)
-export const loadDailyQuests = () => get<DailyQuest[]>(KEYS.DAILY_QUESTS)
+export const saveDailyQuests    = (q: DailyQuest[]) => set(KEYS.DAILY_QUESTS, q)
+export const loadDailyQuests    = () => get<DailyQuest[]>(KEYS.DAILY_QUESTS)
+export const saveAdventureProgress = (p: Record<string, number[]>) => set(KEYS.ADVENTURE, p)
+export const loadAdventureProgress = () => get<Record<string, number[]>>(KEYS.ADVENTURE)
 
 interface StreakData { streak: number; lastLoginDate: string }
 export const saveStreak = (streak: number, lastLoginDate: string) =>

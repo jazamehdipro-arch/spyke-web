@@ -15,6 +15,7 @@ import { CREATURE_COLORS } from '../utils/creature'
 import { loadCrossings } from '../utils/storage'
 import CombatScreen, { CombatOpponent } from './CombatScreen'
 import { DEFAULT_LOADOUTS, EvoStage, getEvoStage, SPELL_CATALOG } from '../utils/spells'
+import AdventureScreen from './AdventureScreen'
 
 const CROSSING_SPRITES: Record<CreatureType, ImageSourcePropType> = {
   ignis: require('../../assets/sprites/ignis_f0.png'),
@@ -199,7 +200,7 @@ function DebugSetupPanel({ onStart, onClose }: { onStart: (cfg: DebugConfig) => 
 
 interface Props {
   player: Creature
-  onCombatEnd: (won: boolean, xpGained: number) => void
+  onCombatEnd: (won: boolean, xpGained: number, coinsGained?: number) => void
 }
 
 function CrossingCard({ item, onChallenge }: { item: Crossing; onChallenge: () => void }) {
@@ -265,6 +266,7 @@ export default function CrossingsScreen({ player, onCombatEnd }: Props) {
   const [loading, setLoading]     = useState(true)
   const [combat, setCombat]       = useState<CombatOpponent | null>(null)
   const [showCrossings, setShowCrossings] = useState(false)
+  const [showAdventure, setShowAdventure] = useState(false)
   const [debugSetup, setDebugSetup] = useState(false)
   const [debugOverride, setDebugOverride] = useState<{
     playerType: CreatureType
@@ -324,6 +326,18 @@ export default function CrossingsScreen({ player, onCombatEnd }: Props) {
     )
   }
 
+  if (showAdventure) {
+    return (
+      <AdventureScreen
+        player={player}
+        onCombatEnd={(won, xp, coins) => {
+          onCombatEnd(won, xp, coins)
+        }}
+        onClose={() => setShowAdventure(false)}
+      />
+    )
+  }
+
   if (loading) return null
 
   const playerLevel = player.stats.level
@@ -346,6 +360,14 @@ export default function CrossingsScreen({ player, onCombatEnd }: Props) {
       </View>
 
       {/* Mode cards */}
+      <TouchableOpacity style={[styles.modeCardWide, styles.modeCardAdventure]} onPress={() => setShowAdventure(true)} activeOpacity={0.85}>
+        <Text style={styles.modeEmoji}>🗺️</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.modeTitle}>Aventure</Text>
+          <Text style={styles.modeSub}>6 routes · PNJ · Récompenses</Text>
+        </View>
+        <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 22, fontWeight: '900' }}>›</Text>
+      </TouchableOpacity>
       <View style={styles.modeRow}>
         <TouchableOpacity style={[styles.modeCard, styles.modeCardAI]} onPress={handleQuickAI} activeOpacity={0.85}>
           <Text style={styles.modeEmoji}>🤖</Text>
@@ -422,7 +444,7 @@ const styles = StyleSheet.create({
   debugBtnText: { color: '#fff', fontSize: 12, fontWeight: '700' },
 
   // Mode cards
-  modeRow: { flexDirection: 'row', paddingHorizontal: 16, gap: 12 },
+  modeRow: { flexDirection: 'row', paddingHorizontal: 16, gap: 12, marginTop: 10 },
   modeCard: {
     flex: 1,
     borderRadius: 20,
@@ -436,6 +458,21 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 5,
   },
+  modeCardWide: {
+    marginHorizontal: 16,
+    borderRadius: 20,
+    paddingVertical: 18,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  modeCardAdventure: { backgroundColor: '#1E3A5F' },
   modeCardAI: { backgroundColor: '#1a1a2e' },
   modeCardMP: { backgroundColor: '#7C3AED' },
   modeEmoji: { fontSize: 36 },
