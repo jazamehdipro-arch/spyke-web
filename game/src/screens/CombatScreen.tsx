@@ -862,16 +862,16 @@ export default function CombatScreen({ player, opponent, onFinish, debugOverride
 
     const logParts: string[] = []
 
-    if (hasStatus(curP, 'paralyzed')) logParts.push('⚡ Tu es paralysé ! Défense forcée.')
-    if (hasStatus(curO, 'paralyzed')) logParts.push('⚡ Ennemi paralysé ! Il ne peut qu\'agir.')
+    if (hasStatus(curP, 'paralyzed')) logParts.push('⚡ Paralysé ! Ta défense est forcée.')
+    if (hasStatus(curO, 'paralyzed')) logParts.push('⚡ Ennemi paralysé ! Sa défense est forcée.')
 
     // ── Player turn ──
     if (pAction.kind === 'charge') {
       if (hasStatus(newP, 'exhausted')) {
-        logParts.push('😴 Épuisé ! Pas de charge.')
+        logParts.push('>😴 Épuisé ! Tu ne peux pas charger.')
       } else {
         newP = { ...newP, energy: Math.min(playerMods.maxEnergy, newP.energy + 1) }
-        logParts.push('⚡ Charge !')
+        logParts.push('>⚡ Tu charges !')
       }
       newP = removeStatus(newP, 'exhausted')
     } else if (pAction.kind === 'spell') {
@@ -923,11 +923,11 @@ export default function CombatScreen({ player, opponent, onFinish, debugOverride
         for (const t of result.targetStatusesToRemove) newO = removeStatus(newO, t)
 
         // embuscade log is deferred to after we know if opponent missed
-        if (pAction.spellId !== 'embuscade') logParts.push(result.log)
+        if (pAction.spellId !== 'embuscade') logParts.push('>' + result.log)
       }
     } else {
       // defend
-      logParts.push('🛡️ Défense !')
+      logParts.push('>🛡️ Tu te défends !')
     }
 
     // ── Opponent turn ──
@@ -936,12 +936,12 @@ export default function CombatScreen({ player, opponent, onFinish, debugOverride
 
     if (oAction.kind === 'charge') {
       if (hasStatus(newO, 'exhausted')) {
-        // exhausted, skip gain
+        logParts.push('<😴 Ennemi épuisé ! Pas de charge.')
       } else {
         newO = { ...newO, energy: Math.min(OPPONENT_MAX_ENERGY, newO.energy + 1) }
+        logParts.push('<⚡ Ennemi charge.')
       }
       newO = removeStatus(newO, 'exhausted')
-      logParts.push('Ennemi charge.')
     } else if (oAction.kind === 'spell') {
       const spell = SPELL_CATALOG[oAction.spellId]
       if (newO.energy >= spell.energyCost) {
@@ -988,7 +988,7 @@ export default function CombatScreen({ player, opponent, onFinish, debugOverride
             if (pAction.kind === 'spell' && pAction.spellId === 'carapace_chauffee') {
               const reflected = Math.round(finalDmgToPlayer * 0.30)
               newO = { ...newO, hp: Math.max(0, newO.hp - reflected) }
-              logParts.push(`🛡️🔥 Réflexion : ${reflected} dmg !`)
+              logParts.push(`🛡️🔥 Carapace réfléchit ${reflected} PV à l'ennemi !`)
             }
             // ignis embers reset on damage received
             if (playerType === 'ignis' && finalDmgToPlayer > 0) {
@@ -1010,10 +1010,10 @@ export default function CombatScreen({ player, opponent, onFinish, debugOverride
         for (const st of result.targetStatusesToAdd) newP = addStatus(newP, st)
         for (const t of result.targetStatusesToRemove) newP = removeStatus(newP, t)
 
-        logParts.push(result.log)
+        logParts.push('<' + result.log)
       }
     } else {
-      logParts.push('Ennemi se défend.')
+      logParts.push('<🛡️ Ennemi se défend.')
     }
 
     // Re-resolve embuscade if player used it — now we know if opponent missed
@@ -1034,7 +1034,7 @@ export default function CombatScreen({ player, opponent, onFinish, debugOverride
         }
         newO = { ...newO, hp: Math.max(0, newO.hp - embDmg) }
       }
-      logParts.push(embResult.log)
+      logParts.push('>' + embResult.log)
     }
 
     // Burn DoT
@@ -1299,7 +1299,16 @@ export default function CombatScreen({ player, opponent, onFinish, debugOverride
       {/* HINT BAR / COMBAT LOG */}
       <View style={[s.hintBar, phase === 'resolving' && s.hintBarLog]}>
         {phase === 'resolving' ? (
-          <Text style={s.logText} numberOfLines={6}>{log}</Text>
+          log.split('\n').filter(Boolean).map((line, i) => {
+            const isP = line.startsWith('>')
+            const isE = line.startsWith('<')
+            const text = (isP || isE) ? line.slice(1) : line
+            return (
+              <Text key={i} style={[s.logLine, isP ? s.logPlayer : isE ? s.logEnemy : s.logSystem]}>
+                {isP ? '▸ ' : isE ? '◂ ' : '  '}{text}
+              </Text>
+            )
+          })
         ) : (
           <Text style={s.hintText}>
             {phase === 'choosing' ? "Lis l'énergie adverse · choisis vite" : ''}
@@ -1494,14 +1503,15 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(13, 10, 24, 0.96)',
     borderTopWidth: 1,
     borderTopColor: '#352A5E',
-    paddingVertical: 10,
+    paddingVertical: 8,
   },
   hintText: {
     textAlign: 'center', fontSize: 11, color: '#9A8FC4', fontWeight: '600',
   },
-  logText: {
-    fontSize: 10, color: '#E0D8FF', fontWeight: '600', lineHeight: 17,
-  },
+  logLine:   { fontSize: 10, fontWeight: '700', lineHeight: 16 },
+  logPlayer: { color: '#7DF9FF' },
+  logEnemy:  { color: '#FF9966' },
+  logSystem: { color: '#9A8FC4' },
 
   // DECK
   deck: { paddingHorizontal: 12, paddingBottom: 16, gap: 8 },
