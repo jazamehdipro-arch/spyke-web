@@ -1,8 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { Animated, Image, ImageSourcePropType, StyleSheet, Text, TouchableWithoutFeedback, View } from 'react-native'
+import { Animated, Image, ImageBackground, ImageSourcePropType, StyleSheet, Text, TouchableWithoutFeedback, View } from 'react-native'
 import { Creature, CreatureMood, CreatureType } from '../types'
 
 import { CREATURE_COLORS, getMood } from '../utils/creature'
+
+const TERRAINS: Record<CreatureType, ImageSourcePropType> = {
+  ignis: require('../../assets/sprites/arena_volcano.png'),
+  nemo:  require('../../assets/sprites/arena_snow.png'),
+  sylva: require('../../assets/sprites/arena_forest.png'),
+  zapp:  require('../../assets/sprites/arena_desert.png'),
+}
 
 // All requires must be static in React Native bundler
 const SPRITES: Record<string, ImageSourcePropType> = {
@@ -254,7 +261,12 @@ export default function CreatureDisplay({ creature, pose, onEvolve }: Props) {
         </View>
 
         {/* Screen */}
-        <View style={[styles.gbScreen, { backgroundColor: isSick ? '#2a2a2a' : color + '14' }]}>
+        <ImageBackground
+          source={TERRAINS[creature.type]}
+          style={[styles.gbScreen, { backgroundColor: isSick ? '#2a2a2a' : color + '22' }]}
+          imageStyle={{ opacity: isSick ? 0.08 : 0.45, borderRadius: 8 }}
+          resizeMode="cover"
+        >
           {!isSick && <FloatingParticles color={color} type={creature.type} />}
           {/* Screen glare */}
           <View style={styles.gbGlare} pointerEvents="none" />
@@ -268,7 +280,7 @@ export default function CreatureDisplay({ creature, pose, onEvolve }: Props) {
               <Text style={styles.sickEmoji}>🤒</Text>
             </View>
           )}
-        </View>
+        </ImageBackground>
 
         {/* Bottom bar with badges */}
         <View style={styles.gbBottomBar}>
