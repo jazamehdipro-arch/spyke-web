@@ -58,6 +58,31 @@ const SPRITES: Record<string, ImageSourcePropType> = {
   zapp_eat:    require('../../assets/sprites/zapp_eat.png'),
   zapp_train:  require('../../assets/sprites/zapp_train.png'),
   zapp_sleep:  require('../../assets/sprites/zapp_sleep.png'),
+  // Shiny skins
+  ignis_sk_red:    require('../../assets/sprites/ignis_sk_red.png'),
+  ignis_sk_blue:   require('../../assets/sprites/ignis_sk_blue.png'),
+  ignis_sk_green:  require('../../assets/sprites/ignis_sk_green.png'),
+  ignis_sk_gold:   require('../../assets/sprites/ignis_sk_gold.png'),
+  ignis_sk_purple: require('../../assets/sprites/ignis_sk_purple.png'),
+  ignis_sk_grey:   require('../../assets/sprites/ignis_sk_grey.png'),
+  nemo_sk_purple:  require('../../assets/sprites/nemo_sk_purple.png'),
+  nemo_sk_ice:     require('../../assets/sprites/nemo_sk_ice.png'),
+  nemo_sk_green:   require('../../assets/sprites/nemo_sk_green.png'),
+  nemo_sk_fire:    require('../../assets/sprites/nemo_sk_fire.png'),
+  nemo_sk_dark:    require('../../assets/sprites/nemo_sk_dark.png'),
+  nemo_sk_pink:    require('../../assets/sprites/nemo_sk_pink.png'),
+  sylva_sk_orange: require('../../assets/sprites/sylva_sk_orange.png'),
+  sylva_sk_blue:   require('../../assets/sprites/sylva_sk_blue.png'),
+  sylva_sk_green:  require('../../assets/sprites/sylva_sk_green.png'),
+  sylva_sk_purple: require('../../assets/sprites/sylva_sk_purple.png'),
+  sylva_sk_gold:   require('../../assets/sprites/sylva_sk_gold.png'),
+  sylva_sk_grey:   require('../../assets/sprites/sylva_sk_grey.png'),
+  zapp_sk_orange:  require('../../assets/sprites/zapp_sk_orange.png'),
+  zapp_sk_blue:    require('../../assets/sprites/zapp_sk_blue.png'),
+  zapp_sk_green:   require('../../assets/sprites/zapp_sk_green.png'),
+  zapp_sk_red:     require('../../assets/sprites/zapp_sk_red.png'),
+  zapp_sk_white:   require('../../assets/sprites/zapp_sk_white.png'),
+  zapp_sk_purple:  require('../../assets/sprites/zapp_sk_purple.png'),
 }
 
 function getStageKey(level: number): string {
@@ -207,9 +232,14 @@ export default function CreatureDisplay({ creature, pose, onEvolve }: Props) {
   const currentFrame = reacting ? 2 : seq[frameIdx]
   const isSick    = creature.stats.isSick
   const activePose = isSick ? 'sick' : pose ?? null
-  const spriteKey  = activePose
-    ? `${creature.type}_${activePose}`
-    : `${creature.type}${stage}_${currentFrame}`
+  let spriteKey: string
+  if (activePose) {
+    spriteKey = `${creature.type}_${activePose}`
+  } else if (creature.skin) {
+    spriteKey = `${creature.type}_sk_${creature.skin}`
+  } else {
+    spriteKey = `${creature.type}${stage}_${currentFrame}`
+  }
   const sprite = SPRITES[spriteKey] ?? SPRITES[`${creature.type}${stage}_0`]
 
   return (

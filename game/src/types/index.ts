@@ -74,6 +74,8 @@ export interface Creature {
   training?: TrainingStats
   activeCombatBuff?: { damageMult: number; expiresAt: string }
   spellLoadout?: SpellLoadout
+  skin?: string        // equipped shiny skin color (e.g. 'blue'), undefined = default look
+  ownedSkins?: string[] // unlocked skin colors for this creature's type
 }
 
 export interface Player {

@@ -1,4 +1,11 @@
-import { InventoryItem } from '../types'
+import { CreatureType, InventoryItem } from '../types'
+
+export const SKINS_BY_TYPE: Record<CreatureType, string[]> = {
+  ignis: ['red', 'blue', 'green', 'gold', 'purple', 'grey'],
+  nemo:  ['purple', 'ice', 'green', 'fire', 'dark', 'pink'],
+  sylva: ['orange', 'blue', 'green', 'purple', 'gold', 'grey'],
+  zapp:  ['orange', 'blue', 'green', 'red', 'white', 'purple'],
+}
 
 export const ITEM_CATALOG: Record<string, Omit<InventoryItem, 'quantity'>> = {
   apple: {
@@ -82,15 +89,27 @@ export const SHOP_ITEMS: Array<{ itemId: string; price: number }> = [
 ]
 
 // Mystery box reward pool
-export function drawMysteryBox(): { itemId: string | null; coins: number; xp: number } {
+export function drawMysteryBox(
+  creatureType: CreatureType,
+  ownedSkins: string[] = [],
+): { itemId: string | null; coins: number; xp: number; skin?: string } {
   const roll = Math.random()
-  if (roll < 0.02)  return { itemId: 'star',     coins: 10, xp: 0  }   // 2%  epic
-  if (roll < 0.10)  return { itemId: 'potion',   coins: 0,  xp: 0  }   // 8%
-  if (roll < 0.23)  return { itemId: 'cake',     coins: 10, xp: 0  }   // 13%
-  if (roll < 0.40)  return { itemId: 'sushi',    coins: 0,  xp: 0  }   // 17%
-  if (roll < 0.58)  return { itemId: 'medicine', coins: 0,  xp: 0  }   // 18%
-  if (roll < 0.76)  return { itemId: 'pizza',    coins: 5,  xp: 0  }   // 18%
-  return                   { itemId: 'apple',    coins: 5,  xp: 10 }   // 24% common
+  if (roll < 0.02) return { itemId: 'star',     coins: 10, xp: 0 }   // 2%  epic
+  if (roll < 0.07) {                                                    // 5%  shiny skin
+    const available = SKINS_BY_TYPE[creatureType].filter((s) => !ownedSkins.includes(s))
+    if (available.length > 0) {
+      const skin = available[Math.floor(Math.random() * available.length)]
+      return { itemId: null, coins: 15, xp: 0, skin }
+    }
+    // all skins owned: bonus coins instead
+    return { itemId: 'potion', coins: 20, xp: 0 }
+  }
+  if (roll < 0.12) return { itemId: 'potion',   coins: 0,  xp: 0  }   // 5%
+  if (roll < 0.25) return { itemId: 'cake',     coins: 10, xp: 0  }   // 13%
+  if (roll < 0.42) return { itemId: 'sushi',    coins: 0,  xp: 0  }   // 17%
+  if (roll < 0.60) return { itemId: 'medicine', coins: 0,  xp: 0  }   // 18%
+  if (roll < 0.78) return { itemId: 'pizza',    coins: 5,  xp: 0  }   // 18%
+  return                  { itemId: 'apple',    coins: 5,  xp: 10 }   // 22% common
 }
 
 export function getStarterInventory(): InventoryItem[] {

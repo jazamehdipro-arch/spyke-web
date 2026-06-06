@@ -10,6 +10,12 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native'
+
+const SKIN_PALETTE: Record<string, string> = {
+  red: '#FF4444', blue: '#4499FF', green: '#44CC66', gold: '#FFD700',
+  purple: '#A855F7', grey: '#9CA3AF', orange: '#FB923C', ice: '#A5F3FC',
+  fire: '#F97316', dark: '#374151', pink: '#F472B6', white: '#F0F0F0',
+}
 import ActionButtons from '../components/ActionButtons'
 import CreatureDisplay, { CreaturePose } from '../components/CreatureDisplay'
 import EventModal from '../components/EventModal'
@@ -95,9 +101,10 @@ interface Props {
     quests?: Quest[],
     journal?: JournalEntry[]
   ) => void
+  onSkinChange: (skin: string | null) => void
 }
 
-export default function HomeScreen({ creature, inventory, events, quests, journal, streak, coins, onUpdate }: Props) {
+export default function HomeScreen({ creature, inventory, events, quests, journal, streak, coins, onUpdate, onSkinChange }: Props) {
   const timeOfDay = getTimeOfDay()
   const bgColor = TIME_BG[timeOfDay]
   const textColor = TIME_TEXT[timeOfDay]
@@ -439,6 +446,32 @@ export default function HomeScreen({ creature, inventory, events, quests, journa
 
         <SpeechBubble message={speechMsg} visible={speechVisible} />
         <CreatureDisplay creature={creature} pose={currentPose} onEvolve={handleEvolve} />
+
+        {(creature.ownedSkins ?? []).length > 0 && (
+          <View style={styles.skinSection}>
+            <Text style={[styles.skinTitle, { color: textColor }]}>✨ Apparences</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.skinRow}>
+              <TouchableOpacity
+                style={[styles.skinChip, !creature.skin && styles.skinChipActive]}
+                onPress={() => onSkinChange(null)}
+              >
+                <View style={[styles.skinDot, { backgroundColor: '#888' }]} />
+                <Text style={styles.skinLabel}>Défaut</Text>
+              </TouchableOpacity>
+              {(creature.ownedSkins ?? []).map((color) => (
+                <TouchableOpacity
+                  key={color}
+                  style={[styles.skinChip, creature.skin === color && styles.skinChipActive]}
+                  onPress={() => onSkinChange(color)}
+                >
+                  <View style={[styles.skinDot, { backgroundColor: SKIN_PALETTE[color] ?? '#ccc' }]} />
+                  <Text style={styles.skinLabel}>{color}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
         <StatsPanel stats={creature.stats} />
         {creature.activeCombatBuff && creature.activeCombatBuff.expiresAt > new Date().toISOString() && (
           <View style={styles.buffBadge}>
@@ -725,6 +758,28 @@ const styles = StyleSheet.create({
   trainBarFill: { height: 4, backgroundColor: '#7C3AED', borderRadius: 2 },
   trainLevel: { fontSize: 11, fontWeight: '700', color: '#555', marginTop: 2 },
   trainCost: { fontSize: 10, color: '#FF6B35' },
+  skinSection: { paddingHorizontal: 16, gap: 6 },
+  skinTitle: { fontSize: 13, fontWeight: '700' },
+  skinRow: { flexDirection: 'row', gap: 8, paddingVertical: 4 },
+  skinChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 20,
+    backgroundColor: '#fff',
+    borderWidth: 2,
+    borderColor: 'transparent',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  skinChipActive: { borderColor: '#7C3AED' },
+  skinDot: { width: 14, height: 14, borderRadius: 7 },
+  skinLabel: { fontSize: 12, fontWeight: '600', color: '#1a1a2e', textTransform: 'capitalize' },
   activityRow: {
     flexDirection: 'row',
     alignItems: 'center',

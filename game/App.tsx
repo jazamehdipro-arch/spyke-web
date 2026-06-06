@@ -203,7 +203,7 @@ export default function App() {
 
     // mystery box: draw random reward
     if (item.id === 'mystery_box') {
-      const reward = drawMysteryBox()
+      const reward = drawMysteryBox(creature.type, creature.ownedSkins ?? [])
       let newInventory = inventory
         .map((i) => i.id === item.id ? { ...i, quantity: i.quantity - 1 } : i)
         .filter((i) => i.quantity > 0)
@@ -212,12 +212,21 @@ export default function App() {
         if (rewardDef) newInventory = addItemToInventory(newInventory, { ...rewardDef, quantity: 1 })
       }
       let updatedCreature = reward.xp ? addXP(creature, reward.xp) : creature
+      if (reward.skin) {
+        const ownedSkins = [...(updatedCreature.ownedSkins ?? []), reward.skin]
+        updatedCreature = { ...updatedCreature, ownedSkins }
+      }
       updatedCreature = { ...updatedCreature, mood: getMood(updatedCreature.stats) }
       const newCoins = coins + reward.coins
       const prize    = reward.itemId ? ITEM_CATALOG[reward.itemId] : null
-      const msg = prize
-        ? `📦 Boîte Mystère : ${prize.emoji} ${prize.name}${reward.coins > 0 ? ` + 💰${reward.coins}` : ''}${reward.xp > 0 ? ` + ✨${reward.xp} XP` : ''} !`
-        : `📦 Boîte Mystère : 💰 ${reward.coins} pièces !`
+      let msg: string
+      if (reward.skin) {
+        msg = `📦 Boîte Mystère : ✨ Skin "${reward.skin}" débloqué !${reward.coins > 0 ? ` + 💰${reward.coins}` : ''}`
+      } else if (prize) {
+        msg = `📦 Boîte Mystère : ${prize.emoji} ${prize.name}${reward.coins > 0 ? ` + 💰${reward.coins}` : ''}${reward.xp > 0 ? ` + ✨${reward.xp} XP` : ''} !`
+      } else {
+        msg = `📦 Boîte Mystère : 💰 ${reward.coins} pièces !`
+      }
       const newJournal = addJournalEntry(journal, msg, '📦')
       await Promise.all([saveCreature(updatedCreature), saveInventory(newInventory), saveJournal(newJournal), savePlayer({ id: state.username, username: state.username, coins: newCoins })])
       handleUpdate(updatedCreature, newInventory, state.events, quests, newJournal, undefined, newCoins)
@@ -247,6 +256,13 @@ export default function App() {
 
     await Promise.all([saveCreature(updatedCreature), saveInventory(newInventory), saveJournal(newJournal)])
     handleUpdate(updatedCreature, newInventory, state.events, quests, newJournal)
+  }, [state, handleUpdate])
+
+  const handleSkinChange = useCallback(async (skin: string | null) => {
+    if (!state) return
+    const updated = { ...state.creature, skin: skin ?? undefined }
+    await saveCreature(updated)
+    handleUpdate(updated)
   }, [state, handleUpdate])
 
   const handleBuyItem = useCallback(async (itemId: string, price: number) => {
@@ -333,6 +349,7 @@ export default function App() {
             streak={state.streak}
             coins={state.coins}
             onUpdate={handleUpdate}
+            onSkinChange={handleSkinChange}
           />
         )}
         {activeTab === 'inventory' && (
