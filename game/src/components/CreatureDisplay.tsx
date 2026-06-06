@@ -185,9 +185,10 @@ interface Props {
   creature: Creature
   pose?: CreaturePose
   onEvolve?: () => void
+  variant?: 'gameboy' | 'hero'
 }
 
-export default function CreatureDisplay({ creature, pose, onEvolve }: Props) {
+export default function CreatureDisplay({ creature, pose, onEvolve, variant = 'gameboy' }: Props) {
   const bounce = useRef(new Animated.Value(0)).current
   const scale  = useRef(new Animated.Value(1)).current
   const [frameIdx, setFrameIdx] = useState(0)
@@ -259,6 +260,19 @@ export default function CreatureDisplay({ creature, pose, onEvolve }: Props) {
   }
   const sprite = SPRITES[spriteKey] ?? SPRITES[`${creature.type}_f0`]
 
+  if (variant === 'hero') {
+    return (
+      <View style={styles.heroContainer}>
+        {!isSick && <FloatingParticles color={color} type={creature.type} />}
+        <TouchableWithoutFeedback onPress={handlePress}>
+          <Animated.View style={{ transform: [{ translateY: bounce }, { scale }], opacity: isSick ? 0.75 : 1 }}>
+            <Image source={sprite} style={styles.heroSprite} resizeMode="contain" />
+          </Animated.View>
+        </TouchableWithoutFeedback>
+      </View>
+    )
+  }
+
   return (
     <View style={styles.container}>
       {/* Game Boy-style screen frame */}
@@ -314,6 +328,9 @@ export default function CreatureDisplay({ creature, pose, onEvolve }: Props) {
 }
 
 const styles = StyleSheet.create({
+  // ── Hero variant ──────────────────────────────────────────
+  heroContainer: { alignItems: 'center', justifyContent: 'center', flex: 1 },
+  heroSprite: { width: 220, height: 270 },
   container: {
     alignItems: 'center',
     paddingVertical: 12,

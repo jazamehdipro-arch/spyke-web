@@ -350,6 +350,8 @@ export default function App() {
             coins={state.coins}
             onUpdate={handleUpdate}
             onSkinChange={handleSkinChange}
+            onOpenInventory={() => setActiveTab('inventory')}
+            onOpenCrossings={() => setActiveTab('crossings')}
           />
         )}
         {activeTab === 'inventory' && (
@@ -434,18 +436,18 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#F8F7FF' },
+  root: { flex: 1, backgroundColor: '#0f0f1a' },
   content: { flex: 1 },
   tabBar: {
     flexDirection: 'row',
-    backgroundColor: '#fff',
+    backgroundColor: '#1a1a2e',
     paddingBottom: 24,
     paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
+    borderTopColor: '#252540',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.04,
+    shadowOpacity: 0.4,
     shadowRadius: 12,
     elevation: 10,
   },
@@ -465,7 +467,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 3,
   },
   badgeText: { color: '#fff', fontSize: 10, fontWeight: '800' },
-  tabLabel: { fontSize: 10, color: '#bbb', fontWeight: '500' },
-  tabLabelActive: { color: '#1a1a2e', fontWeight: '700' },
-  tabDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: '#1a1a2e' },
+  tabLabel: { fontSize: 10, color: '#666', fontWeight: '500' },
+  tabLabelActive: { color: '#a78bfa', fontWeight: '700' },
+  tabDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: '#a78bfa' },
 })

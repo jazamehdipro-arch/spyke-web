@@ -1,6 +1,9 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import {
   Animated,
+  Dimensions,
+  ImageBackground,
+  ImageSourcePropType,
   Modal,
   RefreshControl,
   SafeAreaView,
@@ -10,19 +13,10 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native'
-
-const SKIN_PALETTE: Record<string, string> = {
-  red: '#FF4444', blue: '#4499FF', green: '#44CC66', gold: '#FFD700',
-  purple: '#A855F7', grey: '#9CA3AF', orange: '#FB923C', ice: '#A5F3FC',
-  fire: '#F97316', dark: '#374151', pink: '#F472B6', white: '#F0F0F0',
-}
-import ActionButtons from '../components/ActionButtons'
 import CreatureDisplay, { CreaturePose } from '../components/CreatureDisplay'
 import EventModal from '../components/EventModal'
 import MiniGame from '../components/MiniGame'
 import ParticleEffect from '../components/ParticleEffect'
-import SpeechBubble from '../components/SpeechBubble'
-import StatsPanel from '../components/StatsPanel'
 import { Creature, CreatureType, GameEvent, InventoryItem, JournalEntry, Quest, TrainingStats } from '../types'
 import { addXP, decayStats, getMood } from '../utils/creature'
 import { generateRandomEvent, getRewardItem, shouldTriggerEvent } from '../utils/events'
@@ -31,11 +25,21 @@ import { addItemToInventory, addJournalEntry, saveCreature, saveEvents, saveInve
 import { updateQuestsAfterAction } from '../utils/quests'
 import { getDailyWeather, WEATHER_EMOJI, WEATHER_LABEL } from '../utils/weather'
 
+const { height: SCREEN_H } = Dimensions.get('window')
+const HERO_H = Math.round(SCREEN_H * 0.52)
+
+const TERRAIN: Record<CreatureType, ImageSourcePropType> = {
+  ignis: require('../../assets/sprites/arena_volcano.png'),
+  nemo:  require('../../assets/sprites/arena_snow.png'),
+  sylva: require('../../assets/sprites/arena_forest.png'),
+  zapp:  require('../../assets/sprites/arena_desert.png'),
+}
+
 const TRAINING_CONFIG: Record<keyof TrainingStats, { label: string; emoji: string; desc: string; costEnergy: number; costHunger: number }> = {
-  strength:  { label: 'Force',     emoji: '💪', desc: '+0.8% dégâts',         costEnergy: 15, costHunger: 10 },
-  reflexes:  { label: 'Réflexes',  emoji: '🔰', desc: '-0.7% dégâts reçus',   costEnergy: 10, costHunger: 8  },
-  endurance: { label: 'Endurance', emoji: '🛡️', desc: '+énergie & +PV max',   costEnergy: 20, costHunger: 15 },
-  defense:   { label: 'Défense',   emoji: '🎯', desc: '+0.65% esquive',        costEnergy: 12, costHunger: 8  },
+  strength:  { label: 'Force',     emoji: '💪', desc: '+0.8% dégâts',       costEnergy: 15, costHunger: 10 },
+  reflexes:  { label: 'Réflexes',  emoji: '🔰', desc: '-0.7% dégâts reçus', costEnergy: 10, costHunger: 8  },
+  endurance: { label: 'Endurance', emoji: '🛡️', desc: '+énergie & +PV max', costEnergy: 20, costHunger: 15 },
+  defense:   { label: 'Défense',   emoji: '🎯', desc: '+0.65% esquive',      costEnergy: 12, costHunger: 8  },
 }
 
 const MAX_TRAINING_POINTS = 40
@@ -45,10 +49,10 @@ const PLAY_ACTIVITIES: Record<string, {
   stat: keyof TrainingStats
   costEnergy: number; costHunger: number; happinessGain: number
 }> = {
-  sparring:  { label: 'Combat',    emoji: '🥊', desc: 'Entraînement de force au sac',      stat: 'strength',  costEnergy: 20, costHunger: 15, happinessGain: 15 },
-  agility:   { label: 'Agilité',   emoji: '🏃', desc: 'Parcours d\'obstacles et de vitesse', stat: 'reflexes',  costEnergy: 15, costHunger: 10, happinessGain: 20 },
-  endurance: { label: 'Endurance', emoji: '🧗', desc: 'Escalade et exercices cardio',       stat: 'endurance', costEnergy: 25, costHunger: 20, happinessGain: 12 },
-  puzzle:    { label: 'Stratégie', emoji: '🧩', desc: 'Puzzles tactiques et réflexion',     stat: 'defense',   costEnergy: 12, costHunger: 8,  happinessGain: 25 },
+  sparring:  { label: 'Combat',    emoji: '🥊', desc: 'Entraînement de force au sac',       stat: 'strength',  costEnergy: 20, costHunger: 15, happinessGain: 15 },
+  agility:   { label: 'Agilité',   emoji: '🏃', desc: "Parcours d'obstacles et de vitesse", stat: 'reflexes',  costEnergy: 15, costHunger: 10, happinessGain: 20 },
+  endurance: { label: 'Endurance', emoji: '🧗', desc: 'Escalade et exercices cardio',        stat: 'endurance', costEnergy: 25, costHunger: 20, happinessGain: 12 },
+  puzzle:    { label: 'Stratégie', emoji: '🧩', desc: 'Puzzles tactiques et réflexion',      stat: 'defense',   costEnergy: 12, costHunger: 8,  happinessGain: 25 },
 }
 
 function formatFoodEffects(item: InventoryItem): string {
@@ -58,32 +62,9 @@ function formatFoodEffects(item: InventoryItem): string {
   if (item.effect.energy)    p.push(item.effect.energy > 0 ? `⚡+${item.effect.energy}` : `⚡${item.effect.energy}`)
   if (item.effect.combatBuff) {
     const pct = Math.round((item.effect.combatBuff.damageMult - 1) * 100)
-    p.push(`⚔️+${pct}% (${item.effect.combatBuff.durationMin}min)`)
-    if (item.effect.combatBuff.sickChance) p.push(`⚠️${item.effect.combatBuff.sickChance * 100}%maladie`)
+    p.push(`⚔️+${pct}%`)
   }
   return p.join(' · ')
-}
-
-function getTimeOfDay(): 'dawn' | 'day' | 'dusk' | 'night' {
-  const h = new Date().getHours()
-  if (h >= 5 && h < 7) return 'dawn'
-  if (h >= 7 && h < 19) return 'day'
-  if (h >= 19 && h < 22) return 'dusk'
-  return 'night'
-}
-
-const TIME_BG: Record<string, string> = {
-  dawn:  '#FFF3E0',
-  day:   '#F8F7FF',
-  dusk:  '#F3E5F5',
-  night: '#1a1a2e',
-}
-
-const TIME_TEXT: Record<string, string> = {
-  dawn:  '#1a1a2e',
-  day:   '#1a1a2e',
-  dusk:  '#1a1a2e',
-  night: '#ffffff',
 }
 
 interface Props {
@@ -102,19 +83,21 @@ interface Props {
     journal?: JournalEntry[]
   ) => void
   onSkinChange: (skin: string | null) => void
+  onOpenInventory: () => void
+  onOpenCrossings: () => void
 }
 
-export default function HomeScreen({ creature, inventory, events, quests, journal, streak, coins, onUpdate, onSkinChange }: Props) {
-  const timeOfDay = getTimeOfDay()
-  const bgColor = TIME_BG[timeOfDay]
-  const textColor = TIME_TEXT[timeOfDay]
+export default function HomeScreen({
+  creature, inventory, events, quests, journal,
+  streak, coins, onUpdate, onSkinChange, onOpenInventory, onOpenCrossings,
+}: Props) {
   const weather = getDailyWeather()
   const [refreshing, setRefreshing] = useState(false)
   const [showFoodPicker, setShowFoodPicker] = useState(false)
   const [particleTrigger, setParticleTrigger] = useState(0)
   const [particleEmojis, setParticleEmojis] = useState(['❤️', '⭐', '✨'])
   const [showMiniGame, setShowMiniGame] = useState(false)
-  const [currentPose, setCurrentPose]   = useState<CreaturePose>(null)
+  const [currentPose, setCurrentPose] = useState<CreaturePose>(null)
   const poseTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [pendingEvent, setPendingEvent] = useState<GameEvent | null>(null)
   const [speechMsg, setSpeechMsg] = useState('')
@@ -123,6 +106,7 @@ export default function HomeScreen({ creature, inventory, events, quests, journa
   const [evolveStage, setEvolveStage] = useState(2)
   const [showAdmin, setShowAdmin] = useState(false)
   const [showActivityPicker, setShowActivityPicker] = useState(false)
+  const [showTraining, setShowTraining] = useState(false)
   const [pendingActivity, setPendingActivity] = useState<keyof typeof PLAY_ACTIVITIES | null>(null)
   const evolveScale = useRef(new Animated.Value(0)).current
   const speechTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -133,10 +117,7 @@ export default function HomeScreen({ creature, inventory, events, quests, journa
     titleTapCount.current += 1
     if (titleTapTimer.current) clearTimeout(titleTapTimer.current)
     titleTapTimer.current = setTimeout(() => { titleTapCount.current = 0 }, 2000)
-    if (titleTapCount.current >= 5) {
-      titleTapCount.current = 0
-      setShowAdmin(true)
-    }
+    if (titleTapCount.current >= 5) { titleTapCount.current = 0; setShowAdmin(true) }
   }
 
   const showSpeech = useCallback((msg: string) => {
@@ -148,9 +129,7 @@ export default function HomeScreen({ creature, inventory, events, quests, journa
 
   useEffect(() => {
     showSpeech(getCreatureSpeech(creature))
-    const interval = setInterval(() => {
-      showSpeech(getCreatureSpeech(creature))
-    }, 12000)
+    const interval = setInterval(() => showSpeech(getCreatureSpeech(creature)), 12000)
     return () => clearInterval(interval)
   }, [creature.stats.hunger, creature.stats.happiness, creature.stats.energy, creature.stats.isSick])
 
@@ -160,27 +139,16 @@ export default function HomeScreen({ creature, inventory, events, quests, journa
   }
 
   const maybeSpawnEvent = useCallback(
-    (updatedCreature: Creature, updatedEvents: GameEvent[], updatedQuests: Quest[], updatedJournal: JournalEntry[]) => {
-      if (!shouldTriggerEvent()) return { updatedEvents, updatedQuests, updatedJournal }
-
-      const event = generateRandomEvent(updatedCreature)
-      const newEvents = [event, ...updatedEvents].slice(0, 30)
-
-      let newJournal = addJournalEntry(updatedJournal, event.message, event.emoji)
-      let newQuests = updateQuestsAfterAction(updatedQuests, 'events')
-
+    (c: Creature, ev: GameEvent[], qs: Quest[], j: JournalEntry[]) => {
+      if (!shouldTriggerEvent()) return { updatedEvents: ev, updatedQuests: qs, updatedJournal: j }
+      const event = generateRandomEvent(c)
+      const newEvents = [event, ...ev].slice(0, 30)
+      const newJournal = addJournalEntry(j, event.message, event.emoji)
+      const newQuests = updateQuestsAfterAction(qs, 'events')
       setPendingEvent(event)
       return { updatedEvents: newEvents, updatedQuests: newQuests, updatedJournal: newJournal }
-    },
-    []
+    }, []
   )
-
-  const foodItems = inventory.filter((i) => i.effect.hunger !== undefined && i.effect.hunger > 0)
-
-  const handleFeed = () => {
-    if (creature.stats.hunger >= 95) { showSpeech('Je suis rassasié ! 🙅'); return }
-    setShowFoodPicker(true)
-  }
 
   const triggerPose = (p: CreaturePose, ms = 2800) => {
     if (poseTimer.current) clearTimeout(poseTimer.current)
@@ -188,23 +156,23 @@ export default function HomeScreen({ creature, inventory, events, quests, journa
     poseTimer.current = setTimeout(() => setCurrentPose(null), ms)
   }
 
+  const handleFeed = () => {
+    if (creature.stats.hunger >= 95) { showSpeech('Je suis rassasié ! 🙅'); return }
+    setShowFoodPicker(true)
+  }
+
   const handleFeedWith = async (item: InventoryItem) => {
     setShowFoodPicker(false)
     triggerPose('eat')
     let isSick = creature.stats.isSick
-    if (item.effect.combatBuff?.sickChance && Math.random() < item.effect.combatBuff.sickChance) {
-      isSick = true
-    }
+    if (item.effect.combatBuff?.sickChance && Math.random() < item.effect.combatBuff.sickChance) isSick = true
     let activeCombatBuff = creature.activeCombatBuff
     if (item.effect.combatBuff) {
       const expiresAt = new Date(Date.now() + item.effect.combatBuff.durationMin * 60 * 1000).toISOString()
       activeCombatBuff = { damageMult: item.effect.combatBuff.damageMult, expiresAt }
     }
     let updated: Creature = {
-      ...creature,
-      lastFed: new Date().toISOString(),
-      totalFed: creature.totalFed + 1,
-      activeCombatBuff,
+      ...creature, lastFed: new Date().toISOString(), totalFed: creature.totalFed + 1, activeCombatBuff,
       stats: {
         ...creature.stats,
         hunger:    Math.min(100, creature.stats.hunger    + (item.effect.hunger    ?? 0)),
@@ -214,44 +182,37 @@ export default function HomeScreen({ creature, inventory, events, quests, journa
       },
     }
     updated = { ...addXP(updated, 8), mood: getMood(updated.stats) }
-    const newInventory = inventory
-      .map((i) => i.id === item.id ? { ...i, quantity: i.quantity - 1 } : i)
-      .filter((i) => i.quantity > 0)
-    let newQuests = updateQuestsAfterAction(quests, 'feed')
-    newQuests = updateQuestsAfterAction(newQuests, 'level', updated.stats.level)
-    let newJournal = addJournalEntry(journal, `${creature.name} a mangé ${item.emoji} ${item.name}.`, item.emoji)
-    const { updatedEvents, updatedQuests: q2, updatedJournal: j2 } = maybeSpawnEvent(updated, events, newQuests, newJournal)
+    const newInv = inventory.map((i) => i.id === item.id ? { ...i, quantity: i.quantity - 1 } : i).filter((i) => i.quantity > 0)
+    let nq = updateQuestsAfterAction(quests, 'feed')
+    nq = updateQuestsAfterAction(nq, 'level', updated.stats.level)
+    let nj = addJournalEntry(journal, `${creature.name} a mangé ${item.emoji} ${item.name}.`, item.emoji)
+    const { updatedEvents, updatedQuests: q2, updatedJournal: j2 } = maybeSpawnEvent(updated, events, nq, nj)
     showSpeech(getReactionMessage('feed'))
     triggerParticles([item.emoji, '❤️', '✨'])
-    await Promise.all([saveCreature(updated), saveInventory(newInventory), saveEvents(updatedEvents), saveQuests(q2), saveJournal(j2)])
-    onUpdate(updated, newInventory, updatedEvents, q2, j2)
+    await Promise.all([saveCreature(updated), saveInventory(newInv), saveEvents(updatedEvents), saveQuests(q2), saveJournal(j2)])
+    onUpdate(updated, newInv, updatedEvents, q2, j2)
   }
 
   const handleTrain = async (type: keyof TrainingStats) => {
     const cfg = TRAINING_CONFIG[type]
-    const training = creature.training ?? { strength: 0, reflexes: 0, endurance: 0, defense: 0 }
-    const current = training[type]
-    if (current >= 20) { showSpeech(`${cfg.emoji} Stat maximale !`); return }
-    const totalPts = Object.values(training).reduce((a, b) => a + b, 0)
-    if (totalPts >= MAX_TRAINING_POINTS) { showSpeech(`Points d'entraînement épuisés ! (${MAX_TRAINING_POINTS}/${MAX_TRAINING_POINTS})`); return }
-    if (creature.stats.energy < cfg.costEnergy) { showSpeech(`Trop fatigué pour s'entraîner ! ⚡`); return }
-    if (creature.stats.hunger < cfg.costHunger) { showSpeech(`Trop affamé pour s'entraîner ! 🍖`); return }
-    const newTraining: TrainingStats = { ...training, [type]: current + 1 }
+    const tr = creature.training ?? { strength: 0, reflexes: 0, endurance: 0, defense: 0 }
+    const current = tr[type]
+    const totalPts = Object.values(tr).reduce((a, b) => a + b, 0)
+    if (current >= 20)                        { showSpeech(`${cfg.emoji} Stat maximale !`); return }
+    if (totalPts >= MAX_TRAINING_POINTS)       { showSpeech(`Points épuisés !`); return }
+    if (creature.stats.energy < cfg.costEnergy){ showSpeech(`Trop fatigué ! ⚡`); return }
+    if (creature.stats.hunger < cfg.costHunger){ showSpeech(`Trop affamé ! 🍖`); return }
+    const newTr: TrainingStats = { ...tr, [type]: current + 1 }
     let updated: Creature = {
-      ...creature,
-      training: newTraining,
-      stats: {
-        ...creature.stats,
-        energy: creature.stats.energy - cfg.costEnergy,
-        hunger: Math.max(0, creature.stats.hunger - cfg.costHunger),
-      },
+      ...creature, training: newTr,
+      stats: { ...creature.stats, energy: creature.stats.energy - cfg.costEnergy, hunger: Math.max(0, creature.stats.hunger - cfg.costHunger) },
     }
     updated = { ...addXP(updated, 5), mood: getMood(updated.stats) }
-    const newJournal = addJournalEntry(journal, `${creature.name} s'est entraîné : ${cfg.label} Lv ${current + 1} !`, cfg.emoji)
+    const nj = addJournalEntry(journal, `${creature.name} s'est entraîné : ${cfg.label} Lv ${current + 1} !`, cfg.emoji)
     showSpeech(`${cfg.emoji} ${cfg.label} Lv ${current + 1} !`)
     triggerParticles([cfg.emoji, '⭐', '💪'])
-    await Promise.all([saveCreature(updated), saveJournal(newJournal)])
-    onUpdate(updated, inventory, events, quests, newJournal)
+    await Promise.all([saveCreature(updated), saveJournal(nj)])
+    onUpdate(updated, inventory, events, quests, nj)
   }
 
   const handlePlay = () => {
@@ -261,55 +222,44 @@ export default function HomeScreen({ creature, inventory, events, quests, journa
 
   const handleSelectActivity = (actKey: keyof typeof PLAY_ACTIVITIES) => {
     const act = PLAY_ACTIVITIES[actKey]
-    const training = creature.training ?? { strength: 0, reflexes: 0, endurance: 0, defense: 0 }
-    const totalPts = Object.values(training).reduce((a, b) => a + b, 0)
-    if (totalPts >= MAX_TRAINING_POINTS) { showSpeech(`Points d'entraînement épuisés ! (${MAX_TRAINING_POINTS}/${MAX_TRAINING_POINTS})`); return }
+    const tr = creature.training ?? { strength: 0, reflexes: 0, endurance: 0, defense: 0 }
+    if (Object.values(tr).reduce((a, b) => a + b, 0) >= MAX_TRAINING_POINTS) { showSpeech(`Points épuisés !`); return }
     if (creature.stats.energy < act.costEnergy) { showSpeech("Pas assez d'énergie ! ⚡"); return }
-    if (creature.stats.hunger < act.costHunger) { showSpeech('Trop affamé pour ça ! 🍖'); return }
+    if (creature.stats.hunger < act.costHunger)  { showSpeech('Trop affamé ! 🍖'); return }
     setPendingActivity(actKey)
     setShowActivityPicker(false)
     setShowMiniGame(true)
-    triggerPose('train', 999999)  // hold train pose during mini-game
+    triggerPose('train', 999999)
   }
 
   const handleMiniGameEnd = async (score: number) => {
     setShowMiniGame(false)
-    setCurrentPose(null)  // clear train pose
+    setCurrentPose(null)
     const act = pendingActivity ? PLAY_ACTIVITIES[pendingActivity] : null
     const xpGained = score * 3 + 10
     const happinessGain = Math.min(40, act ? act.happinessGain + score : score * 2 + 10)
-    const costEnergy = act ? act.costEnergy : 15
-    const costHunger = act ? act.costHunger : 10
-
-    const training = creature.training ?? { strength: 0, reflexes: 0, endurance: 0, defense: 0 }
-    const totalPts = Object.values(training).reduce((a, b) => a + b, 0)
-    const newTraining = act && training[act.stat] < 20 && totalPts < MAX_TRAINING_POINTS
-      ? { ...training, [act.stat]: training[act.stat] + 1 }
-      : training
-    const statLeveled = act && newTraining[act.stat] > training[act.stat]
-
+    const tr = creature.training ?? { strength: 0, reflexes: 0, endurance: 0, defense: 0 }
+    const totalPts = Object.values(tr).reduce((a, b) => a + b, 0)
+    const newTr = act && tr[act.stat] < 20 && totalPts < MAX_TRAINING_POINTS
+      ? { ...tr, [act.stat]: tr[act.stat] + 1 } : tr
+    const statLeveled = act && newTr[act.stat] > tr[act.stat]
     let updated: Creature = {
-      ...creature,
-      lastPlayed: new Date().toISOString(),
-      totalPlayed: creature.totalPlayed + 1,
-      training: newTraining,
+      ...creature, lastPlayed: new Date().toISOString(), totalPlayed: creature.totalPlayed + 1, training: newTr,
       stats: {
         ...creature.stats,
         happiness: Math.min(100, creature.stats.happiness + happinessGain),
-        energy:    Math.max(0, creature.stats.energy - costEnergy),
-        hunger:    Math.max(0, creature.stats.hunger - costHunger),
+        energy:    Math.max(0, creature.stats.energy - (act?.costEnergy ?? 15)),
+        hunger:    Math.max(0, creature.stats.hunger  - (act?.costHunger ?? 10)),
       },
     }
     updated = { ...addXP(updated, xpGained), mood: getMood(updated.stats) }
-    let newQuests = updateQuestsAfterAction(quests, 'play')
-    newQuests = updateQuestsAfterAction(newQuests, 'level', updated.stats.level)
+    let nq = updateQuestsAfterAction(quests, 'play')
+    nq = updateQuestsAfterAction(nq, 'level', updated.stats.level)
     const actLabel = act ? `${act.emoji} ${act.label}` : '🎮 Jeu'
-    const statNote = statLeveled ? ` · ${TRAINING_CONFIG[act!.stat].label} Lv ${newTraining[act!.stat]}` : ''
-    let newJournal = addJournalEntry(journal, `${creature.name} a joué (${actLabel})${statNote} ! +${xpGained} XP`, act?.emoji ?? '🎮')
-    const { updatedEvents, updatedQuests: q2, updatedJournal: j2 } = maybeSpawnEvent(updated, events, newQuests, newJournal)
-    showSpeech(statLeveled
-      ? `${act!.emoji} ${TRAINING_CONFIG[act!.stat].label} Lv ${newTraining[act!.stat]} !`
-      : getReactionMessage('play'))
+    const statNote = statLeveled ? ` · ${TRAINING_CONFIG[act!.stat].label} Lv ${newTr[act!.stat]}` : ''
+    let nj = addJournalEntry(journal, `${creature.name} a joué (${actLabel})${statNote} ! +${xpGained} XP`, act?.emoji ?? '🎮')
+    const { updatedEvents, updatedQuests: q2, updatedJournal: j2 } = maybeSpawnEvent(updated, events, nq, nj)
+    showSpeech(statLeveled ? `${act!.emoji} ${TRAINING_CONFIG[act!.stat].label} Lv ${newTr[act!.stat]} !` : getReactionMessage('play'))
     triggerParticles([act?.emoji ?? '🎮', '⭐', '🎉'])
     setPendingActivity(null)
     await Promise.all([saveCreature(updated), saveEvents(updatedEvents), saveQuests(q2), saveJournal(j2)])
@@ -320,42 +270,33 @@ export default function HomeScreen({ creature, inventory, events, quests, journa
     if (creature.stats.energy >= 95) { showSpeech('Je suis en pleine forme ! ⚡'); return }
     triggerPose('sleep', 3500)
     let updated: Creature = {
-      ...creature,
-      totalSlept: creature.totalSlept + 1,
+      ...creature, totalSlept: creature.totalSlept + 1,
       stats: { ...creature.stats, energy: Math.min(100, creature.stats.energy + 40), hunger: Math.max(0, creature.stats.hunger - 5) },
     }
     updated = { ...updated, mood: getMood(updated.stats) }
-    let newQuests = updateQuestsAfterAction(quests, 'sleep')
-    let newJournal = addJournalEntry(journal, `${creature.name} a fait une bonne sieste.`, '💤')
+    let nq = updateQuestsAfterAction(quests, 'sleep')
+    let nj = addJournalEntry(journal, `${creature.name} a fait une bonne sieste.`, '💤')
     showSpeech(getReactionMessage('sleep'))
     triggerParticles(['💤', '🌙', '⭐'])
-    await Promise.all([saveCreature(updated), saveQuests(newQuests), saveJournal(newJournal)])
-    onUpdate(updated, inventory, events, newQuests, newJournal)
+    await Promise.all([saveCreature(updated), saveQuests(nq), saveJournal(nj)])
+    onUpdate(updated, inventory, events, nq, nj)
   }
 
   const handleEventClose = async () => {
     if (!pendingEvent) return
     let updatedCreature = creature
-    let newInventory = inventory
-
-    if (pendingEvent.type === 'sick') {
-      updatedCreature = { ...creature, stats: { ...creature.stats, isSick: true } }
-    }
-    if (pendingEvent.type === 'dream' && pendingEvent.reward?.xp) {
+    let newInv = inventory
+    if (pendingEvent.type === 'sick')     updatedCreature = { ...creature, stats: { ...creature.stats, isSick: true } }
+    if ((pendingEvent.type === 'dream' || pendingEvent.type === 'training') && pendingEvent.reward?.xp)
       updatedCreature = { ...addXP(creature, pendingEvent.reward.xp), mood: getMood(creature.stats) }
-    }
-    if (pendingEvent.type === 'training' && pendingEvent.reward?.xp) {
-      updatedCreature = { ...addXP(creature, pendingEvent.reward.xp), mood: getMood(creature.stats) }
-    }
     if (pendingEvent.reward?.itemId) {
       const item = getRewardItem(pendingEvent.reward.itemId)
-      if (item) newInventory = addItemToInventory(inventory, item)
+      if (item) newInv = addItemToInventory(inventory, item)
     }
-
     const newEvents = events.map((e) => e.id === pendingEvent.id ? { ...e, resolved: true } : e)
     setPendingEvent(null)
-    await Promise.all([saveCreature(updatedCreature), saveInventory(newInventory), saveEvents(newEvents)])
-    onUpdate(updatedCreature, newInventory, newEvents, quests, journal)
+    await Promise.all([saveCreature(updatedCreature), saveInventory(newInv), saveEvents(newEvents)])
+    onUpdate(updatedCreature, newInv, newEvents, quests, journal)
   }
 
   const onRefresh = useCallback(async () => {
@@ -368,34 +309,24 @@ export default function HomeScreen({ creature, inventory, events, quests, journa
   }, [creature])
 
   const adminAction = async (action: string) => {
-    let updated = { ...creature }
+    let u = { ...creature }
     switch (action) {
-      case 'xp100':   updated = addXP(updated, 100); break
-      case 'xp500':   updated = addXP(updated, 500); break
-      case 'xp9999':  updated = addXP(updated, 9999); break
-      case 'maxstats':
-        updated = { ...updated, stats: { ...updated.stats, hunger: 100, happiness: 100, energy: 100 } }
-        break
-      case 'heal':
-        updated = { ...updated, stats: { ...updated.stats, isSick: false } }
-        break
-      case 'lv1':
-        updated = { ...updated, stats: { ...updated.stats, level: 1, xp: 0, xpToNextLevel: 100 } }
-        break
-      case 'lv10':
-        updated = { ...updated, stats: { ...updated.stats, level: 10, xp: 0, xpToNextLevel: 1000 } }
-        break
-      case 'lv20':
-        updated = { ...updated, stats: { ...updated.stats, level: 20, xp: 0, xpToNextLevel: 2000 } }
-        break
-      case 'type_ignis': updated = { ...updated, type: 'ignis' }; break
-      case 'type_nemo':  updated = { ...updated, type: 'nemo'  }; break
-      case 'type_sylva': updated = { ...updated, type: 'sylva' }; break
-      case 'type_zapp':  updated = { ...updated, type: 'zapp'  }; break
+      case 'xp100':      u = addXP(u, 100); break
+      case 'xp500':      u = addXP(u, 500); break
+      case 'xp9999':     u = addXP(u, 9999); break
+      case 'maxstats':   u = { ...u, stats: { ...u.stats, hunger: 100, happiness: 100, energy: 100 } }; break
+      case 'heal':       u = { ...u, stats: { ...u.stats, isSick: false } }; break
+      case 'lv1':        u = { ...u, stats: { ...u.stats, level: 1,  xp: 0, xpToNextLevel: 100  } }; break
+      case 'lv10':       u = { ...u, stats: { ...u.stats, level: 10, xp: 0, xpToNextLevel: 1000 } }; break
+      case 'lv20':       u = { ...u, stats: { ...u.stats, level: 20, xp: 0, xpToNextLevel: 2000 } }; break
+      case 'type_ignis': u = { ...u, type: 'ignis' }; break
+      case 'type_nemo':  u = { ...u, type: 'nemo'  }; break
+      case 'type_sylva': u = { ...u, type: 'sylva' }; break
+      case 'type_zapp':  u = { ...u, type: 'zapp'  }; break
     }
-    updated = { ...updated, mood: getMood(updated.stats) }
-    await saveCreature(updated)
-    onUpdate(updated)
+    u = { ...u, mood: getMood(u.stats) }
+    await saveCreature(u)
+    onUpdate(u)
     triggerParticles(['⚡', '✨', '🔧'])
     showSpeech('Admin cheat activé ! 👾')
   }
@@ -409,200 +340,213 @@ export default function HomeScreen({ creature, inventory, events, quests, journa
     triggerParticles(['⭐', '✨', '💫', '🌟'])
   }, [creature.stats.level])
 
+  // Skin navigation
+  const allSkins = [null, ...(creature.ownedSkins ?? [])]
+  const curSkinIdx = creature.skin ? Math.max(0, allSkins.indexOf(creature.skin)) : 0
+  const handleSkinLeft  = () => onSkinChange(allSkins[(curSkinIdx - 1 + allSkins.length) % allSkins.length])
+  const handleSkinRight = () => onSkinChange(allSkins[(curSkinIdx + 1) % allSkins.length])
+
+  const training = creature.training ?? { strength: 0, reflexes: 0, endurance: 0, defense: 0 }
+  const totalTrainingPts = Object.values(training).reduce((a, b) => a + b, 0)
+  const foodItems = inventory.filter((i) => (i.effect.hunger ?? 0) > 0)
+  const previewInv = inventory.slice(0, 5)
+
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: bgColor }]}>
+    <SafeAreaView style={s.root}>
       <ParticleEffect trigger={particleTrigger} emojis={particleEmojis} />
 
+      {/* ── Hero ─────────────────────────────────────────────── */}
+      <View style={s.hero}>
+        <ImageBackground source={TERRAIN[creature.type]} style={s.heroImg} resizeMode="cover">
+          <View style={s.heroVignette} pointerEvents="none" />
+
+          {/* Header */}
+          <View style={s.heroHeader}>
+            <TouchableOpacity onPress={handleTitleTap} activeOpacity={1}>
+              <Text style={s.heroTitle}>Croisio</Text>
+            </TouchableOpacity>
+            <View style={{ flex: 1 }} />
+            <TouchableOpacity style={s.heroIconBtn}>
+              <Text style={s.heroIconTxt}>🎁</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={s.heroIconBtn} onPress={() => setShowAdmin(true)}>
+              <Text style={s.heroIconTxt}>⚙️</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Chips */}
+          <View style={s.chipsRow}>
+            <View style={s.chip}><Text style={s.chipTxt}>{WEATHER_EMOJI[weather]} {WEATHER_LABEL[weather]}</Text></View>
+            {!!streak && streak > 0 && (
+              <View style={s.chip}><Text style={s.chipTxt}>🔥 {streak} jour{streak > 1 ? 's' : ''}</Text></View>
+            )}
+            <View style={s.chip}><Text style={[s.chipTxt, { color: '#F5A623' }]}>💰 {coins ?? 0}</Text></View>
+          </View>
+
+          {/* Speech bubble */}
+          {speechVisible && (
+            <View style={s.speech} pointerEvents="none">
+              <Text style={s.speechQ}>❝</Text>
+              <Text style={s.speechTxt}>{speechMsg}</Text>
+            </View>
+          )}
+
+          {/* Level badges */}
+          <View style={s.heroBadges}>
+            <View style={s.lvBadge}><Text style={s.lvTxt}>Niv. {creature.stats.level}</Text></View>
+            {creature.stats.level >= 20 && <View style={s.maxBadge}><Text style={s.maxTxt}>★ MAX</Text></View>}
+            {creature.stats.level >= 10 && creature.stats.level < 20 && <View style={[s.maxBadge, { backgroundColor: '#555' }]}><Text style={s.maxTxt}>★ ADO</Text></View>}
+          </View>
+
+          {/* Creature */}
+          <View style={s.heroCreature} pointerEvents="box-none">
+            <CreatureDisplay creature={creature} pose={currentPose} onEvolve={handleEvolve} variant="hero" />
+          </View>
+
+          {/* Sick badge */}
+          {creature.stats.isSick && !currentPose && (
+            <View style={s.sickBadge} pointerEvents="none">
+              <Text style={s.sickTxt}>🤒 Malade</Text>
+            </View>
+          )}
+
+          {/* Skin arrows */}
+          {allSkins.length > 1 && (
+            <>
+              <TouchableOpacity style={[s.arrow, s.arrowL]} onPress={handleSkinLeft}>
+                <Text style={s.arrowTxt}>‹</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[s.arrow, s.arrowR]} onPress={handleSkinRight}>
+                <Text style={s.arrowTxt}>›</Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </ImageBackground>
+      </View>
+
+      {/* ── Scrollable content ────────────────────────────────── */}
       <ScrollView
-        contentContainerStyle={styles.scroll}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        style={s.scroll}
+        contentContainerStyle={s.scrollContent}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#aaa" />}
+        showsVerticalScrollIndicator={false}
       >
-        <View style={styles.header}>
-          <TouchableOpacity onPress={handleTitleTap} activeOpacity={1}>
-            <Text style={[styles.title, { color: textColor }]}>Croisio</Text>
-          </TouchableOpacity>
-          {creature.stats.isSick && (
-            <View style={styles.sickTag}>
-              <Text style={styles.sickTagText}>🤒 Malade</Text>
+        {/* ÉTAT */}
+        <View style={s.section}>
+          <Text style={s.sectionLbl}>État</Text>
+          {([
+            { label: 'Faim',    icon: '🍖', value: creature.stats.hunger,    max: 100, color: '#FF6B6B' },
+            { label: 'Bonheur', icon: '⭐', value: creature.stats.happiness, max: 100, color: '#FFD700' },
+            { label: 'Énergie', icon: '⚡', value: creature.stats.energy,    max: 100, color: '#44CC66' },
+          ] as const).map(({ label, icon, value, max, color }) => (
+            <View key={label} style={s.statRow}>
+              <Text style={s.statIcon}>{icon}</Text>
+              <Text style={s.statName}>{label}</Text>
+              <View style={s.statTrack}>
+                <View style={[s.statFill, { width: `${(value / max) * 100}%` as any, backgroundColor: color }]} />
+              </View>
+              <Text style={s.statVal}>{value}/{max}</Text>
+            </View>
+          ))}
+          <View style={s.statRow}>
+            <Text style={s.statIcon}>  </Text>
+            <Text style={[s.statName, { color: '#A855F7' }]}>XP</Text>
+            <View style={s.statTrack}>
+              <View style={[s.statFill, { width: `${(creature.stats.xp / creature.stats.xpToNextLevel) * 100}%` as any, backgroundColor: '#A855F7' }]} />
+            </View>
+            <Text style={s.statVal}>{creature.stats.xp}/{creature.stats.xpToNextLevel}</Text>
+          </View>
+          {creature.activeCombatBuff && creature.activeCombatBuff.expiresAt > new Date().toISOString() && (
+            <View style={s.buffRow}>
+              <Text style={s.buffTxt}>⚔️ +{Math.round((creature.activeCombatBuff.damageMult - 1) * 100)}% dégâts actif</Text>
             </View>
           )}
         </View>
 
-        <View style={styles.weatherRow}>
-          <Text style={[styles.weatherText, { color: textColor === '#ffffff' ? '#ccc' : '#555' }]}>
-            {WEATHER_EMOJI[weather]} {WEATHER_LABEL[weather]}
-          </Text>
-          {streak != null && streak > 0 && (
-            <Text style={[styles.weatherText, { color: textColor === '#ffffff' ? '#ccc' : '#555' }]}>
-              {'  ·  '}🔥 {streak} jour{streak > 1 ? 's' : ''}
-            </Text>
-          )}
-          {coins != null && (
-            <Text style={[styles.weatherText, { color: textColor === '#ffffff' ? '#FFD700' : '#B8860B', fontWeight: '700' }]}>
-              {'  ·  '}💰 {coins}
-            </Text>
-          )}
+        {/* ACTIONS */}
+        <View style={s.section}>
+          <Text style={s.sectionLbl}>Actions</Text>
+          <View style={s.actionsRow}>
+            {([
+              { label: 'Nourrir',     icon: '🍖', onPress: handleFeed,              disabled: creature.stats.hunger >= 95 },
+              { label: 'Jouer',       icon: '🎮', onPress: handlePlay,              disabled: creature.stats.energy < 10 },
+              { label: "S'entraîner", icon: '🏋️', onPress: () => setShowTraining(true), disabled: false },
+              { label: 'Dormir',      icon: '💤', onPress: handleSleep,             disabled: creature.stats.energy >= 95 },
+            ]).map(({ label, icon, onPress, disabled }) => (
+              <TouchableOpacity key={label} style={[s.actionBtn, disabled && s.actionDisabled]} onPress={onPress} activeOpacity={0.75}>
+                <Text style={s.actionIcon}>{icon}</Text>
+                <Text style={s.actionLbl}>{label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
 
-        <SpeechBubble message={speechMsg} visible={speechVisible} />
-        <CreatureDisplay creature={creature} pose={currentPose} onEvolve={handleEvolve} />
+        {/* COMBAT + AVENTURE */}
+        <View style={s.modeRow}>
+          <TouchableOpacity style={s.combatBtn} onPress={onOpenCrossings} activeOpacity={0.85}>
+            <Text style={s.modeIcon}>⚔️</Text>
+            <View>
+              <Text style={s.modeTitle}>COMBATTRE</Text>
+              <Text style={s.modeSub}>Défie des joueurs{'\n'}ou l'IA</Text>
+            </View>
+          </TouchableOpacity>
+          <TouchableOpacity style={s.adventureBtn} onPress={onOpenCrossings} activeOpacity={0.85}>
+            <Text style={s.modeIcon}>📜</Text>
+            <View>
+              <Text style={[s.modeTitle, { color: '#C084FC' }]}>AVENTURE</Text>
+              <Text style={s.modeSub}>Explore et gagne{'\n'}des récompenses</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
 
-        {(creature.ownedSkins ?? []).length > 0 && (
-          <View style={styles.skinSection}>
-            <Text style={[styles.skinTitle, { color: textColor }]}>✨ Apparences</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.skinRow}>
-              <TouchableOpacity
-                style={[styles.skinChip, !creature.skin && styles.skinChipActive]}
-                onPress={() => onSkinChange(null)}
-              >
-                <View style={[styles.skinDot, { backgroundColor: '#888' }]} />
-                <Text style={styles.skinLabel}>Défaut</Text>
-              </TouchableOpacity>
-              {(creature.ownedSkins ?? []).map((color) => (
-                <TouchableOpacity
-                  key={color}
-                  style={[styles.skinChip, creature.skin === color && styles.skinChipActive]}
-                  onPress={() => onSkinChange(color)}
-                >
-                  <View style={[styles.skinDot, { backgroundColor: SKIN_PALETTE[color] ?? '#ccc' }]} />
-                  <Text style={styles.skinLabel}>{color}</Text>
-                </TouchableOpacity>
+        {/* INVENTAIRE */}
+        <View style={s.section}>
+          <View style={s.invHeader}>
+            <Text style={s.sectionLbl}>Inventaire</Text>
+            <TouchableOpacity onPress={onOpenInventory}>
+              <Text style={s.viewAll}>Voir tout ›</Text>
+            </TouchableOpacity>
+          </View>
+          {inventory.length === 0 ? (
+            <Text style={s.invEmpty}>Aucun objet. Gagne des combats !</Text>
+          ) : (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+              {previewInv.map((item) => (
+                <View key={item.id} style={s.invItem}>
+                  <Text style={s.invIcon}>{item.emoji}</Text>
+                  <Text style={s.invQty}>×{item.quantity}</Text>
+                </View>
               ))}
             </ScrollView>
-          </View>
-        )}
-
-        <StatsPanel stats={creature.stats} />
-        {creature.activeCombatBuff && creature.activeCombatBuff.expiresAt > new Date().toISOString() && (
-          <View style={styles.buffBadge}>
-            <Text style={styles.buffText}>
-              ⚔️ +{Math.round((creature.activeCombatBuff.damageMult - 1) * 100)}% dégâts actif
-            </Text>
-          </View>
-        )}
-        <View style={styles.spacer} />
-        <ActionButtons
-          onFeed={handleFeed}
-          onPlay={handlePlay}
-          onSleep={handleSleep}
-          hungerFull={creature.stats.hunger >= 95}
-          energyFull={creature.stats.energy >= 95}
-        />
-        <View style={styles.trainSection}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Text style={[styles.trainTitle, { color: textColor }]}>⚔️ Entraînement</Text>
-            {(() => {
-              const tr = creature.training ?? { strength: 0, reflexes: 0, endurance: 0, defense: 0 }
-              const used = Object.values(tr).reduce((a, b) => a + b, 0)
-              return (
-                <Text style={[styles.trainTitle, { color: used >= MAX_TRAINING_POINTS ? '#FF6B6B' : textColor, fontSize: 12 }]}>
-                  {used}/{MAX_TRAINING_POINTS} pts
-                </Text>
-              )
-            })()}
-          </View>
-          <View style={styles.trainGrid}>
-            {(Object.keys(TRAINING_CONFIG) as (keyof TrainingStats)[]).map((type) => {
-              const cfg = TRAINING_CONFIG[type]
-              const training = creature.training ?? { strength: 0, reflexes: 0, endurance: 0, defense: 0 }
-              const current = training[type]
-              const totalUsed = Object.values(training).reduce((a, b) => a + b, 0)
-              const canTrain = current < 20
-                && totalUsed < MAX_TRAINING_POINTS
-                && creature.stats.energy >= cfg.costEnergy
-                && creature.stats.hunger >= cfg.costHunger
-              return (
-                <TouchableOpacity
-                  key={type}
-                  style={[styles.trainCard, !canTrain && styles.trainCardDisabled]}
-                  onPress={() => handleTrain(type)}
-                  activeOpacity={canTrain ? 0.7 : 1}
-                >
-                  <Text style={styles.trainEmoji}>{cfg.emoji}</Text>
-                  <Text style={styles.trainLabel}>{cfg.label}</Text>
-                  <Text style={styles.trainDesc}>{cfg.desc}</Text>
-                  <View style={styles.trainBarBg}>
-                    <View style={[styles.trainBarFill, { width: `${(current / 20) * 100}%` as any }]} />
-                  </View>
-                  <Text style={styles.trainLevel}>Lv {current}/20</Text>
-                  <Text style={styles.trainCost}>-{cfg.costEnergy}⚡ -{cfg.costHunger}🍖</Text>
-                </TouchableOpacity>
-              )
-            })}
-          </View>
+          )}
         </View>
       </ScrollView>
 
+      {/* ── Modals ───────────────────────────────────────────── */}
       <MiniGame
         visible={showMiniGame}
         onClose={handleMiniGameEnd}
         creatureType={creature.type}
         activityStat={pendingActivity ? PLAY_ACTIVITIES[pendingActivity].stat : undefined}
-        trainingLevel={pendingActivity
-          ? (creature.training ?? { strength: 0, reflexes: 0, endurance: 0, defense: 0 })[PLAY_ACTIVITIES[pendingActivity].stat]
-          : 0}
+        trainingLevel={pendingActivity ? (creature.training ?? { strength: 0, reflexes: 0, endurance: 0, defense: 0 })[PLAY_ACTIVITIES[pendingActivity].stat] : 0}
       />
 
       <EventModal event={pendingEvent} onClose={handleEventClose} />
 
-      <Modal visible={showActivityPicker} transparent animationType="slide">
-        <TouchableOpacity style={styles.foodOverlay} onPress={() => setShowActivityPicker(false)} activeOpacity={1}>
-          <View style={styles.foodCard}>
-            <Text style={styles.foodTitle}>🎮 Choisir une activité</Text>
-            {(Object.entries(PLAY_ACTIVITIES) as [string, typeof PLAY_ACTIVITIES[string]][]).map(([key, act]) => {
-              const training = creature.training ?? { strength: 0, reflexes: 0, endurance: 0, defense: 0 }
-              const currentLv = training[act.stat]
-              const maxed = currentLv >= 20
-              const canPlay = !maxed && creature.stats.energy >= act.costEnergy && creature.stats.hunger >= act.costHunger
-              return (
-                <TouchableOpacity
-                  key={key}
-                  style={[styles.activityRow, !canPlay && styles.activityRowDisabled]}
-                  onPress={() => canPlay && handleSelectActivity(key)}
-                  activeOpacity={canPlay ? 0.7 : 1}
-                >
-                  <Text style={styles.activityEmoji}>{act.emoji}</Text>
-                  <View style={styles.activityInfo}>
-                    <View style={styles.activityHeader}>
-                      <Text style={styles.activityName}>{act.label}</Text>
-                      <Text style={styles.activityStatBadge}>
-                        {maxed ? '✅ Max' : `${TRAINING_CONFIG[act.stat].label} Lv ${currentLv}/20`}
-                      </Text>
-                    </View>
-                    <Text style={styles.activityDesc}>{act.desc}</Text>
-                    <View style={styles.activityBarBg}>
-                      <View style={[styles.activityBarFill, { width: `${(currentLv / 20) * 100}%` as any }]} />
-                    </View>
-                    <Text style={styles.activityCost}>-{act.costEnergy}⚡ -{act.costHunger}🍖</Text>
-                  </View>
-                </TouchableOpacity>
-              )
-            })}
-          </View>
-        </TouchableOpacity>
-      </Modal>
-
+      {/* Food picker */}
       <Modal visible={showFoodPicker} transparent animationType="slide">
-        <TouchableOpacity style={styles.foodOverlay} onPress={() => setShowFoodPicker(false)} activeOpacity={1}>
-          <View style={styles.foodCard}>
-            <Text style={styles.foodTitle}>🍽️ Que donner à manger ?</Text>
+        <TouchableOpacity style={s.overlay} onPress={() => setShowFoodPicker(false)} activeOpacity={1}>
+          <View style={s.sheet}>
+            <Text style={s.sheetTitle}>🍽️ Que donner à manger ?</Text>
             {foodItems.length === 0 ? (
-              <View style={styles.foodEmpty}>
-                <Text style={styles.foodEmptyText}>Aucune nourriture disponible</Text>
-                <Text style={styles.foodEmptyHint}>Gagne des combats pour obtenir des croquettes ! ⚔️</Text>
-              </View>
+              <Text style={s.sheetEmpty}>Aucune nourriture. Gagne des combats !</Text>
             ) : (
               foodItems.map((item) => (
-                <TouchableOpacity key={item.id} style={styles.foodItemRow} onPress={() => handleFeedWith(item)}>
-                  <Text style={styles.foodItemEmoji}>{item.emoji}</Text>
-                  <View style={styles.foodItemInfo}>
-                    <View style={styles.foodItemHeader}>
-                      <Text style={styles.foodItemName}>{item.name}</Text>
-                      <View style={[styles.foodQtyBadge, { backgroundColor: item.rarity === 'rare' ? '#FF8C00' : item.rarity === 'epic' ? '#9B59B6' : '#666' }]}>
-                        <Text style={styles.foodQtyText}>×{item.quantity}</Text>
-                      </View>
-                    </View>
-                    <Text style={styles.foodItemEffects}>{formatFoodEffects(item)}</Text>
+                <TouchableOpacity key={item.id} style={s.sheetRow} onPress={() => handleFeedWith(item)}>
+                  <Text style={s.sheetRowIcon}>{item.emoji}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={s.sheetRowName}>{item.name} ×{item.quantity}</Text>
+                    <Text style={s.sheetRowSub}>{formatFoodEffects(item)}</Text>
                   </View>
                 </TouchableOpacity>
               ))
@@ -611,86 +555,123 @@ export default function HomeScreen({ creature, inventory, events, quests, journa
         </TouchableOpacity>
       </Modal>
 
+      {/* Activity picker */}
+      <Modal visible={showActivityPicker} transparent animationType="slide">
+        <TouchableOpacity style={s.overlay} onPress={() => setShowActivityPicker(false)} activeOpacity={1}>
+          <View style={s.sheet}>
+            <Text style={s.sheetTitle}>🎮 Choisir une activité</Text>
+            {(Object.entries(PLAY_ACTIVITIES) as [string, typeof PLAY_ACTIVITIES[string]][]).map(([key, act]) => {
+              const curLv = training[act.stat]
+              const maxed = curLv >= 20
+              const canPlay = !maxed && creature.stats.energy >= act.costEnergy && creature.stats.hunger >= act.costHunger
+              return (
+                <TouchableOpacity
+                  key={key}
+                  style={[s.sheetRow, !canPlay && { opacity: 0.4 }]}
+                  onPress={() => canPlay && handleSelectActivity(key)}
+                  activeOpacity={canPlay ? 0.75 : 1}
+                >
+                  <Text style={s.sheetRowIcon}>{act.emoji}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={s.sheetRowName}>{act.label} · {maxed ? '✅ Max' : `${TRAINING_CONFIG[act.stat].label} Lv ${curLv}/20`}</Text>
+                    <Text style={s.sheetRowSub}>{act.desc} · -{act.costEnergy}⚡ -{act.costHunger}🍖</Text>
+                  </View>
+                </TouchableOpacity>
+              )
+            })}
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Training */}
+      <Modal visible={showTraining} transparent animationType="slide">
+        <TouchableOpacity style={s.overlay} onPress={() => setShowTraining(false)} activeOpacity={1}>
+          <View style={s.sheet}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
+              <Text style={s.sheetTitle}>⚔️ Entraînement</Text>
+              <Text style={[s.sheetTitle, { fontSize: 13, color: totalTrainingPts >= MAX_TRAINING_POINTS ? '#FF6B6B' : '#888' }]}>
+                {totalTrainingPts}/{MAX_TRAINING_POINTS} pts
+              </Text>
+            </View>
+            {(Object.keys(TRAINING_CONFIG) as (keyof TrainingStats)[]).map((type) => {
+              const cfg = TRAINING_CONFIG[type]
+              const cur = training[type]
+              const canTrain = cur < 20 && totalTrainingPts < MAX_TRAINING_POINTS
+                && creature.stats.energy >= cfg.costEnergy && creature.stats.hunger >= cfg.costHunger
+              return (
+                <TouchableOpacity key={type} style={[s.sheetRow, !canTrain && { opacity: 0.4 }]}
+                  onPress={() => canTrain && handleTrain(type)} activeOpacity={canTrain ? 0.75 : 1}>
+                  <Text style={s.sheetRowIcon}>{cfg.emoji}</Text>
+                  <View style={{ flex: 1 }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                      <Text style={s.sheetRowName}>{cfg.label}</Text>
+                      <Text style={s.sheetRowName}>Lv {cur}/20</Text>
+                    </View>
+                    <Text style={s.sheetRowSub}>{cfg.desc} · -{cfg.costEnergy}⚡ -{cfg.costHunger}🍖</Text>
+                    <View style={s.trainTrack}>
+                      <View style={[s.trainFill, { width: `${(cur / 20) * 100}%` as any }]} />
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              )
+            })}
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Admin */}
       <Modal visible={showAdmin} transparent animationType="slide">
-        <View style={styles.adminOverlay}>
-          <View style={styles.adminCard}>
-            <Text style={styles.adminTitle}>👾 Panel Admin</Text>
-            <Text style={styles.adminSub}>
-              Lv {creature.stats.level} · {creature.stats.xp}/{creature.stats.xpToNextLevel} XP
-            </Text>
-
-            <Text style={styles.adminSection}>XP</Text>
-            <View style={styles.adminRow}>
-              {([['xp100', '+100 XP'], ['xp500', '+500 XP'], ['xp9999', '+9999 XP']] as const).map(([act, lbl]) => (
-                <TouchableOpacity key={act} style={styles.adminBtn} onPress={() => adminAction(act)}>
-                  <Text style={styles.adminBtnText}>{lbl}</Text>
-                </TouchableOpacity>
+        <View style={s.adminOverlay}>
+          <View style={s.adminCard}>
+            <Text style={s.adminTitle}>👾 Panel Admin</Text>
+            <Text style={s.adminSub}>Lv {creature.stats.level} · {creature.stats.xp}/{creature.stats.xpToNextLevel} XP</Text>
+            {(['XP', 'Niveau direct', 'Monstre', 'Stats'] as const).map((section) => (
+              <Text key={section} style={s.adminSection}>{section}</Text>
+            ))}
+            <Text style={s.adminSection}>XP</Text>
+            <View style={s.adminRow}>
+              {(['xp100', '+100 XP'] as const).map ? null : null}
+              {([['xp100','+100 XP'],['xp500','+500 XP'],['xp9999','+9999 XP']] as [string,string][]).map(([a,l]) => (
+                <TouchableOpacity key={a} style={s.adminBtn} onPress={() => adminAction(a)}><Text style={s.adminBtnTxt}>{l}</Text></TouchableOpacity>
               ))}
             </View>
-
-            <Text style={styles.adminSection}>Niveau direct</Text>
-            <View style={styles.adminRow}>
-              {([['lv1', 'Niveau 1'], ['lv10', 'Niveau 10'], ['lv20', 'Niveau 20']] as const).map(([act, lbl]) => (
-                <TouchableOpacity key={act} style={[styles.adminBtn, { backgroundColor: '#A855F7' }]} onPress={() => adminAction(act)}>
-                  <Text style={styles.adminBtnText}>{lbl}</Text>
-                </TouchableOpacity>
+            <Text style={s.adminSection}>Niveau</Text>
+            <View style={s.adminRow}>
+              {([['lv1','Niv 1'],['lv10','Niv 10'],['lv20','Niv 20']] as [string,string][]).map(([a,l]) => (
+                <TouchableOpacity key={a} style={[s.adminBtn,{backgroundColor:'#A855F7'}]} onPress={() => adminAction(a)}><Text style={s.adminBtnTxt}>{l}</Text></TouchableOpacity>
               ))}
             </View>
-
-            <Text style={styles.adminSection}>Monstre</Text>
-            <View style={styles.adminRow}>
-              {([
-                ['type_ignis', '🔥 Ignis', '#C41E0F'],
-                ['type_nemo',  '🌊 Némo',  '#1A3A6B'],
-                ['type_sylva', '🌿 Sylva', '#2D6A2D'],
-                ['type_zapp',  '⚡ Zapp',  '#C47A00'],
-              ] as [string, string, string][]).map(([act, lbl, col]) => {
-                const t = act.replace('type_', '') as CreatureType
-                return (
-                  <TouchableOpacity
-                    key={act}
-                    style={[styles.adminBtn, { backgroundColor: col, opacity: creature.type === t ? 1 : 0.45 }]}
-                    onPress={() => adminAction(act)}
-                  >
-                    <Text style={styles.adminBtnText}>{lbl}</Text>
-                  </TouchableOpacity>
-                )
-              })}
+            <Text style={s.adminSection}>Type</Text>
+            <View style={s.adminRow}>
+              {([['type_ignis','🔥 Ignis','#C41E0F'],['type_nemo','🌊 Némo','#1A3A6B'],['type_sylva','🌿 Sylva','#2D6A2D'],['type_zapp','⚡ Zapp','#C47A00']] as [string,string,string][]).map(([a,l,c]) => (
+                <TouchableOpacity key={a} style={[s.adminBtn,{backgroundColor:c}]} onPress={() => adminAction(a)}><Text style={s.adminBtnTxt}>{l}</Text></TouchableOpacity>
+              ))}
             </View>
-
-            <Text style={styles.adminSection}>Stats</Text>
-            <View style={styles.adminRow}>
-              <TouchableOpacity style={[styles.adminBtn, { backgroundColor: '#22C55E' }]} onPress={() => adminAction('maxstats')}>
-                <Text style={styles.adminBtnText}>Max tout</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.adminBtn, { backgroundColor: '#3B82F6' }]} onPress={() => adminAction('heal')}>
-                <Text style={styles.adminBtnText}>Soigner</Text>
-              </TouchableOpacity>
+            <Text style={s.adminSection}>Stats</Text>
+            <View style={s.adminRow}>
+              <TouchableOpacity style={[s.adminBtn,{backgroundColor:'#22C55E'}]} onPress={() => adminAction('maxstats')}><Text style={s.adminBtnTxt}>Max tout</Text></TouchableOpacity>
+              <TouchableOpacity style={[s.adminBtn,{backgroundColor:'#3B82F6'}]} onPress={() => adminAction('heal')}><Text style={s.adminBtnTxt}>Soigner</Text></TouchableOpacity>
             </View>
-
-            <TouchableOpacity style={styles.adminClose} onPress={() => setShowAdmin(false)}>
-              <Text style={styles.adminCloseText}>Fermer</Text>
+            <TouchableOpacity style={s.adminClose} onPress={() => setShowAdmin(false)}>
+              <Text style={s.adminCloseTxt}>Fermer</Text>
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
 
+      {/* Evolve */}
       <Modal visible={showEvolve} transparent animationType="fade">
-        <View style={styles.evolveOverlay}>
-          <Animated.View style={[styles.evolveCard, { transform: [{ scale: evolveScale }] }]}>
-            <Text style={styles.evolveEmoji}>✨</Text>
-            <Text style={styles.evolveTitle}>ÉVOLUTION !</Text>
-            <Text style={styles.evolveName}>{creature.name}</Text>
-            <Text style={styles.evolveDesc}>
-              {evolveStage === 3
-                ? 'A atteint sa forme finale !\nLes ailes se déploient...'
-                : 'A grandi et est devenu plus fort !\nSes cornes ont poussé...'}
+        <View style={s.evolveOverlay}>
+          <Animated.View style={[s.evolveCard, { transform: [{ scale: evolveScale }] }]}>
+            <Text style={s.evolveEmoji}>✨</Text>
+            <Text style={s.evolveTitle}>ÉVOLUTION !</Text>
+            <Text style={s.evolveName}>{creature.name}</Text>
+            <Text style={s.evolveDesc}>
+              {evolveStage === 3 ? 'A atteint sa forme finale !\nLes ailes se déploient...' : 'A grandi et est devenu plus fort !\nSes cornes ont poussé...'}
             </Text>
-            <Text style={styles.evolveStage}>
-              {evolveStage === 3 ? '★ FORME ULTIME' : '★ FORME ADO'}
-            </Text>
-            <TouchableOpacity style={styles.evolveBtn} onPress={() => setShowEvolve(false)}>
-              <Text style={styles.evolveBtnText}>Incroyable !</Text>
+            <Text style={s.evolveStage}>{evolveStage === 3 ? '★ FORME ULTIME' : '★ FORME ADO'}</Text>
+            <TouchableOpacity style={s.evolveBtn} onPress={() => setShowEvolve(false)}>
+              <Text style={s.evolveBtnTxt}>Incroyable !</Text>
             </TouchableOpacity>
           </Animated.View>
         </View>
@@ -699,250 +680,131 @@ export default function HomeScreen({ creature, inventory, events, quests, journa
   )
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F8F7FF' },
-  scroll: { paddingBottom: 30, gap: 16 },
-  header: {
-    paddingTop: 16,
-    paddingHorizontal: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
+const s = StyleSheet.create({
+  root: { flex: 1, backgroundColor: '#0f0f1a' },
+
+  // ── Hero ──────────────────────────────────────────────────
+  hero: { height: HERO_H, overflow: 'hidden' },
+  heroImg: { flex: 1 },
+  heroVignette: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 72, backgroundColor: '#0f0f1a', opacity: 0.72 },
+  heroHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 12, gap: 8 },
+  heroTitle: {
+    fontSize: 28, fontWeight: '800', color: '#fff',
+    textShadowColor: 'rgba(0,0,0,0.6)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4,
   },
-  title: { fontSize: 32, fontWeight: '800', color: '#1a1a2e', letterSpacing: -1 },
-  weatherRow: {
-    flexDirection: 'row',
-    paddingHorizontal: 20,
-    alignItems: 'center',
+  heroIconBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' },
+  heroIconTxt: { fontSize: 18 },
+
+  chipsRow: { flexDirection: 'row', gap: 6, paddingHorizontal: 16, paddingTop: 8 },
+  chip: { backgroundColor: 'rgba(0,0,0,0.35)', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
+  chipTxt: { fontSize: 12, fontWeight: '600', color: '#fff' },
+
+  speech: {
+    position: 'absolute', top: 90, left: 16, right: 116,
+    backgroundColor: 'rgba(255,255,255,0.93)', borderRadius: 14, padding: 10,
+    flexDirection: 'row', alignItems: 'flex-start', gap: 6,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.18, shadowRadius: 6,
   },
-  weatherText: { fontSize: 13, fontWeight: '500' },
-  sickTag: {
-    backgroundColor: '#FFF3CD',
-    borderRadius: 20,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+  speechQ: { fontSize: 15, color: '#aaa', lineHeight: 20 },
+  speechTxt: { flex: 1, fontSize: 13, color: '#1a1a2e', fontWeight: '500', lineHeight: 18 },
+
+  heroBadges: { position: 'absolute', top: 120, right: 12, gap: 6, alignItems: 'flex-end' },
+  lvBadge: { backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5 },
+  lvTxt: { color: '#fff', fontWeight: '700', fontSize: 13 },
+  maxBadge: { backgroundColor: '#F59E0B', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5 },
+  maxTxt: { color: '#fff', fontWeight: '800', fontSize: 11 },
+
+  heroCreature: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+
+  sickBadge: { position: 'absolute', bottom: 76, left: 16, backgroundColor: '#FFF3CD', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
+  sickTxt: { fontSize: 12, fontWeight: '700', color: '#856404' },
+
+  arrow: { position: 'absolute', top: 0, bottom: 0, width: 48, alignItems: 'center', justifyContent: 'center' },
+  arrowL: { left: 0 },
+  arrowR: { right: 0 },
+  arrowTxt: { fontSize: 38, color: 'rgba(255,255,255,0.85)', fontWeight: '200',
+    textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 },
+
+  // ── Scroll content ────────────────────────────────────────
+  scroll: { flex: 1 },
+  scrollContent: { paddingTop: 10, paddingBottom: 24, gap: 10 },
+
+  section: { marginHorizontal: 12, backgroundColor: '#1a1a2e', borderRadius: 16, padding: 14 },
+  sectionLbl: { fontSize: 11, fontWeight: '800', letterSpacing: 1.5, color: '#55557a', textTransform: 'uppercase', marginBottom: 10 },
+
+  // Stats
+  statRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
+  statIcon: { fontSize: 14, width: 22, textAlign: 'center' },
+  statName: { fontSize: 13, fontWeight: '600', color: '#9999bb', width: 68 },
+  statTrack: { flex: 1, height: 6, backgroundColor: '#2a2a3e', borderRadius: 3, overflow: 'hidden' },
+  statFill: { height: 6, borderRadius: 3 },
+  statVal: { fontSize: 11, color: '#55557a', width: 48, textAlign: 'right' },
+  buffRow: { marginTop: 4, backgroundColor: '#FFD70011', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5, borderWidth: 1, borderColor: '#FFD70033' },
+  buffTxt: { fontSize: 11, fontWeight: '700', color: '#C47A00' },
+
+  // Actions
+  actionsRow: { flexDirection: 'row', gap: 8 },
+  actionBtn: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#252540', borderRadius: 12, paddingVertical: 13, gap: 5 },
+  actionDisabled: { opacity: 0.35 },
+  actionIcon: { fontSize: 24 },
+  actionLbl: { fontSize: 11, fontWeight: '600', color: '#ccc' },
+
+  // Combat / Aventure
+  modeRow: { flexDirection: 'row', gap: 10, marginHorizontal: 12 },
+  combatBtn: {
+    flex: 1, backgroundColor: '#162040', borderRadius: 14, padding: 14,
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    shadowColor: '#3B82F6', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.3, shadowRadius: 8,
   },
-  sickTagText: { fontSize: 12, fontWeight: '700', color: '#856404' },
-  spacer: { height: 4 },
-  buffBadge: {
-    marginHorizontal: 20,
-    backgroundColor: '#FFD70022',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    alignSelf: 'flex-start',
-    borderWidth: 1,
-    borderColor: '#FFD70066',
+  adventureBtn: {
+    flex: 1, backgroundColor: '#1e1040', borderRadius: 14, padding: 14,
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    shadowColor: '#A855F7', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.3, shadowRadius: 8,
   },
-  buffText: { fontSize: 12, fontWeight: '700', color: '#C47A00' },
-  trainSection: { paddingHorizontal: 16, gap: 10 },
-  trainTitle: { fontSize: 15, fontWeight: '800', letterSpacing: -0.3 },
-  trainGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  trainCard: {
-    width: '47%',
-    backgroundColor: '#fff',
-    borderRadius: 14,
-    padding: 12,
-    gap: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  trainCardDisabled: { opacity: 0.4 },
-  trainEmoji: { fontSize: 20 },
-  trainLabel: { fontSize: 13, fontWeight: '800', color: '#1a1a2e' },
-  trainDesc: { fontSize: 10, color: '#888', marginBottom: 4 },
-  trainBarBg: { height: 4, backgroundColor: '#eee', borderRadius: 2, overflow: 'hidden' },
-  trainBarFill: { height: 4, backgroundColor: '#7C3AED', borderRadius: 2 },
-  trainLevel: { fontSize: 11, fontWeight: '700', color: '#555', marginTop: 2 },
-  trainCost: { fontSize: 10, color: '#FF6B35' },
-  skinSection: { paddingHorizontal: 16, gap: 6 },
-  skinTitle: { fontSize: 13, fontWeight: '700' },
-  skinRow: { flexDirection: 'row', gap: 8, paddingVertical: 4 },
-  skinChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 20,
-    backgroundColor: '#fff',
-    borderWidth: 2,
-    borderColor: 'transparent',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  skinChipActive: { borderColor: '#7C3AED' },
-  skinDot: { width: 14, height: 14, borderRadius: 7 },
-  skinLabel: { fontSize: 12, fontWeight: '600', color: '#1a1a2e', textTransform: 'capitalize' },
-  activityRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    backgroundColor: '#F8F7FF',
-    borderRadius: 14,
-    padding: 12,
-  },
-  activityRowDisabled: { opacity: 0.4 },
-  activityEmoji: { fontSize: 28 },
-  activityInfo: { flex: 1, gap: 3 },
-  activityHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  activityName: { fontSize: 14, fontWeight: '700', color: '#1a1a2e' },
-  activityStatBadge: { fontSize: 11, fontWeight: '700', color: '#7C3AED' },
-  activityDesc: { fontSize: 11, color: '#888' },
-  activityBarBg: { height: 4, backgroundColor: '#eee', borderRadius: 2, overflow: 'hidden', marginTop: 2 },
-  activityBarFill: { height: 4, backgroundColor: '#7C3AED', borderRadius: 2 },
-  activityCost: { fontSize: 10, color: '#FF6B35', marginTop: 2 },
-  foodOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  foodCard: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    padding: 24,
-    paddingBottom: 40,
-    gap: 12,
-  },
-  foodTitle: { fontSize: 18, fontWeight: '800', color: '#1a1a2e', textAlign: 'center', marginBottom: 4 },
-  foodEmpty: { alignItems: 'center', paddingVertical: 20, gap: 8 },
-  foodEmptyText: { fontSize: 15, color: '#888', fontWeight: '600' },
-  foodEmptyHint: { fontSize: 13, color: '#bbb', textAlign: 'center' },
-  foodItemRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    backgroundColor: '#F8F7FF',
-    borderRadius: 14,
-    padding: 12,
-  },
-  foodItemEmoji: { fontSize: 28 },
-  foodItemInfo: { flex: 1, gap: 3 },
-  foodItemHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  foodItemName: { fontSize: 14, fontWeight: '700', color: '#1a1a2e', flex: 1 },
-  foodQtyBadge: { borderRadius: 8, paddingHorizontal: 7, paddingVertical: 2 },
-  foodQtyText: { color: '#fff', fontSize: 11, fontWeight: '700' },
-  foodItemEffects: { fontSize: 11, color: '#888', lineHeight: 16 },
-  adminOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    justifyContent: 'flex-end',
-  },
-  adminCard: {
-    backgroundColor: '#1a1a2e',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    padding: 28,
-    paddingBottom: 40,
-    gap: 10,
-  },
-  adminTitle: {
-    fontSize: 22,
-    fontWeight: '900',
-    color: '#fff',
-    textAlign: 'center',
-  },
-  adminSub: {
-    fontSize: 13,
-    color: '#888',
-    textAlign: 'center',
-    marginBottom: 6,
-  },
-  adminSection: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#666',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginTop: 8,
-  },
-  adminRow: {
-    flexDirection: 'row',
-    gap: 8,
-    flexWrap: 'wrap',
-  },
-  adminBtn: {
-    backgroundColor: '#FF6B35',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 12,
-  },
-  adminBtnText: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: 13,
-  },
-  adminClose: {
-    marginTop: 16,
-    alignItems: 'center',
-    paddingVertical: 14,
-    backgroundColor: '#2a2a3e',
-    borderRadius: 16,
-  },
-  adminCloseText: {
-    color: '#888',
-    fontWeight: '600',
-    fontSize: 15,
-  },
-  evolveOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(26,26,46,0.92)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 32,
-  },
-  evolveCard: {
-    backgroundColor: '#fff',
-    borderRadius: 28,
-    padding: 32,
-    alignItems: 'center',
-    width: '100%',
-    gap: 8,
-    shadowColor: '#FFD700',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.6,
-    shadowRadius: 24,
-    elevation: 20,
-  },
-  evolveEmoji: { fontSize: 52 },
-  evolveTitle: {
-    fontSize: 32,
-    fontWeight: '900',
-    color: '#1a1a2e',
-    letterSpacing: 2,
-  },
-  evolveName: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#555',
-  },
-  evolveDesc: {
-    fontSize: 15,
-    color: '#888',
-    textAlign: 'center',
-    lineHeight: 22,
-    marginTop: 4,
-  },
-  evolveStage: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#FFD700',
-    letterSpacing: 1,
-    marginTop: 4,
-  },
-  evolveBtn: {
-    backgroundColor: '#1a1a2e',
-    borderRadius: 16,
-    paddingVertical: 14,
-    paddingHorizontal: 40,
-    marginTop: 12,
-  },
-  evolveBtnText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '700',
-  },
+  modeIcon: { fontSize: 28 },
+  modeTitle: { fontSize: 13, fontWeight: '800', color: '#60A5FA', letterSpacing: 0.5 },
+  modeSub: { fontSize: 11, color: '#6688aa', marginTop: 2, lineHeight: 15 },
+
+  // Inventory preview
+  invHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+  viewAll: { fontSize: 12, color: '#F5A623', fontWeight: '600' },
+  invItem: { width: 64, alignItems: 'center', backgroundColor: '#252540', borderRadius: 12, paddingVertical: 10, gap: 4 },
+  invIcon: { fontSize: 28 },
+  invQty: { fontSize: 11, color: '#888', fontWeight: '600' },
+  invEmpty: { fontSize: 12, color: '#55557a', textAlign: 'center', paddingVertical: 12 },
+
+  // Bottom sheets
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', justifyContent: 'flex-end' },
+  sheet: { backgroundColor: '#1a1a2e', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 38 },
+  sheetTitle: { fontSize: 17, fontWeight: '800', color: '#fff', marginBottom: 14 },
+  sheetEmpty: { fontSize: 13, color: '#55557a', textAlign: 'center', padding: 20 },
+  sheetRow: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#252540', borderRadius: 12, padding: 12, marginBottom: 8 },
+  sheetRowIcon: { fontSize: 26, width: 32, textAlign: 'center' },
+  sheetRowName: { fontSize: 14, fontWeight: '700', color: '#fff' },
+  sheetRowSub: { fontSize: 11, color: '#888', marginTop: 2 },
+  trainTrack: { height: 4, backgroundColor: '#2a2a3e', borderRadius: 2, overflow: 'hidden', marginTop: 6 },
+  trainFill: { height: 4, backgroundColor: '#7C3AED', borderRadius: 2 },
+
+  // Admin
+  adminOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'center', padding: 20 },
+  adminCard: { backgroundColor: '#1a1a2e', borderRadius: 20, padding: 20 },
+  adminTitle: { fontSize: 20, fontWeight: '800', color: '#fff', textAlign: 'center', marginBottom: 4 },
+  adminSub: { fontSize: 12, color: '#888', textAlign: 'center', marginBottom: 16 },
+  adminSection: { fontSize: 11, fontWeight: '700', color: '#55557a', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, marginTop: 10 },
+  adminRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
+  adminBtn: { backgroundColor: '#7C3AED', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8 },
+  adminBtnTxt: { color: '#fff', fontWeight: '700', fontSize: 12 },
+  adminClose: { marginTop: 20, backgroundColor: '#252540', borderRadius: 12, padding: 12, alignItems: 'center' },
+  adminCloseTxt: { color: '#aaa', fontWeight: '700', fontSize: 14 },
+
+  // Evolve
+  evolveOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.88)', justifyContent: 'center', alignItems: 'center' },
+  evolveCard: { backgroundColor: '#1a1a2e', borderRadius: 24, padding: 32, alignItems: 'center', gap: 12, margin: 24 },
+  evolveEmoji: { fontSize: 48 },
+  evolveTitle: { fontSize: 28, fontWeight: '900', color: '#FFD700', letterSpacing: 2 },
+  evolveName: { fontSize: 18, fontWeight: '700', color: '#fff' },
+  evolveDesc: { fontSize: 14, color: '#aaa', textAlign: 'center', lineHeight: 20 },
+  evolveStage: { fontSize: 13, fontWeight: '800', color: '#FFD700', letterSpacing: 1 },
+  evolveBtn: { backgroundColor: '#7C3AED', borderRadius: 14, paddingHorizontal: 28, paddingVertical: 12, marginTop: 8 },
+  evolveBtnTxt: { color: '#fff', fontWeight: '800', fontSize: 15 },
 })
