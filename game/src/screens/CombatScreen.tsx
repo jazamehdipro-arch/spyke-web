@@ -339,7 +339,6 @@ function resolveSpell(
       }
     }
     case 'malediction': {
-      const defaultLoadout: SpellLoadout = ['vague', 'siphon', 'regeneration', 'barriere']
       const blocked = targetLoadout
         ? targetMostExpensiveSpell(target, targetLoadout)
         : 'vague'
@@ -919,7 +918,8 @@ export default function CombatScreen({ player, opponent, onFinish, debugOverride
         for (const st of result.targetStatusesToAdd) newO = addStatus(newO, st)
         for (const t of result.targetStatusesToRemove) newO = removeStatus(newO, t)
 
-        logParts.push(result.log)
+        // embuscade log is deferred to after we know if opponent missed
+        if (pAction.spellId !== 'embuscade') logParts.push(result.log)
       }
     } else {
       // defend
@@ -1029,19 +1029,26 @@ export default function CombatScreen({ player, opponent, onFinish, debugOverride
           embDmg = Math.round(embDmg * (1 - (b.value ?? 50) / 100))
         }
         newO = { ...newO, hp: Math.max(0, newO.hp - embDmg) }
-        logParts.push(embResult.log)
       }
+      logParts.push(embResult.log)
     }
 
     // Burn DoT
     const pBurn = getStatus(newP, 'burn')
     if (pBurn) {
       newP = { ...newP, hp: Math.max(0, newP.hp - (pBurn.value ?? 4)) }
-      logParts.push(`🔥 Brûlure -${pBurn.value ?? 4}PV`)
+      logParts.push(`🔥 Brûlure : -${pBurn.value ?? 4} PV`)
     }
     const oBurn = getStatus(newO, 'burn')
     if (oBurn) {
       newO = { ...newO, hp: Math.max(0, newO.hp - (oBurn.value ?? 4)) }
+      logParts.push(`🔥 Ennemi brûle : -${oBurn.value ?? 4} PV`)
+    }
+
+    // Sick DoT on player
+    if (playerMods.sickDot > 0) {
+      newP = { ...newP, hp: Math.max(0, newP.hp - playerMods.sickDot) }
+      logParts.push(`🤒 Fièvre : -${playerMods.sickDot} PV`)
     }
 
     // Tick statuses and cooldowns
@@ -1053,7 +1060,7 @@ export default function CombatScreen({ player, opponent, onFinish, debugOverride
     if (newP.hp < curP.hp) shake(playerShake)
     if (newO.hp < curO.hp) shake(opponentShake)
 
-    const logMsg = logParts.filter(Boolean).join(' ')
+    const logMsg = logParts.filter(Boolean).join('\n')
     setLog(logMsg || '...')
     setPState(newP)
     setOState(newO)
@@ -1285,12 +1292,16 @@ export default function CombatScreen({ player, opponent, onFinish, debugOverride
 
       </View>
 
-      {/* HINT BAR */}
-      <Text style={s.hintBar}>
-        {phase === 'choosing'
-          ? 'Lis l\'énergie adverse · choisis vite'
-          : phase === 'resolving' ? 'Résolution…' : ''}
-      </Text>
+      {/* HINT BAR / COMBAT LOG */}
+      <View style={[s.hintBar, phase === 'resolving' && s.hintBarLog]}>
+        {phase === 'resolving' ? (
+          <Text style={s.logText} numberOfLines={6}>{log}</Text>
+        ) : (
+          <Text style={s.hintText}>
+            {phase === 'choosing' ? "Lis l'énergie adverse · choisis vite" : ''}
+          </Text>
+        )}
+      </View>
 
       {/* DECK — always rendered to avoid layout shift */}
       <View
@@ -1467,10 +1478,25 @@ const s = StyleSheet.create({
   clashChipText: { color: '#F3EEFE', fontSize: 9, fontWeight: '800', fontFamily: 'monospace', letterSpacing: 0.3 },
   clashVs: { color: '#9A8FC4', fontSize: 12, fontWeight: '900', fontFamily: 'monospace' },
 
-  // HINT BAR
+  // HINT BAR / LOG
   hintBar: {
-    textAlign: 'center', fontSize: 11, color: '#9A8FC4',
-    fontWeight: '600', paddingVertical: 5,
+    minHeight: 34,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    justifyContent: 'center',
+  },
+  hintBarLog: {
+    minHeight: 80,
+    backgroundColor: 'rgba(13, 10, 24, 0.96)',
+    borderTopWidth: 1,
+    borderTopColor: '#352A5E',
+    paddingVertical: 10,
+  },
+  hintText: {
+    textAlign: 'center', fontSize: 11, color: '#9A8FC4', fontWeight: '600',
+  },
+  logText: {
+    fontSize: 10, color: '#E0D8FF', fontWeight: '600', lineHeight: 17,
   },
 
   // DECK
