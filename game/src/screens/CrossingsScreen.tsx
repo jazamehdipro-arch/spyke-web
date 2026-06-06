@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react'
 import {
-  FlatList,
   Image,
   ImageSourcePropType,
   Modal,
@@ -15,7 +14,7 @@ import { Creature, Crossing, CreatureType, SpellId, SpellLoadout } from '../type
 import { CREATURE_COLORS } from '../utils/creature'
 import { loadCrossings } from '../utils/storage'
 import CombatScreen, { CombatOpponent } from './CombatScreen'
-import { DEFAULT_LOADOUTS, getEvoStage, SPELL_CATALOG } from '../utils/spells'
+import { DEFAULT_LOADOUTS, EvoStage, getEvoStage, SPELL_CATALOG } from '../utils/spells'
 
 const CROSSING_SPRITES: Record<CreatureType, ImageSourcePropType> = {
   ignis: require('../../assets/sprites/ignis_f0.png'),
@@ -32,6 +31,34 @@ const BOT_OPPONENTS: CombatOpponent[] = [
   { username: 'IzunaMaster', creatureName: 'Vulcan', creatureType: 'ignis', level: 12 },
   { username: 'OcéanMaster', creatureName: 'Tidal',  creatureType: 'nemo',  level: 15 },
 ]
+
+const BOT_CREATURE_NAMES: Record<CreatureType, Record<EvoStage, string[]>> = {
+  ignis: { base: ['Cinder', 'Ember', 'Pyra'],     e2: ['Blaze', 'Scorch', 'Inferno'],   e3: ['Vulcan', 'Magmus', 'Ignarok']   },
+  nemo:  { base: ['Ripple', 'Deeps', 'Coral'],    e2: ['Surge', 'Tidal', 'Torrent'],    e3: ['Abyss', 'Mareal', 'Levian']     },
+  sylva: { base: ['Mossy', 'Fern', 'Wisp'],       e2: ['Bramble', 'Grove', 'Shade'],    e3: ['Sylvane', 'Verdant', 'Nebula']  },
+  zapp:  { base: ['Bolt', 'Spark', 'Zara'],       e2: ['Flash', 'Static', 'Volt'],      e3: ['Thunder', 'Tempête', 'Stormix'] },
+}
+
+const BOT_USERNAMES: Record<CreatureType, string[]> = {
+  ignis: ['FlameBattler', 'AshSeeker', 'PyraFan', 'HeatHunter'],
+  nemo:  ['TidalWatcher', 'DeepDiver', 'CoralKeeper', 'WaveRider'],
+  sylva: ['ForestRunner', 'MistWalker', 'LeafDancer', 'VineStalker'],
+  zapp:  ['StormCatcher', 'VoltSeeker', 'BoltChaser', 'ZapMaster'],
+}
+
+function generateAIOpponent(playerLevel: number): CombatOpponent {
+  const types: CreatureType[] = ['ignis', 'nemo', 'sylva', 'zapp']
+  const type = types[Math.floor(Math.random() * types.length)]
+  const minLv = Math.max(1, playerLevel - 2)
+  const maxLv = playerLevel + 5
+  const level = Math.floor(Math.random() * (maxLv - minLv + 1)) + minLv
+  const evo = getEvoStage(level)
+  const names = BOT_CREATURE_NAMES[type][evo]
+  const creatureName = names[Math.floor(Math.random() * names.length)]
+  const usernames = BOT_USERNAMES[type]
+  const username = usernames[Math.floor(Math.random() * usernames.length)] + (Math.floor(Math.random() * 900) + 100)
+  return { username, creatureName, creatureType: type, level }
+}
 
 interface DebugConfig {
   playerType: CreatureType
@@ -214,6 +241,8 @@ function CrossingCard({ item, onChallenge }: { item: Crossing; onChallenge: () =
 function BotCard({ bot, onChallenge }: { bot: CombatOpponent; onChallenge: () => void }) {
   const color  = CREATURE_COLORS[bot.creatureType]
   const sprite = CROSSING_SPRITES[bot.creatureType]
+  const evo = getEvoStage(bot.level)
+  const evoLabel = evo === 'e3' ? '★★★' : evo === 'e2' ? '★★' : '★'
   return (
     <View style={[styles.card, styles.botCard]}>
       <View style={[styles.avatarCircle, { backgroundColor: color + '22' }]}>
@@ -222,7 +251,7 @@ function BotCard({ bot, onChallenge }: { bot: CombatOpponent; onChallenge: () =>
       <View style={styles.cardInfo}>
         <Text style={styles.cardName}>{bot.username}</Text>
         <Text style={styles.cardCreature}>{bot.creatureName}</Text>
-        <Text style={styles.cardInteraction}>🤖 Bot entraînement · Lv {bot.level}</Text>
+        <Text style={styles.cardInteraction}>🤖 Lv {bot.level} · {evoLabel}</Text>
       </View>
       <TouchableOpacity style={[styles.challengeBtn, { backgroundColor: color }]} onPress={onChallenge}>
         <Text style={styles.challengeText}>⚔️ Défier</Text>
@@ -235,6 +264,7 @@ export default function CrossingsScreen({ player, onCombatEnd }: Props) {
   const [crossings, setCrossings] = useState<Crossing[]>([])
   const [loading, setLoading]     = useState(true)
   const [combat, setCombat]       = useState<CombatOpponent | null>(null)
+  const [showCrossings, setShowCrossings] = useState(false)
   const [debugSetup, setDebugSetup] = useState(false)
   const [debugOverride, setDebugOverride] = useState<{
     playerType: CreatureType
@@ -251,8 +281,13 @@ export default function CrossingsScreen({ player, onCombatEnd }: Props) {
   }, [])
 
   const startCombat = (opponent: CombatOpponent) => {
+    setShowCrossings(false)
     setDebugOverride(undefined)
     setCombat(opponent)
+  }
+
+  const handleQuickAI = () => {
+    startCombat(generateAIOpponent(player.stats.level))
   }
 
   const handleDebugStart = (cfg: DebugConfig) => {
@@ -291,17 +326,18 @@ export default function CrossingsScreen({ player, onCombatEnd }: Props) {
 
   if (loading) return null
 
+  const playerLevel = player.stats.level
+  const minLv = Math.max(1, playerLevel - 2)
+  const maxLv = playerLevel + 5
+
   return (
     <SafeAreaView style={styles.safe}>
+      {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerTop}>
           <View>
-            <Text style={styles.title}>Croisements</Text>
-            <Text style={styles.subtitle}>
-              {crossings.length > 0
-                ? `${crossings.length} rencontre${crossings.length > 1 ? 's' : ''}`
-                : 'Bots d\'entraînement disponibles'}
-            </Text>
+            <Text style={styles.title}>Combats</Text>
+            <Text style={styles.subtitle}>{player.name} · Lv {playerLevel}</Text>
           </View>
           <TouchableOpacity style={styles.debugBtn} onPress={() => setDebugSetup(true)}>
             <Text style={styles.debugBtnText}>🐛 Debug</Text>
@@ -309,43 +345,63 @@ export default function CrossingsScreen({ player, onCombatEnd }: Props) {
         </View>
       </View>
 
+      {/* Mode cards */}
+      <View style={styles.modeRow}>
+        <TouchableOpacity style={[styles.modeCard, styles.modeCardAI]} onPress={handleQuickAI} activeOpacity={0.85}>
+          <Text style={styles.modeEmoji}>🤖</Text>
+          <Text style={styles.modeTitle}>Combat IA</Text>
+          <Text style={styles.modeSub}>Aléatoire · Lv {minLv}–{maxLv}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.modeCard, styles.modeCardMP]} onPress={() => setShowCrossings(true)} activeOpacity={0.85}>
+          <Text style={styles.modeEmoji}>👥</Text>
+          <Text style={styles.modeTitle}>Multijoueur</Text>
+          <Text style={styles.modeSub}>
+            {crossings.length > 0
+              ? `${crossings.length} croisement${crossings.length !== 1 ? 's' : ''}`
+              : 'Bots disponibles'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Crossings / bots sheet */}
+      <Modal visible={showCrossings} transparent animationType="slide">
+        <TouchableOpacity style={styles.sheetOverlay} onPress={() => setShowCrossings(false)} activeOpacity={1}>
+          <View style={styles.sheetCard}>
+            <Text style={styles.sheetTitle}>
+              {crossings.length > 0 ? '⚔️ Tes croisements' : '🤖 Bots d\'entraînement'}
+            </Text>
+            {crossings.length === 0 && (
+              <Text style={styles.sheetSub}>Entraîne-toi en attendant de vrais croisements !</Text>
+            )}
+            <ScrollView showsVerticalScrollIndicator={false} style={styles.sheetScroll}>
+              {crossings.length > 0
+                ? crossings.map((c) => (
+                    <CrossingCard
+                      key={c.id}
+                      item={c}
+                      onChallenge={() => startCombat({
+                        username: c.username,
+                        creatureName: c.creatureName,
+                        creatureType: c.creatureType,
+                        level: Math.max(1, c.xpGained > 0 ? 5 : 1),
+                      })}
+                    />
+                  ))
+                : BOT_OPPONENTS.map((bot, i) => (
+                    <BotCard key={i} bot={bot} onChallenge={() => startCombat(bot)} />
+                  ))
+              }
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
       {debugSetup && (
         <DebugSetupPanel
           onStart={handleDebugStart}
           onClose={() => setDebugSetup(false)}
         />
       )}
-
-      <FlatList
-        data={crossings.length > 0 ? [] : BOT_OPPONENTS}
-        keyExtractor={(_, i) => `bot-${i}`}
-        renderItem={({ item }) => (
-          <BotCard bot={item as CombatOpponent} onChallenge={() => startCombat(item as CombatOpponent)} />
-        )}
-        ListHeaderComponent={
-          crossings.length > 0 ? (
-            <>
-              {crossings.map((c) => (
-                <CrossingCard
-                  key={c.id}
-                  item={c}
-                  onChallenge={() => startCombat({
-                    username: c.username,
-                    creatureName: c.creatureName,
-                    creatureType: c.creatureType,
-                    level: Math.max(1, c.xpGained > 0 ? 5 : 1),
-                  })}
-                />
-              ))}
-            </>
-          ) : (
-            <View style={styles.botHeader}>
-              <Text style={styles.botHeaderText}>Entraîne-toi contre des bots en attendant tes vrais croisements !</Text>
-            </View>
-          )
-        }
-        contentContainerStyle={styles.list}
-      />
     </SafeAreaView>
   )
 }
@@ -364,7 +420,44 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   debugBtnText: { color: '#fff', fontSize: 12, fontWeight: '700' },
-  list: { paddingHorizontal: 16, paddingBottom: 30, gap: 10, flexGrow: 1 },
+
+  // Mode cards
+  modeRow: { flexDirection: 'row', paddingHorizontal: 16, gap: 12 },
+  modeCard: {
+    flex: 1,
+    borderRadius: 20,
+    paddingVertical: 22,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    gap: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.16,
+    shadowRadius: 12,
+    elevation: 5,
+  },
+  modeCardAI: { backgroundColor: '#1a1a2e' },
+  modeCardMP: { backgroundColor: '#7C3AED' },
+  modeEmoji: { fontSize: 36 },
+  modeTitle: { fontSize: 16, fontWeight: '900', color: '#fff' },
+  modeSub: { fontSize: 11, color: 'rgba(255,255,255,0.6)', textAlign: 'center' },
+
+  // Sheet modal
+  sheetOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  sheetCard: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    padding: 24,
+    paddingBottom: 40,
+    gap: 12,
+    maxHeight: '80%',
+  },
+  sheetTitle: { fontSize: 18, fontWeight: '800', color: '#1a1a2e', textAlign: 'center' },
+  sheetSub: { fontSize: 13, color: '#aaa', textAlign: 'center', marginTop: -6 },
+  sheetScroll: { flexGrow: 0 },
+
+  // Cards
   card: {
     backgroundColor: '#fff',
     borderRadius: 16,
@@ -372,6 +465,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    marginBottom: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
@@ -389,8 +483,6 @@ const styles = StyleSheet.create({
   cardTime: { fontSize: 12, color: '#999' },
   challengeBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
   challengeText: { color: '#fff', fontSize: 12, fontWeight: '700' },
-  botHeader: { paddingVertical: 12 },
-  botHeaderText: { fontSize: 13, color: '#999', textAlign: 'center', lineHeight: 20 },
 })
 
 const ds = StyleSheet.create({
