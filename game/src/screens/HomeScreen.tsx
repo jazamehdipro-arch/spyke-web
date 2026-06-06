@@ -32,6 +32,17 @@ const TRAINING_CONFIG: Record<keyof TrainingStats, { label: string; emoji: strin
   defense:   { label: 'Défense',   emoji: '🎯', desc: '+0.5% esquive',    costEnergy: 12, costHunger: 8  },
 }
 
+const PLAY_ACTIVITIES: Record<string, {
+  label: string; emoji: string; desc: string
+  stat: keyof TrainingStats
+  costEnergy: number; costHunger: number; happinessGain: number
+}> = {
+  sparring:  { label: 'Combat',    emoji: '🥊', desc: 'Entraînement de force au sac',      stat: 'strength',  costEnergy: 20, costHunger: 15, happinessGain: 15 },
+  agility:   { label: 'Agilité',   emoji: '🏃', desc: 'Parcours d\'obstacles et de vitesse', stat: 'reflexes',  costEnergy: 15, costHunger: 10, happinessGain: 20 },
+  endurance: { label: 'Endurance', emoji: '🧗', desc: 'Escalade et exercices cardio',       stat: 'endurance', costEnergy: 25, costHunger: 20, happinessGain: 12 },
+  puzzle:    { label: 'Stratégie', emoji: '🧩', desc: 'Puzzles tactiques et réflexion',     stat: 'defense',   costEnergy: 12, costHunger: 8,  happinessGain: 25 },
+}
+
 function formatFoodEffects(item: InventoryItem): string {
   const p: string[] = []
   if (item.effect.hunger)    p.push(`🍖+${item.effect.hunger}`)
@@ -99,6 +110,8 @@ export default function HomeScreen({ creature, inventory, events, quests, journa
   const [showEvolve, setShowEvolve] = useState(false)
   const [evolveStage, setEvolveStage] = useState(2)
   const [showAdmin, setShowAdmin] = useState(false)
+  const [showActivityPicker, setShowActivityPicker] = useState(false)
+  const [pendingActivity, setPendingActivity] = useState<keyof typeof PLAY_ACTIVITIES | null>(null)
   const evolveScale = useRef(new Animated.Value(0)).current
   const speechTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const titleTapCount = useRef(0)
@@ -221,27 +234,57 @@ export default function HomeScreen({ creature, inventory, events, quests, journa
   }
 
   const handlePlay = () => {
-    if (creature.stats.energy < 20) { showSpeech('Trop fatigué pour jouer... 😴'); return }
+    if (creature.stats.energy < 10) { showSpeech('Trop fatigué pour jouer... 😴'); return }
+    setShowActivityPicker(true)
+  }
+
+  const handleSelectActivity = (actKey: keyof typeof PLAY_ACTIVITIES) => {
+    const act = PLAY_ACTIVITIES[actKey]
+    if (creature.stats.energy < act.costEnergy) { showSpeech("Pas assez d'énergie ! ⚡"); return }
+    if (creature.stats.hunger < act.costHunger) { showSpeech('Trop affamé pour ça ! 🍖'); return }
+    setPendingActivity(actKey)
+    setShowActivityPicker(false)
     setShowMiniGame(true)
   }
 
   const handleMiniGameEnd = async (score: number) => {
     setShowMiniGame(false)
+    const act = pendingActivity ? PLAY_ACTIVITIES[pendingActivity] : null
     const xpGained = score * 3 + 10
-    const happinessGain = Math.min(40, score * 2 + 10)
+    const happinessGain = Math.min(40, act ? act.happinessGain + score : score * 2 + 10)
+    const costEnergy = act ? act.costEnergy : 15
+    const costHunger = act ? act.costHunger : 10
+
+    const training = creature.training ?? { strength: 0, reflexes: 0, endurance: 0, defense: 0 }
+    const newTraining = act && training[act.stat] < 20
+      ? { ...training, [act.stat]: training[act.stat] + 1 }
+      : training
+    const statLeveled = act && newTraining[act.stat] > training[act.stat]
+
     let updated: Creature = {
       ...creature,
       lastPlayed: new Date().toISOString(),
       totalPlayed: creature.totalPlayed + 1,
-      stats: { ...creature.stats, happiness: Math.min(100, creature.stats.happiness + happinessGain), energy: Math.max(0, creature.stats.energy - 15), hunger: Math.max(0, creature.stats.hunger - 10) },
+      training: newTraining,
+      stats: {
+        ...creature.stats,
+        happiness: Math.min(100, creature.stats.happiness + happinessGain),
+        energy:    Math.max(0, creature.stats.energy - costEnergy),
+        hunger:    Math.max(0, creature.stats.hunger - costHunger),
+      },
     }
     updated = { ...addXP(updated, xpGained), mood: getMood(updated.stats) }
     let newQuests = updateQuestsAfterAction(quests, 'play')
     newQuests = updateQuestsAfterAction(newQuests, 'level', updated.stats.level)
-    let newJournal = addJournalEntry(journal, `${creature.name} a joué et gagné ${xpGained} XP ! (score: ${score})`, '🎮')
+    const actLabel = act ? `${act.emoji} ${act.label}` : '🎮 Jeu'
+    const statNote = statLeveled ? ` · ${TRAINING_CONFIG[act!.stat].label} Lv ${newTraining[act!.stat]}` : ''
+    let newJournal = addJournalEntry(journal, `${creature.name} a joué (${actLabel})${statNote} ! +${xpGained} XP`, act?.emoji ?? '🎮')
     const { updatedEvents, updatedQuests: q2, updatedJournal: j2 } = maybeSpawnEvent(updated, events, newQuests, newJournal)
-    showSpeech(getReactionMessage('play'))
-    triggerParticles(['🎮', '⭐', '🎉'])
+    showSpeech(statLeveled
+      ? `${act!.emoji} ${TRAINING_CONFIG[act!.stat].label} Lv ${newTraining[act!.stat]} !`
+      : getReactionMessage('play'))
+    triggerParticles([act?.emoji ?? '🎮', '⭐', '🎉'])
+    setPendingActivity(null)
     await Promise.all([saveCreature(updated), saveEvents(updatedEvents), saveQuests(q2), saveJournal(j2)])
     onUpdate(updated, inventory, updatedEvents, q2, j2)
   }
@@ -426,6 +469,43 @@ export default function HomeScreen({ creature, inventory, events, quests, journa
 
       <EventModal event={pendingEvent} onClose={handleEventClose} />
 
+      <Modal visible={showActivityPicker} transparent animationType="slide">
+        <TouchableOpacity style={styles.foodOverlay} onPress={() => setShowActivityPicker(false)} activeOpacity={1}>
+          <View style={styles.foodCard}>
+            <Text style={styles.foodTitle}>🎮 Choisir une activité</Text>
+            {(Object.entries(PLAY_ACTIVITIES) as [string, typeof PLAY_ACTIVITIES[string]][]).map(([key, act]) => {
+              const training = creature.training ?? { strength: 0, reflexes: 0, endurance: 0, defense: 0 }
+              const currentLv = training[act.stat]
+              const maxed = currentLv >= 20
+              const canPlay = !maxed && creature.stats.energy >= act.costEnergy && creature.stats.hunger >= act.costHunger
+              return (
+                <TouchableOpacity
+                  key={key}
+                  style={[styles.activityRow, !canPlay && styles.activityRowDisabled]}
+                  onPress={() => canPlay && handleSelectActivity(key)}
+                  activeOpacity={canPlay ? 0.7 : 1}
+                >
+                  <Text style={styles.activityEmoji}>{act.emoji}</Text>
+                  <View style={styles.activityInfo}>
+                    <View style={styles.activityHeader}>
+                      <Text style={styles.activityName}>{act.label}</Text>
+                      <Text style={styles.activityStatBadge}>
+                        {maxed ? '✅ Max' : `${TRAINING_CONFIG[act.stat].label} Lv ${currentLv}/20`}
+                      </Text>
+                    </View>
+                    <Text style={styles.activityDesc}>{act.desc}</Text>
+                    <View style={styles.activityBarBg}>
+                      <View style={[styles.activityBarFill, { width: `${(currentLv / 20) * 100}%` as any }]} />
+                    </View>
+                    <Text style={styles.activityCost}>-{act.costEnergy}⚡ -{act.costHunger}🍖</Text>
+                  </View>
+                </TouchableOpacity>
+              )
+            })}
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
       <Modal visible={showFoodPicker} transparent animationType="slide">
         <TouchableOpacity style={styles.foodOverlay} onPress={() => setShowFoodPicker(false)} activeOpacity={1}>
           <View style={styles.foodCard}>
@@ -602,6 +682,24 @@ const styles = StyleSheet.create({
   trainBarFill: { height: 4, backgroundColor: '#7C3AED', borderRadius: 2 },
   trainLevel: { fontSize: 11, fontWeight: '700', color: '#555', marginTop: 2 },
   trainCost: { fontSize: 10, color: '#FF6B35' },
+  activityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    backgroundColor: '#F8F7FF',
+    borderRadius: 14,
+    padding: 12,
+  },
+  activityRowDisabled: { opacity: 0.4 },
+  activityEmoji: { fontSize: 28 },
+  activityInfo: { flex: 1, gap: 3 },
+  activityHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  activityName: { fontSize: 14, fontWeight: '700', color: '#1a1a2e' },
+  activityStatBadge: { fontSize: 11, fontWeight: '700', color: '#7C3AED' },
+  activityDesc: { fontSize: 11, color: '#888' },
+  activityBarBg: { height: 4, backgroundColor: '#eee', borderRadius: 2, overflow: 'hidden', marginTop: 2 },
+  activityBarFill: { height: 4, backgroundColor: '#7C3AED', borderRadius: 2 },
+  activityCost: { fontSize: 10, color: '#FF6B35', marginTop: 2 },
   foodOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   foodCard: {
     backgroundColor: '#fff',
