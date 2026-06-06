@@ -1102,7 +1102,7 @@ export default function CombatScreen({ player, opponent, onFinish, debugOverride
     setTimeout(() => {
       setPDelta('')
       setODelta('')
-      if (newP.hp <= 0 || newO.hp <= 0 || round >= 10) {
+      if (newP.hp <= 0 || newO.hp <= 0) {
         setPhase('finished')
       } else {
         setPlayerAction(null)
@@ -1133,7 +1133,7 @@ export default function CombatScreen({ player, opponent, onFinish, debugOverride
     }
   }, [phase, clashAnim])
 
-  const won = pState.hp > oState.hp || (pState.hp > 0 && oState.hp <= 0)
+  const won = pState.hp > 0 && oState.hp <= 0
   const xpGained = won ? 60 + opponent.level * 5 : 20
 
   const playerSprite  = SPRITES[spriteKey(playerType, playerLevel)]
@@ -1155,7 +1155,6 @@ export default function CombatScreen({ player, opponent, onFinish, debugOverride
         <View style={s.roundBadge}>
           <Text style={s.roundText}>TOUR </Text>
           <Text style={[s.roundText, s.roundNum]}>{round}</Text>
-          <Text style={s.roundText}>/10</Text>
         </View>
       </View>
 
