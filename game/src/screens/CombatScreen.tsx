@@ -3,6 +3,8 @@ import {
   Animated,
   Image,
   ImageSourcePropType,
+  Platform,
+  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -698,7 +700,7 @@ function SpellCard({
           ]} />
         ))}
       </View>
-      <Text style={s.spellRole} numberOfLines={1}>{spell.description}</Text>
+      <Text style={s.spellRole} numberOfLines={2}>{spell.description}</Text>
     </TouchableOpacity>
   )
 }
@@ -1148,21 +1150,13 @@ export default function CombatScreen({ player, opponent, onFinish, debugOverride
   return (
     <View style={s.root}>
 
-      {/* HEADER: round badge + draining timer + countdown */}
+      {/* HEADER: round badge only */}
       <View style={s.header}>
         <View style={s.roundBadge}>
           <Text style={s.roundText}>TOUR </Text>
           <Text style={[s.roundText, s.roundNum]}>{round}</Text>
           <Text style={s.roundText}>/10</Text>
         </View>
-        <View style={s.timerBarBg}>
-          <Animated.View style={[s.timerBarFill, {
-            width: timerAnim.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }),
-          }]} />
-        </View>
-        <Text style={[s.timerNum, phase !== 'choosing' && s.timerDim]}>
-          {phase === 'choosing' ? `${timeLeft}` : '·'}
-        </Text>
       </View>
 
       {/* ARENA */}
@@ -1213,20 +1207,33 @@ export default function CombatScreen({ player, opponent, onFinish, debugOverride
           </View>
         </View>
 
-        {/* CLASH ZONE — absolute center */}
-        {phase === 'resolving' && playerAction && (
-          <View style={s.clashZone} pointerEvents="none">
-            <Animated.View style={{ opacity: clashOpacity, transform: [{ translateX: meChipX }] }}>
-              <ClashChip action={playerAction} color={pColor} />
-            </Animated.View>
-            <Animated.Text style={[s.clashVs, { opacity: clashOpacity, transform: [{ scale: vsScale }] }]}>
-              VS
-            </Animated.Text>
-            <Animated.View style={{ opacity: clashOpacity, transform: [{ translateX: enChipX }] }}>
-              <ClashChip action={hasStatus(oState, 'smoke') ? null : opponentAction} color={oColor} />
-            </Animated.View>
-          </View>
-        )}
+        {/* CENTER ZONE: timer bar during choosing, clash chips during resolving */}
+        <View style={s.centerZone}>
+          {phase === 'resolving' && playerAction ? (
+            <>
+              <Animated.View style={{ opacity: clashOpacity, transform: [{ translateX: meChipX }] }}>
+                <ClashChip action={playerAction} color={pColor} />
+              </Animated.View>
+              <Animated.Text style={[s.clashVs, { opacity: clashOpacity, transform: [{ scale: vsScale }] }]}>
+                VS
+              </Animated.Text>
+              <Animated.View style={{ opacity: clashOpacity, transform: [{ translateX: enChipX }] }}>
+                <ClashChip action={hasStatus(oState, 'smoke') ? null : opponentAction} color={oColor} />
+              </Animated.View>
+            </>
+          ) : (
+            <>
+              <View style={s.timerBarBg}>
+                <Animated.View style={[s.timerBarFill, {
+                  width: timerAnim.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }),
+                }]} />
+              </View>
+              <Text style={[s.timerNum, phase !== 'choosing' && s.timerDim]}>
+                {phase === 'choosing' ? `${timeLeft}s` : ''}
+              </Text>
+            </>
+          )}
+        </View>
 
         {/* PLAYER */}
         <View style={[s.fighterRow, s.fighterRowMe]}>
@@ -1348,8 +1355,9 @@ const s = StyleSheet.create({
 
   // HEADER
   header: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    paddingTop: 14, paddingHorizontal: 16, paddingBottom: 8,
+    flexDirection: 'row', alignItems: 'center',
+    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight ?? 24) + 6 : 54,
+    paddingHorizontal: 16, paddingBottom: 6,
   },
   roundBadge: {
     flexDirection: 'row', alignItems: 'center',
@@ -1358,6 +1366,22 @@ const s = StyleSheet.create({
   },
   roundText: { fontFamily: 'monospace', fontSize: 10, color: '#9A8FC4', letterSpacing: 0.5 },
   roundNum: { color: '#FFCE3A' },
+
+  // ARENA
+  arena: {
+    flex: 1, paddingHorizontal: 14, paddingBottom: 4,
+    justifyContent: 'space-between',
+  },
+
+  // CENTER ZONE (timer + clash)
+  centerZone: {
+    height: 54,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    paddingHorizontal: 4,
+  },
   timerBarBg: {
     flex: 1, height: 14, borderRadius: 8,
     backgroundColor: '#0C0820', borderWidth: 1, borderColor: '#352A5E', overflow: 'hidden',
@@ -1366,19 +1390,13 @@ const s = StyleSheet.create({
     position: 'absolute', left: 0, top: 0, bottom: 0, borderRadius: 8,
     backgroundColor: '#FF5A2C',
   },
-  timerNum: { fontFamily: 'monospace', fontSize: 22, fontWeight: '900', color: '#FFCE3A', minWidth: 28, textAlign: 'right' },
+  timerNum: { fontFamily: 'monospace', fontSize: 20, fontWeight: '900', color: '#FFCE3A', minWidth: 36, textAlign: 'right' },
   timerDim: { color: '#2A2030' },
-
-  // ARENA
-  arena: {
-    flex: 1, paddingHorizontal: 14, paddingVertical: 6,
-    justifyContent: 'space-between', position: 'relative',
-  },
 
   fighterRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   fighterRowMe: { flexDirection: 'row-reverse' },
   fighterInfo: { flex: 1, gap: 5 },
-  fighterInfoMe: { alignItems: 'flex-end' },
+  fighterInfoMe: {},
 
   stage: {
     width: 110, height: 110, borderRadius: 18,
@@ -1440,12 +1458,7 @@ const s = StyleSheet.create({
   },
   histIcon: { fontSize: 13 },
 
-  // CLASH ZONE
-  clashZone: {
-    position: 'absolute', left: 0, right: 0, top: 0, bottom: 0,
-    alignItems: 'center', justifyContent: 'center',
-    flexDirection: 'row', gap: 10, zIndex: 20,
-  },
+  // CLASH CHIPS (reuse centerZone for layout)
   clashChip: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     backgroundColor: '#241C44', borderWidth: 1, borderColor: '#352A5E',
@@ -1506,8 +1519,8 @@ const s = StyleSheet.create({
   },
   spellCostBarLow: { backgroundColor: '#1A1530', borderColor: '#2A2050' },
   spellRole: {
-    fontSize: 8, color: '#9A8FC4', fontWeight: '600',
-    textTransform: 'uppercase', letterSpacing: 0.5,
+    fontSize: 9, color: '#9A8FC4', fontWeight: '600',
+    lineHeight: 13,
   },
 
   // OVERLAYS
