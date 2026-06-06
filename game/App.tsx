@@ -296,6 +296,7 @@ export default function App() {
             quests={state.quests}
             journal={state.journal}
             streak={state.streak}
+            coins={state.coins}
             onUpdate={handleUpdate}
           />
         )}
@@ -322,6 +323,10 @@ export default function App() {
               updated = { ...updated, mood: getMood(updated.stats) }
               await saveCreature(updated)
               let newInventory = state.inventory
+              const coinsEarned = won
+                ? 15 + Math.floor(Math.random() * 11)   // 15-25 on win
+                : 3 + Math.floor(Math.random() * 4)     // 3-6 consolation
+              const newCoins = state.coins + coinsEarned
               if (won) {
                 newInventory = addItemToInventory(state.inventory, { ...ITEM_CATALOG.croquettes, quantity: 2 })
                 if (Math.random() < 0.25) {
@@ -329,7 +334,8 @@ export default function App() {
                 }
                 await saveInventory(newInventory)
               }
-              handleUpdate(updated, newInventory)
+              await savePlayer({ id: state.username, username: state.username, coins: newCoins })
+              handleUpdate(updated, newInventory, undefined, undefined, undefined, undefined, newCoins)
             }}
           />
         )}

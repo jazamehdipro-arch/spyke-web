@@ -87,6 +87,7 @@ interface Props {
   quests: Quest[]
   journal: JournalEntry[]
   streak?: number
+  coins?: number
   onUpdate: (
     creature: Creature,
     inventory?: InventoryItem[],
@@ -96,7 +97,7 @@ interface Props {
   ) => void
 }
 
-export default function HomeScreen({ creature, inventory, events, quests, journal, streak, onUpdate }: Props) {
+export default function HomeScreen({ creature, inventory, events, quests, journal, streak, coins, onUpdate }: Props) {
   const timeOfDay = getTimeOfDay()
   const bgColor = TIME_BG[timeOfDay]
   const textColor = TIME_TEXT[timeOfDay]
@@ -415,6 +416,11 @@ export default function HomeScreen({ creature, inventory, events, quests, journa
           {streak != null && streak > 0 && (
             <Text style={[styles.weatherText, { color: textColor === '#ffffff' ? '#ccc' : '#555' }]}>
               {'  ·  '}🔥 {streak} jour{streak > 1 ? 's' : ''}
+            </Text>
+          )}
+          {coins != null && (
+            <Text style={[styles.weatherText, { color: textColor === '#ffffff' ? '#FFD700' : '#B8860B', fontWeight: '700' }]}>
+              {'  ·  '}💰 {coins}
             </Text>
           )}
         </View>
