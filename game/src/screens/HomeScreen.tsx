@@ -413,11 +413,15 @@ export default function HomeScreen({
           {/* Skin arrows */}
           {allSkins.length > 1 && (
             <>
-              <TouchableOpacity style={[s.arrow, s.arrowL]} onPress={handleSkinLeft}>
-                <Text style={s.arrowTxt}>‹</Text>
+              <TouchableOpacity style={[s.arrow, s.arrowL]} onPress={handleSkinLeft} activeOpacity={0.7}>
+                <View style={s.arrowCircle}>
+                  <Text style={s.arrowTxt}>‹</Text>
+                </View>
               </TouchableOpacity>
-              <TouchableOpacity style={[s.arrow, s.arrowR]} onPress={handleSkinRight}>
-                <Text style={s.arrowTxt}>›</Text>
+              <TouchableOpacity style={[s.arrow, s.arrowR]} onPress={handleSkinRight} activeOpacity={0.7}>
+                <View style={s.arrowCircle}>
+                  <Text style={s.arrowTxt}>›</Text>
+                </View>
               </TouchableOpacity>
             </>
           )}
@@ -443,18 +447,18 @@ export default function HomeScreen({
               <Text style={s.statIcon}>{icon}</Text>
               <Text style={s.statName}>{label}</Text>
               <View style={s.statTrack}>
-                <View style={[s.statFill, { width: `${(value / max) * 100}%` as any, backgroundColor: color }]} />
+                <View style={[s.statFill, { width: `${Math.min(100, (value / max) * 100)}%` as any, backgroundColor: color }]} />
               </View>
-              <Text style={s.statVal}>{value}/{max}</Text>
+              <Text style={s.statVal}>{Math.round(value)}/{max}</Text>
             </View>
           ))}
           <View style={s.statRow}>
             <Text style={s.statIcon}>  </Text>
             <Text style={[s.statName, { color: '#A855F7' }]}>XP</Text>
             <View style={s.statTrack}>
-              <View style={[s.statFill, { width: `${(creature.stats.xp / creature.stats.xpToNextLevel) * 100}%` as any, backgroundColor: '#A855F7' }]} />
+              <View style={[s.statFill, { width: `${Math.min(100, (creature.stats.xp / creature.stats.xpToNextLevel) * 100)}%` as any, backgroundColor: '#A855F7' }]} />
             </View>
-            <Text style={s.statVal}>{creature.stats.xp}/{creature.stats.xpToNextLevel}</Text>
+            <Text style={s.statVal}>{Math.round(creature.stats.xp)}/{creature.stats.xpToNextLevel}</Text>
           </View>
           {creature.activeCombatBuff && creature.activeCombatBuff.expiresAt > new Date().toISOString() && (
             <View style={s.buffRow}>
@@ -686,7 +690,7 @@ const s = StyleSheet.create({
   // ── Hero ──────────────────────────────────────────────────
   hero: { height: HERO_H, overflow: 'hidden' },
   heroImg: { flex: 1 },
-  heroVignette: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 72, backgroundColor: '#0f0f1a', opacity: 0.72 },
+  heroVignette: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 100, backgroundColor: '#0f0f1a', opacity: 0.55 },
   heroHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 12, gap: 8 },
   heroTitle: {
     fontSize: 28, fontWeight: '800', color: '#fff',
@@ -719,11 +723,17 @@ const s = StyleSheet.create({
   sickBadge: { position: 'absolute', bottom: 76, left: 16, backgroundColor: '#FFF3CD', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
   sickTxt: { fontSize: 12, fontWeight: '700', color: '#856404' },
 
-  arrow: { position: 'absolute', top: 0, bottom: 0, width: 48, alignItems: 'center', justifyContent: 'center' },
-  arrowL: { left: 0 },
-  arrowR: { right: 0 },
-  arrowTxt: { fontSize: 38, color: 'rgba(255,255,255,0.85)', fontWeight: '200',
-    textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 },
+  arrow: {
+    position: 'absolute', top: 0, bottom: 0, width: 60, alignItems: 'center', justifyContent: 'center',
+  },
+  arrowL: { left: 4 },
+  arrowR: { right: 4 },
+  arrowCircle: {
+    width: 44, height: 44, borderRadius: 22,
+    backgroundColor: 'rgba(0,0,0,0.38)', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.3)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  arrowTxt: { fontSize: 22, color: '#fff', fontWeight: '700', marginTop: -1 },
 
   // ── Scroll content ────────────────────────────────────────
   scroll: { flex: 1 },
