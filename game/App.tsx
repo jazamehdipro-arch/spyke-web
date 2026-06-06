@@ -9,7 +9,7 @@ import ProfileScreen from './src/screens/ProfileScreen'
 import QuestsScreen from './src/screens/QuestsScreen'
 import { Creature, Crossing, CreatureType, DailyQuest, GameEvent, InventoryItem, JournalEntry, Quest } from './src/types'
 import { addXP, createNewCreature, decayStats, getMood } from './src/utils/creature'
-import { ITEM_CATALOG, getStarterInventory } from './src/utils/items'
+import { ITEM_CATALOG, drawMysteryBox, getStarterInventory } from './src/utils/items'
 import { QUEST_DEFINITIONS } from './src/utils/quests'
 import { generateDailyQuests, isDailyQuestStale } from './src/utils/dailyQuests'
 import {
@@ -199,7 +199,30 @@ export default function App() {
 
   const handleUseItem = useCallback(async (item: InventoryItem) => {
     if (!state) return
-    let { creature, inventory, quests, journal } = state
+    let { creature, inventory, quests, journal, coins } = state
+
+    // mystery box: draw random reward
+    if (item.id === 'mystery_box') {
+      const reward = drawMysteryBox()
+      let newInventory = inventory
+        .map((i) => i.id === item.id ? { ...i, quantity: i.quantity - 1 } : i)
+        .filter((i) => i.quantity > 0)
+      if (reward.itemId) {
+        const rewardDef = ITEM_CATALOG[reward.itemId]
+        if (rewardDef) newInventory = addItemToInventory(newInventory, { ...rewardDef, quantity: 1 })
+      }
+      let updatedCreature = reward.xp ? addXP(creature, reward.xp) : creature
+      updatedCreature = { ...updatedCreature, mood: getMood(updatedCreature.stats) }
+      const newCoins = coins + reward.coins
+      const prize    = reward.itemId ? ITEM_CATALOG[reward.itemId] : null
+      const msg = prize
+        ? `📦 Boîte Mystère : ${prize.emoji} ${prize.name}${reward.coins > 0 ? ` + 💰${reward.coins}` : ''}${reward.xp > 0 ? ` + ✨${reward.xp} XP` : ''} !`
+        : `📦 Boîte Mystère : 💰 ${reward.coins} pièces !`
+      const newJournal = addJournalEntry(journal, msg, '📦')
+      await Promise.all([saveCreature(updatedCreature), saveInventory(newInventory), saveJournal(newJournal), savePlayer({ id: state.username, username: state.username, coins: newCoins })])
+      handleUpdate(updatedCreature, newInventory, state.events, quests, newJournal, undefined, newCoins)
+      return
+    }
 
     let updatedCreature: Creature = {
       ...creature,
@@ -224,6 +247,18 @@ export default function App() {
 
     await Promise.all([saveCreature(updatedCreature), saveInventory(newInventory), saveJournal(newJournal)])
     handleUpdate(updatedCreature, newInventory, state.events, quests, newJournal)
+  }, [state, handleUpdate])
+
+  const handleBuyItem = useCallback(async (itemId: string, price: number) => {
+    if (!state) return
+    if (state.coins < price) return
+    const def = ITEM_CATALOG[itemId]
+    if (!def) return
+    const newCoins    = state.coins - price
+    const newInventory = addItemToInventory(state.inventory, { ...def, quantity: 1 })
+    const newJournal  = addJournalEntry(state.journal, `Acheté ${def.emoji} ${def.name} pour 💰${price}.`, '🛍️')
+    await Promise.all([saveInventory(newInventory), saveJournal(newJournal), savePlayer({ id: state.username, username: state.username, coins: newCoins })])
+    handleUpdate(state.creature, newInventory, state.events, state.quests, newJournal, undefined, newCoins)
   }, [state, handleUpdate])
 
   const handleClaimReward = useCallback(async (quest: Quest) => {
@@ -304,7 +339,9 @@ export default function App() {
           <InventoryScreen
             inventory={state.inventory}
             creature={state.creature}
+            coins={state.coins}
             onUseItem={handleUseItem}
+            onBuyItem={handleBuyItem}
           />
         )}
         {activeTab === 'quests' && (

@@ -61,6 +61,36 @@ export const ITEM_CATALOG: Record<string, Omit<InventoryItem, 'quantity'>> = {
     description: 'Boost de combat léger. Épuise.',
     effect: { hunger: 5, happiness: 20, energy: -10, combatBuff: { damageMult: 1.10, durationMin: 30 } },
   },
+  mystery_box: {
+    id: 'mystery_box', name: 'Boîte Mystère', emoji: '📦', rarity: 'epic',
+    description: 'Une surprise à l\'intérieur ! Ouvre dans ton sac.',
+    effect: {},
+  },
+}
+
+// Shop: items available for coin purchase (no combat buffs)
+export const SHOP_ITEMS: Array<{ itemId: string; price: number }> = [
+  { itemId: 'apple',       price: 5   },
+  { itemId: 'candy',       price: 6   },
+  { itemId: 'herbes',      price: 8   },
+  { itemId: 'pizza',       price: 15  },
+  { itemId: 'medicine',    price: 25  },
+  { itemId: 'sushi',       price: 30  },
+  { itemId: 'cake',        price: 35  },
+  { itemId: 'potion',      price: 75  },
+  { itemId: 'mystery_box', price: 40  },
+]
+
+// Mystery box reward pool
+export function drawMysteryBox(): { itemId: string | null; coins: number; xp: number } {
+  const roll = Math.random()
+  if (roll < 0.02)  return { itemId: 'star',     coins: 10, xp: 0  }   // 2%  epic
+  if (roll < 0.10)  return { itemId: 'potion',   coins: 0,  xp: 0  }   // 8%
+  if (roll < 0.23)  return { itemId: 'cake',     coins: 10, xp: 0  }   // 13%
+  if (roll < 0.40)  return { itemId: 'sushi',    coins: 0,  xp: 0  }   // 17%
+  if (roll < 0.58)  return { itemId: 'medicine', coins: 0,  xp: 0  }   // 18%
+  if (roll < 0.76)  return { itemId: 'pizza',    coins: 5,  xp: 0  }   // 18%
+  return                   { itemId: 'apple',    coins: 5,  xp: 10 }   // 24% common
 }
 
 export function getStarterInventory(): InventoryItem[] {
