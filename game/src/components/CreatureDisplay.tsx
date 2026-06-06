@@ -15,6 +15,7 @@ const SPRITES: Record<string, ImageSourcePropType> = {
   ignis_e3_0: require('../../assets/sprites/ignis_e3_f0.png'),
   ignis_e3_1: require('../../assets/sprites/ignis_e3_f1.png'),
   ignis_e3_2: require('../../assets/sprites/ignis_e3_f2.png'),
+  ignis_sick: require('../../assets/sprites/ignis_sick.png'),
   nemo_0:     require('../../assets/sprites/nemo_f0.png'),
   nemo_1:     require('../../assets/sprites/nemo_f1.png'),
   nemo_2:     require('../../assets/sprites/nemo_f2.png'),
@@ -24,6 +25,7 @@ const SPRITES: Record<string, ImageSourcePropType> = {
   nemo_e3_0:  require('../../assets/sprites/nemo_e3_f0.png'),
   nemo_e3_1:  require('../../assets/sprites/nemo_e3_f1.png'),
   nemo_e3_2:  require('../../assets/sprites/nemo_e3_f2.png'),
+  nemo_sick:  require('../../assets/sprites/nemo_sick.png'),
   sylva_0:    require('../../assets/sprites/sylva_f0.png'),
   sylva_1:    require('../../assets/sprites/sylva_f1.png'),
   sylva_2:    require('../../assets/sprites/sylva_f2.png'),
@@ -33,6 +35,7 @@ const SPRITES: Record<string, ImageSourcePropType> = {
   sylva_e3_0: require('../../assets/sprites/sylva_e3_f0.png'),
   sylva_e3_1: require('../../assets/sprites/sylva_e3_f1.png'),
   sylva_e3_2: require('../../assets/sprites/sylva_e3_f2.png'),
+  sylva_sick: require('../../assets/sprites/sylva_sick.png'),
   zapp_0:     require('../../assets/sprites/zapp_f0.png'),
   zapp_1:     require('../../assets/sprites/zapp_f1.png'),
   zapp_2:     require('../../assets/sprites/zapp_f2.png'),
@@ -42,6 +45,7 @@ const SPRITES: Record<string, ImageSourcePropType> = {
   zapp_e3_0:  require('../../assets/sprites/zapp_e3_f0.png'),
   zapp_e3_1:  require('../../assets/sprites/zapp_e3_f1.png'),
   zapp_e3_2:  require('../../assets/sprites/zapp_e3_f2.png'),
+  zapp_sick:  require('../../assets/sprites/zapp_sick.png'),
 }
 
 function getStageKey(level: number): string {
@@ -158,10 +162,11 @@ export default function CreatureDisplay({ creature, onEvolve }: Props) {
     return () => clearInterval(id)
   }, [mood])
 
-  // vertical bounce
+  // vertical bounce — barely moves when sick
   useEffect(() => {
-    const lift = mood === 'excited' ? 14 : mood === 'happy' ? 8 : 4
-    const ms   = FRAME_MS[mood] * seq.length
+    const isSick = creature.stats.isSick
+    const lift = isSick ? 1 : (mood === 'excited' ? 14 : mood === 'happy' ? 8 : 4)
+    const ms   = isSick ? 3000 : FRAME_MS[mood] * seq.length
     const anim = Animated.loop(
       Animated.sequence([
         Animated.timing(bounce, { toValue: -lift, duration: ms / 2, useNativeDriver: true }),
@@ -170,7 +175,7 @@ export default function CreatureDisplay({ creature, onEvolve }: Props) {
     )
     anim.start()
     return () => anim.stop()
-  }, [mood])
+  }, [mood, creature.stats.isSick])
 
   const handlePress = () => {
     if (reacting) return
@@ -184,8 +189,11 @@ export default function CreatureDisplay({ creature, onEvolve }: Props) {
   }
 
   const currentFrame = reacting ? 2 : seq[frameIdx]
-  const spriteKey    = `${creature.type}${stage}_${currentFrame}`
-  const sprite       = SPRITES[spriteKey]
+  const isSick = creature.stats.isSick
+  const spriteKey = isSick
+    ? `${creature.type}_sick`
+    : `${creature.type}${stage}_${currentFrame}`
+  const sprite = SPRITES[spriteKey] ?? SPRITES[`${creature.type}${stage}_0`]
 
   return (
     <View style={styles.container}>
@@ -199,15 +207,20 @@ export default function CreatureDisplay({ creature, onEvolve }: Props) {
         </View>
 
         {/* Screen */}
-        <View style={[styles.gbScreen, { backgroundColor: color + '14' }]}>
-          <FloatingParticles color={color} type={creature.type} />
+        <View style={[styles.gbScreen, { backgroundColor: isSick ? '#2a2a2a' : color + '14' }]}>
+          {!isSick && <FloatingParticles color={color} type={creature.type} />}
           {/* Screen glare */}
           <View style={styles.gbGlare} pointerEvents="none" />
           <TouchableWithoutFeedback onPress={handlePress}>
-            <Animated.View style={{ transform: [{ translateY: bounce }, { scale }] }}>
+            <Animated.View style={{ transform: [{ translateY: bounce }, { scale }], opacity: isSick ? 0.75 : 1 }}>
               <Image source={sprite} style={styles.sprite} resizeMode="contain" />
             </Animated.View>
           </TouchableWithoutFeedback>
+          {isSick && (
+            <View style={styles.sickOverlay} pointerEvents="none">
+              <Text style={styles.sickEmoji}>🤒</Text>
+            </View>
+          )}
         </View>
 
         {/* Bottom bar with badges */}
@@ -291,6 +304,14 @@ const styles = StyleSheet.create({
   sprite: {
     width: 160,
     height: 160,
+  },
+  sickOverlay: {
+    position: 'absolute',
+    top: 6,
+    right: 8,
+  },
+  sickEmoji: {
+    fontSize: 22,
   },
   levelBadge: {
     paddingHorizontal: 12,

@@ -30,10 +30,10 @@ import {
 
 // ─── sprites ────────────────────────────────────────────
 const SPRITES: Record<string, ImageSourcePropType> = {
-  ignis:    require('../../assets/sprites/ignis_f1.png'),
-  nemo:     require('../../assets/sprites/nemo_f1.png'),
-  sylva:    require('../../assets/sprites/sylva_f1.png'),
-  zapp:     require('../../assets/sprites/zapp_f1.png'),
+  ignis_action: require('../../assets/sprites/ignis_action.png'),
+  nemo_action:  require('../../assets/sprites/nemo_action.png'),
+  sylva_action: require('../../assets/sprites/sylva_action.png'),
+  zapp_action:  require('../../assets/sprites/zapp_action.png'),
   ignis_e2: require('../../assets/sprites/ignis_e2_f1.png'),
   nemo_e2:  require('../../assets/sprites/nemo_e2_f1.png'),
   sylva_e2: require('../../assets/sprites/sylva_e2_f1.png'),
@@ -45,8 +45,9 @@ const SPRITES: Record<string, ImageSourcePropType> = {
 }
 
 function spriteKey(type: CreatureType, level: number) {
-  const sfx = level >= 20 ? '_e3' : level >= 10 ? '_e2' : ''
-  return `${type}${sfx}`
+  if (level >= 20) return `${type}_e3`
+  if (level >= 10) return `${type}_e2`
+  return `${type}_action`
 }
 
 // ─── creature profiles ───────────────────────────────────
