@@ -13,58 +13,57 @@ const TERRAINS: Record<CreatureType, ImageSourcePropType> = {
 
 // All requires must be static in React Native bundler
 const SPRITES: Record<string, ImageSourcePropType> = {
-  ignis_0:    require('../../assets/sprites/ignis_f0.png'),
-  ignis_1:    require('../../assets/sprites/ignis_f1.png'),
-  ignis_2:    require('../../assets/sprites/ignis_f2.png'),
-  ignis_e2_0: require('../../assets/sprites/ignis_e2_f0.png'),
-  ignis_e2_1: require('../../assets/sprites/ignis_e2_f1.png'),
-  ignis_e2_2: require('../../assets/sprites/ignis_e2_f2.png'),
-  ignis_e3_0: require('../../assets/sprites/ignis_e3_f0.png'),
-  ignis_e3_1: require('../../assets/sprites/ignis_e3_f1.png'),
-  ignis_e3_2: require('../../assets/sprites/ignis_e3_f2.png'),
-  ignis_sick:  require('../../assets/sprites/ignis_sick.png'),
-  ignis_eat:   require('../../assets/sprites/ignis_eat.png'),
-  ignis_train: require('../../assets/sprites/ignis_train.png'),
-  ignis_sleep: require('../../assets/sprites/ignis_sleep.png'),
-  nemo_0:     require('../../assets/sprites/nemo_f0.png'),
-  nemo_1:     require('../../assets/sprites/nemo_f1.png'),
-  nemo_2:     require('../../assets/sprites/nemo_f2.png'),
-  nemo_e2_0:  require('../../assets/sprites/nemo_e2_f0.png'),
-  nemo_e2_1:  require('../../assets/sprites/nemo_e2_f1.png'),
-  nemo_e2_2:  require('../../assets/sprites/nemo_e2_f2.png'),
-  nemo_e3_0:  require('../../assets/sprites/nemo_e3_f0.png'),
-  nemo_e3_1:  require('../../assets/sprites/nemo_e3_f1.png'),
-  nemo_e3_2:  require('../../assets/sprites/nemo_e3_f2.png'),
-  nemo_sick:   require('../../assets/sprites/nemo_sick.png'),
-  nemo_eat:    require('../../assets/sprites/nemo_eat.png'),
-  nemo_train:  require('../../assets/sprites/nemo_train.png'),
-  nemo_sleep:  require('../../assets/sprites/nemo_sleep.png'),
-  sylva_0:    require('../../assets/sprites/sylva_f0.png'),
-  sylva_1:    require('../../assets/sprites/sylva_f1.png'),
-  sylva_2:    require('../../assets/sprites/sylva_f2.png'),
-  sylva_e2_0: require('../../assets/sprites/sylva_e2_f0.png'),
-  sylva_e2_1: require('../../assets/sprites/sylva_e2_f1.png'),
-  sylva_e2_2: require('../../assets/sprites/sylva_e2_f2.png'),
-  sylva_e3_0: require('../../assets/sprites/sylva_e3_f0.png'),
-  sylva_e3_1: require('../../assets/sprites/sylva_e3_f1.png'),
-  sylva_e3_2: require('../../assets/sprites/sylva_e3_f2.png'),
-  sylva_sick:  require('../../assets/sprites/sylva_sick.png'),
-  sylva_eat:   require('../../assets/sprites/sylva_eat.png'),
-  sylva_train: require('../../assets/sprites/sylva_train.png'),
-  sylva_sleep: require('../../assets/sprites/sylva_sleep.png'),
-  zapp_0:     require('../../assets/sprites/zapp_f0.png'),
-  zapp_1:     require('../../assets/sprites/zapp_f1.png'),
-  zapp_2:     require('../../assets/sprites/zapp_f2.png'),
-  zapp_e2_0:  require('../../assets/sprites/zapp_e2_f0.png'),
-  zapp_e2_1:  require('../../assets/sprites/zapp_e2_f1.png'),
-  zapp_e2_2:  require('../../assets/sprites/zapp_e2_f2.png'),
-  zapp_e3_0:  require('../../assets/sprites/zapp_e3_f0.png'),
-  zapp_e3_1:  require('../../assets/sprites/zapp_e3_f1.png'),
-  zapp_e3_2:  require('../../assets/sprites/zapp_e3_f2.png'),
-  zapp_sick:   require('../../assets/sprites/zapp_sick.png'),
-  zapp_eat:    require('../../assets/sprites/zapp_eat.png'),
-  zapp_train:  require('../../assets/sprites/zapp_train.png'),
-  zapp_sleep:  require('../../assets/sprites/zapp_sleep.png'),
+  // ── Base form — 6 animation frames ──────────────────────
+  ignis_f0: require('../../assets/sprites/ignis_f0.png'),
+  ignis_f1: require('../../assets/sprites/ignis_f1.png'),
+  ignis_f2: require('../../assets/sprites/ignis_f2.png'),
+  ignis_f3: require('../../assets/sprites/ignis_f3.png'),
+  ignis_f4: require('../../assets/sprites/ignis_f4.png'),
+  ignis_f5: require('../../assets/sprites/ignis_f5.png'),
+  nemo_f0:  require('../../assets/sprites/nemo_f0.png'),
+  nemo_f1:  require('../../assets/sprites/nemo_f1.png'),
+  nemo_f2:  require('../../assets/sprites/nemo_f2.png'),
+  nemo_f3:  require('../../assets/sprites/nemo_f3.png'),
+  nemo_f4:  require('../../assets/sprites/nemo_f4.png'),
+  nemo_f5:  require('../../assets/sprites/nemo_f5.png'),
+  sylva_f0: require('../../assets/sprites/sylva_f0.png'),
+  sylva_f1: require('../../assets/sprites/sylva_f1.png'),
+  sylva_f2: require('../../assets/sprites/sylva_f2.png'),
+  sylva_f3: require('../../assets/sprites/sylva_f3.png'),
+  sylva_f4: require('../../assets/sprites/sylva_f4.png'),
+  sylva_f5: require('../../assets/sprites/sylva_f5.png'),
+  zapp_f0:  require('../../assets/sprites/zapp_f0.png'),
+  zapp_f1:  require('../../assets/sprites/zapp_f1.png'),
+  zapp_f2:  require('../../assets/sprites/zapp_f2.png'),
+  zapp_f3:  require('../../assets/sprites/zapp_f3.png'),
+  zapp_f4:  require('../../assets/sprites/zapp_f4.png'),
+  zapp_f5:  require('../../assets/sprites/zapp_f5.png'),
+  // ── Evolution e2 — 3 frames ──────────────────────────────
+  ignis_e2_f0: require('../../assets/sprites/ignis_e2_f0.png'),
+  ignis_e2_f1: require('../../assets/sprites/ignis_e2_f1.png'),
+  ignis_e2_f2: require('../../assets/sprites/ignis_e2_f2.png'),
+  nemo_e2_f0:  require('../../assets/sprites/nemo_e2_f0.png'),
+  nemo_e2_f1:  require('../../assets/sprites/nemo_e2_f1.png'),
+  nemo_e2_f2:  require('../../assets/sprites/nemo_e2_f2.png'),
+  sylva_e2_f0: require('../../assets/sprites/sylva_e2_f0.png'),
+  sylva_e2_f1: require('../../assets/sprites/sylva_e2_f1.png'),
+  sylva_e2_f2: require('../../assets/sprites/sylva_e2_f2.png'),
+  zapp_e2_f0:  require('../../assets/sprites/zapp_e2_f0.png'),
+  zapp_e2_f1:  require('../../assets/sprites/zapp_e2_f1.png'),
+  zapp_e2_f2:  require('../../assets/sprites/zapp_e2_f2.png'),
+  // ── Evolution e3 — 3 frames ──────────────────────────────
+  ignis_e3_f0: require('../../assets/sprites/ignis_e3_f0.png'),
+  ignis_e3_f1: require('../../assets/sprites/ignis_e3_f1.png'),
+  ignis_e3_f2: require('../../assets/sprites/ignis_e3_f2.png'),
+  nemo_e3_f0:  require('../../assets/sprites/nemo_e3_f0.png'),
+  nemo_e3_f1:  require('../../assets/sprites/nemo_e3_f1.png'),
+  nemo_e3_f2:  require('../../assets/sprites/nemo_e3_f2.png'),
+  sylva_e3_f0: require('../../assets/sprites/sylva_e3_f0.png'),
+  sylva_e3_f1: require('../../assets/sprites/sylva_e3_f1.png'),
+  sylva_e3_f2: require('../../assets/sprites/sylva_e3_f2.png'),
+  zapp_e3_f0:  require('../../assets/sprites/zapp_e3_f0.png'),
+  zapp_e3_f1:  require('../../assets/sprites/zapp_e3_f1.png'),
+  zapp_e3_f2:  require('../../assets/sprites/zapp_e3_f2.png'),
   // Shiny skins
   ignis_sk_red:    require('../../assets/sprites/ignis_sk_red.png'),
   ignis_sk_blue:   require('../../assets/sprites/ignis_sk_blue.png'),
@@ -158,7 +157,15 @@ function FloatingParticles({ color, type }: { color: string; type: CreatureType 
   )
 }
 
+// 6-frame sequences for base form (frames 0-5)
 const FRAME_SEQ: Record<CreatureMood, number[]> = {
+  excited: [0, 1, 2, 3, 4, 5, 4, 3, 2, 1],
+  happy:   [0, 1, 2, 1, 3, 4, 3, 0],
+  neutral: [0, 0, 1, 2, 0, 0, 3, 0],
+  sad:     [0, 0, 1, 0, 0, 2, 0, 0],
+}
+// 3-frame sequences for evolved forms (frames 0-2)
+const FRAME_SEQ_EVO: Record<CreatureMood, number[]> = {
   excited: [0, 1, 2, 1, 0, 2],
   happy:   [0, 1, 0, 1],
   neutral: [0, 0, 1, 0],
@@ -166,10 +173,10 @@ const FRAME_SEQ: Record<CreatureMood, number[]> = {
 }
 
 const FRAME_MS: Record<CreatureMood, number> = {
-  excited: 200,
-  happy:   400,
-  neutral: 800,
-  sad:     1200,
+  excited: 180,
+  happy:   350,
+  neutral: 700,
+  sad:     1100,
 }
 
 export type CreaturePose = 'eat' | 'train' | 'sleep' | null
@@ -187,10 +194,11 @@ export default function CreatureDisplay({ creature, pose, onEvolve }: Props) {
   const [reacting, setReacting] = useState(false)
   const prevLevelRef = useRef(creature.stats.level)
 
-  const mood  = getMood(creature.stats)
-  const color = CREATURE_COLORS[creature.type]
-  const seq   = FRAME_SEQ[mood]
-  const stage = getStageKey(creature.stats.level)
+  const mood    = getMood(creature.stats)
+  const color   = CREATURE_COLORS[creature.type]
+  const stage   = getStageKey(creature.stats.level)
+  const isBase  = stage === ''
+  const seq     = isBase ? FRAME_SEQ[mood] : FRAME_SEQ_EVO[mood]
 
   // detect evolution (level crossed 10 or 20)
   useEffect(() => {
@@ -236,7 +244,7 @@ export default function CreatureDisplay({ creature, pose, onEvolve }: Props) {
     setTimeout(() => setReacting(false), 600)
   }
 
-  const currentFrame = reacting ? 2 : seq[frameIdx]
+  const currentFrame = reacting ? (isBase ? 3 : 2) : seq[frameIdx]
   const isSick    = creature.stats.isSick
   const activePose = isSick ? 'sick' : pose ?? null
   let spriteKey: string
@@ -244,10 +252,12 @@ export default function CreatureDisplay({ creature, pose, onEvolve }: Props) {
     spriteKey = `${creature.type}_${activePose}`
   } else if (creature.skin) {
     spriteKey = `${creature.type}_sk_${creature.skin}`
+  } else if (isBase) {
+    spriteKey = `${creature.type}_f${currentFrame}`
   } else {
-    spriteKey = `${creature.type}${stage}_${currentFrame}`
+    spriteKey = `${creature.type}${stage}_f${currentFrame}`
   }
-  const sprite = SPRITES[spriteKey] ?? SPRITES[`${creature.type}${stage}_0`]
+  const sprite = SPRITES[spriteKey] ?? SPRITES[`${creature.type}_f0`]
 
   return (
     <View style={styles.container}>
