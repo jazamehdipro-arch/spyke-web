@@ -98,6 +98,8 @@ interface CombatModifiers {
   sickDot: number
   hpMult: number
   counterBonus: number
+  trainingDmgReduction: number
+  trainingHpBonus: number
 }
 
 const DAMAGE_FLOOR = 0.55
@@ -126,10 +128,12 @@ function computeModifiers(creature: Creature, opponentType: CreatureType): Comba
   damageMult = Math.max(DAMAGE_FLOOR, damageMult)
 
   const training: TrainingStats = creature.training ?? { strength: 0, reflexes: 0, endurance: 0, defense: 0 }
-  damageMult = Math.max(DAMAGE_FLOOR, damageMult + training.strength * 0.01)
-  const trainingMaxEnergy = Math.floor(training.endurance / 5)
-  maxEnergy = Math.min(6, maxEnergy + trainingMaxEnergy)
-  const trainingDodge = training.defense * 0.005
+  damageMult = Math.max(DAMAGE_FLOOR, damageMult + training.strength * 0.008)
+  const trainingMaxEnergy = Math.floor(training.endurance / 9)
+  maxEnergy = maxEnergy + trainingMaxEnergy
+  const trainingDodge = training.defense * 0.0065
+  const trainingDmgReduction = Math.min(0.14, training.reflexes * 0.007)
+  const trainingHpBonus = Math.round(training.endurance * 0.35)
 
   const now = new Date().toISOString()
   const activeFoodBuff = !!(creature.activeCombatBuff && creature.activeCombatBuff.expiresAt > now)
@@ -140,7 +144,7 @@ function computeModifiers(creature: Creature, opponentType: CreatureType): Comba
   damageMult *= profile.baseDamageMult
   damageMult = Math.max(DAMAGE_FLOOR, damageMult)
 
-  const timerBonus = parseFloat((training.reflexes * 0.1).toFixed(1))
+  const timerBonus = 0
   const timerReduction = happiness < 60 ? 1 : 0
   const hideOpponentEnergy = happiness < 30
 
@@ -151,7 +155,7 @@ function computeModifiers(creature: Creature, opponentType: CreatureType): Comba
 
   const counterBonus = COUNTER_TABLE[creature.type] === opponentType ? 1.15 : 1.0
 
-  return { maxEnergy, damageMult, timerReduction, timerBonus, activeFoodBuff, hideOpponentEnergy, dodgeChance, timideChance, sickDot, hpMult, counterBonus }
+  return { maxEnergy, damageMult, timerReduction, timerBonus, activeFoodBuff, hideOpponentEnergy, dodgeChance, timideChance, sickDot, hpMult, counterBonus, trainingDmgReduction, trainingHpBonus }
 }
 
 const OPPONENT_MAX_ENERGY = 5
@@ -578,7 +582,7 @@ function HPBar({ hp, maxHp, color }: { hp: number; maxHp: number; color: string 
   )
 }
 
-function ClashChip({ action, color }: { action: CombatAction | null; color: string }) {
+function ClashChip({ action, textColor }: { action: CombatAction | null; textColor: string }) {
   let label = '?'
   if (action?.kind === 'defend') label = '🛡️ DÉFENSE'
   else if (action?.kind === 'charge') label = '⚡ CHARGE'
@@ -588,8 +592,7 @@ function ClashChip({ action, color }: { action: CombatAction | null; color: stri
   }
   return (
     <View style={s.clashChip}>
-      <View style={[s.clashDot, { backgroundColor: color }]} />
-      <Text style={s.clashChipText} numberOfLines={1}>{label}</Text>
+      <Text style={[s.clashChipText, { color: textColor }]} numberOfLines={1}>{label}</Text>
     </View>
   )
 }
@@ -613,8 +616,9 @@ function DebuffPanel({ mods, playerType, opponentType }: { mods: CombatModifiers
   if (mods.activeFoodBuff) {
     buffs.push({ emoji: '🥩', text: 'Repas boost actif !' })
   }
-  if (mods.timerBonus > 0) {
-    buffs.push({ emoji: '⚡', text: `Réflexes : +${mods.timerBonus.toFixed(1)}s timer` })
+  if (mods.trainingDmgReduction > 0) {
+    const pct = Math.round(mods.trainingDmgReduction * 100)
+    buffs.push({ emoji: '🔰', text: `Réflexes : -${pct}% dégâts reçus` })
   }
   if (mods.timerReduction > 0) {
     debuffs.push({ emoji: '😟', text: `Malheureux : timer réduit (-${mods.timerReduction}s)` })
@@ -735,7 +739,7 @@ export default function CombatScreen({ player, opponent, onFinish, debugOverride
   const playerProfile = CREATURE_PROFILES[playerType]
   const opponentProfile = CREATURE_PROFILES[opponent.creatureType]
 
-  const playerMaxHP  = calcHP(playerLevel, playerMods.hpMult, playerType)
+  const playerMaxHP  = calcHP(playerLevel, playerMods.hpMult, playerType) + playerMods.trainingHpBonus
   const opponentMaxHP = calcHP(opponent.level, 1.0, opponent.creatureType)
 
   const opponentCounterBonus = COUNTER_TABLE[opponent.creatureType] === playerType ? 1.15 : 1.0
@@ -984,6 +988,8 @@ export default function CombatScreen({ player, opponent, onFinish, debugOverride
               const b = getStatus(newP, 'barrier')!
               finalDmgToPlayer = Math.round(finalDmgToPlayer * (1 - (b.value ?? 50) / 100))
             }
+            if (playerMods.trainingDmgReduction > 0)
+              finalDmgToPlayer = Math.round(finalDmgToPlayer * (1 - playerMods.trainingDmgReduction))
             // carapace_chauffee reflect
             if (pAction.kind === 'spell' && pAction.spellId === 'carapace_chauffee') {
               const reflected = Math.round(finalDmgToPlayer * 0.30)
@@ -1222,13 +1228,13 @@ export default function CombatScreen({ player, opponent, onFinish, debugOverride
           {phase === 'resolving' && playerAction ? (
             <>
               <Animated.View style={{ opacity: clashOpacity, transform: [{ translateX: meChipX }] }}>
-                <ClashChip action={playerAction} color={pColor} />
+                <ClashChip action={playerAction} textColor="#F3EEFE" />
               </Animated.View>
               <Animated.Text style={[s.clashVs, { opacity: clashOpacity, transform: [{ scale: vsScale }] }]}>
                 VS
               </Animated.Text>
               <Animated.View style={{ opacity: clashOpacity, transform: [{ translateX: enChipX }] }}>
-                <ClashChip action={hasStatus(oState, 'smoke') ? null : opponentAction} color={oColor} />
+                <ClashChip action={hasStatus(oState, 'smoke') ? null : opponentAction} textColor="#FF4444" />
               </Animated.View>
             </>
           ) : (
@@ -1483,12 +1489,10 @@ const s = StyleSheet.create({
 
   // CLASH CHIPS (reuse centerZone for layout)
   clashChip: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
     backgroundColor: '#241C44', borderWidth: 1, borderColor: '#352A5E',
     borderRadius: 10, paddingHorizontal: 10, paddingVertical: 7, maxWidth: 135,
   },
-  clashDot: { width: 8, height: 8, borderRadius: 4 },
-  clashChipText: { color: '#F3EEFE', fontSize: 9, fontWeight: '800', fontFamily: 'monospace', letterSpacing: 0.3 },
+  clashChipText: { fontSize: 9, fontWeight: '800', fontFamily: 'monospace', letterSpacing: 0.3 },
   clashVs: { color: '#9A8FC4', fontSize: 12, fontWeight: '900', fontFamily: 'monospace' },
 
   // HINT BAR / LOG

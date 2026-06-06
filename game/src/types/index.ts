@@ -5,10 +5,11 @@ export type PersonalityTrait = 'gourmand' | 'joueur' | 'timide' | 'courageux' | 
 export type WeatherType = 'sunny' | 'cloudy' | 'rainy' | 'stormy' | 'foggy' | 'clear'
 
 export interface TrainingStats {
-  strength: number   // 0-20: +1% damageMult per point
-  reflexes: number   // 0-20: +0.1s timer per point
-  endurance: number  // 0-20: +1 maxEnergy per 5 points
-  defense: number    // 0-20: +0.5% dodgeChance per point
+  strength: number   // 0-20: +0.8% damageMult per point (max +16%)
+  reflexes: number   // 0-20: -0.7% damage received per point, capped at 14%
+  endurance: number  // 0-20: +1 maxEnergy per 9 pts, +0.35 maxHP per point
+  defense: number    // 0-20: +0.65% dodgeChance per point (max +13%)
+  // total across all stats capped at 40 points
 }
 
 export interface CreatureStats {

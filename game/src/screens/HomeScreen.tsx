@@ -26,11 +26,13 @@ import { updateQuestsAfterAction } from '../utils/quests'
 import { getDailyWeather, WEATHER_EMOJI, WEATHER_LABEL } from '../utils/weather'
 
 const TRAINING_CONFIG: Record<keyof TrainingStats, { label: string; emoji: string; desc: string; costEnergy: number; costHunger: number }> = {
-  strength:  { label: 'Force',     emoji: '💪', desc: '+1% dégâts',      costEnergy: 15, costHunger: 10 },
-  reflexes:  { label: 'Réflexes',  emoji: '⚡', desc: '+0.1s timer',      costEnergy: 10, costHunger: 8  },
-  endurance: { label: 'Endurance', emoji: '🛡️', desc: '+1 énergie max/5', costEnergy: 20, costHunger: 15 },
-  defense:   { label: 'Défense',   emoji: '🎯', desc: '+0.5% esquive',    costEnergy: 12, costHunger: 8  },
+  strength:  { label: 'Force',     emoji: '💪', desc: '+0.8% dégâts',         costEnergy: 15, costHunger: 10 },
+  reflexes:  { label: 'Réflexes',  emoji: '🔰', desc: '-0.7% dégâts reçus',   costEnergy: 10, costHunger: 8  },
+  endurance: { label: 'Endurance', emoji: '🛡️', desc: '+énergie & +PV max',   costEnergy: 20, costHunger: 15 },
+  defense:   { label: 'Défense',   emoji: '🎯', desc: '+0.65% esquive',        costEnergy: 12, costHunger: 8  },
 }
+
+const MAX_TRAINING_POINTS = 40
 
 const PLAY_ACTIVITIES: Record<string, {
   label: string; emoji: string; desc: string
@@ -213,6 +215,8 @@ export default function HomeScreen({ creature, inventory, events, quests, journa
     const training = creature.training ?? { strength: 0, reflexes: 0, endurance: 0, defense: 0 }
     const current = training[type]
     if (current >= 20) { showSpeech(`${cfg.emoji} Stat maximale !`); return }
+    const totalPts = Object.values(training).reduce((a, b) => a + b, 0)
+    if (totalPts >= MAX_TRAINING_POINTS) { showSpeech(`Points d'entraînement épuisés ! (${MAX_TRAINING_POINTS}/${MAX_TRAINING_POINTS})`); return }
     if (creature.stats.energy < cfg.costEnergy) { showSpeech(`Trop fatigué pour s'entraîner ! ⚡`); return }
     if (creature.stats.hunger < cfg.costHunger) { showSpeech(`Trop affamé pour s'entraîner ! 🍖`); return }
     const newTraining: TrainingStats = { ...training, [type]: current + 1 }
@@ -240,6 +244,9 @@ export default function HomeScreen({ creature, inventory, events, quests, journa
 
   const handleSelectActivity = (actKey: keyof typeof PLAY_ACTIVITIES) => {
     const act = PLAY_ACTIVITIES[actKey]
+    const training = creature.training ?? { strength: 0, reflexes: 0, endurance: 0, defense: 0 }
+    const totalPts = Object.values(training).reduce((a, b) => a + b, 0)
+    if (totalPts >= MAX_TRAINING_POINTS) { showSpeech(`Points d'entraînement épuisés ! (${MAX_TRAINING_POINTS}/${MAX_TRAINING_POINTS})`); return }
     if (creature.stats.energy < act.costEnergy) { showSpeech("Pas assez d'énergie ! ⚡"); return }
     if (creature.stats.hunger < act.costHunger) { showSpeech('Trop affamé pour ça ! 🍖'); return }
     setPendingActivity(actKey)
@@ -256,7 +263,8 @@ export default function HomeScreen({ creature, inventory, events, quests, journa
     const costHunger = act ? act.costHunger : 10
 
     const training = creature.training ?? { strength: 0, reflexes: 0, endurance: 0, defense: 0 }
-    const newTraining = act && training[act.stat] < 20
+    const totalPts = Object.values(training).reduce((a, b) => a + b, 0)
+    const newTraining = act && training[act.stat] < 20 && totalPts < MAX_TRAINING_POINTS
       ? { ...training, [act.stat]: training[act.stat] + 1 }
       : training
     const statLeveled = act && newTraining[act.stat] > training[act.stat]
@@ -430,13 +438,26 @@ export default function HomeScreen({ creature, inventory, events, quests, journa
           energyFull={creature.stats.energy >= 95}
         />
         <View style={styles.trainSection}>
-          <Text style={[styles.trainTitle, { color: textColor }]}>⚔️ Entraînement</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Text style={[styles.trainTitle, { color: textColor }]}>⚔️ Entraînement</Text>
+            {(() => {
+              const tr = creature.training ?? { strength: 0, reflexes: 0, endurance: 0, defense: 0 }
+              const used = Object.values(tr).reduce((a, b) => a + b, 0)
+              return (
+                <Text style={[styles.trainTitle, { color: used >= MAX_TRAINING_POINTS ? '#FF6B6B' : textColor, fontSize: 12 }]}>
+                  {used}/{MAX_TRAINING_POINTS} pts
+                </Text>
+              )
+            })()}
+          </View>
           <View style={styles.trainGrid}>
             {(Object.keys(TRAINING_CONFIG) as (keyof TrainingStats)[]).map((type) => {
               const cfg = TRAINING_CONFIG[type]
               const training = creature.training ?? { strength: 0, reflexes: 0, endurance: 0, defense: 0 }
               const current = training[type]
+              const totalUsed = Object.values(training).reduce((a, b) => a + b, 0)
               const canTrain = current < 20
+                && totalUsed < MAX_TRAINING_POINTS
                 && creature.stats.energy >= cfg.costEnergy
                 && creature.stats.hunger >= cfg.costHunger
               return (
