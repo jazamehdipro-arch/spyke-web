@@ -486,6 +486,10 @@ export default function HomeScreen({ creature, inventory, events, quests, journa
         visible={showMiniGame}
         onClose={handleMiniGameEnd}
         creatureType={creature.type}
+        activityStat={pendingActivity ? PLAY_ACTIVITIES[pendingActivity].stat : undefined}
+        trainingLevel={pendingActivity
+          ? (creature.training ?? { strength: 0, reflexes: 0, endurance: 0, defense: 0 })[PLAY_ACTIVITIES[pendingActivity].stat]
+          : 0}
       />
 
       <EventModal event={pendingEvent} onClose={handleEventClose} />
