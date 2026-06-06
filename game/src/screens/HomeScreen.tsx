@@ -26,7 +26,7 @@ import { updateQuestsAfterAction } from '../utils/quests'
 import { getDailyWeather, WEATHER_EMOJI, WEATHER_LABEL } from '../utils/weather'
 
 const { height: SCREEN_H } = Dimensions.get('window')
-const HERO_H = Math.round(SCREEN_H * 0.52)
+const HERO_H = Math.round(SCREEN_H * 0.42)
 
 const TERRAIN: Record<CreatureType, ImageSourcePropType> = {
   ignis: require('../../assets/sprites/arena_volcano.png'),
@@ -690,7 +690,7 @@ const s = StyleSheet.create({
   // ── Hero ──────────────────────────────────────────────────
   hero: { height: HERO_H, overflow: 'hidden' },
   heroImg: { flex: 1 },
-  heroVignette: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 100, backgroundColor: '#0f0f1a', opacity: 0.55 },
+  heroVignette: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 40, backgroundColor: '#0f0f1a', opacity: 0.4 },
   heroHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 12, gap: 8 },
   heroTitle: {
     fontSize: 28, fontWeight: '800', color: '#fff',
@@ -704,15 +704,15 @@ const s = StyleSheet.create({
   chipTxt: { fontSize: 12, fontWeight: '600', color: '#fff' },
 
   speech: {
-    position: 'absolute', top: 90, left: 16, right: 116,
-    backgroundColor: 'rgba(255,255,255,0.93)', borderRadius: 14, padding: 10,
+    position: 'absolute', top: 82, left: 16, right: 110,
+    backgroundColor: 'rgba(255,255,255,0.95)', borderRadius: 14, padding: 10,
     flexDirection: 'row', alignItems: 'flex-start', gap: 6,
     shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.18, shadowRadius: 6,
   },
   speechQ: { fontSize: 15, color: '#aaa', lineHeight: 20 },
   speechTxt: { flex: 1, fontSize: 13, color: '#1a1a2e', fontWeight: '500', lineHeight: 18 },
 
-  heroBadges: { position: 'absolute', top: 120, right: 12, gap: 6, alignItems: 'flex-end' },
+  heroBadges: { position: 'absolute', top: 90, right: 12, gap: 6, alignItems: 'flex-end' },
   lvBadge: { backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5 },
   lvTxt: { color: '#fff', fontWeight: '700', fontSize: 13 },
   maxBadge: { backgroundColor: '#F59E0B', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5 },

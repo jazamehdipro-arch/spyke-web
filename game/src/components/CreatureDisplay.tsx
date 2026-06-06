@@ -64,7 +64,7 @@ const SPRITES: Record<string, ImageSourcePropType> = {
   zapp_e3_f0:  require('../../assets/sprites/zapp_e3_f0.png'),
   zapp_e3_f1:  require('../../assets/sprites/zapp_e3_f1.png'),
   zapp_e3_f2:  require('../../assets/sprites/zapp_e3_f2.png'),
-  // Shiny skins
+  // ── Shiny skins
   ignis_sk_red:    require('../../assets/sprites/ignis_sk_red.png'),
   ignis_sk_blue:   require('../../assets/sprites/ignis_sk_blue.png'),
   ignis_sk_green:  require('../../assets/sprites/ignis_sk_green.png'),
@@ -89,6 +89,23 @@ const SPRITES: Record<string, ImageSourcePropType> = {
   zapp_sk_red:     require('../../assets/sprites/zapp_sk_red.png'),
   zapp_sk_white:   require('../../assets/sprites/zapp_sk_white.png'),
   zapp_sk_purple:  require('../../assets/sprites/zapp_sk_purple.png'),
+  // ── Action poses ─────────────────────────────────────────
+  ignis_eat:   require('../../assets/sprites/ignis_eat.png'),
+  ignis_train: require('../../assets/sprites/ignis_train.png'),
+  ignis_sleep: require('../../assets/sprites/ignis_sleep.png'),
+  ignis_sick:  require('../../assets/sprites/ignis_sick.png'),
+  nemo_eat:    require('../../assets/sprites/nemo_eat.png'),
+  nemo_train:  require('../../assets/sprites/nemo_train.png'),
+  nemo_sleep:  require('../../assets/sprites/nemo_sleep.png'),
+  nemo_sick:   require('../../assets/sprites/nemo_sick.png'),
+  sylva_eat:   require('../../assets/sprites/sylva_eat.png'),
+  sylva_train: require('../../assets/sprites/sylva_train.png'),
+  sylva_sleep: require('../../assets/sprites/sylva_sleep.png'),
+  sylva_sick:  require('../../assets/sprites/sylva_sick.png'),
+  zapp_eat:    require('../../assets/sprites/zapp_eat.png'),
+  zapp_train:  require('../../assets/sprites/zapp_train.png'),
+  zapp_sleep:  require('../../assets/sprites/zapp_sleep.png'),
+  zapp_sick:   require('../../assets/sprites/zapp_sick.png'),
 }
 
 function getStageKey(level: number): string {
@@ -330,7 +347,7 @@ export default function CreatureDisplay({ creature, pose, onEvolve, variant = 'g
 const styles = StyleSheet.create({
   // ── Hero variant ──────────────────────────────────────────
   heroContainer: { alignItems: 'center', justifyContent: 'center', flex: 1 },
-  heroSprite: { width: 220, height: 270 },
+  heroSprite: { width: 170, height: 200 },
   container: {
     alignItems: 'center',
     paddingVertical: 12,
