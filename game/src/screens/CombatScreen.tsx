@@ -282,8 +282,8 @@ function resolveSpell(
     case 'provocation': {
       return {
         ...empty,
-        targetStatusesToAdd: [{ type: 'provoked', turnsLeft: 1, value: 30 }],
-        log: '😤 Provocation ! Ennemi +30% dégâts reçus ce tour',
+        targetStatusesToAdd: [{ type: 'provoked', turnsLeft: 2, value: 30 }],
+        log: '😤 Provocation ! Ennemi +30% dégâts reçus prochain tour',
       }
     }
     case 'immolation': {
@@ -361,12 +361,12 @@ function resolveSpell(
     // ── sylva ──
     case 'coup_voile': {
       const fogChance = Math.random() < 0.2
-      const fogStatus: StatusEffect[] = fogChance ? [{ type: 'fog', turnsLeft: 1 }] : []
+      const fogStatus: StatusEffect[] = fogChance ? [{ type: 'fog', turnsLeft: 2 }] : []
       return {
         ...empty,
         targetHpDelta: -5,
         targetStatusesToAdd: fogStatus,
-        log: `👊 Coup voilé ! -5 HP${fogChance ? ' + brouillage !' : ''}`,
+        log: `👊 Coup voilé ! -5 HP${fogChance ? ' + brouillage ennemi !' : ''}`,
       }
     }
     case 'ecran_fumee': {
@@ -424,11 +424,11 @@ function resolveSpell(
     }
     case 'arc_paralysant': {
       const paralyzed = Math.random() < 0.4
-      const paralysisStatus: StatusEffect[] = paralyzed ? [{ type: 'paralyzed', turnsLeft: 1 }] : []
+      const paralysisStatus: StatusEffect[] = paralyzed ? [{ type: 'paralyzed', turnsLeft: 2 }] : []
       return {
         ...empty,
         targetStatusesToAdd: paralysisStatus,
-        log: `🎯 Arc paralysant !${paralyzed ? ' Ennemi paralysé !' : ' Rate la paralysie.'}`,
+        log: `🎯 Arc paralysant !${paralyzed ? ' Ennemi paralysé prochain tour !' : ' Rate la paralysie.'}`,
       }
     }
     case 'esquive_vive': {
@@ -451,7 +451,7 @@ function resolveSpell(
       return {
         ...empty,
         targetHpDelta: -12,
-        casterStatusesToAdd: [{ type: 'exhausted', turnsLeft: 1, value: 2 }],
+        casterStatusesToAdd: [{ type: 'exhausted', turnsLeft: 2, value: 2 }],
         log: '🔋 Surcharge ! -12 HP + épuisement prochain tour',
       }
     }
@@ -860,6 +860,9 @@ export default function CombatScreen({ player, opponent, onFinish, debugOverride
     if (hasStatus(curO, 'paralyzed')) newO = removeStatus(newO, 'paralyzed')
 
     const logParts: string[] = []
+
+    if (hasStatus(curP, 'paralyzed')) logParts.push('⚡ Tu es paralysé ! Défense forcée.')
+    if (hasStatus(curO, 'paralyzed')) logParts.push('⚡ Ennemi paralysé ! Il ne peut qu\'agir.')
 
     // ── Player turn ──
     if (pAction.kind === 'charge') {
