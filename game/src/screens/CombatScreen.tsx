@@ -69,9 +69,9 @@ const CREATURE_PROFILES: Record<CreatureType, {
   startEnergy: number
   dodgeBase: number
 }> = {
-  ignis: { hpMult: 0.85, baseDamageMult: 1.2,  startEnergy: 0, dodgeBase: 0.0  },
-  nemo:  { hpMult: 1.15, baseDamageMult: 0.75, startEnergy: 1, dodgeBase: 0.0  },
-  sylva: { hpMult: 1.0,  baseDamageMult: 0.9,  startEnergy: 0, dodgeBase: 0.16 },
+  ignis: { hpMult: 0.85, baseDamageMult: 1.10, startEnergy: 0, dodgeBase: 0.0  },
+  nemo:  { hpMult: 1.15, baseDamageMult: 0.80, startEnergy: 1, dodgeBase: 0.0  },
+  sylva: { hpMult: 1.0,  baseDamageMult: 0.95, startEnergy: 0, dodgeBase: 0.17 },
   zapp:  { hpMult: 0.9,  baseDamageMult: 1.0,  startEnergy: 0, dodgeBase: 0.0  },
 }
 
@@ -116,7 +116,7 @@ interface CombatModifiers {
 }
 
 const DAMAGE_FLOOR = 0.55
-const GLOBAL_DMG_BOOST = 2.5
+const GLOBAL_DMG_BOOST = 1.4
 
 function computeModifiers(creature: Creature, opponentType: CreatureType): CombatModifiers {
   const { hunger, happiness, energy, isSick } = creature.stats
@@ -269,7 +269,7 @@ function resolveSpell(
     // ── ignis ──
     case 'frappe_ardente': {
       const provoked = hasStatus(target, 'provoked')
-      const baseDmg = provoked ? Math.round(9 * 1.3) : 9
+      const baseDmg = provoked ? Math.round(7 * 1.3) : 7
       const newEmbers = Math.min(3, caster.embers + 1)
       return {
         ...empty,
@@ -280,7 +280,7 @@ function resolveSpell(
     }
     case 'explosion': {
       const embers = caster.embers
-      const dmgMap: Record<number, number> = { 0: 8, 1: 14, 2: 20, 3: 26 }
+      const dmgMap: Record<number, number> = { 0: 10, 1: 17, 2: 24, 3: 31 }
       const dmg = dmgMap[Math.min(3, embers)] ?? 8
       return {
         ...empty,
@@ -307,8 +307,8 @@ function resolveSpell(
       return {
         ...empty,
         casterHpDelta: -8,
-        targetHpDelta: -15,
-        log: '🩸 Immolation ! -8 PV sur soi → -15 HP ennemi',
+        targetHpDelta: -11,
+        log: '🩸 Immolation ! -8 PV sur soi → -11 HP ennemi (garanti)',
       }
     }
     case 'brasier': {
@@ -326,8 +326,8 @@ function resolveSpell(
       return {
         ...empty,
         casterHpDelta: healSelf,
-        targetHpDelta: -5,
-        log: `🌊 Vague ! -5 HP ennemi${healSelf ? ' +2 PV' : ''}`,
+        targetHpDelta: -7,
+        log: `🌊 Vague ! -7 HP ennemi${healSelf ? ' +2 PV' : ''}`,
       }
     }
     case 'siphon': {
@@ -337,8 +337,8 @@ function resolveSpell(
         casterEnergyDelta: 2,
         casterHpDelta: healSelf,
         targetEnergyDelta: -2,
-        targetHpDelta: -5,
-        log: `💧 Siphon ! -5 HP + vol 2⚡ ennemi${healSelf ? ` +${healSelf} PV` : ''}`,
+        targetHpDelta: -6,
+        log: `💧 Siphon ! -6 HP + vol 2⚡ ennemi${healSelf ? ` +${healSelf} PV` : ''}`,
       }
     }
     case 'regeneration': {
@@ -368,10 +368,10 @@ function resolveSpell(
     case 'raz_de_maree': {
       return {
         ...empty,
-        targetHpDelta: -19,
+        targetHpDelta: -15,
         targetEnergyDelta: -2,
         casterEnergyDelta: 2,
-        log: '🌊💥 Raz-de-marée ! -19 HP + vol 2⚡',
+        log: '🌊💥 Raz-de-marée ! -15 HP + vol 2⚡',
       }
     }
 
@@ -381,9 +381,9 @@ function resolveSpell(
       const fogStatus: StatusEffect[] = fogChance ? [{ type: 'fog', turnsLeft: 2 }] : []
       return {
         ...empty,
-        targetHpDelta: -7,
+        targetHpDelta: -6,
         targetStatusesToAdd: fogStatus,
-        log: `👊 Coup voilé ! -7 HP${fogChance ? ' + brouillage ennemi !' : ''}`,
+        log: `👊 Coup voilé ! -6 HP${fogChance ? ' + brouillage ennemi !' : ''}`,
       }
     }
     case 'ecran_fumee': {
@@ -414,14 +414,8 @@ function resolveSpell(
       return { ...empty, log: '✨ Dissipation ! Aucun statut à retirer' }
     }
     case 'embuscade': {
-      if (opponentMissedThisTurn) {
-        return {
-          ...empty,
-          targetHpDelta: -15,
-          log: '🗡️ Embuscade ! Ennemi a raté ! -15 HP',
-        }
-      }
-      return { ...empty, log: '🗡️ Embuscade ! Ennemi n\'a pas raté...' }
+      // Damage fully resolved in the deferred block (after opponent turn) — needs opponentMissed + Volute state
+      return { ...empty, log: '' }
     }
     case 'brouillard_total': {
       return {
@@ -435,8 +429,8 @@ function resolveSpell(
     case 'decharge': {
       return {
         ...empty,
-        targetHpDelta: -8,
-        log: '⚡ Décharge ! -8 HP (priorité)',
+        targetHpDelta: -7,
+        log: '⚡ Décharge ! -7 HP (priorité)',
       }
     }
     case 'arc_paralysant': {
@@ -1042,25 +1036,22 @@ export default function CombatScreen({ player, opponent, onFinish, debugOverride
       logParts.push('<🛡️ Ennemi se défend.')
     }
 
-    // Re-resolve embuscade if player used it — now we know if opponent missed
+    // Resolve embuscade — deferred to here so we know opponent's turn outcome + Volute state
     if (pAction.kind === 'spell' && pAction.spellId === 'embuscade') {
       const opponentMissed = opponentDmgToPlayer === 0 && oAction.kind !== 'charge'
-      const embResult = resolveSpell(
-        'embuscade', newP, newO,
-        playerType, opponent.creatureType,
-        pPassiveLevel, opponentMissed,
-        opponentLoadout,
-      )
-      if (embResult.targetHpDelta < 0) {
-        let embDmg = Math.max(0, -embResult.targetHpDelta)
-        embDmg = Math.round(embDmg * playerMods.damageMult * playerMods.counterBonus)
-        if (hasStatus(newO, 'barrier')) {
-          const b = getStatus(newO, 'barrier')!
-          embDmg = Math.round(embDmg * (1 - (b.value ?? 50) / 100))
-        }
-        newO = { ...newO, hp: Math.max(0, newO.hp - embDmg) }
+      const hasVoluteActive = hasStatus(newP, 'dodge_up')
+      const bonusCondition = opponentMissed || hasVoluteActive
+      const rawDmg = 9 + (bonusCondition ? 9 : 0)
+      let embDmg = Math.round(rawDmg * playerMods.damageMult * playerMods.counterBonus)
+      if (hasStatus(newO, 'barrier')) {
+        const b = getStatus(newO, 'barrier')!
+        embDmg = Math.round(embDmg * (1 - (b.value ?? 50) / 100))
       }
-      logParts.push('>' + embResult.log)
+      newO = { ...newO, hp: Math.max(0, newO.hp - embDmg) }
+      const condStr = bonusCondition
+        ? (opponentMissed ? ' 🎯 Ambush !' : ' 🌀 Volute !')
+        : ''
+      logParts.push(`>🗡️ Embuscade ! -${embDmg} HP${condStr}`)
     }
 
     // Burn DoT
