@@ -396,12 +396,11 @@ export default function HomeScreen({
             <CreatureDisplay creature={creature} pose={currentPose} onEvolve={handleEvolve} variant="hero" />
           </View>
 
-          {/* Inventaire shortcut */}
-          <View style={s.invShortcutWrap} pointerEvents="box-none">
-            <TouchableOpacity style={s.invShortcut} onPress={onOpenInventory} activeOpacity={0.8}>
-              <Text style={s.invShortcutTxt}>📦 Inventaire</Text>
-            </TouchableOpacity>
-          </View>
+          {/* Inventaire side badge */}
+          <TouchableOpacity style={s.invSideBtn} onPress={onOpenInventory} activeOpacity={0.8}>
+            <Text style={s.invSideBtnEmoji}>🎒</Text>
+            <Text style={s.invSideBtnLbl}>Sac</Text>
+          </TouchableOpacity>
 
           {/* Sick badge */}
           {creature.stats.isSick && !currentPose && (
@@ -723,11 +722,16 @@ const s = StyleSheet.create({
   maxBadge: { backgroundColor: '#F59E0B', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5 },
   maxTxt: { color: '#fff', fontWeight: '800', fontSize: 11 },
 
-  heroCreature: { flex: 1, width: '100%', alignItems: 'center', justifyContent: 'center', marginBottom: 36 },
+  heroCreature: { flex: 1, width: '100%', alignItems: 'center', justifyContent: 'center' },
 
-  invShortcutWrap: { position: 'absolute', bottom: 52, left: 0, right: 0, alignItems: 'center', pointerEvents: 'box-none' } as any,
-  invShortcut: { backgroundColor: 'rgba(0,0,0,0.52)', borderRadius: 22, paddingHorizontal: 16, paddingVertical: 7, borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)' },
-  invShortcutTxt: { color: '#fff', fontWeight: '700', fontSize: 13 },
+  invSideBtn: {
+    position: 'absolute', bottom: 52, left: 12,
+    backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 14, paddingVertical: 8, paddingHorizontal: 10,
+    alignItems: 'center', width: 58,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
+  },
+  invSideBtnEmoji: { fontSize: 22 },
+  invSideBtnLbl: { fontSize: 10, color: '#fff', fontWeight: '700', marginTop: 3 },
 
   sickBadge: { position: 'absolute', bottom: 76, left: 16, backgroundColor: '#FFF3CD', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
   sickTxt: { fontSize: 12, fontWeight: '700', color: '#856404' },

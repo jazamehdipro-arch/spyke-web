@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react'
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import { StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import CrossingsScreen from './src/screens/CrossingsScreen'
 import HomeScreen from './src/screens/HomeScreen'
 import InventoryScreen from './src/screens/InventoryScreen'
@@ -33,7 +33,7 @@ import {
   saveStreak,
 } from './src/utils/storage'
 
-type Tab = 'home' | 'inventory' | 'quests' | 'crossings' | 'profile'
+type Tab = 'home' | 'inventory' | 'boutique' | 'quests' | 'crossings' | 'profile'
 
 interface GameState {
   creature: Creature
@@ -330,7 +330,7 @@ export default function App() {
 
   const tabs: { key: Tab; icon: string; label: string; badge?: number }[] = [
     { key: 'home',      icon: '🏠', label: 'Accueil' },
-    { key: 'inventory', icon: '🛍️', label: 'Boutique' },
+    { key: 'boutique',  icon: '🛍️', label: 'Boutique' },
     { key: 'quests',    icon: '📋', label: 'Quêtes', badge: questBadge },
     { key: 'crossings', icon: '🤝', label: 'Croises' },
     { key: 'profile',   icon: '👤', label: 'Profil' },
@@ -338,6 +338,7 @@ export default function App() {
 
   return (
     <View style={styles.root}>
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
       <View style={styles.content}>
         {activeTab === 'home' && (
           <HomeScreen
@@ -361,6 +362,17 @@ export default function App() {
             coins={state.coins}
             onUseItem={handleUseItem}
             onBuyItem={handleBuyItem}
+            mode="inventory"
+          />
+        )}
+        {activeTab === 'boutique' && (
+          <InventoryScreen
+            inventory={state.inventory}
+            creature={state.creature}
+            coins={state.coins}
+            onUseItem={handleUseItem}
+            onBuyItem={handleBuyItem}
+            mode="shop"
           />
         )}
         {activeTab === 'quests' && (

@@ -1,7 +1,6 @@
-import React, { useState } from 'react'
+import React from 'react'
 import {
   FlatList,
-  Modal,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -30,6 +29,7 @@ interface Props {
   coins: number
   onUseItem: (item: InventoryItem) => void
   onBuyItem: (itemId: string, price: number) => void
+  mode?: 'inventory' | 'shop'
 }
 
 function ItemCard({ item, creature, onUse }: { item: InventoryItem; creature: Creature; onUse: () => void }) {
@@ -117,24 +117,46 @@ function EmptyInventory() {
   )
 }
 
-export default function InventoryScreen({ inventory, creature, coins, onUseItem, onBuyItem }: Props) {
-  const [showShop, setShowShop] = useState(false)
+export default function InventoryScreen({ inventory, creature, coins, onUseItem, onBuyItem, mode = 'inventory' }: Props) {
+  if (mode === 'shop') {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.title}>🛍️ Boutique</Text>
+            <Text style={styles.subtitle}>Dépense tes pièces</Text>
+          </View>
+          <View style={styles.coinsDisplay}>
+            <Text style={styles.coinsText}>💰 {coins} pièces</Text>
+          </View>
+        </View>
+        <Text style={styles.sheetSub}>Aucun avantage au combat — objets cosmétiques & confort uniquement !</Text>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 30 }}>
+          {SHOP_ITEMS.map((s) => (
+            <ShopItemRow
+              key={s.itemId}
+              itemId={s.itemId}
+              price={s.price}
+              coins={coins}
+              onBuy={() => onBuyItem(s.itemId, s.price)}
+            />
+          ))}
+        </ScrollView>
+      </SafeAreaView>
+    )
+  }
 
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.header}>
         <View>
-          <Text style={styles.title}>Inventaire</Text>
+          <Text style={styles.title}>🎒 Inventaire</Text>
           <Text style={styles.subtitle}>
             {inventory.length > 0
               ? `${inventory.reduce((s, i) => s + i.quantity, 0)} objets`
               : 'Rien pour l\'instant'}
           </Text>
         </View>
-        <TouchableOpacity style={styles.shopBtn} onPress={() => setShowShop(true)}>
-          <Text style={styles.shopBtnText}>🛍️ Boutique</Text>
-          <Text style={styles.shopCoinsBadge}>💰 {coins}</Text>
-        </TouchableOpacity>
       </View>
 
       {creature.stats.isSick && (
@@ -154,36 +176,6 @@ export default function InventoryScreen({ inventory, creature, coins, onUseItem,
         ListEmptyComponent={EmptyInventory}
         contentContainerStyle={styles.list}
       />
-
-      {/* Shop modal */}
-      <Modal visible={showShop} transparent animationType="slide">
-        <TouchableOpacity style={styles.sheetOverlay} activeOpacity={1} onPress={() => setShowShop(false)}>
-          <View style={styles.sheet}>
-            <View style={styles.sheetHeader}>
-              <Text style={styles.sheetTitle}>🛍️ Boutique</Text>
-              <View style={styles.coinsDisplay}>
-                <Text style={styles.coinsText}>💰 {coins} pièces</Text>
-              </View>
-            </View>
-            <Text style={styles.sheetSub}>Dépense tes pièces — aucun avantage au combat !</Text>
-            <ScrollView showsVerticalScrollIndicator={false} style={styles.sheetScroll}>
-              {SHOP_ITEMS.map((s) => (
-                <ShopItemRow
-                  key={s.itemId}
-                  itemId={s.itemId}
-                  price={s.price}
-                  coins={coins}
-                  onBuy={() => {
-                    onBuyItem(s.itemId, s.price)
-                    setShowShop(false)
-                  }}
-                />
-              ))}
-              <View style={{ height: 24 }} />
-            </ScrollView>
-          </View>
-        </TouchableOpacity>
-      </Modal>
     </SafeAreaView>
   )
 }
