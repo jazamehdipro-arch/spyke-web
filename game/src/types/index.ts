@@ -55,6 +55,7 @@ export interface Spell {
   energyCost: number
   cooldown: number   // 0 = pas de cooldown
   description: string
+  scaledDesc?: (mult: number) => string
 }
 
 export type SpellLoadout = [SpellId, SpellId, SpellId, SpellId]

@@ -116,7 +116,7 @@ interface CombatModifiers {
 }
 
 const DAMAGE_FLOOR = 0.55
-const GLOBAL_DMG_BOOST = 2.5
+const GLOBAL_DMG_BOOST = 1.4
 
 function computeModifiers(creature: Creature, opponentType: CreatureType): CombatModifiers {
   const { hunger, happiness, energy, isSick } = creature.stats
@@ -169,6 +169,11 @@ function computeModifiers(creature: Creature, opponentType: CreatureType): Comba
   const counterBonus = COUNTER_TABLE[creature.type] === opponentType ? 1.15 : 1.0
 
   return { maxEnergy, damageMult, timerReduction, timerBonus, activeFoodBuff, hideOpponentEnergy, dodgeChance, timideChance, sickDot, hpMult, counterBonus, trainingDmgReduction, trainingHpBonus }
+}
+
+function computeDisplayMult(creature: Creature): number {
+  const profile = CREATURE_PROFILES[creature.type]
+  return profile.baseDamageMult * GLOBAL_DMG_BOOST * (1 + 0.03 * (creature.stats.level - 1))
 }
 
 const OPPONENT_MAX_ENERGY = 5
@@ -677,12 +682,14 @@ function SpellCard({
   state,
   maxEnergy,
   color,
+  displayMult,
   onPress,
 }: {
   spellId: SpellId
   state: Combatant
   maxEnergy: number
   color: string
+  displayMult: number
   onPress: () => void
 }) {
   const spell = SPELL_CATALOG[spellId]
@@ -711,7 +718,7 @@ function SpellCard({
           ]} />
         ))}
       </View>
-      <Text style={s.spellRole} numberOfLines={2}>{spell.description}</Text>
+      <Text style={s.spellRole} numberOfLines={2}>{spell.scaledDesc ? spell.scaledDesc(displayMult) : spell.description}</Text>
     </TouchableOpacity>
   )
 }
@@ -741,6 +748,7 @@ interface Props {
 export default function CombatScreen({ player, opponent, onFinish, debugOverride }: Props) {
   const arenaImg = useRef(ARENAS[Math.floor(Math.random() * ARENAS.length)]).current
   const playerMods = useRef<CombatModifiers>(computeModifiers(player, opponent.creatureType)).current
+  const playerDisplayMult = useRef(computeDisplayMult(player)).current
 
   const playerType = debugOverride?.playerType ?? player.type
   const playerLevel = debugOverride?.playerLevel ?? player.stats.level
@@ -1352,14 +1360,14 @@ export default function CombatScreen({ player, opponent, onFinish, debugOverride
         <View style={s.spellRow}>
           {([0, 1] as const).map(i => (
             <SpellCard key={playerLoadout[i]} spellId={playerLoadout[i]} state={pState}
-              maxEnergy={playerMods.maxEnergy} color={pColor}
+              maxEnergy={playerMods.maxEnergy} color={pColor} displayMult={playerDisplayMult}
               onPress={() => commitAction({ kind: 'spell', spellId: playerLoadout[i] })} />
           ))}
         </View>
         <View style={s.spellRow}>
           {([2, 3] as const).map(i => (
             <SpellCard key={playerLoadout[i]} spellId={playerLoadout[i]} state={pState}
-              maxEnergy={playerMods.maxEnergy} color={pColor}
+              maxEnergy={playerMods.maxEnergy} color={pColor} displayMult={playerDisplayMult}
               onPress={() => commitAction({ kind: 'spell', spellId: playerLoadout[i] })} />
           ))}
         </View>
