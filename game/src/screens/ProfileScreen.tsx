@@ -11,11 +11,29 @@ import {
 import { Creature, CreatureType } from '../types'
 import { CREATURE_COLORS, CREATURE_LABELS, getMood, getMoodEmoji } from '../utils/creature'
 
-const CREATURE_SPRITES: Record<CreatureType, ImageSourcePropType> = {
+const SPRITES_BASE: Record<CreatureType, ImageSourcePropType> = {
   ignis: require('../../assets/sprites/ignis_f0.png'),
   nemo:  require('../../assets/sprites/nemo_f0.png'),
   sylva: require('../../assets/sprites/sylva_f0.png'),
   zapp:  require('../../assets/sprites/zapp_f0.png'),
+}
+const SPRITES_E2: Record<CreatureType, ImageSourcePropType> = {
+  ignis: require('../../assets/sprites/ignis_e2_f1.png'),
+  nemo:  require('../../assets/sprites/nemo_e2_f1.png'),
+  sylva: require('../../assets/sprites/sylva_e2_f1.png'),
+  zapp:  require('../../assets/sprites/zapp_e2_f1.png'),
+}
+const SPRITES_E3: Record<CreatureType, ImageSourcePropType> = {
+  ignis: require('../../assets/sprites/ignis_e3_f1.png'),
+  nemo:  require('../../assets/sprites/nemo_e3_f1.png'),
+  sylva: require('../../assets/sprites/sylva_e3_f1.png'),
+  zapp:  require('../../assets/sprites/zapp_e3_f1.png'),
+}
+
+function getEvoSprite(type: CreatureType, level: number): ImageSourcePropType {
+  if (level >= 20) return SPRITES_E3[type]
+  if (level >= 10) return SPRITES_E2[type]
+  return SPRITES_BASE[type]
 }
 
 interface Props {
@@ -49,7 +67,7 @@ export default function ProfileScreen({ creature, username, crossingsCount }: Pr
 
         <View style={[styles.creatureCard, { borderColor: color + '44' }]}>
           <View style={[styles.avatarBg, { backgroundColor: color + '22' }]}>
-            <Image source={CREATURE_SPRITES[creature.type]} style={styles.avatarSprite} resizeMode="contain" />
+            <Image source={getEvoSprite(creature.type, creature.stats.level)} style={styles.avatarSprite} resizeMode="contain" />
           </View>
           <Text style={styles.creatureName}>{creature.name}</Text>
           <Text style={styles.username}>@{username}</Text>
