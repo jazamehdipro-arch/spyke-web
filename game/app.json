@@ -27,6 +27,11 @@
         "NSLocationAlwaysUsageDescription": "Croisio utilise ta position en arrière-plan pour détecter les croisements."
       }
     },
+    "androidStatusBar": {
+      "translucent": true,
+      "barStyle": "light-content",
+      "backgroundColor": "#00000000"
+    },
     "android": {
       "package": "com.croisio.app",
       "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_BACKGROUND_LOCATION"],

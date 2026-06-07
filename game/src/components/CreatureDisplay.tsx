@@ -176,24 +176,24 @@ function FloatingParticles({ color, type }: { color: string; type: CreatureType 
 
 // 6-frame sequences for base form (frames 0-5)
 const FRAME_SEQ: Record<CreatureMood, number[]> = {
-  excited: [0, 1, 2, 3, 4, 5, 4, 3, 2, 1],
-  happy:   [0, 1, 2, 1, 3, 4, 3, 0],
-  neutral: [0, 0, 1, 2, 0, 0, 3, 0],
-  sad:     [0, 0, 1, 0, 0, 2, 0, 0],
+  excited: [0, 1, 2, 3, 4, 5, 4, 3, 2, 1, 0, 5],
+  happy:   [0, 1, 2, 1, 3, 4, 5, 3, 0],
+  neutral: [0, 1, 2, 0, 3, 0, 1, 4, 0],
+  sad:     [0, 1, 0, 2, 0, 3, 0, 1],
 }
 // 3-frame sequences for evolved forms (frames 0-2)
 const FRAME_SEQ_EVO: Record<CreatureMood, number[]> = {
-  excited: [0, 1, 2, 1, 0, 2],
-  happy:   [0, 1, 0, 1],
-  neutral: [0, 0, 1, 0],
-  sad:     [0, 0, 0, 1],
+  excited: [0, 1, 2, 1, 0, 2, 1],
+  happy:   [0, 1, 2, 1, 0],
+  neutral: [0, 1, 0, 2, 0],
+  sad:     [0, 1, 0, 2, 1],
 }
 
 const FRAME_MS: Record<CreatureMood, number> = {
-  excited: 180,
-  happy:   350,
-  neutral: 700,
-  sad:     1100,
+  excited: 140,
+  happy:   260,
+  neutral: 460,
+  sad:     700,
 }
 
 export type CreaturePose = 'eat' | 'train' | 'sleep' | null

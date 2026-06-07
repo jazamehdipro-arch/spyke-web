@@ -5,14 +5,16 @@ import {
   ImageBackground,
   ImageSourcePropType,
   Modal,
+  Platform,
   RefreshControl,
-  SafeAreaView,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native'
+import { StatusBar as ExpoStatusBar } from 'expo-status-bar'
 import CreatureDisplay, { CreaturePose } from '../components/CreatureDisplay'
 import EventModal from '../components/EventModal'
 import MiniGame from '../components/MiniGame'
@@ -23,7 +25,6 @@ import { generateRandomEvent, getRewardItem, shouldTriggerEvent } from '../utils
 import { getCreatureSpeech, getReactionMessage } from '../utils/speech'
 import { addItemToInventory, addJournalEntry, saveCreature, saveEvents, saveInventory, saveJournal, saveQuests } from '../utils/storage'
 import { updateQuestsAfterAction } from '../utils/quests'
-import { getDailyWeather, WEATHER_EMOJI, WEATHER_LABEL } from '../utils/weather'
 
 const { height: SCREEN_H } = Dimensions.get('window')
 const HERO_H = Math.round(SCREEN_H * 0.42)
@@ -91,7 +92,6 @@ export default function HomeScreen({
   creature, inventory, events, quests, journal,
   streak, coins, onUpdate, onSkinChange, onOpenInventory, onOpenCrossings,
 }: Props) {
-  const weather = getDailyWeather()
   const [refreshing, setRefreshing] = useState(false)
   const [showFoodPicker, setShowFoodPicker] = useState(false)
   const [particleTrigger, setParticleTrigger] = useState(0)
@@ -351,8 +351,11 @@ export default function HomeScreen({
   const foodItems = inventory.filter((i) => (i.effect.hunger ?? 0) > 0)
   const previewInv = inventory.slice(0, 5)
 
+  const statusBarH = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 24) : 0
+
   return (
-    <SafeAreaView style={s.root}>
+    <View style={s.root}>
+      <ExpoStatusBar style="light" />
       <ParticleEffect trigger={particleTrigger} emojis={particleEmojis} />
 
       {/* ── Hero ─────────────────────────────────────────────── */}
@@ -361,26 +364,15 @@ export default function HomeScreen({
           <View style={s.heroVignette} pointerEvents="none" />
 
           {/* Header */}
-          <View style={s.heroHeader}>
+          <View style={[s.heroHeader, { paddingTop: statusBarH + 12 }]}>
             <TouchableOpacity onPress={handleTitleTap} activeOpacity={1}>
               <Text style={s.heroTitle}>Croisio</Text>
             </TouchableOpacity>
             <View style={{ flex: 1 }} />
-            <TouchableOpacity style={s.heroIconBtn}>
-              <Text style={s.heroIconTxt}>🎁</Text>
-            </TouchableOpacity>
+            <View style={s.chip}><Text style={[s.chipTxt, { color: '#F5A623' }]}>💰 {coins ?? 0}</Text></View>
             <TouchableOpacity style={s.heroIconBtn} onPress={() => setShowAdmin(true)}>
               <Text style={s.heroIconTxt}>⚙️</Text>
             </TouchableOpacity>
-          </View>
-
-          {/* Chips */}
-          <View style={s.chipsRow}>
-            <View style={s.chip}><Text style={s.chipTxt}>{WEATHER_EMOJI[weather]} {WEATHER_LABEL[weather]}</Text></View>
-            {!!streak && streak > 0 && (
-              <View style={s.chip}><Text style={s.chipTxt}>🔥 {streak} jour{streak > 1 ? 's' : ''}</Text></View>
-            )}
-            <View style={s.chip}><Text style={[s.chipTxt, { color: '#F5A623' }]}>💰 {coins ?? 0}</Text></View>
           </View>
 
           {/* Speech bubble */}
@@ -680,7 +672,7 @@ export default function HomeScreen({
           </Animated.View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </View>
   )
 }
 
@@ -691,7 +683,7 @@ const s = StyleSheet.create({
   hero: { height: HERO_H, overflow: 'hidden' },
   heroImg: { flex: 1 },
   heroVignette: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 40, backgroundColor: '#0f0f1a', opacity: 0.4 },
-  heroHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 12, gap: 8 },
+  heroHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 12, gap: 8, zIndex: 1 },
   heroTitle: {
     fontSize: 28, fontWeight: '800', color: '#fff',
     textShadowColor: 'rgba(0,0,0,0.6)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4,
@@ -704,15 +696,16 @@ const s = StyleSheet.create({
   chipTxt: { fontSize: 12, fontWeight: '600', color: '#fff' },
 
   speech: {
-    position: 'absolute', top: 82, left: 16, right: 110,
+    position: 'absolute', top: 68, left: 16, right: 100,
     backgroundColor: 'rgba(255,255,255,0.95)', borderRadius: 14, padding: 10,
     flexDirection: 'row', alignItems: 'flex-start', gap: 6,
     shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.18, shadowRadius: 6,
+    zIndex: 2,
   },
   speechQ: { fontSize: 15, color: '#aaa', lineHeight: 20 },
   speechTxt: { flex: 1, fontSize: 13, color: '#1a1a2e', fontWeight: '500', lineHeight: 18 },
 
-  heroBadges: { position: 'absolute', top: 90, right: 12, gap: 6, alignItems: 'flex-end' },
+  heroBadges: { position: 'absolute', top: 68, right: 12, gap: 6, alignItems: 'flex-end', zIndex: 2 },
   lvBadge: { backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5 },
   lvTxt: { color: '#fff', fontWeight: '700', fontSize: 13 },
   maxBadge: { backgroundColor: '#F59E0B', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5 },
