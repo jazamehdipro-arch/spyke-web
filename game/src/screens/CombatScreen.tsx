@@ -69,9 +69,9 @@ const CREATURE_PROFILES: Record<CreatureType, {
   startEnergy: number
   dodgeBase: number
 }> = {
-  ignis: { hpMult: 0.85, baseDamageMult: 1.10, startEnergy: 0, dodgeBase: 0.0  },
-  nemo:  { hpMult: 1.15, baseDamageMult: 0.80, startEnergy: 1, dodgeBase: 0.0  },
-  sylva: { hpMult: 1.0,  baseDamageMult: 0.95, startEnergy: 0, dodgeBase: 0.17 },
+  ignis: { hpMult: 0.85, baseDamageMult: 1.16, startEnergy: 0, dodgeBase: 0.0  },
+  nemo:  { hpMult: 1.15, baseDamageMult: 0.77, startEnergy: 1, dodgeBase: 0.0  },
+  sylva: { hpMult: 1.0,  baseDamageMult: 0.93, startEnergy: 0, dodgeBase: 0.17 },
   zapp:  { hpMult: 0.9,  baseDamageMult: 1.0,  startEnergy: 0, dodgeBase: 0.0  },
 }
 
@@ -273,25 +273,27 @@ function resolveSpell(
   switch (spellId) {
     // ── ignis ──
     case 'frappe_ardente': {
-      const provoked = hasStatus(target, 'provoked')
-      const baseDmg = provoked ? Math.round(7 * 1.3) : 7
       const newEmbers = Math.min(3, caster.embers + 1)
+      // Passive: 3 braises → ×1.5 on next fire spell (triggers here too)
+      const braiseBonus = caster.embers === 3
+      const raw = braiseBonus ? Math.round(7 * 1.5) : 7
       return {
         ...empty,
-        targetHpDelta: -baseDmg,
-        newCasterEmbers: newEmbers,
-        log: `🔥 Frappe ardente ! -${baseDmg} HP${provoked ? ' (provoqué!)' : ''}. Braises: ${newEmbers}`,
+        targetHpDelta: -raw,
+        newCasterEmbers: braiseBonus ? 0 : newEmbers,
+        log: `🔥 Frappe ardente ! -${raw} HP. Braises: ${braiseBonus ? 0 : newEmbers}${braiseBonus ? ' (×1.5 braises !)' : ''}`,
       }
     }
     case 'explosion': {
       const embers = caster.embers
-      const dmgMap: Record<number, number> = { 0: 10, 1: 17, 2: 24, 3: 31 }
-      const dmg = dmgMap[Math.min(3, embers)] ?? 8
+      const braiseBonus = embers >= 3
+      const raw = braiseBonus ? Math.round(9.9 * 1.5) : 9.9
+      const dmg = Math.round(raw)
       return {
         ...empty,
         targetHpDelta: -dmg,
         newCasterEmbers: 0,
-        log: `💥 Explosion (${embers} braises) ! -${dmg} HP !`,
+        log: `💥 Explosion ! -${dmg} HP${braiseBonus ? ' (×1.5 braises !)' : ''}`,
       }
     }
     case 'carapace_chauffee': {
@@ -309,48 +311,66 @@ function resolveSpell(
       }
     }
     case 'immolation': {
+      // Guaranteed — dodge/barrier skipped in commitAction for this spell
+      const braiseBonus = caster.embers === 3
+      const raw = braiseBonus ? Math.round(11 * 1.5) : 11
       return {
         ...empty,
         casterHpDelta: -8,
-        targetHpDelta: -11,
-        log: '🩸 Immolation ! -8 PV sur soi → -11 HP ennemi (garanti)',
+        targetHpDelta: -raw,
+        newCasterEmbers: braiseBonus ? 0 : undefined,
+        log: `🩸 Immolation ! -8 PV sur soi → -${raw} HP ennemi (garanti)${braiseBonus ? ' (×1.5 braises !)' : ''}`,
       }
     }
     case 'brasier': {
+      const braiseBonus = caster.embers === 3
+      const raw = braiseBonus ? Math.round(15 * 1.5) : 15
       return {
         ...empty,
-        targetHpDelta: -15,
+        targetHpDelta: -raw,
         targetStatusesToAdd: [{ type: 'burn', turnsLeft: 3, value: 4 }],
-        log: '🌋 Brasier ! -15 HP + brûlure 3 tours',
+        newCasterEmbers: braiseBonus ? 0 : undefined,
+        log: `🌋 Brasier ! -${raw} HP + brûlure 3 tours${braiseBonus ? ' (×1.5 braises !)' : ''}`,
+      }
+    }
+    case 'fournaise': {
+      const braiseBonus = caster.embers === 3
+      const raw = braiseBonus ? Math.round(11.3 * 1.5) : Math.round(11.3)
+      const newEmbers = Math.min(3, caster.embers + 1)
+      return {
+        ...empty,
+        targetHpDelta: -raw,
+        newCasterEmbers: braiseBonus ? 0 : newEmbers,
+        log: `🌪️🔥 Fournaise ! -${raw} HP + 1 braise${braiseBonus ? ' (×1.5 braises !)' : ''}`,
       }
     }
 
     // ── nemo ──
     case 'vague': {
-      const healSelf = passiveLevel >= 3 ? 2 : 0
       return {
         ...empty,
-        casterHpDelta: healSelf,
         targetHpDelta: -7,
-        log: `🌊 Vague ! -7 HP ennemi${healSelf ? ' +2 PV' : ''}`,
+        log: '🌊 Vague ! -7 HP',
       }
     }
     case 'siphon': {
-      const healSelf = passiveLevel >= 3 ? 4 : 0
+      // Life steal: always heal +4, +2 bonus if low HP (sustain passive)
+      const lowHp = caster.hp < 25
+      const heal = lowHp ? 6 : 4
       return {
         ...empty,
-        casterEnergyDelta: 2,
-        casterHpDelta: healSelf,
-        targetEnergyDelta: -2,
+        casterHpDelta: heal,
         targetHpDelta: -6,
-        log: `💧 Siphon ! -6 HP + vol 2⚡ ennemi${healSelf ? ` +${healSelf} PV` : ''}`,
+        log: `💧 Siphon ! -6 HP + vol de vie (+${heal} PV)${lowHp ? ' (sustain !)' : ''}`,
       }
     }
     case 'regeneration': {
+      const lowHp = caster.hp < 25
+      const heal = lowHp ? 18 : 14
       return {
         ...empty,
-        casterHpDelta: 16,
-        log: '💚 Régénération ! +16 PV',
+        casterHpDelta: heal,
+        log: `💚 Régénération ! +${heal} PV${lowHp ? ' (sustain !)' : ''}`,
       }
     }
     case 'barriere': {
@@ -363,7 +383,7 @@ function resolveSpell(
     case 'malediction': {
       const blocked = targetLoadout
         ? targetMostExpensiveSpell(target, targetLoadout)
-        : 'vague'
+        : 'raz_de_maree'
       return {
         ...empty,
         targetStatusesToAdd: [{ type: 'cursed', turnsLeft: 2, data: blocked }],
@@ -373,10 +393,26 @@ function resolveSpell(
     case 'raz_de_maree': {
       return {
         ...empty,
-        targetHpDelta: -15,
-        targetEnergyDelta: -2,
-        casterEnergyDelta: 2,
-        log: '🌊💥 Raz-de-marée ! -15 HP + vol 2⚡',
+        targetHpDelta: -16,
+        log: '🌊💥 Raz-de-marée ! -16 HP',
+      }
+    }
+    case 'maree_curative': {
+      const lowHp = caster.hp < 25
+      const heal = lowHp ? 11 : 8
+      return {
+        ...empty,
+        casterHpDelta: heal,
+        targetHpDelta: -Math.round(13.3),
+        log: `🌊💚 Marée curative ! -13 HP ennemi + soin +${heal} PV${lowHp ? ' (sustain !)' : ''}`,
+      }
+    }
+    case 'abysse': {
+      return {
+        ...empty,
+        targetHpDelta: -17,
+        casterStatusesToAdd: [{ type: 'barrier', turnsLeft: 2, value: 25 }],
+        log: '🌑🌊 Abysse ! -17 HP + -25% dégâts reçus 1 tour',
       }
     }
 
@@ -386,10 +422,22 @@ function resolveSpell(
       const fogStatus: StatusEffect[] = fogChance ? [{ type: 'fog', turnsLeft: 2 }] : []
       return {
         ...empty,
-        targetHpDelta: -6,
+        targetHpDelta: -Math.round(6.2),
         targetStatusesToAdd: fogStatus,
         log: `👊 Coup voilé ! -6 HP${fogChance ? ' + brouillage ennemi !' : ''}`,
       }
+    }
+    case 'laceration_voilee': {
+      return {
+        ...empty,
+        targetHpDelta: -Math.round(8.3),
+        targetStatusesToAdd: [{ type: 'fog', turnsLeft: 2 }],
+        log: '🗡️💨 Lacération voilée ! -8 HP + brouillage ennemi 2 tours',
+      }
+    }
+    case 'embuscade_parfaite': {
+      // Resolved immediately; dodge is skipped in commitAction when Volute active
+      return { ...empty, log: '' }
     }
     case 'ecran_fumee': {
       const smokeTurns = passiveLevel >= 3 ? 2 : 1
@@ -419,7 +467,7 @@ function resolveSpell(
       return { ...empty, log: '✨ Dissipation ! Aucun statut à retirer' }
     }
     case 'embuscade': {
-      // Damage fully resolved in the deferred block (after opponent turn) — needs opponentMissed + Volute state
+      // Deferred to after opponent turn — needs opponentMissed + Volute state
       return { ...empty, log: '' }
     }
     case 'brouillard_total': {
@@ -434,8 +482,8 @@ function resolveSpell(
     case 'decharge': {
       return {
         ...empty,
-        targetHpDelta: -7,
-        log: '⚡ Décharge ! -7 HP (priorité)',
+        targetHpDelta: -8,
+        log: '⚡ Décharge ! -8 HP (priorité)',
       }
     }
     case 'arc_paralysant': {
@@ -445,7 +493,7 @@ function resolveSpell(
         ...empty,
         targetHpDelta: -5,
         targetStatusesToAdd: paralysisStatus,
-        log: `🎯 Arc paralysant ! -5 HP${paralyzed ? ' · Ennemi paralysé prochain tour !' : ' · Rate la paralysie.'}`,
+        log: `🎯 Arc paralysant ! -5 HP${paralyzed ? ' · Ennemi paralysé !' : ' · Rate la paralysie.'}`,
       }
     }
     case 'esquive_vive': {
@@ -467,16 +515,26 @@ function resolveSpell(
     case 'surcharge': {
       return {
         ...empty,
-        targetHpDelta: -14,
+        targetHpDelta: -16,
         casterStatusesToAdd: [{ type: 'exhausted', turnsLeft: 2, value: 2 }],
-        log: '🔋 Surcharge ! -14 HP + épuisement prochain tour',
+        log: '🔋 Surcharge ! -16 HP + épuisement prochain tour',
       }
     }
     case 'tempete': {
       return {
         ...empty,
-        targetHpDelta: -20,
-        log: '⛈️ Tempête ! 4×5 = -20 HP',
+        targetHpDelta: -24,
+        log: '⛈️ Tempête ! 4×6 = -24 HP',
+      }
+    }
+    case 'fulguration': {
+      const paralyzed = Math.random() < 0.2
+      const paralysisStatus: StatusEffect[] = paralyzed ? [{ type: 'paralyzed', turnsLeft: 2 }] : []
+      return {
+        ...empty,
+        targetHpDelta: -7,
+        targetStatusesToAdd: paralysisStatus,
+        log: `⚡🎯 Fulguration ! -7 HP (priorité)${paralyzed ? ' · Ennemi paralysé !' : ''}`,
       }
     }
 
@@ -507,7 +565,7 @@ function botChooseAction(
   const maxEnergy = OPPONENT_MAX_ENERGY
 
   // Spells that heal self
-  const healSpells: SpellId[] = ['regeneration', 'barriere', 'carapace_chauffee', 'volute', 'esquive_vive', 'dissipation']
+  const healSpells: SpellId[] = ['regeneration', 'barriere', 'carapace_chauffee', 'volute', 'esquive_vive', 'dissipation', 'maree_curative', 'abysse']
   // HP threshold for heal
   const hpPct = botState.hp / Math.max(1, botState.hp + 1) // approx - we don't know maxHP here, use absolute
   const isLowHP = botState.hp < 20
@@ -943,7 +1001,7 @@ export default function CombatScreen({ player, opponent, onFinish, debugOverride
         for (const t of result.targetStatusesToRemove) newO = removeStatus(newO, t)
 
         // embuscade log is deferred to after we know if opponent missed
-        if (pAction.spellId !== 'embuscade') logParts.push('>' + result.log)
+        if (pAction.spellId !== 'embuscade' && pAction.spellId !== 'embuscade_parfaite') logParts.push('>' + result.log)
       }
     } else {
       // defend
@@ -998,6 +1056,11 @@ export default function CombatScreen({ player, opponent, onFinish, debugOverride
             finalDmgToPlayer = 0
             logParts.push('Tu esquives ! 💨')
             newP = removeStatus(newP, 'dodge_ready')
+            // Sylva passif : chaque esquive recharge +1 énergie
+            if (playerType === 'sylva') {
+              newP = { ...newP, energy: Math.min(playerMods.maxEnergy, newP.energy + 1) }
+              logParts.push('🌀 Sylva +1⚡ (esquive)')
+            }
           } else {
             finalDmgToPlayer = Math.round(
               finalDmgToPlayer
@@ -1044,22 +1107,34 @@ export default function CombatScreen({ player, opponent, onFinish, debugOverride
       logParts.push('<🛡️ Ennemi se défend.')
     }
 
-    // Resolve embuscade — deferred to here so we know opponent's turn outcome + Volute state
-    if (pAction.kind === 'spell' && pAction.spellId === 'embuscade') {
+    // Resolve embuscade / embuscade_parfaite — deferred to know opponent outcome + Volute state
+    if (pAction.kind === 'spell' && (pAction.spellId === 'embuscade' || pAction.spellId === 'embuscade_parfaite')) {
+      const isParfaite = pAction.spellId === 'embuscade_parfaite'
       const opponentMissed = opponentDmgToPlayer === 0 && oAction.kind !== 'charge'
       const hasVoluteActive = hasStatus(newP, 'dodge_up')
       const bonusCondition = opponentMissed || hasVoluteActive
-      const rawDmg = 9 + (bonusCondition ? 9 : 0)
+
+      const rawBase = isParfaite ? 10.3 : 8.9
+      const rawDmg = isParfaite
+        ? Math.round(rawBase)
+        : Math.round(bonusCondition ? rawBase * 2 : rawBase)
+
       let embDmg = Math.round(rawDmg * playerMods.damageMult * playerMods.counterBonus)
-      if (hasStatus(newO, 'barrier')) {
-        const b = getStatus(newO, 'barrier')!
-        embDmg = Math.round(embDmg * (1 - (b.value ?? 50) / 100))
+
+      // Embuscade parfaite ignores dodge/barrier if Volute active
+      if (!(isParfaite && hasVoluteActive)) {
+        if (hasStatus(newO, 'barrier')) {
+          const b = getStatus(newO, 'barrier')!
+          embDmg = Math.round(embDmg * (1 - (b.value ?? 50) / 100))
+        }
       }
+
       newO = { ...newO, hp: Math.max(0, newO.hp - embDmg) }
       const condStr = bonusCondition
         ? (opponentMissed ? ' 🎯 Ambush !' : ' 🌀 Volute !')
         : ''
-      logParts.push(`>🗡️ Embuscade ! -${embDmg} HP${condStr}`)
+      const spellName = isParfaite ? 'Embuscade parfaite' : 'Embuscade'
+      logParts.push(`>🗡️ ${spellName} ! -${embDmg} HP${condStr}`)
     }
 
     // Burn DoT

@@ -24,10 +24,10 @@ export interface CreatureStats {
 }
 
 export type SpellId =
-  | 'frappe_ardente' | 'explosion' | 'carapace_chauffee' | 'provocation' | 'immolation' | 'brasier'
-  | 'vague' | 'siphon' | 'regeneration' | 'barriere' | 'malediction' | 'raz_de_maree'
-  | 'coup_voile' | 'ecran_fumee' | 'volute' | 'dissipation' | 'embuscade' | 'brouillard_total'
-  | 'decharge' | 'arc_paralysant' | 'esquive_vive' | 'rafale' | 'surcharge' | 'tempete'
+  | 'frappe_ardente' | 'explosion' | 'carapace_chauffee' | 'provocation' | 'immolation' | 'brasier' | 'fournaise'
+  | 'vague' | 'siphon' | 'regeneration' | 'barriere' | 'malediction' | 'raz_de_maree' | 'maree_curative' | 'abysse'
+  | 'coup_voile' | 'ecran_fumee' | 'volute' | 'dissipation' | 'embuscade' | 'brouillard_total' | 'laceration_voilee' | 'embuscade_parfaite'
+  | 'decharge' | 'arc_paralysant' | 'esquive_vive' | 'rafale' | 'surcharge' | 'tempete' | 'fulguration'
 
 export type StatusType =
   | 'burn'        // dégâts par tour
