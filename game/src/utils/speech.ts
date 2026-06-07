@@ -23,6 +23,7 @@ export function getCreatureSpeech(creature: Creature): string {
     'On va à l\'aventure ? 🗺️',
     'Regarde comme je suis beau ! 😎',
     'J\'ai un secret... mais je le dis pas 🤫',
+    '🚀 Mise à jour OK !',
   ]
   return idle[Math.floor(Math.random() * idle.length)]
 }
