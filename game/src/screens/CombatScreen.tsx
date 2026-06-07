@@ -116,7 +116,7 @@ interface CombatModifiers {
 }
 
 const DAMAGE_FLOOR = 0.55
-const GLOBAL_DMG_BOOST = 1.4
+const GLOBAL_DMG_BOOST = 2.5
 
 function computeModifiers(creature: Creature, opponentType: CreatureType): CombatModifiers {
   const { hunger, happiness, energy, isSick } = creature.stats
