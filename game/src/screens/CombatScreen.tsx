@@ -116,6 +116,7 @@ interface CombatModifiers {
 }
 
 const DAMAGE_FLOOR = 0.55
+const GLOBAL_DMG_BOOST = 2.5
 
 function computeModifiers(creature: Creature, opponentType: CreatureType): CombatModifiers {
   const { hunger, happiness, energy, isSick } = creature.stats
@@ -139,7 +140,7 @@ function computeModifiers(creature: Creature, opponentType: CreatureType): Comba
   damageMult = Math.max(DAMAGE_FLOOR, damageMult)
 
   const training: TrainingStats = creature.training ?? { strength: 0, reflexes: 0, endurance: 0, defense: 0 }
-  damageMult = Math.max(DAMAGE_FLOOR, damageMult + training.strength * 0.008)
+  damageMult *= (1 + training.strength * 0.008)
   const trainingMaxEnergy = Math.floor(training.endurance / 9)
   maxEnergy = maxEnergy + trainingMaxEnergy
   const trainingDodge = training.defense * 0.0065
@@ -149,11 +150,12 @@ function computeModifiers(creature: Creature, opponentType: CreatureType): Comba
   const now = new Date().toISOString()
   const activeFoodBuff = !!(creature.activeCombatBuff && creature.activeCombatBuff.expiresAt > now)
   if (activeFoodBuff) {
-    damageMult = Math.max(DAMAGE_FLOOR, damageMult * creature.activeCombatBuff!.damageMult)
+    damageMult *= creature.activeCombatBuff!.damageMult
   }
 
   damageMult *= profile.baseDamageMult
-  damageMult = Math.max(DAMAGE_FLOOR, damageMult)
+  // Level scaling (même courbe que les PV) + boost global pour équilibrer la durée des combats
+  damageMult *= GLOBAL_DMG_BOOST * (1 + 0.03 * (creature.stats.level - 1))
 
   const timerBonus = 0
   const timerReduction = happiness < 60 ? 1 : 0
@@ -995,7 +997,13 @@ export default function CombatScreen({ player, opponent, onFinish, debugOverride
             logParts.push('Tu esquives ! 💨')
             newP = removeStatus(newP, 'dodge_ready')
           } else {
-            finalDmgToPlayer = Math.round(finalDmgToPlayer * opponentCounterBonus)
+            finalDmgToPlayer = Math.round(
+              finalDmgToPlayer
+              * opponentCounterBonus
+              * opponentProfile.baseDamageMult
+              * GLOBAL_DMG_BOOST
+              * (1 + 0.03 * (opponent.level - 1))
+            )
             if (hasStatus(newP, 'barrier')) {
               const b = getStatus(newP, 'barrier')!
               finalDmgToPlayer = Math.round(finalDmgToPlayer * (1 - (b.value ?? 50) / 100))
