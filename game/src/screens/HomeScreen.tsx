@@ -323,6 +323,7 @@ export default function HomeScreen({
       case 'type_nemo':  u = { ...u, type: 'nemo'  }; break
       case 'type_sylva': u = { ...u, type: 'sylva' }; break
       case 'type_zapp':  u = { ...u, type: 'zapp'  }; break
+      case 'resettraining': u = { ...u, training: { strength: 0, reflexes: 0, endurance: 0, defense: 0 } }; break
     }
     u = { ...u, mood: getMood(u.stats) }
     await saveCreature(u)
@@ -393,6 +394,13 @@ export default function HomeScreen({
           {/* Creature */}
           <View style={s.heroCreature} pointerEvents="box-none">
             <CreatureDisplay creature={creature} pose={currentPose} onEvolve={handleEvolve} variant="hero" />
+          </View>
+
+          {/* Inventaire shortcut */}
+          <View style={s.invShortcutWrap} pointerEvents="box-none">
+            <TouchableOpacity style={s.invShortcut} onPress={onOpenInventory} activeOpacity={0.8}>
+              <Text style={s.invShortcutTxt}>📦 Inventaire</Text>
+            </TouchableOpacity>
           </View>
 
           {/* Sick badge */}
@@ -648,6 +656,10 @@ export default function HomeScreen({
               <TouchableOpacity style={[s.adminBtn,{backgroundColor:'#22C55E'}]} onPress={() => adminAction('maxstats')}><Text style={s.adminBtnTxt}>Max tout</Text></TouchableOpacity>
               <TouchableOpacity style={[s.adminBtn,{backgroundColor:'#3B82F6'}]} onPress={() => adminAction('heal')}><Text style={s.adminBtnTxt}>Soigner</Text></TouchableOpacity>
             </View>
+            <Text style={s.adminSection}>Entraînement</Text>
+            <View style={s.adminRow}>
+              <TouchableOpacity style={[s.adminBtn,{backgroundColor:'#EF4444'}]} onPress={() => adminAction('resettraining')}><Text style={s.adminBtnTxt}>Reset points (→ 0)</Text></TouchableOpacity>
+            </View>
             <TouchableOpacity style={s.adminClose} onPress={() => setShowAdmin(false)}>
               <Text style={s.adminCloseTxt}>Fermer</Text>
             </TouchableOpacity>
@@ -711,7 +723,11 @@ const s = StyleSheet.create({
   maxBadge: { backgroundColor: '#F59E0B', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5 },
   maxTxt: { color: '#fff', fontWeight: '800', fontSize: 11 },
 
-  heroCreature: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  heroCreature: { flex: 1, width: '100%', alignItems: 'center', justifyContent: 'center', marginBottom: 36 },
+
+  invShortcutWrap: { position: 'absolute', bottom: 52, left: 0, right: 0, alignItems: 'center', pointerEvents: 'box-none' } as any,
+  invShortcut: { backgroundColor: 'rgba(0,0,0,0.52)', borderRadius: 22, paddingHorizontal: 16, paddingVertical: 7, borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)' },
+  invShortcutTxt: { color: '#fff', fontWeight: '700', fontSize: 13 },
 
   sickBadge: { position: 'absolute', bottom: 76, left: 16, backgroundColor: '#FFF3CD', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
   sickTxt: { fontSize: 12, fontWeight: '700', color: '#856404' },

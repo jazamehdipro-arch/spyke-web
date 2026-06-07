@@ -330,7 +330,7 @@ export default function App() {
 
   const tabs: { key: Tab; icon: string; label: string; badge?: number }[] = [
     { key: 'home',      icon: '🏠', label: 'Accueil' },
-    { key: 'inventory', icon: '🎒', label: 'Sac' },
+    { key: 'inventory', icon: '🛍️', label: 'Boutique' },
     { key: 'quests',    icon: '📋', label: 'Quêtes', badge: questBadge },
     { key: 'crossings', icon: '🤝', label: 'Croises' },
     { key: 'profile',   icon: '👤', label: 'Profil' },
