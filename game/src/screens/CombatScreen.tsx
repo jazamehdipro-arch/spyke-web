@@ -14,6 +14,7 @@ import {
 import {
   Creature,
   CreatureType,
+  FormeLevel,
   PersonalityTrait,
   SpellId,
   SpellLoadout,
@@ -21,7 +22,7 @@ import {
   StatusType,
   TrainingStats,
 } from '../types'
-import { CREATURE_COLORS } from '../utils/creature'
+import { CREATURE_COLORS, getFormeLevel } from '../utils/creature'
 import { hasTrait } from '../utils/traits'
 import {
   SPELL_CATALOG,
@@ -119,21 +120,19 @@ const DAMAGE_FLOOR = 0.55
 function computeModifiers(creature: Creature, opponentType: CreatureType): CombatModifiers {
   const { hunger, happiness, energy, isSick } = creature.stats
   const traits: PersonalityTrait[] | undefined = creature.traits
-  const mood = creature.mood
   const profile = CREATURE_PROFILES[creature.type]
 
   let maxEnergy = 5
   if (energy < 30) maxEnergy = 2
   else if (energy < 60) maxEnergy = 3
 
-  let damageMult: number
-  if (hunger >= 60) damageMult = 1.0
-  else if (hunger >= 40) damageMult = 0.80
-  else if (hunger >= 20) damageMult = 0.65
-  else damageMult = 0.45
-
-  if (mood === 'excited') damageMult *= 1.1
-  else if (mood === 'sad') damageMult *= 0.85
+  const FORME_MULT: Record<FormeLevel, number> = {
+    excellente: 1.05,
+    bonne:      1.0,
+    correcte:   0.90,
+    mauvaise:   0.55,
+  }
+  let damageMult = FORME_MULT[getFormeLevel(creature.stats)]
 
   if (hasTrait(traits, 'courageux')) damageMult *= 1.2
 
@@ -620,10 +619,10 @@ function DebuffPanel({ mods, playerType, opponentType }: { mods: CombatModifiers
 
   if (mods.damageMult < 0.95) {
     const pct = Math.round((1 - mods.damageMult) * 100)
-    debuffs.push({ emoji: '🍖', text: `Faim/humeur : -${pct}% dégâts (×${mods.damageMult.toFixed(2)})` })
+    debuffs.push({ emoji: '😓', text: `Forme : -${pct}% dégâts (×${mods.damageMult.toFixed(2)})` })
   } else if (mods.damageMult > 1.05) {
     const pct = Math.round((mods.damageMult - 1.0) * 100)
-    buffs.push({ emoji: '💪', text: `Bonus offensif : +${pct}% dégâts (×${mods.damageMult.toFixed(2)})` })
+    buffs.push({ emoji: '💪', text: `Forme excellente : +${pct}% dégâts (×${mods.damageMult.toFixed(2)})` })
   }
   if (mods.activeFoodBuff) {
     buffs.push({ emoji: '🥩', text: 'Repas boost actif !' })

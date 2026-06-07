@@ -6,15 +6,15 @@ export function getCreatureSpeech(creature: Creature): string {
   const mood = getMood(creature.stats)
 
   if (isSick) return 'Je me sens pas bien... 🤒'
-  if (hunger < 15) return 'J\'ai trop faim... 😩'
-  if (energy < 15) return 'Je suis épuisé... 😴'
-  if (happiness < 15) return 'Je suis tout triste... 😢'
+  if (hunger < 20) return 'J\'ai vraiment trop faim... 😩'
+  if (energy < 20) return 'Je suis épuisé... 😴'
+  if (happiness < 20) return 'Je suis tout triste... 😢'
   if (hunger > 90 && happiness > 90 && energy > 90) return 'Je suis au max ! 🤩'
   if (mood === 'excited') return 'Je t\'adore trop ! 💕'
+  if (hunger < 50) return 'J\'aurais bien mangé un truc... 🍖'
+  if (energy < 50) return 'Une petite sieste ça serait top... 💤'
   if (mood === 'happy') return 'La vie est belle ! 😊'
-  if (happiness < 40) return 'On pourrait jouer ? 🥺'
-  if (hunger < 40) return 'J\'aurais bien mangé un truc... 🍖'
-  if (energy < 40) return 'Une petite sieste ça serait top... 💤'
+  if (happiness < 50) return 'On pourrait jouer ? 🥺'
 
   const idle = [
     'Tu penses à quoi là ? 🤔',

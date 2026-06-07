@@ -20,7 +20,7 @@ import EventModal from '../components/EventModal'
 import MiniGame from '../components/MiniGame'
 import ParticleEffect from '../components/ParticleEffect'
 import { Creature, CreatureType, GameEvent, InventoryItem, JournalEntry, Quest, TrainingStats } from '../types'
-import { addXP, decayStats, getMood } from '../utils/creature'
+import { FORME_LABELS, addXP, decayStats, getFormeLevel, getMood } from '../utils/creature'
 import { generateRandomEvent, getRewardItem, shouldTriggerEvent } from '../utils/events'
 import { getCreatureSpeech, getReactionMessage } from '../utils/speech'
 import { addItemToInventory, addJournalEntry, saveCreature, saveEvents, saveInventory, saveJournal, saveQuests } from '../utils/storage'
@@ -92,6 +92,10 @@ export default function HomeScreen({
   creature, inventory, events, quests, journal,
   streak, coins, onUpdate, onSkinChange, onOpenInventory, onOpenCrossings,
 }: Props) {
+  // XP halved when bonheur < 30
+  const applyXP = (c: Creature, amount: number): Creature =>
+    addXP(c, c.stats.happiness < 30 ? Math.floor(amount / 2) : amount)
+
   const [refreshing, setRefreshing] = useState(false)
   const [showFoodPicker, setShowFoodPicker] = useState(false)
   const [particleTrigger, setParticleTrigger] = useState(0)
@@ -157,7 +161,7 @@ export default function HomeScreen({
   }
 
   const handleFeed = () => {
-    if (creature.stats.hunger >= 95) { showSpeech('Je suis rassasié ! 🙅'); return }
+    if (creature.stats.hunger >= 90) { showSpeech('J\'ai déjà assez mangé ! 🙅'); return }
     setShowFoodPicker(true)
   }
 
@@ -181,7 +185,7 @@ export default function HomeScreen({
         isSick,
       },
     }
-    updated = { ...addXP(updated, 8), mood: getMood(updated.stats) }
+    updated = { ...applyXP(updated, 8), mood: getMood(updated.stats) }
     const newInv = inventory.map((i) => i.id === item.id ? { ...i, quantity: i.quantity - 1 } : i).filter((i) => i.quantity > 0)
     let nq = updateQuestsAfterAction(quests, 'feed')
     nq = updateQuestsAfterAction(nq, 'level', updated.stats.level)
@@ -200,6 +204,7 @@ export default function HomeScreen({
     const totalPts = Object.values(tr).reduce((a, b) => a + b, 0)
     if (current >= 20)                        { showSpeech(`${cfg.emoji} Stat maximale !`); return }
     if (totalPts >= MAX_TRAINING_POINTS)       { showSpeech(`Points épuisés !`); return }
+    if (creature.stats.energy < 20)            { showSpeech('Trop épuisé pour s\'entraîner ! 😴'); return }
     if (creature.stats.energy < cfg.costEnergy){ showSpeech(`Trop fatigué ! ⚡`); return }
     if (creature.stats.hunger < cfg.costHunger){ showSpeech(`Trop affamé ! 🍖`); return }
     const newTr: TrainingStats = { ...tr, [type]: current + 1 }
@@ -207,7 +212,7 @@ export default function HomeScreen({
       ...creature, training: newTr,
       stats: { ...creature.stats, energy: creature.stats.energy - cfg.costEnergy, hunger: Math.max(0, creature.stats.hunger - cfg.costHunger) },
     }
-    updated = { ...addXP(updated, 5), mood: getMood(updated.stats) }
+    updated = { ...applyXP(updated, 5), mood: getMood(updated.stats) }
     const nj = addJournalEntry(journal, `${creature.name} s'est entraîné : ${cfg.label} Lv ${current + 1} !`, cfg.emoji)
     showSpeech(`${cfg.emoji} ${cfg.label} Lv ${current + 1} !`)
     triggerParticles([cfg.emoji, '⭐', '💪'])
@@ -216,7 +221,7 @@ export default function HomeScreen({
   }
 
   const handlePlay = () => {
-    if (creature.stats.energy < 10) { showSpeech('Trop fatigué pour jouer... 😴'); return }
+    if (creature.stats.energy < 20) { showSpeech('Trop épuisé pour jouer... 😴'); return }
     setShowActivityPicker(true)
   }
 
@@ -224,7 +229,8 @@ export default function HomeScreen({
     const act = PLAY_ACTIVITIES[actKey]
     const tr = creature.training ?? { strength: 0, reflexes: 0, endurance: 0, defense: 0 }
     if (Object.values(tr).reduce((a, b) => a + b, 0) >= MAX_TRAINING_POINTS) { showSpeech(`Points épuisés !`); return }
-    if (creature.stats.energy < act.costEnergy) { showSpeech("Pas assez d'énergie ! ⚡"); return }
+    if (creature.stats.energy < 20)              { showSpeech('Trop épuisé pour jouer... 😴'); return }
+    if (creature.stats.energy < act.costEnergy)  { showSpeech("Pas assez d'énergie ! ⚡"); return }
     if (creature.stats.hunger < act.costHunger)  { showSpeech('Trop affamé ! 🍖'); return }
     setPendingActivity(actKey)
     setShowActivityPicker(false)
@@ -252,7 +258,7 @@ export default function HomeScreen({
         hunger:    Math.max(0, creature.stats.hunger  - (act?.costHunger ?? 10)),
       },
     }
-    updated = { ...addXP(updated, xpGained), mood: getMood(updated.stats) }
+    updated = { ...applyXP(updated, xpGained), mood: getMood(updated.stats) }
     let nq = updateQuestsAfterAction(quests, 'play')
     nq = updateQuestsAfterAction(nq, 'level', updated.stats.level)
     const actLabel = act ? `${act.emoji} ${act.label}` : '🎮 Jeu'
@@ -269,9 +275,11 @@ export default function HomeScreen({
   const handleSleep = async () => {
     if (creature.stats.energy >= 95) { showSpeech('Je suis en pleine forme ! ⚡'); return }
     triggerPose('sleep', 3500)
+    // Faim < 30 → sommeil moins récupérateur (÷2)
+    const sleepRecovery = creature.stats.hunger < 30 ? 20 : 40
     let updated: Creature = {
       ...creature, totalSlept: creature.totalSlept + 1,
-      stats: { ...creature.stats, energy: Math.min(100, creature.stats.energy + 40), hunger: Math.max(0, creature.stats.hunger - 5) },
+      stats: { ...creature.stats, energy: Math.min(100, creature.stats.energy + sleepRecovery), hunger: Math.max(0, creature.stats.hunger - 5) },
     }
     updated = { ...updated, mood: getMood(updated.stats) }
     let nq = updateQuestsAfterAction(quests, 'sleep')
@@ -452,6 +460,16 @@ export default function HomeScreen({
               <Text style={s.statVal}>{Math.round(value)}/{max}</Text>
             </View>
           ))}
+          {(() => {
+            const fl = getFormeLevel(creature.stats)
+            const flData = FORME_LABELS[fl]
+            return (
+              <View style={s.formeRow}>
+                <Text style={s.formeLbl}>Forme</Text>
+                <Text style={[s.formeVal, { color: flData.color }]}>{flData.emoji} {flData.label}</Text>
+              </View>
+            )
+          })()}
           <View style={s.statRow}>
             <Text style={s.statIcon}>  </Text>
             <Text style={[s.statName, { color: '#A855F7' }]}>XP</Text>
@@ -472,8 +490,8 @@ export default function HomeScreen({
           <Text style={s.sectionLbl}>Actions</Text>
           <View style={s.actionsRow}>
             {([
-              { label: 'Nourrir',     icon: '🍖', onPress: handleFeed,              disabled: creature.stats.hunger >= 95 },
-              { label: 'Jouer',       icon: '🎮', onPress: handlePlay,              disabled: creature.stats.energy < 10 },
+              { label: 'Nourrir',     icon: '🍖', onPress: handleFeed,              disabled: creature.stats.hunger >= 90 },
+              { label: 'Jouer',       icon: '🎮', onPress: handlePlay,              disabled: creature.stats.energy < 20 },
               { label: "S'entraîner", icon: '🏋️', onPress: () => setShowTraining(true), disabled: false },
               { label: 'Dormir',      icon: '💤', onPress: handleSleep,             disabled: creature.stats.energy >= 95 },
             ]).map(({ label, icon, onPress, disabled }) => (
@@ -763,6 +781,10 @@ const s = StyleSheet.create({
   statTrack: { flex: 1, height: 6, backgroundColor: '#2a2a3e', borderRadius: 3, overflow: 'hidden' },
   statFill: { height: 6, borderRadius: 3 },
   statVal: { fontSize: 11, color: '#55557a', width: 48, textAlign: 'right' },
+  formeRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, marginTop: 2, paddingHorizontal: 2 },
+  formeLbl: { fontSize: 13, fontWeight: '600', color: '#9999bb' },
+  formeVal:  { fontSize: 13, fontWeight: '700' },
+
   buffRow: { marginTop: 4, backgroundColor: '#FFD70011', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5, borderWidth: 1, borderColor: '#FFD70033' },
   buffTxt: { fontSize: 11, fontWeight: '700', color: '#C47A00' },
 

@@ -3,6 +3,7 @@ export type CreatureType = 'ignis' | 'nemo' | 'sylva' | 'zapp'
 export type ItemRarity = 'common' | 'rare' | 'epic'
 export type PersonalityTrait = 'gourmand' | 'joueur' | 'timide' | 'courageux' | 'paresseux' | 'chanceux'
 export type WeatherType = 'sunny' | 'cloudy' | 'rainy' | 'stormy' | 'foggy' | 'clear'
+export type FormeLevel = 'excellente' | 'bonne' | 'correcte' | 'mauvaise'
 
 export interface TrainingStats {
   strength: number   // 0-20: +0.8% damageMult per point (max +16%)

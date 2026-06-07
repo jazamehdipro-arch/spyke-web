@@ -1,4 +1,4 @@
-import { Creature, CreatureMood, CreatureStats, CreatureType, PersonalityTrait } from '../types'
+import { Creature, CreatureMood, CreatureStats, CreatureType, FormeLevel, PersonalityTrait } from '../types'
 import { hasTrait } from './traits'
 
 export const CREATURE_COLORS: Record<CreatureType, string> = {
@@ -23,11 +23,28 @@ export const CREATURE_LABELS: Record<CreatureType, { name: string; description: 
 }
 
 export function getMood(stats: CreatureStats): CreatureMood {
+  // Individual critical thresholds first — any single low stat triggers sad/neutral
+  if (stats.hunger < 20 || stats.energy < 20) return 'sad'
+  if (stats.hunger < 35 || stats.energy < 35 || stats.happiness < 20) return 'neutral'
   const avg = (stats.hunger + stats.happiness + stats.energy) / 3
-  if (avg >= 80) return 'excited'
-  if (avg >= 50) return 'happy'
-  if (avg >= 25) return 'neutral'
-  return 'sad'
+  if (avg >= 75) return 'excited'
+  if (avg >= 45) return 'happy'
+  return 'neutral'
+}
+
+export function getFormeLevel(stats: CreatureStats): FormeLevel {
+  const score = stats.hunger * 0.40 + stats.energy * 0.35 + stats.happiness * 0.25
+  if (score >= 75) return 'excellente'
+  if (score >= 50) return 'bonne'
+  if (score >= 30) return 'correcte'
+  return 'mauvaise'
+}
+
+export const FORME_LABELS: Record<FormeLevel, { label: string; emoji: string; color: string }> = {
+  excellente: { label: 'Excellente', emoji: '💪', color: '#22C55E' },
+  bonne:      { label: 'Bonne',      emoji: '😊', color: '#60A5FA' },
+  correcte:   { label: 'Correcte',   emoji: '😐', color: '#F59E0B' },
+  mauvaise:   { label: 'Mauvaise',   emoji: '😓', color: '#EF4444' },
 }
 
 export function getMoodEmoji(mood: CreatureMood): string {
@@ -51,15 +68,17 @@ export function decayStats(
   const effectiveTraits = traits ?? creature.traits
   const energySlowdown = hasTrait(effectiveTraits, 'paresseux') ? 0.7 : 1.0
 
-  const hungerDecay = Math.min(hoursSinceFed * 8, 100)
-  const happinessDecay = Math.min(hoursSinceFed * 4, 100)
-  const energyDecay = Math.min(hoursSinceFed * 6 * energySlowdown, 100)
+  const hungerDecay    = Math.min(hoursSinceFed * 5, 100)
+  const energyDecay    = Math.min(hoursSinceFed * 2 * energySlowdown, 100)
+  // Cross-stat: faim basse → bonheur décline plus vite
+  const bonheurMult    = creature.stats.hunger < 30 ? 1.5 : 1.0
+  const happinessDecay = Math.min(hoursSinceFed * 2 * bonheurMult, 100)
 
   return {
     ...creature.stats,
-    hunger:    Math.max(0, creature.stats.hunger - hungerDecay),
+    hunger:    Math.max(0, creature.stats.hunger    - hungerDecay),
     happiness: Math.max(0, creature.stats.happiness - happinessDecay),
-    energy:    Math.max(0, creature.stats.energy - energyDecay),
+    energy:    Math.max(0, creature.stats.energy    - energyDecay),
   }
 }
 
