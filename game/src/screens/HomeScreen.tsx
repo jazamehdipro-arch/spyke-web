@@ -352,7 +352,8 @@ export default function HomeScreen({
   const foodItems = inventory.filter((i) => (i.effect.hunger ?? 0) > 0)
   const previewInv = inventory.slice(0, 5)
 
-  const statusBarH = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 24) : 0
+  // iOS safe area top: 54 covers Dynamic Island (59) and notch (44) with a bit of margin
+  const statusBarH = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 24) : 54
 
   return (
     <View style={s.root}>
@@ -378,14 +379,14 @@ export default function HomeScreen({
 
           {/* Speech bubble */}
           {speechVisible && (
-            <View style={s.speech} pointerEvents="none">
+            <View style={[s.speech, { top: statusBarH + 58 }]} pointerEvents="none">
               <Text style={s.speechQ}>❝</Text>
               <Text style={s.speechTxt}>{speechMsg}</Text>
             </View>
           )}
 
           {/* Level badges */}
-          <View style={s.heroBadges}>
+          <View style={[s.heroBadges, { top: statusBarH + 58 }]}>
             <View style={s.lvBadge}><Text style={s.lvTxt}>Niv. {creature.stats.level}</Text></View>
             {creature.stats.level >= 20 && <View style={s.maxBadge}><Text style={s.maxTxt}>★ MAX</Text></View>}
             {creature.stats.level >= 10 && creature.stats.level < 20 && <View style={[s.maxBadge, { backgroundColor: '#555' }]}><Text style={s.maxTxt}>★ ADO</Text></View>}
@@ -707,7 +708,7 @@ const s = StyleSheet.create({
   chipTxt: { fontSize: 12, fontWeight: '600', color: '#fff' },
 
   speech: {
-    position: 'absolute', top: 68, left: 16, right: 100,
+    position: 'absolute', left: 16, right: 100,
     backgroundColor: 'rgba(255,255,255,0.95)', borderRadius: 14, padding: 10,
     flexDirection: 'row', alignItems: 'flex-start', gap: 6,
     shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.18, shadowRadius: 6,
@@ -716,7 +717,7 @@ const s = StyleSheet.create({
   speechQ: { fontSize: 15, color: '#aaa', lineHeight: 20 },
   speechTxt: { flex: 1, fontSize: 13, color: '#1a1a2e', fontWeight: '500', lineHeight: 18 },
 
-  heroBadges: { position: 'absolute', top: 68, right: 12, gap: 6, alignItems: 'flex-end', zIndex: 2 },
+  heroBadges: { position: 'absolute', right: 12, gap: 6, alignItems: 'flex-end', zIndex: 2 },
   lvBadge: { backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5 },
   lvTxt: { color: '#fff', fontWeight: '700', fontSize: 13 },
   maxBadge: { backgroundColor: '#F59E0B', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5 },
