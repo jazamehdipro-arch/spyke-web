@@ -8,30 +8,30 @@ import { retro, retroShadow } from '../styles/retro'
 // All requires must be static in React Native bundler
 const SPRITES: Record<string, ImageSourcePropType> = {
   // ── Base form — 6 animation frames ──────────────────────
-  ignis_f0: require('../../assets/sprites/ignis_f0.png'),
-  ignis_f1: require('../../assets/sprites/ignis_f1.png'),
-  ignis_f2: require('../../assets/sprites/ignis_f2.png'),
-  ignis_f3: require('../../assets/sprites/ignis_f3.png'),
-  ignis_f4: require('../../assets/sprites/ignis_f4.png'),
-  ignis_f5: require('../../assets/sprites/ignis_f5.png'),
-  nemo_f0:  require('../../assets/sprites/nemo_f0.png'),
-  nemo_f1:  require('../../assets/sprites/nemo_f1.png'),
-  nemo_f2:  require('../../assets/sprites/nemo_f2.png'),
-  nemo_f3:  require('../../assets/sprites/nemo_f3.png'),
-  nemo_f4:  require('../../assets/sprites/nemo_f4.png'),
-  nemo_f5:  require('../../assets/sprites/nemo_f5.png'),
-  sylva_f0: require('../../assets/sprites/sylva_f0.png'),
-  sylva_f1: require('../../assets/sprites/sylva_f1.png'),
-  sylva_f2: require('../../assets/sprites/sylva_f2.png'),
-  sylva_f3: require('../../assets/sprites/sylva_f3.png'),
-  sylva_f4: require('../../assets/sprites/sylva_f4.png'),
-  sylva_f5: require('../../assets/sprites/sylva_f5.png'),
-  zapp_f0:  require('../../assets/sprites/zapp_f0.png'),
-  zapp_f1:  require('../../assets/sprites/zapp_f1.png'),
-  zapp_f2:  require('../../assets/sprites/zapp_f2.png'),
-  zapp_f3:  require('../../assets/sprites/zapp_f3.png'),
-  zapp_f4:  require('../../assets/sprites/zapp_f4.png'),
-  zapp_f5:  require('../../assets/sprites/zapp_f5.png'),
+  ignis_f0: require('../../assets/sprites/flame_f0.png'),
+  ignis_f1: require('../../assets/sprites/flame_f1.png'),
+  ignis_f2: require('../../assets/sprites/flame_f2.png'),
+  ignis_f3: require('../../assets/sprites/flame_f2.png'),
+  ignis_f4: require('../../assets/sprites/flame_f1.png'),
+  ignis_f5: require('../../assets/sprites/flame_f0.png'),
+  nemo_f0:  require('../../assets/sprites/aqua_f0.png'),
+  nemo_f1:  require('../../assets/sprites/aqua_f1.png'),
+  nemo_f2:  require('../../assets/sprites/aqua_f2.png'),
+  nemo_f3:  require('../../assets/sprites/aqua_f2.png'),
+  nemo_f4:  require('../../assets/sprites/aqua_f1.png'),
+  nemo_f5:  require('../../assets/sprites/aqua_f0.png'),
+  sylva_f0: require('../../assets/sprites/leaf_f0.png'),
+  sylva_f1: require('../../assets/sprites/leaf_f1.png'),
+  sylva_f2: require('../../assets/sprites/leaf_f2.png'),
+  sylva_f3: require('../../assets/sprites/leaf_f2.png'),
+  sylva_f4: require('../../assets/sprites/leaf_f1.png'),
+  sylva_f5: require('../../assets/sprites/leaf_f0.png'),
+  zapp_f0:  require('../../assets/sprites/spark_f0.png'),
+  zapp_f1:  require('../../assets/sprites/spark_f1.png'),
+  zapp_f2:  require('../../assets/sprites/spark_f2.png'),
+  zapp_f3:  require('../../assets/sprites/spark_f2.png'),
+  zapp_f4:  require('../../assets/sprites/spark_f1.png'),
+  zapp_f5:  require('../../assets/sprites/spark_f0.png'),
   // ── Evolution e2 — 3 frames ──────────────────────────────
   ignis_e2_f0: require('../../assets/sprites/ignis_e2_f0.png'),
   ignis_e2_f1: require('../../assets/sprites/ignis_e2_f1.png'),
@@ -295,7 +295,7 @@ export default function CreatureDisplay({ creature, pose, onEvolve, variant = 'g
   if (activePose) {
     const poseStage = stage === '_e3' ? 'e3' : stage === '_e2' ? 'e2' : 'e1'
     spriteKey = `${creature.type}_${poseStage}_${activePose}`
-  } else if (creature.skin) {
+  } else if (creature.skin && stage === '_e3') {
     spriteKey = `${creature.type}_sk_${creature.skin}`
   } else if (isBase) {
     spriteKey = `${creature.type}_f${currentFrame}`

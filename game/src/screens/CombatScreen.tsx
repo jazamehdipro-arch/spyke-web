@@ -33,10 +33,10 @@ import { retro, retroShadow } from '../styles/retro'
 // ─── arena backgrounds ───────────────────────────────────
 // ─── sprites ────────────────────────────────────────────
 const SPRITES: Record<string, ImageSourcePropType> = {
-  ignis_action: require('../../assets/sprites/ignis_f1.png'),
-  nemo_action:  require('../../assets/sprites/nemo_f1.png'),
-  sylva_action: require('../../assets/sprites/sylva_f1.png'),
-  zapp_action:  require('../../assets/sprites/zapp_f1.png'),
+  ignis_action: require('../../assets/sprites/flame_f1.png'),
+  nemo_action:  require('../../assets/sprites/aqua_f1.png'),
+  sylva_action: require('../../assets/sprites/leaf_f1.png'),
+  zapp_action:  require('../../assets/sprites/spark_f1.png'),
   ignis_e2: require('../../assets/sprites/ignis_e2_f1.png'),
   nemo_e2:  require('../../assets/sprites/nemo_e2_f1.png'),
   sylva_e2: require('../../assets/sprites/sylva_e2_f1.png'),
@@ -833,18 +833,21 @@ export default function CombatScreen({ player, opponent, onFinish, debugOverride
     statuses: [],
     embers: 0,
   })
+  const [playerDefendLocked, setPlayerDefendLocked] = useState(false)
 
   const pStateRef = useRef(pState)
   const oStateRef = useRef(oState)
+  const playerDefendLockedRef = useRef(false)
+  const opponentDefendLockedRef = useRef(false)
   useEffect(() => { pStateRef.current = pState }, [pState])
   useEffect(() => { oStateRef.current = oState }, [oState])
+  useEffect(() => { playerDefendLockedRef.current = playerDefendLocked }, [playerDefendLocked])
 
   const [playerAction, setPlayerAction]   = useState<CombatAction | null>(null)
   const [opponentAction, setOpponentAction] = useState<CombatAction | null>(null)
   const [log, setLog]           = useState('Prêt pour le combat !')
   const [timeLeft, setTimeLeft] = useState(TIMER_SECONDS)
   const [chose, setChose]       = useState(false)
-
   const [opponentHistory, setOpponentHistory] = useState<string[]>([])
   const [playerHistory, setPlayerHistory]     = useState<string[]>([])
   const [pDelta, setPDelta]                   = useState<string>('')
@@ -892,7 +895,7 @@ export default function CombatScreen({ player, opponent, onFinish, debugOverride
   useEffect(() => {
     if (phase !== 'choosing') return
     if (timeLeft > 0) return
-    if (!chose) commitAction({ kind: 'defend' })
+    if (!chose) commitAction(playerDefendLockedRef.current ? { kind: 'charge' } : { kind: 'defend' })
   }, [timeLeft, phase, chose])
 
   const commitAction = useCallback((rawAction: CombatAction) => {
@@ -904,7 +907,9 @@ export default function CombatScreen({ player, opponent, onFinish, debugOverride
     const curO = oStateRef.current
 
     // 1. Paralysie → force defend
-    let pAction = rawAction
+    let pAction: CombatAction = rawAction.kind === 'defend' && playerDefendLockedRef.current
+      ? { kind: 'charge' }
+      : rawAction
     if (hasStatus(curP, 'paralyzed')) {
       pAction = { kind: 'defend' }
     }
@@ -915,6 +920,9 @@ export default function CombatScreen({ player, opponent, onFinish, debugOverride
       oAction = { kind: 'defend' }
     } else {
       oAction = botChooseAction(opponent.creatureType, curO, curP, opponentLoadout, oPassiveLevel)
+    }
+    if (oAction.kind === 'defend' && opponentDefendLockedRef.current && !hasStatus(curO, 'paralyzed')) {
+      oAction = { kind: 'charge' }
     }
 
     setPlayerAction(pAction)
@@ -969,6 +977,12 @@ export default function CombatScreen({ player, opponent, onFinish, debugOverride
 
         // Apply target deltas to newO with dodge + barrier checks
         let finalDmg = Math.max(0, -result.targetHpDelta)
+        if (finalDmg > 0) {
+          if (oAction.kind === 'defend') {
+            finalDmg = 0
+            logParts.push('Ennemi bloque tous les degats !')
+          }
+        }
         if (finalDmg > 0) {
           const dodgeChance =
             (hasStatus(newO, 'dodge_up') ? 0.15 : 0) +
@@ -1038,6 +1052,12 @@ export default function CombatScreen({ player, opponent, onFinish, debugOverride
         // Apply target (player) deltas
         let finalDmgToPlayer = Math.max(0, -result.targetHpDelta)
         if (finalDmgToPlayer > 0) {
+          if (pAction.kind === 'defend') {
+            finalDmgToPlayer = 0
+            logParts.push('Tu bloques tous les degats !')
+          }
+        }
+        if (finalDmgToPlayer > 0) {
           const playerDodge =
             playerMods.dodgeChance +
             (hasStatus(newP, 'dodge_up') ? 0.15 : 0) +
@@ -1084,8 +1104,6 @@ export default function CombatScreen({ player, opponent, onFinish, debugOverride
           opponentDmgToPlayer = finalDmgToPlayer
         }
 
-        if (pAction.kind === 'defend' && finalDmgToPlayer > 0)
-          finalDmgToPlayer = Math.round(finalDmgToPlayer * 0.55)
         newP = { ...newP, hp: Math.max(0, newP.hp - finalDmgToPlayer) }
         newP = { ...newP, energy: Math.max(0, Math.min(playerMods.maxEnergy, newP.energy + result.targetEnergyDelta)) }
         for (const st of result.targetStatusesToAdd) newP = addStatus(newP, st)
@@ -1168,6 +1186,9 @@ export default function CombatScreen({ player, opponent, onFinish, debugOverride
       ? SPELL_CATALOG[pAction.spellId].emoji
       : pAction.kind === 'charge' ? '⚡' : '🛡️'
     setPlayerHistory(prev => [pHistEntry, ...prev].slice(0, 3))
+    setPlayerDefendLocked(pAction.kind === 'defend')
+    playerDefendLockedRef.current = pAction.kind === 'defend'
+    opponentDefendLockedRef.current = oAction.kind === 'defend'
 
     const pHpChange = newP.hp - curP.hp
     const oHpChange = newO.hp - curO.hp
@@ -1414,9 +1435,13 @@ export default function CombatScreen({ player, opponent, onFinish, debugOverride
         style={[s.deck, phase !== 'choosing' && s.deckDisabled]}
       >
         <View style={s.baseActions}>
-          <TouchableOpacity style={s.defendBtn} onPress={() => commitAction({ kind: 'defend' })}>
+          <TouchableOpacity
+            style={[s.defendBtn, playerDefendLocked && s.defendBtnLocked]}
+            disabled={playerDefendLocked}
+            onPress={() => commitAction({ kind: 'defend' })}
+          >
             <Text style={s.baseActionIcon}>🛡️</Text>
-            <Text style={s.baseActionLabel}>DÉFENDRE</Text>
+            <Text style={s.baseActionLabel}>{playerDefendLocked ? 'RECHARGE' : 'DÉFENDRE'}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={s.chargeBtn} onPress={() => commitAction({ kind: 'charge' })}>
             <Text style={s.baseActionIcon}>🔋</Text>
@@ -1634,6 +1659,10 @@ const s = StyleSheet.create({
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
     backgroundColor: retro.blue, borderRadius: 4, paddingVertical: 12,
     borderWidth: 3, borderColor: retro.line, ...retroShadow,
+  },
+  defendBtnLocked: {
+    backgroundColor: retro.muted,
+    opacity: 0.65,
   },
   chargeBtn: {
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5,

@@ -15,10 +15,10 @@ import { CREATURE_COLORS, CREATURE_LABELS, CREATURE_NAMES } from '../utils/creat
 import { retro, retroShadow } from '../styles/retro'
 
 const CREATURE_SPRITES: Record<CreatureType, ImageSourcePropType> = {
-  ignis: require('../../assets/sprites/ignis_f2.png'),
-  nemo:  require('../../assets/sprites/nemo_f2.png'),
-  sylva: require('../../assets/sprites/sylva_f2.png'),
-  zapp:  require('../../assets/sprites/zapp_f2.png'),
+  ignis: require('../../assets/sprites/flame_f2.png'),
+  nemo:  require('../../assets/sprites/aqua_f2.png'),
+  sylva: require('../../assets/sprites/leaf_f2.png'),
+  zapp:  require('../../assets/sprites/spark_f2.png'),
 }
 
 const CREATURE_TYPES: CreatureType[] = ['ignis', 'nemo', 'sylva', 'zapp']

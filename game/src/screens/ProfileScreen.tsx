@@ -13,10 +13,10 @@ import { CREATURE_COLORS, CREATURE_LABELS, getMood, getMoodEmoji } from '../util
 import { retro, retroShadow } from '../styles/retro'
 
 const SPRITES_BASE: Record<CreatureType, ImageSourcePropType> = {
-  ignis: require('../../assets/sprites/ignis_f0.png'),
-  nemo:  require('../../assets/sprites/nemo_f0.png'),
-  sylva: require('../../assets/sprites/sylva_f0.png'),
-  zapp:  require('../../assets/sprites/zapp_f0.png'),
+  ignis: require('../../assets/sprites/flame_f0.png'),
+  nemo:  require('../../assets/sprites/aqua_f0.png'),
+  sylva: require('../../assets/sprites/leaf_f0.png'),
+  zapp:  require('../../assets/sprites/spark_f0.png'),
 }
 const SPRITES_E2: Record<CreatureType, ImageSourcePropType> = {
   ignis: require('../../assets/sprites/ignis_e2_f1.png'),

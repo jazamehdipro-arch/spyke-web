@@ -16,11 +16,29 @@ import { loadAdventureProgress, saveAdventureProgress } from '../utils/storage'
 import CombatScreen, { CombatOpponent } from './CombatScreen'
 import { retro, retroShadow } from '../styles/retro'
 
-const TYPE_SPRITES: Record<CreatureType, ImageSourcePropType> = {
-  ignis: require('../../assets/sprites/ignis_f0.png'),
-  nemo:  require('../../assets/sprites/nemo_f0.png'),
-  sylva: require('../../assets/sprites/sylva_f0.png'),
-  zapp:  require('../../assets/sprites/zapp_f0.png'),
+const SPRITES_E1: Record<CreatureType, ImageSourcePropType> = {
+  ignis: require('../../assets/sprites/flame_f0.png'),
+  nemo:  require('../../assets/sprites/aqua_f0.png'),
+  sylva: require('../../assets/sprites/leaf_f0.png'),
+  zapp:  require('../../assets/sprites/spark_f0.png'),
+}
+const SPRITES_E2: Record<CreatureType, ImageSourcePropType> = {
+  ignis: require('../../assets/sprites/ignis_e2_f1.png'),
+  nemo:  require('../../assets/sprites/nemo_e2_f1.png'),
+  sylva: require('../../assets/sprites/sylva_e2_f1.png'),
+  zapp:  require('../../assets/sprites/zapp_e2_f1.png'),
+}
+const SPRITES_E3: Record<CreatureType, ImageSourcePropType> = {
+  ignis: require('../../assets/sprites/ignis_e3_f1.png'),
+  nemo:  require('../../assets/sprites/nemo_e3_f1.png'),
+  sylva: require('../../assets/sprites/sylva_e3_f1.png'),
+  zapp:  require('../../assets/sprites/zapp_e3_f1.png'),
+}
+
+function getOpponentSprite(type: CreatureType, level: number): ImageSourcePropType {
+  if (level >= 20) return SPRITES_E3[type]
+  if (level >= 10) return SPRITES_E2[type]
+  return SPRITES_E1[type]
 }
 
 interface RouteOpponent extends CombatOpponent {}
@@ -212,7 +230,7 @@ function OpponentRow({
   onFight: () => void
 }) {
   const color  = CREATURE_COLORS[opponent.creatureType]
-  const sprite = TYPE_SPRITES[opponent.creatureType]
+  const sprite = getOpponentSprite(opponent.creatureType, opponent.level)
 
   return (
     <View style={[s.opRow, beaten && s.opRowBeaten, !available && !beaten && s.opRowLocked]}>

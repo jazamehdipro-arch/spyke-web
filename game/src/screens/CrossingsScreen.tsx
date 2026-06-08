@@ -18,11 +18,29 @@ import { DEFAULT_LOADOUTS, EvoStage, getEvoStage, SPELL_CATALOG } from '../utils
 import AdventureScreen from './AdventureScreen'
 import { retro, retroShadow } from '../styles/retro'
 
-const CROSSING_SPRITES: Record<CreatureType, ImageSourcePropType> = {
-  ignis: require('../../assets/sprites/ignis_f0.png'),
-  nemo:  require('../../assets/sprites/nemo_f0.png'),
-  sylva: require('../../assets/sprites/sylva_f0.png'),
-  zapp:  require('../../assets/sprites/zapp_f0.png'),
+const SPRITES_E1: Record<CreatureType, ImageSourcePropType> = {
+  ignis: require('../../assets/sprites/flame_f0.png'),
+  nemo:  require('../../assets/sprites/aqua_f0.png'),
+  sylva: require('../../assets/sprites/leaf_f0.png'),
+  zapp:  require('../../assets/sprites/spark_f0.png'),
+}
+const SPRITES_E2: Record<CreatureType, ImageSourcePropType> = {
+  ignis: require('../../assets/sprites/ignis_e2_f1.png'),
+  nemo:  require('../../assets/sprites/nemo_e2_f1.png'),
+  sylva: require('../../assets/sprites/sylva_e2_f1.png'),
+  zapp:  require('../../assets/sprites/zapp_e2_f1.png'),
+}
+const SPRITES_E3: Record<CreatureType, ImageSourcePropType> = {
+  ignis: require('../../assets/sprites/ignis_e3_f1.png'),
+  nemo:  require('../../assets/sprites/nemo_e3_f1.png'),
+  sylva: require('../../assets/sprites/sylva_e3_f1.png'),
+  zapp:  require('../../assets/sprites/zapp_e3_f1.png'),
+}
+
+function getOpponentSprite(type: CreatureType, level: number): ImageSourcePropType {
+  if (level >= 20) return SPRITES_E3[type]
+  if (level >= 10) return SPRITES_E2[type]
+  return SPRITES_E1[type]
 }
 
 const BOT_OPPONENTS: CombatOpponent[] = [
@@ -206,7 +224,7 @@ interface Props {
 
 function CrossingCard({ item, onChallenge }: { item: Crossing; onChallenge: () => void }) {
   const color  = CREATURE_COLORS[item.creatureType]
-  const sprite = CROSSING_SPRITES[item.creatureType]
+  const sprite = SPRITES_E1[item.creatureType]
 
   const interactionLabel = { friendly: '🤝 Amical', battle: '⚔️ Combat', gift: '🎁 Cadeau' }[item.interactionType]
 
@@ -242,7 +260,7 @@ function CrossingCard({ item, onChallenge }: { item: Crossing; onChallenge: () =
 
 function BotCard({ bot, onChallenge }: { bot: CombatOpponent; onChallenge: () => void }) {
   const color  = CREATURE_COLORS[bot.creatureType]
-  const sprite = CROSSING_SPRITES[bot.creatureType]
+  const sprite = getOpponentSprite(bot.creatureType, bot.level)
   const evo = getEvoStage(bot.level)
   const evoLabel = evo === 'e3' ? '★★★' : evo === 'e2' ? '★★' : '★'
   return (
