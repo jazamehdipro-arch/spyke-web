@@ -1271,7 +1271,9 @@ export default function CombatScreen({ player, opponent, onFinish, debugOverride
       </View>
 
       {/* ARENA */}
-      <ImageBackground source={arenaImg} style={s.arena} resizeMode="cover" imageStyle={{ opacity: 0.35 }}>
+      <View style={s.arena}>
+        <View style={s.arenaPixelGrid} pointerEvents="none" />
+        <View style={s.arenaCenterLine} pointerEvents="none" />
 
         {/* ENEMY */}
         <View style={s.fighterRow}>
@@ -1395,7 +1397,7 @@ export default function CombatScreen({ player, opponent, onFinish, debugOverride
           </Animated.View>
         </View>
 
-      </ImageBackground>
+      </View>
 
       {/* HINT BAR / COMBAT LOG */}
       <View style={[s.hintBar, phase === 'resolving' && s.hintBarLog]}>
@@ -1495,6 +1497,27 @@ const s = StyleSheet.create({
   arena: {
     flex: 1, paddingHorizontal: 14, paddingBottom: 4,
     justifyContent: 'space-between',
+    backgroundColor: retro.paper,
+    borderTopWidth: 4,
+    borderBottomWidth: 4,
+    borderColor: retro.line,
+  },
+  arenaPixelGrid: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    top: 18,
+    bottom: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(32,40,61,0.18)',
+  },
+  arenaCenterLine: {
+    position: 'absolute',
+    left: 36,
+    right: 36,
+    top: '50%',
+    height: 4,
+    backgroundColor: 'rgba(48,98,48,0.22)',
   },
 
   // CENTER ZONE (timer + clash)
@@ -1523,17 +1546,17 @@ const s = StyleSheet.create({
   fighterInfoMe: {},
 
   stage: {
-    width: 110, height: 110, borderRadius: 4,
-    backgroundColor: retro.paper2, borderWidth: 3, borderColor: retro.line,
+    width: 96, height: 96, borderRadius: 4,
+    backgroundColor: retro.screenSoft, borderWidth: 3, borderColor: retro.line,
     alignItems: 'center', justifyContent: 'flex-end',
     overflow: 'visible', position: 'relative',
     ...retroShadow,
   },
   stageFloor: {
-    position: 'absolute', bottom: 8, width: 72, height: 12,
-    borderRadius: 0, backgroundColor: 'rgba(32,40,61,0.35)',
+    position: 'absolute', bottom: 10, width: 62, height: 10,
+    borderRadius: 0, backgroundColor: 'rgba(32,40,61,0.32)',
   },
-  stageSprite: { width: 88, height: 88, marginBottom: 4 },
+  stageSprite: { width: 70, height: 74, marginBottom: 8 },
   dmgFloat: {
     position: 'absolute', top: 4, left: 0, right: 0, textAlign: 'center',
     fontSize: 28, fontWeight: '900', fontFamily: 'monospace',
@@ -1543,7 +1566,7 @@ const s = StyleSheet.create({
 
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
   nameRowMe: { flexDirection: 'row-reverse' },
-  fighterName: { color: retro.white, fontSize: 14, fontWeight: '900', flexShrink: 1, fontFamily: 'monospace' },
+  fighterName: { color: retro.ink, fontSize: 14, fontWeight: '900', flexShrink: 1, fontFamily: 'monospace' },
   lvlBadge: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 0, borderWidth: 1, borderColor: retro.line },
   lvlText: { fontSize: 9, fontWeight: '900', color: retro.ink, fontFamily: 'monospace' },
   statusEmoji: { fontSize: 12 },

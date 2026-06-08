@@ -300,12 +300,9 @@ export default function CreatureDisplay({ creature, pose, onEvolve, variant = 'g
           <View style={[styles.gbDot, { backgroundColor: color, opacity: 0.25 }]} />
         </View>
 
-        <ImageBackground
-          source={TERRAINS[creature.type]}
-          style={[styles.gbScreen, { backgroundColor: isSick ? retro.ink2 : retro.screen }]}
-          imageStyle={{ opacity: isSick ? 0.05 : 0.18 }}
-          resizeMode="cover"
-        >
+        <View style={[styles.gbScreen, { backgroundColor: isSick ? retro.ink2 : retro.screen }]}>
+          <View style={styles.screenPixelGrid} pointerEvents="none" />
+          <View style={styles.screenGround} pointerEvents="none" />
           {!isSick && <FloatingParticles color={color} type={creature.type} />}
           <View style={styles.gbGlare} pointerEvents="none" />
           <TouchableWithoutFeedback onPress={handlePress}>
@@ -318,7 +315,7 @@ export default function CreatureDisplay({ creature, pose, onEvolve, variant = 'g
               <Text style={styles.sickEmoji}>🤒</Text>
             </View>
           )}
-        </ImageBackground>
+        </View>
 
         <View style={styles.gbBottomBar}>
           <View style={[styles.levelBadge, { backgroundColor: color }]}>
@@ -344,15 +341,15 @@ const styles = StyleSheet.create({
   // ── Hero variant ──────────────────────────────────────────
   heroContainer: { alignItems: 'center', justifyContent: 'center', flex: 1 },
   heroSpritePlate: {
-    width: 210,
-    height: 210,
+    width: 188,
+    height: 188,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(155,188,15,0.18)',
+    backgroundColor: 'rgba(155,188,15,0.24)',
     borderWidth: 3,
     borderColor: 'rgba(32,40,61,0.55)',
   },
-  heroSprite: { width: 178, height: 190 },
+  heroSprite: { width: 136, height: 150 },
   container: {
     alignItems: 'center',
     paddingVertical: 12,
@@ -383,13 +380,32 @@ const styles = StyleSheet.create({
     borderColor: retro.line,
   },
   gbScreen: {
-    height: 196,
+    height: 186,
     borderRadius: 0,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
     borderWidth: 4,
     borderColor: retro.line,
+  },
+  screenPixelGrid: {
+    position: 'absolute',
+    left: 12,
+    right: 12,
+    top: 14,
+    bottom: 36,
+    borderWidth: 1,
+    borderColor: 'rgba(48,98,48,0.22)',
+  },
+  screenGround: {
+    position: 'absolute',
+    left: 26,
+    right: 26,
+    bottom: 34,
+    height: 10,
+    backgroundColor: 'rgba(48,98,48,0.45)',
+    borderTopWidth: 3,
+    borderTopColor: 'rgba(32,40,61,0.35)',
   },
   gbGlare: {
     position: 'absolute',
@@ -409,8 +425,8 @@ const styles = StyleSheet.create({
     paddingBottom: 2,
   },
   sprite: {
-    width: 160,
-    height: 160,
+    width: 122,
+    height: 132,
   },
   sickOverlay: {
     position: 'absolute',

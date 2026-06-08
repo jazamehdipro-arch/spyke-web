@@ -371,7 +371,9 @@ export default function HomeScreen({
 
       {/* ── Hero ─────────────────────────────────────────────── */}
       <View style={s.hero}>
-        <ImageBackground source={TERRAIN[creature.type]} style={s.heroImg} resizeMode="cover">
+        <View style={[s.heroImg, s.heroScreen]}>
+          <View style={s.heroPixelGrid} pointerEvents="none" />
+          <View style={s.heroGround} pointerEvents="none" />
           <View style={s.heroVignette} pointerEvents="none" />
 
           {/* Header */}
@@ -434,7 +436,7 @@ export default function HomeScreen({
               </TouchableOpacity>
             </>
           )}
-        </ImageBackground>
+        </View>
       </View>
 
       {/* ── Scrollable content ────────────────────────────────── */}
@@ -713,6 +715,26 @@ const s = StyleSheet.create({
   // ── Hero ──────────────────────────────────────────────────
   hero: { height: HERO_H, overflow: 'hidden' },
   heroImg: { flex: 1 },
+  heroScreen: { backgroundColor: retro.screen, borderBottomWidth: 4, borderBottomColor: retro.line },
+  heroPixelGrid: {
+    position: 'absolute',
+    left: 18,
+    right: 18,
+    top: 96,
+    bottom: 44,
+    borderWidth: 1,
+    borderColor: 'rgba(48,98,48,0.24)',
+  },
+  heroGround: {
+    position: 'absolute',
+    left: 64,
+    right: 64,
+    bottom: 52,
+    height: 12,
+    backgroundColor: 'rgba(48,98,48,0.48)',
+    borderTopWidth: 3,
+    borderTopColor: 'rgba(32,40,61,0.35)',
+  },
   heroVignette: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 40, backgroundColor: retro.paper, opacity: 0.8 },
   heroHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 12, gap: 8, zIndex: 1 },
   heroTitle: {
