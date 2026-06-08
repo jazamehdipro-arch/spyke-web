@@ -116,12 +116,12 @@ export const SPELL_CATALOG: Record<SpellId, Spell> = {
     scaledDesc: (m) => `${Math.round(7*m)} dégâts — priorité + 20% paralysie` },
 }
 
-export type EvoStage = 'base' | 'e2' | 'e3'
+export type EvoStage = 'e1' | 'e2' | 'e3'
 
 export function getEvoStage(level: number): EvoStage {
   if (level >= 20) return 'e3'
   if (level >= 10) return 'e2'
-  return 'base'
+  return 'e1'
 }
 
 export function getPassiveLevel(level: number): 1 | 2 | 3 {
@@ -132,22 +132,22 @@ export function getPassiveLevel(level: number): 1 | 2 | 3 {
 
 export const DEFAULT_LOADOUTS: Record<CreatureType, Record<EvoStage, SpellLoadout>> = {
   ignis: {
-    base: ['frappe_ardente', 'immolation',  'carapace_chauffee', 'explosion'],
+    e1:   ['frappe_ardente', 'immolation',  'carapace_chauffee', 'explosion'],
     e2:   ['frappe_ardente', 'immolation',  'carapace_chauffee', 'brasier'],
     e3:   ['frappe_ardente', 'fournaise',   'carapace_chauffee', 'immolation'],
   },
   nemo: {
-    base: ['raz_de_maree', 'siphon', 'regeneration',   'malediction'],
+    e1:   ['raz_de_maree', 'siphon', 'regeneration',   'malediction'],
     e2:   ['raz_de_maree', 'siphon', 'maree_curative', 'malediction'],
     e3:   ['raz_de_maree', 'abysse', 'regeneration',   'malediction'],
   },
   sylva: {
-    base: ['coup_voile', 'embuscade',           'volute', 'brouillard_total'],
+    e1:   ['coup_voile', 'embuscade',           'volute', 'brouillard_total'],
     e2:   ['coup_voile', 'laceration_voilee',   'volute', 'brouillard_total'],
     e3:   ['coup_voile', 'embuscade_parfaite',  'volute', 'brouillard_total'],
   },
   zapp: {
-    base: ['decharge', 'arc_paralysant', 'rafale',  'surcharge'],
+    e1:   ['decharge', 'arc_paralysant', 'rafale',  'surcharge'],
     e2:   ['decharge', 'arc_paralysant', 'tempete', 'surcharge'],
     e3:   ['decharge', 'fulguration',    'tempete',  'surcharge'],
   },
@@ -160,22 +160,22 @@ export function getLoadout(type: CreatureType, level: number, override?: SpellLo
 
 export const ALL_SPELLS_BY_TYPE: Record<CreatureType, Record<EvoStage, SpellId[]>> = {
   ignis: {
-    base: ['frappe_ardente', 'immolation', 'carapace_chauffee', 'explosion'],
+    e1:   ['frappe_ardente', 'immolation', 'carapace_chauffee', 'explosion'],
     e2:   ['frappe_ardente', 'immolation', 'carapace_chauffee', 'explosion', 'brasier'],
     e3:   ['frappe_ardente', 'immolation', 'carapace_chauffee', 'explosion', 'brasier', 'fournaise'],
   },
   nemo: {
-    base: ['raz_de_maree', 'siphon', 'regeneration', 'malediction'],
+    e1:   ['raz_de_maree', 'siphon', 'regeneration', 'malediction'],
     e2:   ['raz_de_maree', 'siphon', 'regeneration', 'malediction', 'maree_curative'],
     e3:   ['raz_de_maree', 'siphon', 'regeneration', 'malediction', 'maree_curative', 'abysse'],
   },
   sylva: {
-    base: ['coup_voile', 'embuscade', 'volute', 'brouillard_total'],
+    e1:   ['coup_voile', 'embuscade', 'volute', 'brouillard_total'],
     e2:   ['coup_voile', 'embuscade', 'volute', 'brouillard_total', 'laceration_voilee'],
     e3:   ['coup_voile', 'embuscade', 'volute', 'brouillard_total', 'laceration_voilee', 'embuscade_parfaite'],
   },
   zapp: {
-    base: ['decharge', 'arc_paralysant', 'rafale', 'surcharge'],
+    e1:   ['decharge', 'arc_paralysant', 'rafale', 'surcharge'],
     e2:   ['decharge', 'arc_paralysant', 'rafale', 'surcharge', 'tempete'],
     e3:   ['decharge', 'arc_paralysant', 'rafale', 'surcharge', 'tempete', 'fulguration'],
   },
