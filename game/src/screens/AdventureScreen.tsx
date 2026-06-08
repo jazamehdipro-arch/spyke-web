@@ -14,6 +14,7 @@ import { Creature, CreatureType } from '../types'
 import { CREATURE_COLORS } from '../utils/creature'
 import { loadAdventureProgress, saveAdventureProgress } from '../utils/storage'
 import CombatScreen, { CombatOpponent } from './CombatScreen'
+import { retro, retroShadow } from '../styles/retro'
 
 const TYPE_SPRITES: Record<CreatureType, ImageSourcePropType> = {
   ignis: require('../../assets/sprites/ignis_f0.png'),
@@ -358,18 +359,18 @@ export default function AdventureScreen({ player, onCombatEnd, onClose }: Props)
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#0e0e1a' },
+  safe: { flex: 1, backgroundColor: retro.paper },
   header: {
     paddingTop: 16,
     paddingHorizontal: 20,
     paddingBottom: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: '#1e1e2e',
+    borderBottomWidth: 3,
+    borderBottomColor: retro.line,
   },
   backBtn: { marginBottom: 6 },
-  backBtnText: { color: '#9580FF', fontSize: 15, fontWeight: '600' },
-  title: { fontSize: 28, fontWeight: '900', color: '#fff', letterSpacing: -0.5 },
-  subtitle: { fontSize: 13, color: '#777', marginTop: 2 },
+  backBtnText: { color: retro.red, fontSize: 15, fontWeight: '900', fontFamily: 'monospace' },
+  title: { fontSize: 28, fontWeight: '900', color: retro.ink, letterSpacing: 0, fontFamily: 'monospace' },
+  subtitle: { fontSize: 13, color: retro.muted, marginTop: 2 },
 
   scroll: { paddingHorizontal: 16, paddingTop: 16, gap: 12 },
 
@@ -377,11 +378,13 @@ const s = StyleSheet.create({
   routeCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#16162a',
-    borderRadius: 18,
-    borderWidth: 1.5,
+    backgroundColor: retro.white,
+    borderRadius: 4,
+    borderWidth: 3,
+    borderColor: retro.line,
     overflow: 'hidden',
     gap: 12,
+    ...retroShadow,
   },
   routeCardLocked: { opacity: 0.55 },
   routeLeft: {
@@ -392,19 +395,21 @@ const s = StyleSheet.create({
   },
   routeEmoji: { fontSize: 32 },
   routeMid: { flex: 1, paddingVertical: 12 },
-  routeName: { fontSize: 15, fontWeight: '800', color: '#eee' },
-  routeNameLocked: { color: '#666' },
-  routeDesc: { fontSize: 11, color: '#666', marginTop: 2 },
+  routeName: { fontSize: 15, fontWeight: '900', color: retro.ink, fontFamily: 'monospace' },
+  routeNameLocked: { color: retro.muted },
+  routeDesc: { fontSize: 11, color: retro.muted, marginTop: 2 },
   progressRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 },
   progressBar: {
     flex: 1,
-    height: 5,
-    backgroundColor: '#2a2a3e',
-    borderRadius: 3,
+    height: 7,
+    backgroundColor: retro.paper2,
+    borderRadius: 0,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: retro.line,
   },
-  progressFill: { height: 5, borderRadius: 3 },
-  progressText: { fontSize: 11, color: '#aaa', fontWeight: '600' },
+  progressFill: { height: '100%', borderRadius: 0 },
+  progressText: { fontSize: 11, color: retro.ink, fontWeight: '900', fontFamily: 'monospace' },
   routeRight: { width: 40, alignItems: 'center' },
   routeArrow: { fontSize: 28, fontWeight: '900', marginRight: 4 },
   lockLevel: { fontSize: 11, color: '#555', fontWeight: '700', textAlign: 'center' },
@@ -413,9 +418,9 @@ const s = StyleSheet.create({
   // Opponents sheet
   sheetOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', justifyContent: 'flex-end' },
   sheet: {
-    backgroundColor: '#16162a',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    backgroundColor: retro.white,
+    borderTopLeftRadius: 6,
+    borderTopRightRadius: 6,
     maxHeight: '80%',
     overflow: 'hidden',
   },
@@ -428,7 +433,7 @@ const s = StyleSheet.create({
   },
   sheetEmoji: { fontSize: 36 },
   sheetTitle: { fontSize: 18, fontWeight: '900' },
-  sheetDesc: { fontSize: 12, color: '#888', marginTop: 2 },
+  sheetDesc: { fontSize: 12, color: retro.muted, marginTop: 2 },
   sheetScroll: { paddingHorizontal: 16 },
 
   // Opponent row
@@ -438,26 +443,28 @@ const s = StyleSheet.create({
     paddingVertical: 10,
     gap: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#1e1e2e',
+    borderBottomColor: retro.paper2,
   },
   opRowBeaten: { opacity: 0.5 },
   opRowLocked: { opacity: 0.35 },
   opAvatar: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: retro.line,
     alignItems: 'center',
     justifyContent: 'center',
   },
   opSprite: { width: 40, height: 40 },
   opInfo: { flex: 1 },
-  opName: { fontSize: 14, fontWeight: '700', color: '#ddd' },
-  opCreature: { fontSize: 12, color: '#888', marginTop: 2 },
+  opName: { fontSize: 14, fontWeight: '900', color: retro.ink },
+  opCreature: { fontSize: 12, color: retro.muted, marginTop: 2 },
   opAction: { width: 44, alignItems: 'center' },
   fightBtn: {
     width: 38,
     height: 38,
-    borderRadius: 19,
+    borderRadius: 4,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -477,5 +484,5 @@ const s = StyleSheet.create({
     paddingVertical: 16,
     alignItems: 'center',
   },
-  bonusText: { color: '#FFD700', fontSize: 14, fontWeight: '700' },
+  bonusText: { color: retro.red, fontSize: 14, fontWeight: '900', fontFamily: 'monospace' },
 })

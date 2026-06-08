@@ -25,6 +25,7 @@ import { generateRandomEvent, getRewardItem, shouldTriggerEvent } from '../utils
 import { getCreatureSpeech, getReactionMessage } from '../utils/speech'
 import { addItemToInventory, addJournalEntry, saveCreature, saveEvents, saveInventory, saveJournal, saveQuests } from '../utils/storage'
 import { updateQuestsAfterAction } from '../utils/quests'
+import { retro, retroShadow } from '../styles/retro'
 
 const { height: SCREEN_H } = Dimensions.get('window')
 const HERO_H = Math.round(SCREEN_H * 0.42)
@@ -707,53 +708,53 @@ export default function HomeScreen({
 }
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#0f0f1a' },
+  root: { flex: 1, backgroundColor: retro.paper },
 
   // ── Hero ──────────────────────────────────────────────────
   hero: { height: HERO_H, overflow: 'hidden' },
   heroImg: { flex: 1 },
-  heroVignette: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 40, backgroundColor: '#0f0f1a', opacity: 0.4 },
+  heroVignette: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 40, backgroundColor: retro.paper, opacity: 0.8 },
   heroHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 12, gap: 8, zIndex: 1 },
   heroTitle: {
-    fontSize: 28, fontWeight: '800', color: '#fff',
-    textShadowColor: 'rgba(0,0,0,0.6)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4,
+    fontSize: 28, fontWeight: '900', color: retro.white, fontFamily: 'monospace',
+    textShadowColor: retro.line, textShadowOffset: { width: 2, height: 2 }, textShadowRadius: 0,
   },
-  heroIconBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' },
+  heroIconBtn: { width: 38, height: 38, borderRadius: 4, backgroundColor: retro.paper2, borderWidth: 2, borderColor: retro.line, alignItems: 'center', justifyContent: 'center' },
   heroIconTxt: { fontSize: 18 },
 
   chipsRow: { flexDirection: 'row', gap: 6, paddingHorizontal: 16, paddingTop: 8 },
-  chip: { backgroundColor: 'rgba(0,0,0,0.35)', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
-  chipTxt: { fontSize: 12, fontWeight: '600', color: '#fff' },
+  chip: { backgroundColor: retro.paper2, borderRadius: 0, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 2, borderColor: retro.line },
+  chipTxt: { fontSize: 12, fontWeight: '900', color: retro.ink, fontFamily: 'monospace' },
 
   speech: {
     position: 'absolute', left: 16, right: 100,
-    backgroundColor: 'rgba(255,255,255,0.95)', borderRadius: 14, padding: 10,
+    backgroundColor: retro.white, borderRadius: 4, padding: 10, borderWidth: 2, borderColor: retro.line,
     flexDirection: 'row', alignItems: 'flex-start', gap: 6,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.18, shadowRadius: 6,
+    ...retroShadow,
     zIndex: 2,
   },
-  speechQ: { fontSize: 15, color: '#aaa', lineHeight: 20 },
-  speechTxt: { flex: 1, fontSize: 13, color: '#1a1a2e', fontWeight: '500', lineHeight: 18 },
+  speechQ: { fontSize: 15, color: retro.muted, lineHeight: 20 },
+  speechTxt: { flex: 1, fontSize: 13, color: retro.ink, fontWeight: '800', lineHeight: 18, fontFamily: 'monospace' },
 
   heroBadges: { position: 'absolute', right: 12, gap: 6, alignItems: 'flex-end', zIndex: 2 },
-  lvBadge: { backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5 },
-  lvTxt: { color: '#fff', fontWeight: '700', fontSize: 13 },
-  maxBadge: { backgroundColor: '#F59E0B', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5 },
-  maxTxt: { color: '#fff', fontWeight: '800', fontSize: 11 },
+  lvBadge: { backgroundColor: retro.ink, borderRadius: 0, paddingHorizontal: 12, paddingVertical: 5, borderWidth: 2, borderColor: retro.paper },
+  lvTxt: { color: retro.screenSoft, fontWeight: '900', fontSize: 13, fontFamily: 'monospace' },
+  maxBadge: { backgroundColor: retro.gold, borderRadius: 0, paddingHorizontal: 12, paddingVertical: 5, borderWidth: 2, borderColor: retro.line },
+  maxTxt: { color: retro.ink, fontWeight: '900', fontSize: 11, fontFamily: 'monospace' },
 
   heroCreature: { flex: 1, width: '100%', alignItems: 'center', justifyContent: 'center' },
 
   invSideBtn: {
     position: 'absolute', bottom: 52, left: 12,
-    backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 14, paddingVertical: 8, paddingHorizontal: 10,
+    backgroundColor: retro.paper2, borderRadius: 4, paddingVertical: 8, paddingHorizontal: 10,
     alignItems: 'center', width: 58,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
+    borderWidth: 2, borderColor: retro.line,
   },
   invSideBtnEmoji: { fontSize: 22 },
-  invSideBtnLbl: { fontSize: 10, color: '#fff', fontWeight: '700', marginTop: 3 },
+  invSideBtnLbl: { fontSize: 10, color: retro.ink, fontWeight: '900', marginTop: 3, fontFamily: 'monospace' },
 
-  sickBadge: { position: 'absolute', bottom: 76, left: 16, backgroundColor: '#FFF3CD', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
-  sickTxt: { fontSize: 12, fontWeight: '700', color: '#856404' },
+  sickBadge: { position: 'absolute', bottom: 76, left: 16, backgroundColor: retro.red, borderRadius: 0, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 2, borderColor: retro.line },
+  sickTxt: { fontSize: 12, fontWeight: '900', color: retro.white, fontFamily: 'monospace' },
 
   arrow: {
     position: 'absolute', top: 0, bottom: 0, width: 60, alignItems: 'center', justifyContent: 'center',
@@ -762,27 +763,27 @@ const s = StyleSheet.create({
   arrowR: { right: 4 },
   arrowCircle: {
     width: 44, height: 44, borderRadius: 22,
-    backgroundColor: 'rgba(0,0,0,0.38)', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.3)',
+    backgroundColor: retro.paper2, borderWidth: 2, borderColor: retro.line,
     alignItems: 'center', justifyContent: 'center',
   },
-  arrowTxt: { fontSize: 22, color: '#fff', fontWeight: '700', marginTop: -1 },
+  arrowTxt: { fontSize: 22, color: retro.ink, fontWeight: '900', marginTop: -1 },
 
   // ── Scroll content ────────────────────────────────────────
   scroll: { flex: 1 },
   scrollContent: { paddingTop: 10, paddingBottom: 24, gap: 10 },
 
-  section: { marginHorizontal: 12, backgroundColor: '#1a1a2e', borderRadius: 16, padding: 14 },
-  sectionLbl: { fontSize: 11, fontWeight: '800', letterSpacing: 1.5, color: '#55557a', textTransform: 'uppercase', marginBottom: 10 },
+  section: { marginHorizontal: 12, backgroundColor: retro.white, borderRadius: 6, padding: 14, borderWidth: 3, borderColor: retro.line, ...retroShadow },
+  sectionLbl: { fontSize: 11, fontWeight: '900', letterSpacing: 1.5, color: retro.red, textTransform: 'uppercase', marginBottom: 10, fontFamily: 'monospace' },
 
   // Stats
   statRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
   statIcon: { fontSize: 14, width: 22, textAlign: 'center' },
-  statName: { fontSize: 13, fontWeight: '600', color: '#9999bb', width: 68 },
-  statTrack: { flex: 1, height: 6, backgroundColor: '#2a2a3e', borderRadius: 3, overflow: 'hidden' },
-  statFill: { height: 6, borderRadius: 3 },
-  statVal: { fontSize: 11, color: '#55557a', width: 48, textAlign: 'right' },
+  statName: { fontSize: 13, fontWeight: '900', color: retro.ink, width: 68, fontFamily: 'monospace' },
+  statTrack: { flex: 1, height: 9, backgroundColor: retro.paper2, borderRadius: 0, overflow: 'hidden', borderWidth: 2, borderColor: retro.line },
+  statFill: { height: '100%', borderRadius: 0 },
+  statVal: { fontSize: 11, color: retro.muted, width: 48, textAlign: 'right', fontFamily: 'monospace', fontWeight: '800' },
   formeRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, marginTop: 2, paddingHorizontal: 2 },
-  formeLbl: { fontSize: 13, fontWeight: '600', color: '#9999bb' },
+  formeLbl: { fontSize: 13, fontWeight: '900', color: retro.ink, fontFamily: 'monospace' },
   formeVal:  { fontSize: 13, fontWeight: '700' },
 
   buffRow: { marginTop: 4, backgroundColor: '#FFD70011', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5, borderWidth: 1, borderColor: '#FFD70033' },
@@ -790,67 +791,67 @@ const s = StyleSheet.create({
 
   // Actions
   actionsRow: { flexDirection: 'row', gap: 8 },
-  actionBtn: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#252540', borderRadius: 12, paddingVertical: 13, gap: 5 },
+  actionBtn: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: retro.paper2, borderRadius: 4, paddingVertical: 13, gap: 5, borderWidth: 2, borderColor: retro.line },
   actionDisabled: { opacity: 0.35 },
   actionIcon: { fontSize: 24 },
-  actionLbl: { fontSize: 11, fontWeight: '600', color: '#ccc' },
+  actionLbl: { fontSize: 11, fontWeight: '900', color: retro.ink, fontFamily: 'monospace' },
 
   // Combat / Aventure
   modeRow: { flexDirection: 'row', gap: 10, marginHorizontal: 12 },
   combatBtn: {
-    flex: 1, backgroundColor: '#162040', borderRadius: 14, padding: 14,
+    flex: 1, backgroundColor: retro.blue, borderRadius: 4, padding: 14,
     flexDirection: 'row', alignItems: 'center', gap: 10,
-    shadowColor: '#3B82F6', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.3, shadowRadius: 8,
+    borderWidth: 3, borderColor: retro.line, ...retroShadow,
   },
   adventureBtn: {
-    flex: 1, backgroundColor: '#1e1040', borderRadius: 14, padding: 14,
+    flex: 1, backgroundColor: retro.mint, borderRadius: 4, padding: 14,
     flexDirection: 'row', alignItems: 'center', gap: 10,
-    shadowColor: '#A855F7', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.3, shadowRadius: 8,
+    borderWidth: 3, borderColor: retro.line, ...retroShadow,
   },
   modeIcon: { fontSize: 28 },
-  modeTitle: { fontSize: 13, fontWeight: '800', color: '#60A5FA', letterSpacing: 0.5 },
-  modeSub: { fontSize: 11, color: '#6688aa', marginTop: 2, lineHeight: 15 },
+  modeTitle: { fontSize: 13, fontWeight: '900', color: retro.white, letterSpacing: 0.5, fontFamily: 'monospace' },
+  modeSub: { fontSize: 11, color: retro.paper, marginTop: 2, lineHeight: 15, fontWeight: '700' },
 
   // Inventory preview
   invHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
-  viewAll: { fontSize: 12, color: '#F5A623', fontWeight: '600' },
-  invItem: { width: 64, alignItems: 'center', backgroundColor: '#252540', borderRadius: 12, paddingVertical: 10, gap: 4 },
+  viewAll: { fontSize: 12, color: retro.red, fontWeight: '900', fontFamily: 'monospace' },
+  invItem: { width: 64, alignItems: 'center', backgroundColor: retro.paper2, borderRadius: 4, paddingVertical: 10, gap: 4, borderWidth: 2, borderColor: retro.line },
   invIcon: { fontSize: 28 },
-  invQty: { fontSize: 11, color: '#888', fontWeight: '600' },
-  invEmpty: { fontSize: 12, color: '#55557a', textAlign: 'center', paddingVertical: 12 },
+  invQty: { fontSize: 11, color: retro.ink, fontWeight: '900', fontFamily: 'monospace' },
+  invEmpty: { fontSize: 12, color: retro.muted, textAlign: 'center', paddingVertical: 12 },
 
   // Bottom sheets
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', justifyContent: 'flex-end' },
-  sheet: { backgroundColor: '#1a1a2e', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 38 },
-  sheetTitle: { fontSize: 17, fontWeight: '800', color: '#fff', marginBottom: 14 },
-  sheetEmpty: { fontSize: 13, color: '#55557a', textAlign: 'center', padding: 20 },
-  sheetRow: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#252540', borderRadius: 12, padding: 12, marginBottom: 8 },
+  sheet: { backgroundColor: retro.white, borderTopLeftRadius: 6, borderTopRightRadius: 6, padding: 20, paddingBottom: 38, borderWidth: 3, borderColor: retro.line },
+  sheetTitle: { fontSize: 17, fontWeight: '900', color: retro.ink, marginBottom: 14, fontFamily: 'monospace' },
+  sheetEmpty: { fontSize: 13, color: retro.muted, textAlign: 'center', padding: 20 },
+  sheetRow: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: retro.paper2, borderRadius: 4, padding: 12, marginBottom: 8, borderWidth: 2, borderColor: retro.line },
   sheetRowIcon: { fontSize: 26, width: 32, textAlign: 'center' },
-  sheetRowName: { fontSize: 14, fontWeight: '700', color: '#fff' },
-  sheetRowSub: { fontSize: 11, color: '#888', marginTop: 2 },
-  trainTrack: { height: 4, backgroundColor: '#2a2a3e', borderRadius: 2, overflow: 'hidden', marginTop: 6 },
-  trainFill: { height: 4, backgroundColor: '#7C3AED', borderRadius: 2 },
+  sheetRowName: { fontSize: 14, fontWeight: '900', color: retro.ink },
+  sheetRowSub: { fontSize: 11, color: retro.muted, marginTop: 2 },
+  trainTrack: { height: 6, backgroundColor: retro.paper, borderRadius: 0, overflow: 'hidden', marginTop: 6, borderWidth: 1, borderColor: retro.line },
+  trainFill: { height: '100%', backgroundColor: retro.screenDark, borderRadius: 0 },
 
   // Admin
   adminOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'center', padding: 20 },
-  adminCard: { backgroundColor: '#1a1a2e', borderRadius: 20, padding: 20 },
-  adminTitle: { fontSize: 20, fontWeight: '800', color: '#fff', textAlign: 'center', marginBottom: 4 },
-  adminSub: { fontSize: 12, color: '#888', textAlign: 'center', marginBottom: 16 },
-  adminSection: { fontSize: 11, fontWeight: '700', color: '#55557a', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, marginTop: 10 },
+  adminCard: { backgroundColor: retro.white, borderRadius: 6, padding: 20, borderWidth: 3, borderColor: retro.line, ...retroShadow },
+  adminTitle: { fontSize: 20, fontWeight: '900', color: retro.ink, textAlign: 'center', marginBottom: 4, fontFamily: 'monospace' },
+  adminSub: { fontSize: 12, color: retro.muted, textAlign: 'center', marginBottom: 16 },
+  adminSection: { fontSize: 11, fontWeight: '900', color: retro.red, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, marginTop: 10, fontFamily: 'monospace' },
   adminRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
-  adminBtn: { backgroundColor: '#7C3AED', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8 },
-  adminBtnTxt: { color: '#fff', fontWeight: '700', fontSize: 12 },
-  adminClose: { marginTop: 20, backgroundColor: '#252540', borderRadius: 12, padding: 12, alignItems: 'center' },
-  adminCloseTxt: { color: '#aaa', fontWeight: '700', fontSize: 14 },
+  adminBtn: { backgroundColor: retro.blue, borderRadius: 4, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 2, borderColor: retro.line },
+  adminBtnTxt: { color: retro.white, fontWeight: '900', fontSize: 12, fontFamily: 'monospace' },
+  adminClose: { marginTop: 20, backgroundColor: retro.ink, borderRadius: 4, padding: 12, alignItems: 'center' },
+  adminCloseTxt: { color: retro.white, fontWeight: '900', fontSize: 14, fontFamily: 'monospace' },
 
   // Evolve
   evolveOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.88)', justifyContent: 'center', alignItems: 'center' },
-  evolveCard: { backgroundColor: '#1a1a2e', borderRadius: 24, padding: 32, alignItems: 'center', gap: 12, margin: 24 },
+  evolveCard: { backgroundColor: retro.white, borderRadius: 6, padding: 32, alignItems: 'center', gap: 12, margin: 24, borderWidth: 3, borderColor: retro.line, ...retroShadow },
   evolveEmoji: { fontSize: 48 },
-  evolveTitle: { fontSize: 28, fontWeight: '900', color: '#FFD700', letterSpacing: 2 },
-  evolveName: { fontSize: 18, fontWeight: '700', color: '#fff' },
-  evolveDesc: { fontSize: 14, color: '#aaa', textAlign: 'center', lineHeight: 20 },
-  evolveStage: { fontSize: 13, fontWeight: '800', color: '#FFD700', letterSpacing: 1 },
-  evolveBtn: { backgroundColor: '#7C3AED', borderRadius: 14, paddingHorizontal: 28, paddingVertical: 12, marginTop: 8 },
-  evolveBtnTxt: { color: '#fff', fontWeight: '800', fontSize: 15 },
+  evolveTitle: { fontSize: 28, fontWeight: '900', color: retro.red, letterSpacing: 2, fontFamily: 'monospace' },
+  evolveName: { fontSize: 18, fontWeight: '900', color: retro.ink },
+  evolveDesc: { fontSize: 14, color: retro.muted, textAlign: 'center', lineHeight: 20 },
+  evolveStage: { fontSize: 13, fontWeight: '900', color: retro.gold, letterSpacing: 1, fontFamily: 'monospace' },
+  evolveBtn: { backgroundColor: retro.ink, borderRadius: 4, paddingHorizontal: 28, paddingVertical: 12, marginTop: 8 },
+  evolveBtnTxt: { color: retro.white, fontWeight: '900', fontSize: 15, fontFamily: 'monospace' },
 })

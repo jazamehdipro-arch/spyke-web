@@ -3,6 +3,7 @@ import { Animated, Image, ImageBackground, ImageSourcePropType, StyleSheet, Text
 import { Creature, CreatureMood, CreatureType } from '../types'
 
 import { CREATURE_COLORS, getMood } from '../utils/creature'
+import { retro, retroShadow } from '../styles/retro'
 
 const TERRAINS: Record<CreatureType, ImageSourcePropType> = {
   ignis: require('../../assets/sprites/arena_volcano.png'),
@@ -282,7 +283,7 @@ export default function CreatureDisplay({ creature, pose, onEvolve, variant = 'g
       <View style={styles.heroContainer}>
         {!isSick && <FloatingParticles color={color} type={creature.type} />}
         <TouchableWithoutFeedback onPress={handlePress}>
-          <Animated.View style={{ transform: [{ translateY: bounce }, { scale }], opacity: isSick ? 0.75 : 1 }}>
+          <Animated.View style={[styles.heroSpritePlate, { transform: [{ translateY: bounce }, { scale }], opacity: isSick ? 0.75 : 1 }]}>
             <Image source={sprite} style={styles.heroSprite} resizeMode="contain" />
           </Animated.View>
         </TouchableWithoutFeedback>
@@ -292,24 +293,20 @@ export default function CreatureDisplay({ creature, pose, onEvolve, variant = 'g
 
   return (
     <View style={styles.container}>
-      {/* Game Boy-style screen frame */}
       <View style={styles.gbFrame}>
-        {/* Top notch bar */}
         <View style={styles.gbTopBar}>
           <View style={[styles.gbDot, { backgroundColor: color }]} />
           <View style={[styles.gbDot, { backgroundColor: color, opacity: 0.5 }]} />
           <View style={[styles.gbDot, { backgroundColor: color, opacity: 0.25 }]} />
         </View>
 
-        {/* Screen */}
         <ImageBackground
           source={TERRAINS[creature.type]}
-          style={[styles.gbScreen, { backgroundColor: isSick ? '#2a2a2a' : color + '22' }]}
-          imageStyle={{ opacity: isSick ? 0.08 : 0.45, borderRadius: 8 }}
+          style={[styles.gbScreen, { backgroundColor: isSick ? retro.ink2 : retro.screen }]}
+          imageStyle={{ opacity: isSick ? 0.05 : 0.18 }}
           resizeMode="cover"
         >
           {!isSick && <FloatingParticles color={color} type={creature.type} />}
-          {/* Screen glare */}
           <View style={styles.gbGlare} pointerEvents="none" />
           <TouchableWithoutFeedback onPress={handlePress}>
             <Animated.View style={{ transform: [{ translateY: bounce }, { scale }], opacity: isSick ? 0.75 : 1 }}>
@@ -323,13 +320,12 @@ export default function CreatureDisplay({ creature, pose, onEvolve, variant = 'g
           )}
         </ImageBackground>
 
-        {/* Bottom bar with badges */}
         <View style={styles.gbBottomBar}>
           <View style={[styles.levelBadge, { backgroundColor: color }]}>
             <Text style={styles.levelText}>Niv. {creature.stats.level}</Text>
           </View>
           {creature.stats.level >= 20 && (
-            <View style={[styles.stageBadge, { backgroundColor: '#FFD700' }]}>
+            <View style={[styles.stageBadge, { backgroundColor: retro.gold }]}>
               <Text style={styles.stageText}>★ MAX</Text>
             </View>
           )}
@@ -347,7 +343,16 @@ export default function CreatureDisplay({ creature, pose, onEvolve, variant = 'g
 const styles = StyleSheet.create({
   // ── Hero variant ──────────────────────────────────────────
   heroContainer: { alignItems: 'center', justifyContent: 'center', flex: 1 },
-  heroSprite: { width: 170, height: 200 },
+  heroSpritePlate: {
+    width: 210,
+    height: 210,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(155,188,15,0.18)',
+    borderWidth: 3,
+    borderColor: 'rgba(32,40,61,0.55)',
+  },
+  heroSprite: { width: 178, height: 190 },
   container: {
     alignItems: 'center',
     paddingVertical: 12,
@@ -355,17 +360,14 @@ const styles = StyleSheet.create({
   // ── Game Boy frame ──────────────────────────────────────
   gbFrame: {
     width: 230,
-    backgroundColor: '#1c1c1e',
-    borderRadius: 16,
+    backgroundColor: retro.paper2,
+    borderRadius: 6,
     padding: 10,
     gap: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.55,
-    shadowRadius: 14,
+    ...retroShadow,
     elevation: 14,
-    borderWidth: 2,
-    borderColor: '#333',
+    borderWidth: 3,
+    borderColor: retro.line,
   },
   gbTopBar: {
     flexDirection: 'row',
@@ -374,18 +376,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   gbDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+    width: 8,
+    height: 8,
+    borderRadius: 0,
+    borderWidth: 1,
+    borderColor: retro.line,
   },
   gbScreen: {
     height: 196,
-    borderRadius: 8,
+    borderRadius: 0,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
-    borderWidth: 1.5,
-    borderColor: '#0a0a0a',
+    borderWidth: 4,
+    borderColor: retro.line,
   },
   gbGlare: {
     position: 'absolute',
@@ -393,8 +397,8 @@ const styles = StyleSheet.create({
     right: 8,
     width: 28,
     height: 14,
-    borderRadius: 7,
-    backgroundColor: 'rgba(255,255,255,0.07)',
+    borderRadius: 0,
+    backgroundColor: 'rgba(255,248,220,0.18)',
     transform: [{ rotate: '-30deg' }],
   },
   gbBottomBar: {
@@ -419,21 +423,27 @@ const styles = StyleSheet.create({
   levelBadge: {
     paddingHorizontal: 12,
     paddingVertical: 3,
-    borderRadius: 20,
+    borderRadius: 0,
+    borderWidth: 2,
+    borderColor: retro.line,
   },
   levelText: {
-    color: '#fff',
-    fontWeight: '700',
+    color: retro.white,
+    fontWeight: '900',
     fontSize: 12,
+    fontFamily: 'monospace',
   },
   stageBadge: {
     paddingHorizontal: 9,
     paddingVertical: 3,
-    borderRadius: 20,
+    borderRadius: 0,
+    borderWidth: 2,
+    borderColor: retro.line,
   },
   stageText: {
-    color: '#fff',
+    color: retro.ink,
     fontWeight: '800',
     fontSize: 10,
+    fontFamily: 'monospace',
   },
 })

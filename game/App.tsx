@@ -11,6 +11,7 @@ import { Creature, Crossing, CreatureType, DailyQuest, GameEvent, InventoryItem,
 import { addXP, createNewCreature, decayStats, getMood } from './src/utils/creature'
 import { ITEM_CATALOG, drawMysteryBox, getStarterInventory } from './src/utils/items'
 import { QUEST_DEFINITIONS } from './src/utils/quests'
+import { retro, retroShadow } from './src/styles/retro'
 import { generateDailyQuests, isDailyQuestStale } from './src/utils/dailyQuests'
 import {
   addItemToInventory,
@@ -448,19 +449,16 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#0f0f1a' },
+  root: { flex: 1, backgroundColor: retro.paper },
   content: { flex: 1 },
   tabBar: {
     flexDirection: 'row',
-    backgroundColor: '#1a1a2e',
+    backgroundColor: retro.ink,
     paddingBottom: 24,
     paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: '#252540',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
+    borderTopWidth: 3,
+    borderTopColor: retro.line,
+    ...retroShadow,
     elevation: 10,
   },
   tab: { flex: 1, alignItems: 'center', gap: 3 },
@@ -470,16 +468,18 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -4,
     right: -8,
-    backgroundColor: '#FF6B6B',
-    borderRadius: 8,
+    backgroundColor: retro.red,
+    borderRadius: 2,
     minWidth: 16,
     height: 16,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 3,
+    borderWidth: 1,
+    borderColor: retro.paper,
   },
-  badgeText: { color: '#fff', fontSize: 10, fontWeight: '800' },
-  tabLabel: { fontSize: 10, color: '#666', fontWeight: '500' },
-  tabLabelActive: { color: '#a78bfa', fontWeight: '700' },
-  tabDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: '#a78bfa' },
+  badgeText: { color: retro.white, fontSize: 10, fontWeight: '900', fontFamily: 'monospace' },
+  tabLabel: { fontSize: 10, color: retro.paper2, fontWeight: '800', fontFamily: 'monospace' },
+  tabLabelActive: { color: retro.screenSoft, fontWeight: '900' },
+  tabDot: { width: 12, height: 3, borderRadius: 0, backgroundColor: retro.screen },
 })

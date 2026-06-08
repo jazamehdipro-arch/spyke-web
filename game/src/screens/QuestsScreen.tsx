@@ -9,6 +9,7 @@ import {
   View,
 } from 'react-native'
 import { DailyQuest, Quest } from '../types'
+import { retro, retroShadow } from '../styles/retro'
 
 interface Props {
   quests: Quest[]
@@ -150,7 +151,7 @@ export default function QuestsScreen({ quests, onClaimReward, dailyQuests, onCla
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F8F7FF' },
+  safe: { flex: 1, backgroundColor: retro.paper },
   header: {
     paddingTop: 16,
     paddingHorizontal: 20,
@@ -158,15 +159,16 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 32,
-    fontWeight: '800',
-    color: '#1a1a2e',
-    letterSpacing: -1,
+    fontWeight: '900',
+    color: retro.ink,
+    letterSpacing: 0,
+    fontFamily: 'monospace',
   },
-  subtitle: { fontSize: 14, color: '#888', marginTop: 2 },
+  subtitle: { fontSize: 14, color: retro.muted, marginTop: 2 },
   sectionLabel: {
     fontSize: 12,
-    fontWeight: '800',
-    color: '#FF9500',
+    fontWeight: '900',
+    color: retro.red,
     textTransform: 'uppercase',
     letterSpacing: 1,
     paddingHorizontal: 20,
@@ -175,8 +177,8 @@ const styles = StyleSheet.create({
   },
   sectionLabel2: {
     fontSize: 12,
-    fontWeight: '800',
-    color: '#888',
+    fontWeight: '900',
+    color: retro.muted,
     textTransform: 'uppercase',
     letterSpacing: 1,
     paddingHorizontal: 20,
@@ -194,59 +196,60 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   card: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
+    backgroundColor: retro.white,
+    borderRadius: 4,
     padding: 14,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
+    borderWidth: 2,
+    borderColor: retro.line,
+    ...retroShadow,
     elevation: 2,
   },
   dailyCard: {
     borderLeftWidth: 3,
-    borderLeftColor: '#FF9500',
+    borderLeftColor: retro.gold,
   },
   cardClaimed: { opacity: 0.5 },
   questEmoji: { fontSize: 30, width: 40 },
   questInfo: { flex: 1, gap: 3 },
   dailyTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  questTitle: { fontSize: 15, fontWeight: '700', color: '#1a1a2e' },
-  questDesc: { fontSize: 12, color: '#777' },
+  questTitle: { fontSize: 15, fontWeight: '900', color: retro.ink },
+  questDesc: { fontSize: 12, color: retro.muted },
   progressRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 },
   barBg: {
-    flex: 1, height: 7, backgroundColor: '#f0f0f0',
-    borderRadius: 4, overflow: 'hidden',
+    flex: 1, height: 8, backgroundColor: retro.paper2,
+    borderRadius: 0, overflow: 'hidden', borderWidth: 1, borderColor: retro.line,
   },
   barFill: {
-    height: '100%', backgroundColor: '#A855F7', borderRadius: 4,
+    height: '100%', backgroundColor: retro.screenDark, borderRadius: 0,
   },
   dailyBarFill: {
-    backgroundColor: '#FF9500',
+    backgroundColor: retro.gold,
   },
-  progressText: { fontSize: 11, color: '#999', width: 36 },
-  rewardText: { fontSize: 11, color: '#A855F7', fontWeight: '600', marginTop: 2 },
-  dailyRewardText: { fontSize: 11, color: '#FF9500', fontWeight: '600', marginTop: 2 },
+  progressText: { fontSize: 11, color: retro.muted, width: 36, fontFamily: 'monospace', fontWeight: '900' },
+  rewardText: { fontSize: 11, color: retro.blue, fontWeight: '900', marginTop: 2 },
+  dailyRewardText: { fontSize: 11, color: retro.red, fontWeight: '900', marginTop: 2 },
   dailyBadge: {
-    backgroundColor: '#FFF3E0',
-    borderRadius: 8,
+    backgroundColor: retro.paper2,
+    borderRadius: 0,
     paddingHorizontal: 6,
     paddingVertical: 2,
   },
-  dailyBadgeText: { fontSize: 9, fontWeight: '700', color: '#FF9500' },
+  dailyBadgeText: { fontSize: 9, fontWeight: '900', color: retro.red, fontFamily: 'monospace' },
   claimBtn: {
-    backgroundColor: '#A855F7',
+    backgroundColor: retro.ink,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 12,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: retro.line,
   },
   dailyClaimBtn: {
-    backgroundColor: '#FF9500',
+    backgroundColor: retro.red,
   },
-  claimText: { color: '#fff', fontSize: 12, fontWeight: '700' },
-  claimedBadge: { fontSize: 20, color: '#6BCB77', fontWeight: '700' },
-  textFaded: { color: '#aaa' },
+  claimText: { color: retro.white, fontSize: 12, fontWeight: '900', fontFamily: 'monospace' },
+  claimedBadge: { fontSize: 20, color: retro.mint, fontWeight: '900' },
+  textFaded: { color: retro.muted },
 })

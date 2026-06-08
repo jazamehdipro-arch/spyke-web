@@ -29,6 +29,7 @@ import {
   getLoadout,
   getPassiveLevel,
 } from '../utils/spells'
+import { retro, retroShadow } from '../styles/retro'
 
 // ─── arena backgrounds ───────────────────────────────────
 const ARENAS: ImageSourcePropType[] = [
@@ -1474,7 +1475,7 @@ export default function CombatScreen({ player, opponent, onFinish, debugOverride
 }
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#0D0A18' },
+  root: { flex: 1, backgroundColor: retro.ink },
 
   // HEADER
   header: {
@@ -1484,11 +1485,11 @@ const s = StyleSheet.create({
   },
   roundBadge: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#1D1738', borderWidth: 1, borderColor: '#352A5E',
-    borderRadius: 9, paddingHorizontal: 10, paddingVertical: 6,
+    backgroundColor: retro.paper2, borderWidth: 2, borderColor: retro.line,
+    borderRadius: 4, paddingHorizontal: 10, paddingVertical: 6,
   },
-  roundText: { fontFamily: 'monospace', fontSize: 10, color: '#9A8FC4', letterSpacing: 0.5 },
-  roundNum: { color: '#FFCE3A' },
+  roundText: { fontFamily: 'monospace', fontSize: 10, color: retro.ink, letterSpacing: 0.5, fontWeight: '900' },
+  roundNum: { color: retro.red },
 
   // ARENA
   arena: {
@@ -1506,15 +1507,15 @@ const s = StyleSheet.create({
     paddingHorizontal: 4,
   },
   timerBarBg: {
-    flex: 1, height: 14, borderRadius: 8,
-    backgroundColor: '#0C0820', borderWidth: 1, borderColor: '#352A5E', overflow: 'hidden',
+    flex: 1, height: 14, borderRadius: 0,
+    backgroundColor: retro.paper2, borderWidth: 2, borderColor: retro.line, overflow: 'hidden',
   },
   timerBarFill: {
-    position: 'absolute', left: 0, top: 0, bottom: 0, borderRadius: 8,
-    backgroundColor: '#FF5A2C',
+    position: 'absolute', left: 0, top: 0, bottom: 0, borderRadius: 0,
+    backgroundColor: retro.red,
   },
-  timerNum: { fontFamily: 'monospace', fontSize: 20, fontWeight: '900', color: '#FFCE3A', minWidth: 36, textAlign: 'right' },
-  timerDim: { color: '#2A2030' },
+  timerNum: { fontFamily: 'monospace', fontSize: 20, fontWeight: '900', color: retro.gold, minWidth: 36, textAlign: 'right' },
+  timerDim: { color: retro.muted },
 
   fighterRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   fighterRowMe: { flexDirection: 'row-reverse' },
@@ -1522,14 +1523,15 @@ const s = StyleSheet.create({
   fighterInfoMe: {},
 
   stage: {
-    width: 110, height: 110, borderRadius: 18,
-    backgroundColor: '#1D1738', borderWidth: 1.5, borderColor: '#352A5E',
+    width: 110, height: 110, borderRadius: 4,
+    backgroundColor: retro.paper2, borderWidth: 3, borderColor: retro.line,
     alignItems: 'center', justifyContent: 'flex-end',
     overflow: 'visible', position: 'relative',
+    ...retroShadow,
   },
   stageFloor: {
     position: 'absolute', bottom: 8, width: 72, height: 12,
-    borderRadius: 50, backgroundColor: 'rgba(0,0,0,0.4)',
+    borderRadius: 0, backgroundColor: 'rgba(32,40,61,0.35)',
   },
   stageSprite: { width: 88, height: 88, marginBottom: 4 },
   dmgFloat: {
@@ -1541,17 +1543,17 @@ const s = StyleSheet.create({
 
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
   nameRowMe: { flexDirection: 'row-reverse' },
-  fighterName: { color: '#F3EEFE', fontSize: 14, fontWeight: '800', flexShrink: 1 },
-  lvlBadge: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 },
-  lvlText: { fontSize: 9, fontWeight: '900', color: '#0D0A18', fontFamily: 'monospace' },
+  fighterName: { color: retro.white, fontSize: 14, fontWeight: '900', flexShrink: 1, fontFamily: 'monospace' },
+  lvlBadge: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 0, borderWidth: 1, borderColor: retro.line },
+  lvlText: { fontSize: 9, fontWeight: '900', color: retro.ink, fontFamily: 'monospace' },
   statusEmoji: { fontSize: 12 },
 
   hpBarBg: {
-    height: 16, backgroundColor: '#0C0820', borderRadius: 8,
-    borderWidth: 1, borderColor: '#352A5E', overflow: 'hidden',
+    height: 16, backgroundColor: retro.paper2, borderRadius: 0,
+    borderWidth: 2, borderColor: retro.line, overflow: 'hidden',
     position: 'relative', justifyContent: 'center',
   },
-  hpBarFill: { position: 'absolute', top: 0, left: 0, bottom: 0, borderRadius: 8 },
+  hpBarFill: { position: 'absolute', top: 0, left: 0, bottom: 0, borderRadius: 0 },
   hpBarText: {
     position: 'absolute', left: 0, right: 0, textAlign: 'center',
     fontSize: 9, fontWeight: '900', fontFamily: 'monospace', color: '#fff',
@@ -1560,12 +1562,12 @@ const s = StyleSheet.create({
 
   subRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   subRowMe: { justifyContent: 'flex-end' },
-  hiddenEnergy: { color: '#555', fontSize: 11, fontWeight: '700', fontFamily: 'monospace' },
+  hiddenEnergy: { color: retro.paper2, fontSize: 11, fontWeight: '900', fontFamily: 'monospace' },
 
   pipRow: { flexDirection: 'row', gap: 4 },
   pip: {
-    width: 22, height: 9, borderRadius: 3,
-    backgroundColor: '#0C0820', borderWidth: 1, borderColor: '#352A5E',
+    width: 22, height: 9, borderRadius: 0,
+    backgroundColor: retro.paper2, borderWidth: 1, borderColor: retro.line,
   },
 
   embersRow: { flexDirection: 'row', gap: 2 },
@@ -1573,21 +1575,21 @@ const s = StyleSheet.create({
 
   histRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 2 },
   histRowMe: { justifyContent: 'flex-end' },
-  histLabel: { fontFamily: 'monospace', fontSize: 7, color: '#9A8FC4', letterSpacing: 0.5 },
+  histLabel: { fontFamily: 'monospace', fontSize: 7, color: retro.paper2, letterSpacing: 0.5 },
   histBadge: {
-    width: 24, height: 24, borderRadius: 7,
-    backgroundColor: '#241C44', borderWidth: 1, borderColor: '#352A5E',
+    width: 24, height: 24, borderRadius: 0,
+    backgroundColor: retro.paper2, borderWidth: 1, borderColor: retro.line,
     alignItems: 'center', justifyContent: 'center',
   },
   histIcon: { fontSize: 13 },
 
   // CLASH CHIPS (reuse centerZone for layout)
   clashChip: {
-    backgroundColor: '#241C44', borderWidth: 1, borderColor: '#352A5E',
-    borderRadius: 10, paddingHorizontal: 10, paddingVertical: 7, maxWidth: 135,
+    backgroundColor: retro.paper2, borderWidth: 2, borderColor: retro.line,
+    borderRadius: 4, paddingHorizontal: 10, paddingVertical: 7, maxWidth: 135,
   },
-  clashChipText: { fontSize: 9, fontWeight: '800', fontFamily: 'monospace', letterSpacing: 0.3 },
-  clashVs: { color: '#9A8FC4', fontSize: 12, fontWeight: '900', fontFamily: 'monospace' },
+  clashChipText: { fontSize: 9, fontWeight: '900', fontFamily: 'monospace', letterSpacing: 0.3 },
+  clashVs: { color: retro.gold, fontSize: 12, fontWeight: '900', fontFamily: 'monospace' },
 
   // HINT BAR / LOG
   hintBar: {
@@ -1598,18 +1600,18 @@ const s = StyleSheet.create({
   },
   hintBarLog: {
     minHeight: 80,
-    backgroundColor: 'rgba(13, 10, 24, 0.96)',
-    borderTopWidth: 1,
-    borderTopColor: '#352A5E',
+    backgroundColor: retro.ink,
+    borderTopWidth: 3,
+    borderTopColor: retro.line,
     paddingVertical: 8,
   },
   hintText: {
-    textAlign: 'center', fontSize: 11, color: '#9A8FC4', fontWeight: '600',
+    textAlign: 'center', fontSize: 11, color: retro.paper2, fontWeight: '900', fontFamily: 'monospace',
   },
-  logLine:   { fontSize: 10, fontWeight: '700', lineHeight: 16 },
+  logLine:   { fontSize: 10, fontWeight: '900', lineHeight: 16, fontFamily: 'monospace' },
   logPlayer: { color: '#7DF9FF' },
   logEnemy:  { color: '#FF9966' },
-  logSystem: { color: '#9A8FC4' },
+  logSystem: { color: retro.paper2 },
 
   // DECK
   deck: { paddingHorizontal: 12, paddingBottom: 16, gap: 8 },
@@ -1618,13 +1620,13 @@ const s = StyleSheet.create({
   baseActions: { flexDirection: 'row', gap: 8 },
   defendBtn: {
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
-    backgroundColor: '#1F4FD0', borderRadius: 14, paddingVertical: 12,
-    shadowColor: '#2B6CFF', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 8, elevation: 4,
+    backgroundColor: retro.blue, borderRadius: 4, paddingVertical: 12,
+    borderWidth: 3, borderColor: retro.line, ...retroShadow,
   },
   chargeBtn: {
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5,
-    backgroundColor: '#C23B14', borderRadius: 14, paddingVertical: 12,
-    shadowColor: '#FF5A2C', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 8, elevation: 4,
+    backgroundColor: retro.red, borderRadius: 4, paddingVertical: 12,
+    borderWidth: 3, borderColor: retro.line, ...retroShadow,
   },
   baseActionIcon: { fontSize: 18 },
   baseActionLabel: { color: '#fff', fontWeight: '900', fontSize: 12, fontFamily: 'monospace', letterSpacing: 0.5 },
@@ -1632,31 +1634,32 @@ const s = StyleSheet.create({
 
   spellRow: { flexDirection: 'row', gap: 8 },
   spellCard: {
-    flex: 1, backgroundColor: '#1D1738', borderRadius: 13,
-    padding: 10, borderWidth: 1, borderColor: '#352A5E', gap: 5,
+    flex: 1, backgroundColor: retro.white, borderRadius: 4,
+    padding: 10, borderWidth: 3, borderColor: retro.line, gap: 5,
+    ...retroShadow,
   },
   spellCardLocked: { opacity: 0.4 },
   spellCdTag: {
     position: 'absolute', top: 7, right: 8,
-    fontSize: 8, color: '#FF8A3D', fontFamily: 'monospace', fontWeight: '700',
+    fontSize: 8, color: retro.red, fontFamily: 'monospace', fontWeight: '900',
   },
   spellCardTop: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   spellIco: {
-    width: 28, height: 28, borderRadius: 8,
-    backgroundColor: '#0C0820', borderWidth: 1, borderColor: '#352A5E',
+    width: 28, height: 28, borderRadius: 0,
+    backgroundColor: retro.paper2, borderWidth: 1, borderColor: retro.line,
     alignItems: 'center', justifyContent: 'center',
   },
   spellIcoText: { fontSize: 15 },
-  spellCardName: { color: '#F3EEFE', fontSize: 10, fontWeight: '700', fontFamily: 'monospace', flex: 1, lineHeight: 14 },
-  spellCardNameDim: { color: '#555' },
+  spellCardName: { color: retro.ink, fontSize: 10, fontWeight: '900', fontFamily: 'monospace', flex: 1, lineHeight: 14 },
+  spellCardNameDim: { color: retro.muted },
   spellCostRow: { flexDirection: 'row', gap: 3 },
   spellCostBar: {
-    flex: 1, height: 7, borderRadius: 3,
-    backgroundColor: '#0C0820', borderWidth: 1, borderColor: '#352A5E',
+    flex: 1, height: 7, borderRadius: 0,
+    backgroundColor: retro.paper2, borderWidth: 1, borderColor: retro.line,
   },
-  spellCostBarLow: { backgroundColor: '#1A1530', borderColor: '#2A2050' },
+  spellCostBarLow: { backgroundColor: retro.paper, borderColor: retro.muted },
   spellRole: {
-    fontSize: 9, color: '#9A8FC4', fontWeight: '600',
+    fontSize: 9, color: retro.muted, fontWeight: '800',
     lineHeight: 13,
   },
 
@@ -1665,26 +1668,27 @@ const s = StyleSheet.create({
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
     backgroundColor: 'rgba(0,0,0,0.92)', alignItems: 'center', justifyContent: 'center', gap: 12,
   },
-  introTitle: { fontSize: 48, fontWeight: '900', color: '#FFCE3A', letterSpacing: 4, fontFamily: 'monospace' },
-  introSub: { fontSize: 16, color: '#9A8FC4' },
+  introTitle: { fontSize: 48, fontWeight: '900', color: retro.gold, letterSpacing: 4, fontFamily: 'monospace' },
+  introSub: { fontSize: 16, color: retro.paper2, fontWeight: '800' },
 
   debuffPanel: {
-    backgroundColor: 'rgba(255,60,60,0.1)', borderRadius: 12,
+    backgroundColor: retro.white, borderRadius: 4,
     paddingHorizontal: 16, paddingVertical: 10,
     marginTop: 8, gap: 4, minWidth: 220, alignItems: 'flex-start',
+    borderWidth: 3, borderColor: retro.line,
   },
   debuffTitle: {
-    color: '#FF6B6B', fontSize: 11, fontWeight: '800',
+    color: retro.red, fontSize: 11, fontWeight: '900',
     textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4,
   },
-  debuffItem: { color: '#FFB3B3', fontSize: 12 },
+  debuffItem: { color: retro.ink, fontSize: 12, fontWeight: '800' },
 
   finishEmoji: { fontSize: 64 },
   finishTitle: { fontSize: 40, fontWeight: '900', color: '#fff', letterSpacing: 2 },
-  finishXP: { fontSize: 22, color: '#FFCE3A', fontWeight: '800' },
+  finishXP: { fontSize: 22, color: retro.gold, fontWeight: '900', fontFamily: 'monospace' },
   finishBtn: {
-    backgroundColor: '#FFCE3A', paddingHorizontal: 48, paddingVertical: 16,
-    borderRadius: 16, marginTop: 16,
+    backgroundColor: retro.gold, paddingHorizontal: 48, paddingVertical: 16,
+    borderRadius: 4, marginTop: 16, borderWidth: 3, borderColor: retro.line,
   },
-  finishBtnText: { color: '#000', fontSize: 17, fontWeight: '900' },
+  finishBtnText: { color: retro.ink, fontSize: 17, fontWeight: '900', fontFamily: 'monospace' },
 })

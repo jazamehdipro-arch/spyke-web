@@ -149,7 +149,7 @@ function ReflexGame({ diff, onDone }: { diff: 0|1|2|3; onDone: (n: number) => vo
           setFlash('bad')
           if (livesRef.current <= 0) {
             doneRef.current = true
-            clearInterval(cycleRef.current)
+            if (cycleRef.current) clearInterval(cycleRef.current)
             setTimeout(() => onDone(scoreRef.current), 400)
           }
         } else {
@@ -246,7 +246,7 @@ function EnduranceGame({ diff, onDone }: { diff: 0|1|2|3; onDone: (n: number) =>
   const tap = () => {
     if (locked.current) return
     locked.current = true
-    clearInterval(tick.current)
+    if (tick.current) clearInterval(tick.current)
     const inZone = posRef.current >= zoneRef.current && posRef.current <= zoneRef.current + p.zoneW
     const ns = scoreRef.current + (inZone ? 1 : 0)
     scoreRef.current = ns

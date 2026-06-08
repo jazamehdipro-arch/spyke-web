@@ -12,6 +12,7 @@ import {
 } from 'react-native'
 import { CreatureType } from '../types'
 import { CREATURE_COLORS, CREATURE_LABELS, CREATURE_NAMES } from '../utils/creature'
+import { retro, retroShadow } from '../styles/retro'
 
 const CREATURE_SPRITES: Record<CreatureType, ImageSourcePropType> = {
   ignis: require('../../assets/sprites/ignis_f2.png'),
@@ -119,7 +120,7 @@ export default function OnboardingScreen({ onComplete }: Props) {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: '#F8F7FF',
+    backgroundColor: retro.paper,
   },
   container: {
     flexGrow: 1,
@@ -130,13 +131,14 @@ const styles = StyleSheet.create({
   logo: {
     fontSize: 42,
     fontWeight: '900',
-    color: '#1a1a2e',
-    letterSpacing: -2,
+    color: retro.ink,
+    letterSpacing: 0,
     textAlign: 'center',
+    fontFamily: 'monospace',
   },
   tagline: {
     fontSize: 16,
-    color: '#888',
+    color: retro.muted,
     textAlign: 'center',
     marginTop: 8,
     marginBottom: 50,
@@ -147,21 +149,21 @@ const styles = StyleSheet.create({
   },
   stepTitle: {
     fontSize: 24,
-    fontWeight: '700',
-    color: '#1a1a2e',
+    fontWeight: '900',
+    color: retro.ink,
     marginBottom: 8,
+    fontFamily: 'monospace',
   },
   input: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
+    backgroundColor: retro.white,
+    borderRadius: 4,
     paddingHorizontal: 18,
     paddingVertical: 16,
     fontSize: 18,
-    color: '#1a1a2e',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
+    color: retro.ink,
+    borderWidth: 3,
+    borderColor: retro.line,
+    ...retroShadow,
     elevation: 3,
   },
   creatureGrid: {
@@ -171,16 +173,13 @@ const styles = StyleSheet.create({
   },
   creatureCard: {
     width: '47%',
-    backgroundColor: '#fff',
-    borderRadius: 16,
+    backgroundColor: retro.white,
+    borderRadius: 4,
     padding: 12,
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: 'transparent',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
+    borderColor: retro.line,
+    ...retroShadow,
     elevation: 3,
   },
   creatureSprite: {
@@ -190,39 +189,44 @@ const styles = StyleSheet.create({
   },
   creatureLabel: {
     fontSize: 16,
-    fontWeight: '700',
-    color: '#1a1a2e',
+    fontWeight: '900',
+    color: retro.ink,
+    fontFamily: 'monospace',
   },
   firstName: {
     fontSize: 12,
-    color: '#aaa',
+    color: retro.muted,
     marginTop: 2,
   },
   creatureDesc: {
     fontSize: 11,
-    color: '#999',
+    color: retro.muted,
     textAlign: 'center',
     marginTop: 4,
   },
   selectedDot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
+    borderRadius: 0,
     marginTop: 8,
   },
   button: {
-    backgroundColor: '#1a1a2e',
-    borderRadius: 16,
+    backgroundColor: retro.ink,
+    borderRadius: 4,
     paddingVertical: 18,
     alignItems: 'center',
     marginTop: 30,
+    borderWidth: 3,
+    borderColor: retro.line,
+    ...retroShadow,
   },
   buttonDisabled: {
     opacity: 0.3,
   },
   buttonText: {
-    color: '#fff',
+    color: retro.white,
     fontSize: 17,
-    fontWeight: '700',
+    fontWeight: '900',
+    fontFamily: 'monospace',
   },
 })

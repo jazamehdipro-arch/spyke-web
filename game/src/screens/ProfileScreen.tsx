@@ -10,6 +10,7 @@ import {
 } from 'react-native'
 import { Creature, CreatureType } from '../types'
 import { CREATURE_COLORS, CREATURE_LABELS, getMood, getMoodEmoji } from '../utils/creature'
+import { retro, retroShadow } from '../styles/retro'
 
 const SPRITES_BASE: Record<CreatureType, ImageSourcePropType> = {
   ignis: require('../../assets/sprites/ignis_f0.png'),
@@ -108,7 +109,7 @@ export default function ProfileScreen({ creature, username, crossingsCount }: Pr
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: '#F8F7FF',
+    backgroundColor: retro.paper,
   },
   container: {
     paddingHorizontal: 20,
@@ -118,26 +119,26 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 32,
-    fontWeight: '800',
-    color: '#1a1a2e',
-    letterSpacing: -1,
+    fontWeight: '900',
+    color: retro.ink,
+    letterSpacing: 0,
+    fontFamily: 'monospace',
   },
   creatureCard: {
-    backgroundColor: '#fff',
-    borderRadius: 20,
+    backgroundColor: retro.white,
+    borderRadius: 4,
     padding: 24,
     alignItems: 'center',
     borderWidth: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
+    ...retroShadow,
     elevation: 3,
   },
   avatarBg: {
     width: 110,
     height: 110,
-    borderRadius: 55,
+    borderRadius: 4,
+    borderWidth: 3,
+    borderColor: retro.line,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
@@ -148,24 +149,28 @@ const styles = StyleSheet.create({
   },
   creatureName: {
     fontSize: 24,
-    fontWeight: '800',
-    color: '#1a1a2e',
+    fontWeight: '900',
+    color: retro.ink,
+    fontFamily: 'monospace',
   },
   username: {
     fontSize: 14,
-    color: '#999',
+    color: retro.muted,
     marginTop: 2,
     marginBottom: 12,
   },
   typeBadge: {
     paddingHorizontal: 16,
     paddingVertical: 6,
-    borderRadius: 20,
+    borderRadius: 0,
+    borderWidth: 2,
+    borderColor: retro.line,
   },
   typeBadgeText: {
-    color: '#fff',
-    fontWeight: '700',
+    color: retro.white,
+    fontWeight: '900',
     fontSize: 13,
+    fontFamily: 'monospace',
   },
   statsGrid: {
     flexDirection: 'row',
@@ -174,14 +179,13 @@ const styles = StyleSheet.create({
   },
   statBox: {
     width: '47%',
-    backgroundColor: '#fff',
-    borderRadius: 16,
+    backgroundColor: retro.white,
+    borderRadius: 4,
     padding: 16,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
+    borderWidth: 2,
+    borderColor: retro.line,
+    ...retroShadow,
     elevation: 2,
   },
   statBoxIcon: {
@@ -190,33 +194,33 @@ const styles = StyleSheet.create({
   },
   statBoxValue: {
     fontSize: 22,
-    fontWeight: '800',
-    color: '#1a1a2e',
+    fontWeight: '900',
+    color: retro.ink,
+    fontFamily: 'monospace',
   },
   statBoxLabel: {
     fontSize: 12,
-    color: '#999',
+    color: retro.muted,
     marginTop: 2,
   },
   section: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
+    backgroundColor: retro.white,
+    borderRadius: 4,
     padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
+    borderWidth: 2,
+    borderColor: retro.line,
+    ...retroShadow,
     elevation: 2,
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: '700',
-    color: '#1a1a2e',
+    fontWeight: '900',
+    color: retro.ink,
     marginBottom: 8,
   },
   sectionText: {
     fontSize: 14,
-    color: '#666',
+    color: retro.muted,
     lineHeight: 22,
   },
 })
