@@ -84,10 +84,10 @@ const SPRITES: Record<string, ImageSourcePropType> = {
   zapp_sk_white:   require('../../assets/sprites/zapp_sk_white.png'),
   zapp_sk_purple:  require('../../assets/sprites/zapp_sk_purple.png'),
   // ── Action poses ─────────────────────────────────────────
-  ignis_base_eat:   require('../../assets/sprites/ignis_base_eat.png'),
-  ignis_base_train: require('../../assets/sprites/ignis_base_train.png'),
-  ignis_base_sleep: require('../../assets/sprites/ignis_base_sleep.png'),
-  ignis_base_sick:  require('../../assets/sprites/ignis_base_sick.png'),
+  ignis_e1_eat:     require('../../assets/sprites/ignis_e1_eat.png'),
+  ignis_e1_train:   require('../../assets/sprites/ignis_e1_train.png'),
+  ignis_e1_sleep:   require('../../assets/sprites/ignis_e1_sleep.png'),
+  ignis_e1_sick:    require('../../assets/sprites/ignis_e1_sick.png'),
   ignis_e2_eat:     require('../../assets/sprites/ignis_e2_eat.png'),
   ignis_e2_train:   require('../../assets/sprites/ignis_e2_train.png'),
   ignis_e2_sleep:   require('../../assets/sprites/ignis_e2_sleep.png'),
@@ -96,10 +96,10 @@ const SPRITES: Record<string, ImageSourcePropType> = {
   ignis_e3_train:   require('../../assets/sprites/ignis_train.png'),
   ignis_e3_sleep:   require('../../assets/sprites/ignis_sleep.png'),
   ignis_e3_sick:    require('../../assets/sprites/ignis_sick.png'),
-  nemo_base_eat:    require('../../assets/sprites/nemo_base_eat.png'),
-  nemo_base_train:  require('../../assets/sprites/nemo_base_train.png'),
-  nemo_base_sleep:  require('../../assets/sprites/nemo_base_sleep.png'),
-  nemo_base_sick:   require('../../assets/sprites/nemo_base_sick.png'),
+  nemo_e1_eat:      require('../../assets/sprites/nemo_e1_eat.png'),
+  nemo_e1_train:    require('../../assets/sprites/nemo_e1_train.png'),
+  nemo_e1_sleep:    require('../../assets/sprites/nemo_e1_sleep.png'),
+  nemo_e1_sick:     require('../../assets/sprites/nemo_e1_sick.png'),
   nemo_e2_eat:      require('../../assets/sprites/nemo_e2_eat.png'),
   nemo_e2_train:    require('../../assets/sprites/nemo_e2_train.png'),
   nemo_e2_sleep:    require('../../assets/sprites/nemo_e2_sleep.png'),
@@ -108,10 +108,10 @@ const SPRITES: Record<string, ImageSourcePropType> = {
   nemo_e3_train:    require('../../assets/sprites/nemo_train.png'),
   nemo_e3_sleep:    require('../../assets/sprites/nemo_sleep.png'),
   nemo_e3_sick:     require('../../assets/sprites/nemo_sick.png'),
-  sylva_base_eat:   require('../../assets/sprites/sylva_base_eat.png'),
-  sylva_base_train: require('../../assets/sprites/sylva_base_train.png'),
-  sylva_base_sleep: require('../../assets/sprites/sylva_base_sleep.png'),
-  sylva_base_sick:  require('../../assets/sprites/sylva_base_sick.png'),
+  sylva_e1_eat:     require('../../assets/sprites/sylva_e1_eat.png'),
+  sylva_e1_train:   require('../../assets/sprites/sylva_e1_train.png'),
+  sylva_e1_sleep:   require('../../assets/sprites/sylva_e1_sleep.png'),
+  sylva_e1_sick:    require('../../assets/sprites/sylva_e1_sick.png'),
   sylva_e2_eat:     require('../../assets/sprites/sylva_e2_eat.png'),
   sylva_e2_train:   require('../../assets/sprites/sylva_e2_train.png'),
   sylva_e2_sleep:   require('../../assets/sprites/sylva_e2_sleep.png'),
@@ -120,10 +120,10 @@ const SPRITES: Record<string, ImageSourcePropType> = {
   sylva_e3_train:   require('../../assets/sprites/sylva_train.png'),
   sylva_e3_sleep:   require('../../assets/sprites/sylva_sleep.png'),
   sylva_e3_sick:    require('../../assets/sprites/sylva_sick.png'),
-  zapp_base_eat:    require('../../assets/sprites/zapp_base_eat.png'),
-  zapp_base_train:  require('../../assets/sprites/zapp_base_train.png'),
-  zapp_base_sleep:  require('../../assets/sprites/zapp_base_sleep.png'),
-  zapp_base_sick:   require('../../assets/sprites/zapp_base_sick.png'),
+  zapp_e1_eat:      require('../../assets/sprites/zapp_e1_eat.png'),
+  zapp_e1_train:    require('../../assets/sprites/zapp_e1_train.png'),
+  zapp_e1_sleep:    require('../../assets/sprites/zapp_e1_sleep.png'),
+  zapp_e1_sick:     require('../../assets/sprites/zapp_e1_sick.png'),
   zapp_e2_eat:      require('../../assets/sprites/zapp_e2_eat.png'),
   zapp_e2_train:    require('../../assets/sprites/zapp_e2_train.png'),
   zapp_e2_sleep:    require('../../assets/sprites/zapp_e2_sleep.png'),
@@ -293,7 +293,7 @@ export default function CreatureDisplay({ creature, pose, onEvolve, variant = 'g
   const activePose = isSick ? 'sick' : pose ?? null
   let spriteKey: string
   if (activePose) {
-    const poseStage = stage === '_e3' ? 'e3' : stage === '_e2' ? 'e2' : 'base'
+    const poseStage = stage === '_e3' ? 'e3' : stage === '_e2' ? 'e2' : 'e1'
     spriteKey = `${creature.type}_${poseStage}_${activePose}`
   } else if (creature.skin) {
     spriteKey = `${creature.type}_sk_${creature.skin}`
