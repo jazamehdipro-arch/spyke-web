@@ -33,10 +33,10 @@ import { retro, retroShadow } from '../styles/retro'
 // ─── arena backgrounds ───────────────────────────────────
 // ─── sprites ────────────────────────────────────────────
 const SPRITES: Record<string, ImageSourcePropType> = {
-  ignis_action: require('../../assets/sprites/flame_f1.png'),
-  nemo_action:  require('../../assets/sprites/aqua_f1.png'),
-  sylva_action: require('../../assets/sprites/leaf_f1.png'),
-  zapp_action:  require('../../assets/sprites/spark_f1.png'),
+  ignis_action: require('../../assets/D6038947-5173-4D54-85E3-4007B920C40D.png'),
+  nemo_action:  require('../../assets/C06BC406-9648-4173-8C33-3F80A3902A64.png'),
+  sylva_action: require('../../assets/9B470F66-3CF9-41D8-9965-E7EBB3F50C68.png'),
+  zapp_action:  require('../../assets/883F1EC7-AEFA-412B-8E0C-72131D9D4F14.png'),
   ignis_e2: require('../../assets/sprites/ignis_e2_f1.png'),
   nemo_e2:  require('../../assets/sprites/nemo_e2_f1.png'),
   sylva_e2: require('../../assets/sprites/sylva_e2_f1.png'),
