@@ -2,8 +2,6 @@ import React, { useCallback, useEffect, useRef, useState } from 'react'
 import {
   Animated,
   Dimensions,
-  ImageBackground,
-  ImageSourcePropType,
   Modal,
   Platform,
   RefreshControl,
@@ -19,7 +17,7 @@ import CreatureDisplay, { CreaturePose } from '../components/CreatureDisplay'
 import EventModal from '../components/EventModal'
 import MiniGame from '../components/MiniGame'
 import ParticleEffect from '../components/ParticleEffect'
-import { Creature, CreatureType, GameEvent, InventoryItem, JournalEntry, Quest, TrainingStats } from '../types'
+import { Creature, GameEvent, InventoryItem, JournalEntry, Quest, TrainingStats } from '../types'
 import { FORME_LABELS, addXP, decayStats, getFormeLevel, getMood } from '../utils/creature'
 import { generateRandomEvent, getRewardItem, shouldTriggerEvent } from '../utils/events'
 import { getCreatureSpeech, getReactionMessage } from '../utils/speech'
@@ -29,13 +27,6 @@ import { retro, retroShadow } from '../styles/retro'
 
 const { height: SCREEN_H } = Dimensions.get('window')
 const HERO_H = Math.round(SCREEN_H * 0.42)
-
-const TERRAIN: Record<CreatureType, ImageSourcePropType> = {
-  ignis: require('../../assets/sprites/arena_volcano.png'),
-  nemo:  require('../../assets/sprites/arena_snow.png'),
-  sylva: require('../../assets/sprites/arena_forest.png'),
-  zapp:  require('../../assets/sprites/arena_desert.png'),
-}
 
 const TRAINING_CONFIG: Record<keyof TrainingStats, { label: string; emoji: string; desc: string; costEnergy: number; costHunger: number }> = {
   strength:  { label: 'Force',     emoji: '💪', desc: '+0.8% dégâts',       costEnergy: 15, costHunger: 10 },
@@ -715,7 +706,7 @@ const s = StyleSheet.create({
   // ── Hero ──────────────────────────────────────────────────
   hero: { height: HERO_H, overflow: 'hidden' },
   heroImg: { flex: 1 },
-  heroScreen: { backgroundColor: retro.screen, borderBottomWidth: 4, borderBottomColor: retro.line },
+  heroScreen: { backgroundColor: retro.paper2, borderBottomWidth: 4, borderBottomColor: retro.line },
   heroPixelGrid: {
     position: 'absolute',
     left: 18,
@@ -723,7 +714,7 @@ const s = StyleSheet.create({
     top: 96,
     bottom: 44,
     borderWidth: 1,
-    borderColor: 'rgba(48,98,48,0.24)',
+    borderColor: 'rgba(32,40,61,0.16)',
   },
   heroGround: {
     position: 'absolute',
@@ -731,7 +722,7 @@ const s = StyleSheet.create({
     right: 64,
     bottom: 52,
     height: 12,
-    backgroundColor: 'rgba(48,98,48,0.48)',
+    backgroundColor: 'rgba(32,40,61,0.18)',
     borderTopWidth: 3,
     borderTopColor: 'rgba(32,40,61,0.35)',
   },

@@ -1,16 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { Animated, Image, ImageBackground, ImageSourcePropType, StyleSheet, Text, TouchableWithoutFeedback, View } from 'react-native'
+import { Animated, Image, ImageSourcePropType, StyleSheet, Text, TouchableWithoutFeedback, View } from 'react-native'
 import { Creature, CreatureMood, CreatureType } from '../types'
 
 import { CREATURE_COLORS, getMood } from '../utils/creature'
 import { retro, retroShadow } from '../styles/retro'
-
-const TERRAINS: Record<CreatureType, ImageSourcePropType> = {
-  ignis: require('../../assets/sprites/arena_volcano.png'),
-  nemo:  require('../../assets/sprites/arena_snow.png'),
-  sylva: require('../../assets/sprites/arena_forest.png'),
-  zapp:  require('../../assets/sprites/arena_desert.png'),
-}
 
 // All requires must be static in React Native bundler
 const SPRITES: Record<string, ImageSourcePropType> = {
@@ -91,22 +84,54 @@ const SPRITES: Record<string, ImageSourcePropType> = {
   zapp_sk_white:   require('../../assets/sprites/zapp_sk_white.png'),
   zapp_sk_purple:  require('../../assets/sprites/zapp_sk_purple.png'),
   // ── Action poses ─────────────────────────────────────────
-  ignis_eat:   require('../../assets/sprites/ignis_eat.png'),
-  ignis_train: require('../../assets/sprites/ignis_train.png'),
-  ignis_sleep: require('../../assets/sprites/ignis_sleep.png'),
-  ignis_sick:  require('../../assets/sprites/ignis_sick.png'),
-  nemo_eat:    require('../../assets/sprites/nemo_eat.png'),
-  nemo_train:  require('../../assets/sprites/nemo_train.png'),
-  nemo_sleep:  require('../../assets/sprites/nemo_sleep.png'),
-  nemo_sick:   require('../../assets/sprites/nemo_sick.png'),
-  sylva_eat:   require('../../assets/sprites/sylva_eat.png'),
-  sylva_train: require('../../assets/sprites/sylva_train.png'),
-  sylva_sleep: require('../../assets/sprites/sylva_sleep.png'),
-  sylva_sick:  require('../../assets/sprites/sylva_sick.png'),
-  zapp_eat:    require('../../assets/sprites/zapp_eat.png'),
-  zapp_train:  require('../../assets/sprites/zapp_train.png'),
-  zapp_sleep:  require('../../assets/sprites/zapp_sleep.png'),
-  zapp_sick:   require('../../assets/sprites/zapp_sick.png'),
+  ignis_base_eat:   require('../../assets/sprites/ignis_base_eat.png'),
+  ignis_base_train: require('../../assets/sprites/ignis_base_train.png'),
+  ignis_base_sleep: require('../../assets/sprites/ignis_base_sleep.png'),
+  ignis_base_sick:  require('../../assets/sprites/ignis_base_sick.png'),
+  ignis_e2_eat:     require('../../assets/sprites/ignis_e2_eat.png'),
+  ignis_e2_train:   require('../../assets/sprites/ignis_e2_train.png'),
+  ignis_e2_sleep:   require('../../assets/sprites/ignis_e2_sleep.png'),
+  ignis_e2_sick:    require('../../assets/sprites/ignis_e2_sick.png'),
+  ignis_e3_eat:     require('../../assets/sprites/ignis_eat.png'),
+  ignis_e3_train:   require('../../assets/sprites/ignis_train.png'),
+  ignis_e3_sleep:   require('../../assets/sprites/ignis_sleep.png'),
+  ignis_e3_sick:    require('../../assets/sprites/ignis_sick.png'),
+  nemo_base_eat:    require('../../assets/sprites/nemo_base_eat.png'),
+  nemo_base_train:  require('../../assets/sprites/nemo_base_train.png'),
+  nemo_base_sleep:  require('../../assets/sprites/nemo_base_sleep.png'),
+  nemo_base_sick:   require('../../assets/sprites/nemo_base_sick.png'),
+  nemo_e2_eat:      require('../../assets/sprites/nemo_e2_eat.png'),
+  nemo_e2_train:    require('../../assets/sprites/nemo_e2_train.png'),
+  nemo_e2_sleep:    require('../../assets/sprites/nemo_e2_sleep.png'),
+  nemo_e2_sick:     require('../../assets/sprites/nemo_e2_sick.png'),
+  nemo_e3_eat:      require('../../assets/sprites/nemo_eat.png'),
+  nemo_e3_train:    require('../../assets/sprites/nemo_train.png'),
+  nemo_e3_sleep:    require('../../assets/sprites/nemo_sleep.png'),
+  nemo_e3_sick:     require('../../assets/sprites/nemo_sick.png'),
+  sylva_base_eat:   require('../../assets/sprites/sylva_base_eat.png'),
+  sylva_base_train: require('../../assets/sprites/sylva_base_train.png'),
+  sylva_base_sleep: require('../../assets/sprites/sylva_base_sleep.png'),
+  sylva_base_sick:  require('../../assets/sprites/sylva_base_sick.png'),
+  sylva_e2_eat:     require('../../assets/sprites/sylva_e2_eat.png'),
+  sylva_e2_train:   require('../../assets/sprites/sylva_e2_train.png'),
+  sylva_e2_sleep:   require('../../assets/sprites/sylva_e2_sleep.png'),
+  sylva_e2_sick:    require('../../assets/sprites/sylva_e2_sick.png'),
+  sylva_e3_eat:     require('../../assets/sprites/sylva_eat.png'),
+  sylva_e3_train:   require('../../assets/sprites/sylva_train.png'),
+  sylva_e3_sleep:   require('../../assets/sprites/sylva_sleep.png'),
+  sylva_e3_sick:    require('../../assets/sprites/sylva_sick.png'),
+  zapp_base_eat:    require('../../assets/sprites/zapp_base_eat.png'),
+  zapp_base_train:  require('../../assets/sprites/zapp_base_train.png'),
+  zapp_base_sleep:  require('../../assets/sprites/zapp_base_sleep.png'),
+  zapp_base_sick:   require('../../assets/sprites/zapp_base_sick.png'),
+  zapp_e2_eat:      require('../../assets/sprites/zapp_e2_eat.png'),
+  zapp_e2_train:    require('../../assets/sprites/zapp_e2_train.png'),
+  zapp_e2_sleep:    require('../../assets/sprites/zapp_e2_sleep.png'),
+  zapp_e2_sick:     require('../../assets/sprites/zapp_e2_sick.png'),
+  zapp_e3_eat:      require('../../assets/sprites/zapp_eat.png'),
+  zapp_e3_train:    require('../../assets/sprites/zapp_train.png'),
+  zapp_e3_sleep:    require('../../assets/sprites/zapp_sleep.png'),
+  zapp_e3_sick:     require('../../assets/sprites/zapp_sick.png'),
 }
 
 function getStageKey(level: number): string {
@@ -126,8 +151,8 @@ const PARTICLE_COLORS: Record<CreatureType, string[]> = {
 function FloatingParticles({ color, type }: { color: string; type: CreatureType }) {
   const colors = PARTICLE_COLORS[type]
   const particles = useRef(
-    Array.from({ length: 6 }, (_, i) => ({
-      x: 20 + i * 28,
+    Array.from({ length: 3 }, (_, i) => ({
+      x: 44 + i * 44,
       y: useRef(new Animated.Value(60 + Math.random() * 40)).current,
       opacity: useRef(new Animated.Value(0)).current,
       size: 4 + (i % 3) * 2,
@@ -144,10 +169,10 @@ function FloatingParticles({ color, type }: { color: string; type: CreatureType 
         Animated.sequence([
           Animated.delay(p.delay),
           Animated.parallel([
-            Animated.timing(p.opacity, { toValue: 0.7, duration: 400, useNativeDriver: true }),
-            Animated.timing(p.y, { toValue: -20, duration: 2000, useNativeDriver: true }),
+            Animated.timing(p.opacity, { toValue: 0.32, duration: 700, useNativeDriver: true }),
+            Animated.timing(p.y, { toValue: -12, duration: 3200, useNativeDriver: true }),
           ]),
-          Animated.timing(p.opacity, { toValue: 0, duration: 300, useNativeDriver: true }),
+          Animated.timing(p.opacity, { toValue: 0, duration: 500, useNativeDriver: true }),
         ]).start(loop)
       }
       loop()
@@ -177,24 +202,24 @@ function FloatingParticles({ color, type }: { color: string; type: CreatureType 
 
 // 6-frame sequences for base form (frames 0-5)
 const FRAME_SEQ: Record<CreatureMood, number[]> = {
-  excited: [0, 1, 2, 3, 4, 5, 4, 3, 2, 1, 0, 5],
-  happy:   [0, 1, 2, 1, 3, 4, 5, 3, 0],
-  neutral: [0, 1, 2, 0, 3, 0, 1, 4, 0],
-  sad:     [0, 1, 0, 2, 0, 3, 0, 1],
+  excited: [0, 1, 2, 1],
+  happy:   [0, 1, 0, 2],
+  neutral: [0, 1, 0],
+  sad:     [0, 1, 0],
 }
 // 3-frame sequences for evolved forms (frames 0-2)
 const FRAME_SEQ_EVO: Record<CreatureMood, number[]> = {
-  excited: [0, 1, 2, 1, 0, 2, 1],
-  happy:   [0, 1, 2, 1, 0],
-  neutral: [0, 1, 0, 2, 0],
-  sad:     [0, 1, 0, 2, 1],
+  excited: [0, 1, 2, 1],
+  happy:   [0, 1, 0],
+  neutral: [0, 1, 0],
+  sad:     [0, 0, 1],
 }
 
 const FRAME_MS: Record<CreatureMood, number> = {
-  excited: 140,
-  happy:   260,
-  neutral: 460,
-  sad:     700,
+  excited: 320,
+  happy:   520,
+  neutral: 760,
+  sad:     900,
 }
 
 export type CreaturePose = 'eat' | 'train' | 'sleep' | null
@@ -240,7 +265,7 @@ export default function CreatureDisplay({ creature, pose, onEvolve, variant = 'g
   useEffect(() => {
     const isSick = creature.stats.isSick
     if (pose) { bounce.setValue(0); return }
-    const lift = isSick ? 1 : (mood === 'excited' ? 14 : mood === 'happy' ? 8 : 4)
+    const lift = isSick ? 1 : (mood === 'excited' ? 5 : mood === 'happy' ? 3 : 2)
     const ms   = isSick ? 3000 : FRAME_MS[mood] * seq.length
     const anim = Animated.loop(
       Animated.sequence([
@@ -256,8 +281,8 @@ export default function CreatureDisplay({ creature, pose, onEvolve, variant = 'g
     if (reacting) return
     setReacting(true)
     Animated.sequence([
-      Animated.timing(scale, { toValue: 1.25, duration: 80, useNativeDriver: true }),
-      Animated.timing(scale, { toValue: 1,    duration: 80, useNativeDriver: true }),
+      Animated.timing(scale, { toValue: 1.12, duration: 90, useNativeDriver: true }),
+      Animated.timing(scale, { toValue: 1,    duration: 110, useNativeDriver: true }),
     ]).start()
     setFrameIdx(seq.indexOf(2) >= 0 ? seq.indexOf(2) : 1)
     setTimeout(() => setReacting(false), 600)
@@ -268,7 +293,8 @@ export default function CreatureDisplay({ creature, pose, onEvolve, variant = 'g
   const activePose = isSick ? 'sick' : pose ?? null
   let spriteKey: string
   if (activePose) {
-    spriteKey = `${creature.type}_${activePose}`
+    const poseStage = stage === '_e3' ? 'e3' : stage === '_e2' ? 'e2' : 'base'
+    spriteKey = `${creature.type}_${poseStage}_${activePose}`
   } else if (creature.skin) {
     spriteKey = `${creature.type}_sk_${creature.skin}`
   } else if (isBase) {
@@ -300,7 +326,7 @@ export default function CreatureDisplay({ creature, pose, onEvolve, variant = 'g
           <View style={[styles.gbDot, { backgroundColor: color, opacity: 0.25 }]} />
         </View>
 
-        <View style={[styles.gbScreen, { backgroundColor: isSick ? retro.ink2 : retro.screen }]}>
+        <View style={[styles.gbScreen, { backgroundColor: isSick ? retro.paper2 : retro.white }]}>
           <View style={styles.screenPixelGrid} pointerEvents="none" />
           <View style={styles.screenGround} pointerEvents="none" />
           {!isSick && <FloatingParticles color={color} type={creature.type} />}
@@ -345,7 +371,7 @@ const styles = StyleSheet.create({
     height: 188,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(155,188,15,0.24)',
+    backgroundColor: 'rgba(255,248,220,0.72)',
     borderWidth: 3,
     borderColor: 'rgba(32,40,61,0.55)',
   },
@@ -395,7 +421,7 @@ const styles = StyleSheet.create({
     top: 14,
     bottom: 36,
     borderWidth: 1,
-    borderColor: 'rgba(48,98,48,0.22)',
+    borderColor: 'rgba(32,40,61,0.16)',
   },
   screenGround: {
     position: 'absolute',
@@ -403,7 +429,7 @@ const styles = StyleSheet.create({
     right: 26,
     bottom: 34,
     height: 10,
-    backgroundColor: 'rgba(48,98,48,0.45)',
+    backgroundColor: 'rgba(32,40,61,0.18)',
     borderTopWidth: 3,
     borderTopColor: 'rgba(32,40,61,0.35)',
   },

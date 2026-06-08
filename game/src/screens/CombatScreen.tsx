@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useRef, useState } from 'react'
 import {
   Animated,
   Image,
-  ImageBackground,
   ImageSourcePropType,
   Platform,
   StatusBar,
@@ -32,21 +31,12 @@ import {
 import { retro, retroShadow } from '../styles/retro'
 
 // ─── arena backgrounds ───────────────────────────────────
-const ARENAS: ImageSourcePropType[] = [
-  require('../../assets/sprites/arena_forest.png'),
-  require('../../assets/sprites/arena_volcano.png'),
-  require('../../assets/sprites/arena_snow.png'),
-  require('../../assets/sprites/arena_desert.png'),
-  require('../../assets/sprites/arena_swamp.png'),
-  require('../../assets/sprites/arena_ruins.png'),
-]
-
 // ─── sprites ────────────────────────────────────────────
 const SPRITES: Record<string, ImageSourcePropType> = {
-  ignis_action: require('../../assets/sprites/ignis_action.png'),
-  nemo_action:  require('../../assets/sprites/nemo_action.png'),
-  sylva_action: require('../../assets/sprites/sylva_action.png'),
-  zapp_action:  require('../../assets/sprites/zapp_action.png'),
+  ignis_action: require('../../assets/sprites/ignis_f1.png'),
+  nemo_action:  require('../../assets/sprites/nemo_f1.png'),
+  sylva_action: require('../../assets/sprites/sylva_f1.png'),
+  zapp_action:  require('../../assets/sprites/zapp_f1.png'),
   ignis_e2: require('../../assets/sprites/ignis_e2_f1.png'),
   nemo_e2:  require('../../assets/sprites/nemo_e2_f1.png'),
   sylva_e2: require('../../assets/sprites/sylva_e2_f1.png'),
@@ -805,7 +795,6 @@ interface Props {
 
 // ─── main component ─────────────────────────────────────
 export default function CombatScreen({ player, opponent, onFinish, debugOverride }: Props) {
-  const arenaImg = useRef(ARENAS[Math.floor(Math.random() * ARENAS.length)]).current
   const playerMods = useRef<CombatModifiers>(computeModifiers(player, opponent.creatureType)).current
 
   const playerType = debugOverride?.playerType ?? player.type
