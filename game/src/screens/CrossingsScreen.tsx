@@ -10,9 +10,18 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native'
-import { Creature, Crossing, CreatureType, SpellId, SpellLoadout } from '../types'
+import { Creature, Crossing, CreatureType, SocialAttitude, SocialEvent, SocialEventType, SocialRelation, SpellId, SpellLoadout } from '../types'
 import { CREATURE_COLORS } from '../utils/creature'
-import { loadCrossings } from '../utils/storage'
+import {
+  loadCrossings,
+  loadSocialAttitude,
+  loadSocialEvents,
+  loadSocialRelations,
+  saveCrossings,
+  saveSocialAttitude,
+  saveSocialEvents,
+  saveSocialRelations,
+} from '../utils/storage'
 import CombatScreen, { CombatOpponent } from './CombatScreen'
 import { DEFAULT_LOADOUTS, EvoStage, getEvoStage, SPELL_CATALOG } from '../utils/spells'
 import AdventureScreen from './AdventureScreen'
@@ -64,6 +73,132 @@ const BOT_USERNAMES: Record<CreatureType, string[]> = {
   nemo:  ['TidalWatcher', 'DeepDiver', 'CoralKeeper', 'WaveRider'],
   sylva: ['ForestRunner', 'MistWalker', 'LeafDancer', 'VineStalker'],
   zapp:  ['StormCatcher', 'VoltSeeker', 'BoltChaser', 'ZapMaster'],
+}
+
+const ATTITUDE_COPY: Record<SocialAttitude, { label: string; icon: string; desc: string }> = {
+  pacifique: { label: 'Pacifique', icon: 'OK', desc: 'Amitie, cadeaux, evite les conflits.' },
+  taquin:    { label: 'Taquin',    icon: '!',  desc: 'Duels amicaux, petites surprises.' },
+  filou:     { label: 'Filou',     icon: '$',  desc: 'Vole parfois, reputation risquee.' },
+}
+
+const EVENT_COLORS: Record<SocialEventType, string> = {
+  friendship: retro.mint,
+  duel: retro.red,
+  theft: retro.gold,
+  gift: retro.blue,
+  mood: retro.mint,
+  mentor: retro.gold,
+  skin: retro.blue,
+  traveler: retro.ink,
+}
+
+function relationTags(relation: SocialRelation): string[] {
+  const tags: string[] = []
+  if (relation.friendshipLevel >= 4) tags.push('Vieil ami')
+  else if (relation.friendshipLevel >= 2) tags.push('Ami')
+  if (relation.filouReputation >= 3) tags.push('Filou')
+  if (relation.rivalryWins + relation.rivalryLosses >= 3) tags.push('Rival')
+  if (relation.mentorCount >= 2) tags.push('Mentor')
+  return tags
+}
+
+function eventToInteraction(type: SocialEventType): Crossing['interactionType'] {
+  if (type === 'duel') return 'battle'
+  if (type === 'theft') return 'theft'
+  if (type === 'mentor') return 'mentor'
+  if (type === 'mood') return 'mood'
+  if (type === 'skin') return 'skin'
+  if (type === 'gift') return 'gift'
+  return 'friendly'
+}
+
+function chooseSocialEvent(attitude: SocialAttitude, relation: SocialRelation, player: Creature, opponent: CombatOpponent): SocialEventType {
+  const levelGap = player.stats.level - opponent.level
+  if (Math.abs(levelGap) >= 7 && relation.crossings >= 1) return 'mentor'
+  if (relation.crossings >= 5 && relation.friendshipLevel >= 3) return 'friendship'
+  if (attitude === 'filou') return Math.random() < 0.55 ? 'theft' : 'duel'
+  if (attitude === 'taquin') {
+    if (Math.random() < 0.42) return 'duel'
+    if (Math.random() < 0.18) return 'theft'
+    return Math.random() < 0.5 ? 'gift' : 'mood'
+  }
+  if (Math.random() < 0.18) return 'skin'
+  return Math.random() < 0.58 ? 'friendship' : 'mood'
+}
+
+function buildSocialEvent(type: SocialEventType, relation: SocialRelation, opponent: CombatOpponent): SocialEvent {
+  const base = {
+    id: Math.random().toString(36).slice(2),
+    relationId: relation.id,
+    type,
+    createdAt: new Date().toISOString(),
+    opponent: {
+      username: opponent.username,
+      creatureName: opponent.creatureName,
+      creatureType: opponent.creatureType,
+      level: opponent.level,
+    },
+  }
+  switch (type) {
+    case 'theft':
+      return {
+        ...base,
+        emoji: '$',
+        title: 'Tentative de vol',
+        message: `${opponent.creatureName} tente de chaparder une petite recompense. Tu peux le repousser en combat.`,
+        pendingCombat: true,
+        rewardCoins: 8,
+      }
+    case 'duel':
+      return {
+        ...base,
+        emoji: 'VS',
+        title: 'Defi lance',
+        message: `${opponent.creatureName} provoque ton monstre. Une revanche peut lancer une rivalite.`,
+        pendingCombat: true,
+        rewardCoins: 12,
+      }
+    case 'mentor':
+      return {
+        ...base,
+        emoji: 'XP',
+        title: 'Mentorat',
+        message: 'Le plus experimente montre quelques astuces. Le lien mentor/disciple se renforce.',
+        rewardCoins: 4,
+      }
+    case 'gift':
+      return {
+        ...base,
+        emoji: 'BOX',
+        title: 'Echange spontane',
+        message: `${opponent.creatureName} laisse un petit souvenir apres le croisement.`,
+        rewardCoins: 5,
+      }
+    case 'mood':
+      return {
+        ...base,
+        emoji: '+',
+        title: 'Contagion d humeur',
+        message: 'L humeur des deux monstres se melange. Une bonne rencontre peut egayer la journee.',
+        rewardCoins: 2,
+      }
+    case 'skin':
+      return {
+        ...base,
+        emoji: 'ART',
+        title: 'Inspiration de skin',
+        message: `${opponent.creatureName} donne une idee de style a ton monstre.`,
+        rewardCoins: 3,
+      }
+    default:
+      return {
+        ...base,
+        emoji: 'AMI',
+        title: 'Amitie fidele',
+        message: `${opponent.creatureName} reconnait ton monstre. Les retrouvailles deviennent plus chaleureuses.`,
+        rewardCoins: 4,
+      }
+  }
 }
 
 function generateAIOpponent(playerLevel: number): CombatOpponent {
@@ -226,7 +361,15 @@ function CrossingCard({ item, onChallenge }: { item: Crossing; onChallenge: () =
   const color  = CREATURE_COLORS[item.creatureType]
   const sprite = SPRITES_E1[item.creatureType]
 
-  const interactionLabel = { friendly: '🤝 Amical', battle: '⚔️ Combat', gift: '🎁 Cadeau' }[item.interactionType]
+  const interactionLabel = {
+    friendly: 'Amical',
+    battle: 'Combat',
+    gift: 'Cadeau',
+    theft: 'Vol',
+    mentor: 'Mentor',
+    mood: 'Humeur',
+    skin: 'Style',
+  }[item.interactionType]
 
   const timeAgo = () => {
     const diff = Date.now() - new Date(item.crossedAt).getTime()
@@ -258,6 +401,37 @@ function CrossingCard({ item, onChallenge }: { item: Crossing; onChallenge: () =
   )
 }
 
+function SocialEventCard({ event, onCombat }: { event: SocialEvent; onCombat: () => void }) {
+  const color = EVENT_COLORS[event.type]
+  return (
+    <View style={[styles.socialEventCard, { borderColor: color + 'AA' }]}>
+      <View style={[styles.socialEventIcon, { backgroundColor: color + '22' }]}>
+        <Text style={styles.socialEventEmoji}>{event.emoji}</Text>
+      </View>
+      <View style={styles.socialEventInfo}>
+        <Text style={styles.socialEventTitle}>{event.title}</Text>
+        <Text style={styles.socialEventText} numberOfLines={2}>{event.message}</Text>
+      </View>
+      {event.pendingCombat && (
+        <TouchableOpacity style={[styles.socialFightBtn, { backgroundColor: color }]} onPress={onCombat}>
+          <Text style={styles.socialFightText}>Fight</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  )
+}
+
+function RelationChip({ relation }: { relation: SocialRelation }) {
+  const color = CREATURE_COLORS[relation.creatureType]
+  const tag = relation.tags[0] ?? `Lien ${relation.friendshipLevel}`
+  return (
+    <View style={[styles.relationChip, { borderColor: color + '88' }]}>
+      <Text style={styles.relationName}>{relation.creatureName}</Text>
+      <Text style={styles.relationMeta}>{tag} - {relation.crossings}x</Text>
+    </View>
+  )
+}
+
 function BotCard({ bot, onChallenge }: { bot: CombatOpponent; onChallenge: () => void }) {
   const color  = CREATURE_COLORS[bot.creatureType]
   const sprite = getOpponentSprite(bot.creatureType, bot.level)
@@ -282,6 +456,9 @@ function BotCard({ bot, onChallenge }: { bot: CombatOpponent; onChallenge: () =>
 
 export default function CrossingsScreen({ player, onCombatEnd }: Props) {
   const [crossings, setCrossings] = useState<Crossing[]>([])
+  const [relations, setRelations] = useState<SocialRelation[]>([])
+  const [events, setEvents] = useState<SocialEvent[]>([])
+  const [attitude, setAttitude] = useState<SocialAttitude>('pacifique')
   const [loading, setLoading]     = useState(true)
   const [combat, setCombat]       = useState<CombatOpponent | null>(null)
   const [showCrossings, setShowCrossings] = useState(false)
@@ -295,11 +472,24 @@ export default function CrossingsScreen({ player, onCombatEnd }: Props) {
   } | undefined>(undefined)
 
   useEffect(() => {
-    loadCrossings().then((data) => {
-      setCrossings(data ?? [])
+    Promise.all([
+      loadCrossings(),
+      loadSocialRelations(),
+      loadSocialEvents(),
+      loadSocialAttitude(),
+    ]).then(([crossData, relationData, eventData, attitudeData]) => {
+      setCrossings(crossData ?? [])
+      setRelations(relationData ?? [])
+      setEvents(eventData ?? [])
+      setAttitude(attitudeData ?? 'pacifique')
       setLoading(false)
     })
   }, [])
+
+  const updateAttitude = async (next: SocialAttitude) => {
+    setAttitude(next)
+    await saveSocialAttitude(next)
+  }
 
   const startCombat = (opponent: CombatOpponent) => {
     setShowCrossings(false)
@@ -309,6 +499,78 @@ export default function CrossingsScreen({ player, onCombatEnd }: Props) {
 
   const handleQuickAI = () => {
     startCombat(generateAIOpponent(player.stats.level))
+  }
+
+  const handleSocialCrossing = async () => {
+    const opponent = generateAIOpponent(player.stats.level)
+    const relationId = `${opponent.username}:${opponent.creatureType}`
+    const now = new Date().toISOString()
+    const existing = relations.find(r => r.id === relationId)
+    const baseRelation: SocialRelation = existing ?? {
+      id: relationId,
+      username: opponent.username,
+      creatureName: opponent.creatureName,
+      creatureType: opponent.creatureType,
+      level: opponent.level,
+      crossings: 0,
+      friendshipLevel: 0,
+      filouReputation: 0,
+      rivalryWins: 0,
+      rivalryLosses: 0,
+      mentorCount: 0,
+      tags: [],
+      lastCrossedAt: now,
+    }
+    const eventType = chooseSocialEvent(attitude, baseRelation, player, opponent)
+    const nextRelation: SocialRelation = {
+      ...baseRelation,
+      creatureName: opponent.creatureName,
+      creatureType: opponent.creatureType,
+      level: opponent.level,
+      crossings: baseRelation.crossings + 1,
+      friendshipLevel: Math.min(5, baseRelation.friendshipLevel + (eventType === 'theft' ? 0 : 1)),
+      filouReputation: Math.max(0, baseRelation.filouReputation + (eventType === 'theft' ? 1 : attitude === 'pacifique' ? -1 : 0)),
+      rivalryLosses: baseRelation.rivalryLosses + (eventType === 'duel' ? 1 : 0),
+      mentorCount: baseRelation.mentorCount + (eventType === 'mentor' ? 1 : 0),
+      lastCrossedAt: now,
+      tags: [],
+    }
+    nextRelation.tags = relationTags(nextRelation)
+
+    const socialEvent = buildSocialEvent(eventType, nextRelation, opponent)
+    const crossing: Crossing = {
+      id: socialEvent.id,
+      playerId: relationId,
+      username: opponent.username,
+      creatureName: opponent.creatureName,
+      creatureType: opponent.creatureType,
+      level: opponent.level,
+      crossedAt: now,
+      latitude: 0,
+      longitude: 0,
+      interactionType: eventToInteraction(eventType),
+      socialEventId: socialEvent.id,
+      xpGained: socialEvent.rewardCoins ?? 0,
+    }
+
+    const nextRelations = [nextRelation, ...relations.filter(r => r.id !== relationId)].slice(0, 80)
+    const nextEvents = [socialEvent, ...events].slice(0, 60)
+    const nextCrossings = [crossing, ...crossings].slice(0, 50)
+    setRelations(nextRelations)
+    setEvents(nextEvents)
+    setCrossings(nextCrossings)
+    await Promise.all([
+      saveSocialRelations(nextRelations),
+      saveSocialEvents(nextEvents),
+      saveCrossings(nextCrossings),
+    ])
+  }
+
+  const startSocialCombat = (event: SocialEvent) => {
+    if (!event.opponent) return
+    setShowCrossings(false)
+    setDebugOverride(undefined)
+    setCombat(event.opponent)
   }
 
   const handleDebugStart = (cfg: DebugConfig) => {
@@ -376,6 +638,48 @@ export default function CrossingsScreen({ player, onCombatEnd }: Props) {
             <Text style={styles.debugBtnText}>🐛 Debug</Text>
           </TouchableOpacity>
         </View>
+      </View>
+
+      <View style={styles.socialPanel}>
+        <Text style={styles.socialTitle}>Vie sociale</Text>
+        <View style={styles.attitudeRow}>
+          {(['pacifique', 'taquin', 'filou'] as SocialAttitude[]).map((key) => {
+            const copy = ATTITUDE_COPY[key]
+            const active = attitude === key
+            return (
+              <TouchableOpacity
+                key={key}
+                style={[styles.attitudeBtn, active && styles.attitudeBtnActive]}
+                onPress={() => updateAttitude(key)}
+              >
+                <Text style={styles.attitudeIcon}>{copy.icon}</Text>
+                <Text style={[styles.attitudeLabel, active && styles.attitudeLabelActive]}>{copy.label}</Text>
+              </TouchableOpacity>
+            )
+          })}
+        </View>
+        <Text style={styles.attitudeDesc}>{ATTITUDE_COPY[attitude].desc}</Text>
+        <TouchableOpacity style={styles.crossingPulseBtn} onPress={handleSocialCrossing}>
+          <Text style={styles.crossingPulseText}>Simuler un croisement</Text>
+        </TouchableOpacity>
+        {relations.length > 0 && (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.relationScroll}>
+            {relations.slice(0, 8).map((relation) => (
+              <RelationChip key={relation.id} relation={relation} />
+            ))}
+          </ScrollView>
+        )}
+        {events.length > 0 && (
+          <View style={styles.eventStack}>
+            {events.slice(0, 3).map((event) => (
+              <SocialEventCard
+                key={event.id}
+                event={event}
+                onCombat={() => startSocialCombat(event)}
+              />
+            ))}
+          </View>
+        )}
       </View>
 
       {/* Mode cards */}
@@ -461,6 +765,90 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   debugBtnText: { color: retro.white, fontSize: 12, fontWeight: '900', fontFamily: 'monospace' },
+
+  // Social
+  socialPanel: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+    padding: 14,
+    backgroundColor: retro.white,
+    borderRadius: 4,
+    borderWidth: 3,
+    borderColor: retro.line,
+    gap: 10,
+    ...retroShadow,
+  },
+  socialTitle: { color: retro.ink, fontSize: 15, fontWeight: '900', fontFamily: 'monospace' },
+  attitudeRow: { flexDirection: 'row', gap: 8 },
+  attitudeBtn: {
+    flex: 1,
+    minHeight: 54,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: retro.paper2,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: retro.line,
+  },
+  attitudeBtnActive: { backgroundColor: retro.gold },
+  attitudeIcon: { fontSize: 13, fontWeight: '900', color: retro.ink, fontFamily: 'monospace' },
+  attitudeLabel: { color: retro.ink, fontSize: 10, fontWeight: '900', fontFamily: 'monospace' },
+  attitudeLabelActive: { color: retro.ink },
+  attitudeDesc: { color: retro.muted, fontSize: 11 },
+  crossingPulseBtn: {
+    backgroundColor: retro.ink,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: retro.line,
+    paddingVertical: 11,
+    alignItems: 'center',
+  },
+  crossingPulseText: { color: retro.white, fontSize: 12, fontWeight: '900', fontFamily: 'monospace' },
+  relationScroll: { marginHorizontal: -2 },
+  relationChip: {
+    minWidth: 92,
+    marginRight: 8,
+    paddingHorizontal: 9,
+    paddingVertical: 7,
+    backgroundColor: retro.paper2,
+    borderRadius: 4,
+    borderWidth: 2,
+  },
+  relationName: { color: retro.ink, fontSize: 11, fontWeight: '900' },
+  relationMeta: { color: retro.muted, fontSize: 9, marginTop: 2 },
+  eventStack: { gap: 8 },
+  socialEventCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
+    backgroundColor: retro.paper,
+    borderRadius: 4,
+    borderWidth: 2,
+    padding: 9,
+  },
+  socialEventIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: retro.line,
+  },
+  socialEventEmoji: { fontSize: 10, fontWeight: '900', color: retro.ink, fontFamily: 'monospace' },
+  socialEventInfo: { flex: 1 },
+  socialEventTitle: { color: retro.ink, fontSize: 12, fontWeight: '900', fontFamily: 'monospace' },
+  socialEventText: { color: retro.muted, fontSize: 10, lineHeight: 13 },
+  socialFightBtn: {
+    minWidth: 44,
+    paddingHorizontal: 8,
+    paddingVertical: 7,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: retro.line,
+    alignItems: 'center',
+  },
+  socialFightText: { color: retro.white, fontSize: 10, fontWeight: '900', fontFamily: 'monospace' },
 
   // Mode cards
   modeRow: { flexDirection: 'row', paddingHorizontal: 16, gap: 12, marginTop: 10 },

@@ -101,11 +101,59 @@ export interface Crossing {
   username: string
   creatureName: string
   creatureType: CreatureType
+  level?: number
   crossedAt: string
   latitude: number
   longitude: number
-  interactionType: 'friendly' | 'battle' | 'gift'
+  interactionType: 'friendly' | 'battle' | 'gift' | 'theft' | 'mentor' | 'mood' | 'skin'
+  socialEventId?: string
   xpGained: number
+}
+
+export type SocialAttitude = 'pacifique' | 'taquin' | 'filou'
+
+export type SocialEventType =
+  | 'friendship'
+  | 'duel'
+  | 'theft'
+  | 'gift'
+  | 'mood'
+  | 'mentor'
+  | 'skin'
+  | 'traveler'
+
+export interface SocialRelation {
+  id: string
+  username: string
+  creatureName: string
+  creatureType: CreatureType
+  level: number
+  crossings: number
+  friendshipLevel: number
+  filouReputation: number
+  rivalryWins: number
+  rivalryLosses: number
+  mentorCount: number
+  tags: string[]
+  lastCrossedAt: string
+}
+
+export interface SocialEvent {
+  id: string
+  relationId: string
+  type: SocialEventType
+  title: string
+  message: string
+  emoji: string
+  createdAt: string
+  pendingCombat?: boolean
+  opponent?: {
+    username: string
+    creatureName: string
+    creatureType: CreatureType
+    level: number
+  }
+  rewardCoins?: number
 }
 
 export interface InventoryItem {
