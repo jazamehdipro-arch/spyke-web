@@ -271,6 +271,7 @@ export default function AdventureScreen({ player, onCombatEnd, onClose }: Props)
     const routeIdx = ROUTES.indexOf(route)
 
     let coinsGained = 0
+    let bonusXP = 0
     if (won) {
       const prev    = new Set(progress[route.id] ?? [])
       prev.add(opponentIdx)
@@ -281,12 +282,13 @@ export default function AdventureScreen({ player, onCombatEnd, onClose }: Props)
       const perOpponent = 10 + routeIdx * 5
       const isComplete  = prev.size === route.opponents.length
       coinsGained = perOpponent + (isComplete ? route.bonusCoins : 0)
+      if (isComplete) bonusXP = 120
     } else {
       coinsGained = 3
     }
 
     setActiveCombat(null)
-    onCombatEnd(won, xpGained, coinsGained)
+    onCombatEnd(won, xpGained + bonusXP, coinsGained)
   }, [activeCombat, progress, onCombatEnd])
 
   if (activeCombat) {
@@ -295,6 +297,7 @@ export default function AdventureScreen({ player, onCombatEnd, onClose }: Props)
         player={player}
         opponent={activeCombat.opponent}
         onFinish={handleCombatEnd}
+        isAdventure
       />
     )
   }

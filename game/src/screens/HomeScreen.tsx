@@ -18,7 +18,7 @@ import EventModal from '../components/EventModal'
 import MiniGame from '../components/MiniGame'
 import ParticleEffect from '../components/ParticleEffect'
 import { Creature, GameEvent, InventoryItem, JournalEntry, Quest, TrainingStats } from '../types'
-import { FORME_LABELS, addXP, decayStats, getFormeLevel, getMood } from '../utils/creature'
+import { DAILY_CARE_XP_CAP, FORME_LABELS, addCareXP, addXP, decayStats, getFormeLevel, getMood, xpForLevel } from '../utils/creature'
 import { generateRandomEvent, getRewardItem, shouldTriggerEvent } from '../utils/events'
 import { getCreatureSpeech, getReactionMessage } from '../utils/speech'
 import { addItemToInventory, addJournalEntry, saveCreature, saveEvents, saveInventory, saveJournal, saveQuests } from '../utils/storage'
@@ -84,9 +84,10 @@ export default function HomeScreen({
   creature, inventory, events, quests, journal,
   streak, coins, onUpdate, onSkinChange, onOpenInventory, onOpenCrossings,
 }: Props) {
-  // XP halved when bonheur < 30
-  const applyXP = (c: Creature, amount: number): Creature =>
-    addXP(c, c.stats.happiness < 30 ? Math.floor(amount / 2) : amount)
+  const todayCareXP = (() => {
+    const today = new Date().toISOString().slice(0, 10)
+    return creature.dailyCareXPDate === today ? (creature.dailyCareXP ?? 0) : 0
+  })()
 
   const [refreshing, setRefreshing] = useState(false)
   const [showFoodPicker, setShowFoodPicker] = useState(false)
@@ -177,7 +178,7 @@ export default function HomeScreen({
         isSick,
       },
     }
-    updated = { ...applyXP(updated, 8), mood: getMood(updated.stats) }
+    updated = { ...addCareXP(updated, 5), mood: getMood(updated.stats) }
     const newInv = inventory.map((i) => i.id === item.id ? { ...i, quantity: i.quantity - 1 } : i).filter((i) => i.quantity > 0)
     let nq = updateQuestsAfterAction(quests, 'feed')
     nq = updateQuestsAfterAction(nq, 'level', updated.stats.level)
@@ -194,17 +195,25 @@ export default function HomeScreen({
     const tr = creature.training ?? { strength: 0, reflexes: 0, endurance: 0, defense: 0 }
     const current = tr[type]
     const totalPts = Object.values(tr).reduce((a, b) => a + b, 0)
-    if (current >= 20)                        { showSpeech(`${cfg.emoji} Stat maximale !`); return }
-    if (totalPts >= MAX_TRAINING_POINTS)       { showSpeech(`Points épuisés !`); return }
-    if (creature.stats.energy < 20)            { showSpeech('Trop épuisé pour s\'entraîner ! 😴'); return }
-    if (creature.stats.energy < cfg.costEnergy){ showSpeech(`Trop fatigué ! ⚡`); return }
-    if (creature.stats.hunger < cfg.costHunger){ showSpeech(`Trop affamé ! 🍖`); return }
+    const hasPending = (creature.pendingTrainingPoints ?? 0) > 0
+    if (current >= 20)              { showSpeech(`${cfg.emoji} Stat maximale !`); return }
+    if (totalPts >= MAX_TRAINING_POINTS) { showSpeech(`Points épuisés !`); return }
+    if (!hasPending) {
+      if (creature.stats.energy < 20)            { showSpeech('Trop épuisé pour s\'entraîner ! 😴'); return }
+      if (creature.stats.energy < cfg.costEnergy){ showSpeech(`Trop fatigué ! ⚡`); return }
+      if (creature.stats.hunger < cfg.costHunger){ showSpeech(`Trop affamé ! 🍖`); return }
+    }
     const newTr: TrainingStats = { ...tr, [type]: current + 1 }
     let updated: Creature = {
       ...creature, training: newTr,
-      stats: { ...creature.stats, energy: creature.stats.energy - cfg.costEnergy, hunger: Math.max(0, creature.stats.hunger - cfg.costHunger) },
+      pendingTrainingPoints: hasPending ? (creature.pendingTrainingPoints ?? 1) - 1 : (creature.pendingTrainingPoints ?? 0),
+      stats: hasPending ? creature.stats : {
+        ...creature.stats,
+        energy: creature.stats.energy - cfg.costEnergy,
+        hunger: Math.max(0, creature.stats.hunger - cfg.costHunger),
+      },
     }
-    updated = { ...applyXP(updated, 5), mood: getMood(updated.stats) }
+    updated = { ...addXP(updated, 5), mood: getMood(updated.stats) }
     const nj = addJournalEntry(journal, `${creature.name} s'est entraîné : ${cfg.label} Lv ${current + 1} !`, cfg.emoji)
     showSpeech(`${cfg.emoji} ${cfg.label} Lv ${current + 1} !`)
     triggerParticles([cfg.emoji, '⭐', '💪'])
@@ -234,7 +243,6 @@ export default function HomeScreen({
     setShowMiniGame(false)
     setCurrentPose(null)
     const act = pendingActivity ? PLAY_ACTIVITIES[pendingActivity] : null
-    const xpGained = score * 3 + 10
     const happinessGain = Math.min(40, act ? act.happinessGain + score : score * 2 + 10)
     const tr = creature.training ?? { strength: 0, reflexes: 0, endurance: 0, defense: 0 }
     const totalPts = Object.values(tr).reduce((a, b) => a + b, 0)
@@ -250,12 +258,12 @@ export default function HomeScreen({
         hunger:    Math.max(0, creature.stats.hunger  - (act?.costHunger ?? 10)),
       },
     }
-    updated = { ...applyXP(updated, xpGained), mood: getMood(updated.stats) }
+    updated = { ...addCareXP(updated, 5), mood: getMood(updated.stats) }
     let nq = updateQuestsAfterAction(quests, 'play')
     nq = updateQuestsAfterAction(nq, 'level', updated.stats.level)
     const actLabel = act ? `${act.emoji} ${act.label}` : '🎮 Jeu'
     const statNote = statLeveled ? ` · ${TRAINING_CONFIG[act!.stat].label} Lv ${newTr[act!.stat]}` : ''
-    let nj = addJournalEntry(journal, `${creature.name} a joué (${actLabel})${statNote} ! +${xpGained} XP`, act?.emoji ?? '🎮')
+    let nj = addJournalEntry(journal, `${creature.name} a joué (${actLabel})${statNote} ! +5 XP`, act?.emoji ?? '🎮')
     const { updatedEvents, updatedQuests: q2, updatedJournal: j2 } = maybeSpawnEvent(updated, events, nq, nj)
     showSpeech(statLeveled ? `${act!.emoji} ${TRAINING_CONFIG[act!.stat].label} Lv ${newTr[act!.stat]} !` : getReactionMessage('play'))
     triggerParticles([act?.emoji ?? '🎮', '⭐', '🎉'])
@@ -273,7 +281,7 @@ export default function HomeScreen({
       ...creature, totalSlept: creature.totalSlept + 1,
       stats: { ...creature.stats, energy: Math.min(100, creature.stats.energy + sleepRecovery), hunger: Math.max(0, creature.stats.hunger - 5) },
     }
-    updated = { ...updated, mood: getMood(updated.stats) }
+    updated = { ...addCareXP(updated, 5), mood: getMood(updated.stats) }
     let nq = updateQuestsAfterAction(quests, 'sleep')
     let nj = addJournalEntry(journal, `${creature.name} a fait une bonne sieste.`, '💤')
     showSpeech(getReactionMessage('sleep'))
@@ -316,9 +324,9 @@ export default function HomeScreen({
       case 'xp9999':     u = addXP(u, 9999); break
       case 'maxstats':   u = { ...u, stats: { ...u.stats, hunger: 100, happiness: 100, energy: 100 } }; break
       case 'heal':       u = { ...u, stats: { ...u.stats, isSick: false } }; break
-      case 'lv1':        u = { ...u, stats: { ...u.stats, level: 1,  xp: 0, xpToNextLevel: 100  } }; break
-      case 'lv10':       u = { ...u, stats: { ...u.stats, level: 10, xp: 0, xpToNextLevel: 1000 } }; break
-      case 'lv20':       u = { ...u, stats: { ...u.stats, level: 20, xp: 0, xpToNextLevel: 2000 } }; break
+      case 'lv1':        u = { ...u, stats: { ...u.stats, level: 1,  xp: 0, xpToNextLevel: xpForLevel(1)  } }; break
+      case 'lv10':       u = { ...u, stats: { ...u.stats, level: 10, xp: 0, xpToNextLevel: xpForLevel(10) } }; break
+      case 'lv20':       u = { ...u, stats: { ...u.stats, level: 20, xp: 0, xpToNextLevel: xpForLevel(20) } }; break
       case 'type_ignis': u = { ...u, type: 'ignis' }; break
       case 'type_nemo':  u = { ...u, type: 'nemo'  }; break
       case 'type_sylva': u = { ...u, type: 'sylva' }; break
@@ -472,6 +480,14 @@ export default function HomeScreen({
             </View>
             <Text style={s.statVal}>{Math.round(creature.stats.xp)}/{creature.stats.xpToNextLevel}</Text>
           </View>
+          <View style={s.statRow}>
+            <Text style={s.statIcon}>  </Text>
+            <Text style={[s.statName, { color: '#888', fontSize: 11 }]}>Soin/jour</Text>
+            <View style={s.statTrack}>
+              <View style={[s.statFill, { width: `${Math.min(100, (todayCareXP / DAILY_CARE_XP_CAP) * 100)}%` as any, backgroundColor: todayCareXP >= DAILY_CARE_XP_CAP ? '#FF6B6B' : '#888' }]} />
+            </View>
+            <Text style={[s.statVal, { fontSize: 11 }]}>{todayCareXP}/{DAILY_CARE_XP_CAP}</Text>
+          </View>
           {creature.activeCombatBuff && creature.activeCombatBuff.expiresAt > new Date().toISOString() && (
             <View style={s.buffRow}>
               <Text style={s.buffTxt}>⚔️ +{Math.round((creature.activeCombatBuff.damageMult - 1) * 100)}% dégâts actif</Text>
@@ -603,17 +619,28 @@ export default function HomeScreen({
       <Modal visible={showTraining} transparent animationType="slide">
         <TouchableOpacity style={s.overlay} onPress={() => setShowTraining(false)} activeOpacity={1}>
           <View style={s.sheet}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
               <Text style={s.sheetTitle}>⚔️ Entraînement</Text>
               <Text style={[s.sheetTitle, { fontSize: 13, color: totalTrainingPts >= MAX_TRAINING_POINTS ? '#FF6B6B' : '#888' }]}>
                 {totalTrainingPts}/{MAX_TRAINING_POINTS} pts
               </Text>
             </View>
+            {(creature.pendingTrainingPoints ?? 0) > 0 && (
+              <View style={{ backgroundColor: '#A855F722', borderRadius: 10, padding: 10, marginBottom: 10, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Text style={{ fontSize: 18 }}>✨</Text>
+                <Text style={{ color: '#A855F7', fontWeight: '700', fontSize: 13 }}>
+                  {creature.pendingTrainingPoints} point{(creature.pendingTrainingPoints ?? 0) > 1 ? 's' : ''} de niveau — entraînement gratuit !
+                </Text>
+              </View>
+            )}
             {(Object.keys(TRAINING_CONFIG) as (keyof TrainingStats)[]).map((type) => {
               const cfg = TRAINING_CONFIG[type]
               const cur = training[type]
-              const canTrain = cur < 20 && totalTrainingPts < MAX_TRAINING_POINTS
-                && creature.stats.energy >= cfg.costEnergy && creature.stats.hunger >= cfg.costHunger
+              const hasPending = (creature.pendingTrainingPoints ?? 0) > 0
+              const canTrain = cur < 20 && totalTrainingPts < MAX_TRAINING_POINTS && (
+                hasPending || (creature.stats.energy >= cfg.costEnergy && creature.stats.hunger >= cfg.costHunger)
+              )
+              const costLabel = hasPending ? '✨ Gratuit' : `-${cfg.costEnergy}⚡ -${cfg.costHunger}🍖`
               return (
                 <TouchableOpacity key={type} style={[s.sheetRow, !canTrain && { opacity: 0.4 }]}
                   onPress={() => canTrain && handleTrain(type)} activeOpacity={canTrain ? 0.75 : 1}>
@@ -623,7 +650,7 @@ export default function HomeScreen({
                       <Text style={s.sheetRowName}>{cfg.label}</Text>
                       <Text style={s.sheetRowName}>Lv {cur}/20</Text>
                     </View>
-                    <Text style={s.sheetRowSub}>{cfg.desc} · -{cfg.costEnergy}⚡ -{cfg.costHunger}🍖</Text>
+                    <Text style={s.sheetRowSub}>{cfg.desc} · {costLabel}</Text>
                     <View style={s.trainTrack}>
                       <View style={[s.trainFill, { width: `${(cur / 20) * 100}%` as any }]} />
                     </View>

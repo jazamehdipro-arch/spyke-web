@@ -552,16 +552,47 @@ function botChooseAction(
   _playerState: Combatant,
   loadout: SpellLoadout,
   _passiveLevel: 1 | 2 | 3,
+  difficulty: 'easy' | 'medium' | 'hard' = 'medium',
 ): CombatAction {
   const maxEnergy = OPPONENT_MAX_ENERGY
-
-  // Spells that heal self
   const healSpells: SpellId[] = ['regeneration', 'barriere', 'carapace_chauffee', 'volute', 'esquive_vive', 'dissipation', 'maree_curative', 'abysse']
-  // HP threshold for heal
-  const hpPct = botState.hp / Math.max(1, botState.hp + 1) // approx - we don't know maxHP here, use absolute
+
+  // ── EASY: random pick, no smart healing ───────────────
+  if (difficulty === 'easy') {
+    const usable = loadout.filter(id => canUseSpell(id, botState, maxEnergy))
+    if (usable.length === 0) return { kind: 'charge' }
+    // Only heal at critical HP
+    if (botState.hp < 10) {
+      const heal = usable.find(id => healSpells.includes(id))
+      if (heal) return { kind: 'spell', spellId: heal }
+    }
+    // Otherwise random
+    return { kind: 'spell', spellId: usable[Math.floor(Math.random() * usable.length)] }
+  }
+
+  // ── HARD: aggressive, heal early, never charges ───────
+  if (difficulty === 'hard') {
+    // Heal at 30 HP (more aggressive threshold than medium)
+    if (botState.hp < 30) {
+      for (const spellId of loadout) {
+        if (healSpells.includes(spellId) && canUseSpell(spellId, botState, maxEnergy)) {
+          return { kind: 'spell', spellId }
+        }
+      }
+    }
+    // Always pick highest-energy available spell (maximum damage pressure)
+    const sorted = [...loadout].sort((a, b) => SPELL_CATALOG[b].energyCost - SPELL_CATALOG[a].energyCost)
+    for (const spellId of sorted) {
+      if (canUseSpell(spellId, botState, maxEnergy)) {
+        return { kind: 'spell', spellId }
+      }
+    }
+    return { kind: 'charge' }
+  }
+
+  // ── MEDIUM (current logic) ─────────────────────────────
   const isLowHP = botState.hp < 20
 
-  // 1. Low HP → heal if possible
   if (isLowHP) {
     for (const spellId of loadout) {
       if (healSpells.includes(spellId) && canUseSpell(spellId, botState, maxEnergy)) {
@@ -570,9 +601,7 @@ function botChooseAction(
     }
   }
 
-  // 2. High energy → use expensive spell
   if (botState.energy >= 3) {
-    // Sort spells by cost descending, pick highest cost available
     const sorted = [...loadout].sort((a, b) => SPELL_CATALOG[b].energyCost - SPELL_CATALOG[a].energyCost)
     for (const spellId of sorted) {
       const spell = SPELL_CATALOG[spellId]
@@ -582,7 +611,6 @@ function botChooseAction(
     }
   }
 
-  // 3. Use cheapest damage spell
   const damageSpells: SpellId[] = [
     'frappe_ardente', 'explosion', 'immolation', 'brasier', 'provocation',
     'vague', 'siphon', 'raz_de_maree', 'malediction',
@@ -596,14 +624,12 @@ function botChooseAction(
     }
   }
 
-  // 4. Any usable spell
   for (const spellId of loadout) {
     if (canUseSpell(spellId, botState, maxEnergy)) {
       return { kind: 'spell', spellId }
     }
   }
 
-  // 5. Charge
   return { kind: 'charge' }
 }
 
@@ -785,6 +811,7 @@ interface Props {
   player: Creature
   opponent: CombatOpponent
   onFinish: (won: boolean, xpGained: number) => void
+  isAdventure?: boolean
   debugOverride?: {
     playerType: CreatureType
     playerLevel: number
@@ -793,8 +820,10 @@ interface Props {
   }
 }
 
+type Difficulty = 'easy' | 'medium' | 'hard'
+
 // ─── main component ─────────────────────────────────────
-export default function CombatScreen({ player, opponent, onFinish, debugOverride }: Props) {
+export default function CombatScreen({ player, opponent, onFinish, isAdventure, debugOverride }: Props) {
   const playerMods = useRef<CombatModifiers>(computeModifiers(player, opponent.creatureType)).current
 
   const playerType = debugOverride?.playerType ?? player.type
@@ -803,8 +832,13 @@ export default function CombatScreen({ player, opponent, onFinish, debugOverride
   const playerProfile = CREATURE_PROFILES[playerType]
   const opponentProfile = CREATURE_PROFILES[opponent.creatureType]
 
+  // ── Difficulty ──────────────────────────────────────────
+  const [difficulty, setDifficulty] = useState<Difficulty | null>(null)
+  const diffHPMult   = difficulty === 'easy' ? 0.7 : difficulty === 'hard' ? 1.4 : 1.0
+  const diffDmgMult  = difficulty === 'easy' ? 0.7 : difficulty === 'hard' ? 1.5 : 1.0
+
   const playerMaxHP  = calcHP(playerLevel, playerMods.hpMult, playerType) + playerMods.trainingHpBonus
-  const opponentMaxHP = calcHP(opponent.level, 1.0, opponent.creatureType)
+  const opponentMaxHP = calcHP(opponent.level, diffHPMult, opponent.creatureType)
 
   const opponentCounterBonus = COUNTER_TABLE[opponent.creatureType] === playerType ? 1.15 : 1.0
 
@@ -827,13 +861,25 @@ export default function CombatScreen({ player, opponent, onFinish, debugOverride
     embers: 0,
   })
   const [oState, setOState]     = useState<Combatant>({
-    hp: opponentMaxHP,
+    hp: 0, // set when difficulty is selected
     energy: opponentProfile.startEnergy,
     cooldowns: {},
     statuses: [],
     embers: 0,
   })
   const [playerDefendLocked, setPlayerDefendLocked] = useState(false)
+
+  const handleSelectDifficulty = useCallback((d: Difficulty) => {
+    const hpMult = d === 'easy' ? 0.7 : d === 'hard' ? 1.4 : 1.0
+    setOState({
+      hp: calcHP(opponent.level, hpMult, opponent.creatureType),
+      energy: opponentProfile.startEnergy,
+      cooldowns: {},
+      statuses: [],
+      embers: 0,
+    })
+    setDifficulty(d)
+  }, [opponent.level, opponent.creatureType, opponentProfile.startEnergy])
 
   const pStateRef = useRef(pState)
   const oStateRef = useRef(oState)
@@ -919,7 +965,7 @@ export default function CombatScreen({ player, opponent, onFinish, debugOverride
     if (hasStatus(curO, 'paralyzed')) {
       oAction = { kind: 'defend' }
     } else {
-      oAction = botChooseAction(opponent.creatureType, curO, curP, opponentLoadout, oPassiveLevel)
+      oAction = botChooseAction(opponent.creatureType, curO, curP, opponentLoadout, oPassiveLevel, difficulty ?? 'medium')
     }
     if (oAction.kind === 'defend' && opponentDefendLockedRef.current && !hasStatus(curO, 'paralyzed')) {
       oAction = { kind: 'charge' }
@@ -1078,6 +1124,7 @@ export default function CombatScreen({ player, opponent, onFinish, debugOverride
               * opponentProfile.baseDamageMult
               * GLOBAL_DMG_BOOST
               * (1 + 0.03 * (opponent.level - 1))
+              * diffDmgMult
             )
             if (hasStatus(newP, 'barrier')) {
               const b = getStatus(newP, 'barrier')!
@@ -1255,8 +1302,37 @@ export default function CombatScreen({ player, opponent, onFinish, debugOverride
     }
   }, [phase, clashAnim])
 
+  // ── Difficulty picker (shown before combat starts) ──────
+  if (difficulty === null) {
+    const DIFF_OPTIONS: { key: Difficulty; label: string; sub: string; color: string; emoji: string }[] = [
+      { key: 'easy',   label: 'Facile',    sub: 'IA moins forte, moins de PV',    color: '#22C55E', emoji: '😊' },
+      { key: 'medium', label: 'Moyen',     sub: 'Combat équilibré',               color: '#F59E0B', emoji: '⚔️' },
+      { key: 'hard',   label: 'Difficile', sub: 'IA impitoyable — danger !',      color: '#EF4444', emoji: '💀' },
+    ]
+    return (
+      <View style={[s.root, { justifyContent: 'center', alignItems: 'center', padding: 28 }]}>
+        <Text style={{ color: '#FFCE3A', fontFamily: 'monospace', fontSize: 12, letterSpacing: 2, marginBottom: 6 }}>COMBAT vs {opponent.creatureName}</Text>
+        <Text style={{ color: '#fff', fontSize: 22, fontWeight: '900', marginBottom: 28 }}>Choisir la difficulté</Text>
+        {DIFF_OPTIONS.map((opt) => (
+          <TouchableOpacity
+            key={opt.key}
+            style={{ width: '100%', backgroundColor: opt.color + '22', borderWidth: 1.5, borderColor: opt.color, borderRadius: 16, padding: 18, marginBottom: 14, flexDirection: 'row', alignItems: 'center', gap: 16 }}
+            onPress={() => handleSelectDifficulty(opt.key)}
+            activeOpacity={0.8}
+          >
+            <Text style={{ fontSize: 30 }}>{opt.emoji}</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: opt.color, fontSize: 18, fontWeight: '800' }}>{opt.label}</Text>
+              <Text style={{ color: '#aaa', fontSize: 13, marginTop: 2 }}>{opt.sub}</Text>
+            </View>
+          </TouchableOpacity>
+        ))}
+      </View>
+    )
+  }
+
   const won = pState.hp > 0 && oState.hp <= 0
-  const xpGained = won ? 60 + opponent.level * 5 : 20
+  const xpGained = won ? (isAdventure ? 25 : 40) : 12
 
   const playerSprite  = SPRITES[spriteKey(playerType, playerLevel)]
   const opponentSprite = SPRITES[spriteKey(opponent.creatureType, opponent.level)]

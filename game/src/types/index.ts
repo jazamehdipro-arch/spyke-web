@@ -78,6 +78,9 @@ export interface Creature {
   spellLoadout?: SpellLoadout
   skin?: string        // equipped shiny skin color (e.g. 'blue'), undefined = default look
   ownedSkins?: string[] // unlocked skin colors for this creature's type
+  dailyCareXP?: number
+  dailyCareXPDate?: string
+  pendingTrainingPoints?: number
 }
 
 export interface Player {

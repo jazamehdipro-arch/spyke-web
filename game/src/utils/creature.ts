@@ -82,8 +82,10 @@ export function decayStats(
   }
 }
 
+export const DAILY_CARE_XP_CAP = 30
+
 export function xpForLevel(level: number): number {
-  return level * 100
+  return Math.round(30 + 18 * Math.pow(level, 1.15))
 }
 
 export function createNewCreature(type: CreatureType): Creature {
@@ -100,7 +102,7 @@ export function createNewCreature(type: CreatureType): Creature {
       energy: 80,
       level: 1,
       xp: 0,
-      xpToNextLevel: 100,
+      xpToNextLevel: xpForLevel(1),
       isSick: false,
     },
     mood: 'happy',
@@ -114,8 +116,10 @@ export function createNewCreature(type: CreatureType): Creature {
 }
 
 export function addXP(creature: Creature, amount: number): Creature {
+  const happinessMult = creature.stats.happiness >= 70 ? 1.2 : creature.stats.happiness < 30 ? 0.7 : 1.0
   let { xp, level, xpToNextLevel } = creature.stats
-  xp += amount
+  const prevLevel = level
+  xp += Math.round(amount * happinessMult)
 
   while (xp >= xpToNextLevel) {
     xp -= xpToNextLevel
@@ -123,8 +127,24 @@ export function addXP(creature: Creature, amount: number): Creature {
     xpToNextLevel = xpForLevel(level)
   }
 
+  const levelsGained = level - prevLevel
   return {
     ...creature,
     stats: { ...creature.stats, xp, level, xpToNextLevel },
+    pendingTrainingPoints: (creature.pendingTrainingPoints ?? 0) + levelsGained * 2,
+  }
+}
+
+// Like addXP but enforces a daily cap on care-source XP (feed/play/sleep).
+export function addCareXP(creature: Creature, amount: number): Creature {
+  const today = new Date().toISOString().slice(0, 10)
+  const todayBase = creature.dailyCareXPDate === today ? (creature.dailyCareXP ?? 0) : 0
+  const remaining = Math.max(0, DAILY_CARE_XP_CAP - todayBase)
+  if (remaining <= 0) return creature
+  const base = Math.min(amount, remaining)
+  return {
+    ...addXP(creature, base),
+    dailyCareXP: todayBase + base,
+    dailyCareXPDate: today,
   }
 }
