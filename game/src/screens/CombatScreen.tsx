@@ -555,140 +555,220 @@ function botChooseAction(
   difficulty: 'easy' | 'medium' | 'hard' = 'medium',
 ): CombatAction {
   const maxEnergy = OPPONENT_MAX_ENERGY
-  const can = (id: SpellId): boolean => (loadout as readonly SpellId[]).includes(id) && canUseSpell(id, botState, maxEnergy)
+  // can(id): spell is in loadout AND usable this turn
+  const can = (id: SpellId): boolean =>
+    (loadout as readonly SpellId[]).includes(id) && canUseSpell(id, botState, maxEnergy)
+  // inLoadout(id): spell exists in this creature's build (regardless of cooldown/energy)
+  const inLoadout = (id: SpellId): boolean => (loadout as readonly SpellId[]).includes(id)
 
-  // ── EASY: mostly random, no strategy ─────────────────────
+  // ── EASY: random pick, barely functional ─────────────────
   if (difficulty === 'easy') {
     const avail = loadout.filter(id => canUseSpell(id, botState, maxEnergy))
     if (avail.length === 0) return { kind: 'charge' }
     if (botState.hp < 10) {
-      const heal = avail.find(id =>
-        ['regeneration', 'maree_curative', 'barriere', 'carapace_chauffee'].includes(id)
-      )
-      if (heal) return { kind: 'spell', spellId: heal }
+      const h = avail.find(id => ['regeneration', 'maree_curative', 'barriere', 'carapace_chauffee'].includes(id))
+      if (h) return { kind: 'spell', spellId: h }
     }
     return { kind: 'spell', spellId: avail[Math.floor(Math.random() * avail.length)] }
   }
 
-  // ── HARD: type-specific combos + player state counter-play ─
+  // ── HARD: type-specific combos + reading opponent state ───
   if (difficulty === 'hard') {
-    const playerLowHP = playerState.hp <= 22
     const botDebuffed = botState.statuses.some(s =>
       (['burn', 'paralyzed', 'cursed', 'exhausted', 'provoked'] as string[]).includes(s.type)
     )
+    const playerParalyzed = hasStatus(playerState, 'paralyzed')
+    const playerDodging   = hasStatus(playerState, 'dodge_up') || hasStatus(playerState, 'dodge_ready')
+    const playerLow       = playerState.hp <= 22
 
-    // 1. Dissipation: always purge debuffs immediately
+    // A. Clear own debuffs first
     if (botDebuffed && can('dissipation')) return { kind: 'spell', spellId: 'dissipation' }
 
-    // 2. Emergency heal (heal earlier and with better spell priority than medium)
+    // B. Emergency heal (lower threshold than medium)
     if (botState.hp < 26) {
       for (const id of ['maree_curative', 'regeneration', 'abysse', 'barriere', 'carapace_chauffee', 'siphon'] as SpellId[]) {
         if (can(id)) return { kind: 'spell', spellId: id }
       }
     }
 
-    // 3. Finishing blow when player is low HP — pick highest raw damage
-    if (playerLowHP) {
-      for (const id of ['brasier', 'tempete', 'abysse', 'raz_de_maree', 'surcharge', 'explosion', 'embuscade_parfaite', 'fournaise', 'immolation'] as SpellId[]) {
+    // C. Free turn — player paralyzed: land the heaviest hit
+    if (playerParalyzed) {
+      for (const id of ['brasier', 'tempete', 'abysse', 'raz_de_maree', 'surcharge', 'explosion',
+                        'embuscade_parfaite', 'fournaise', 'immolation', 'rafale'] as SpellId[]) {
         if (can(id)) return { kind: 'spell', spellId: id }
       }
     }
 
-    // 4. Type-specific optimal spell sequences
-    if (type === 'ignis') {
-      // Core loop: stack braises to 3 with frappe_ardente, then spend with explosion/brasier
-      if (botState.embers >= 3) {
+    // D. Kill shot — player at low HP: prioritise finishing spells
+    if (playerLow) {
+      for (const id of ['brasier', 'tempete', 'abysse', 'raz_de_maree', 'surcharge', 'explosion',
+                        'embuscade_parfaite', 'fournaise', 'immolation', 'decharge'] as SpellId[]) {
+        if (can(id)) return { kind: 'spell', spellId: id }
+      }
+    }
+
+    // E. Type-specific combos
+    switch (type) {
+      case 'ignis': {
+        // Guaranteed damage vs high-dodge player (immolation ignores dodge)
+        if (playerDodging && can('immolation')) return { kind: 'spell', spellId: 'immolation' }
+        // Core: stack 3 braises → spend with explosion/brasier (×1.5 burst)
+        if (botState.embers >= 3) {
+          if (can('explosion')) return { kind: 'spell', spellId: 'explosion' }
+          if (can('brasier'))   return { kind: 'spell', spellId: 'brasier' }
+        }
+        // fournaise: adds 1 braise AND deals good damage (better than frappe_ardente when usable)
+        if (can('fournaise')) return { kind: 'spell', spellId: 'fournaise' }
+        // Stack braises with frappe_ardente (cost 1, always affordable after 1 charge)
+        if (can('frappe_ardente')) return { kind: 'spell', spellId: 'frappe_ardente' }
+        // Immolation as filler — guaranteed damage
+        if (can('immolation')) return { kind: 'spell', spellId: 'immolation' }
+        // Carapace reflect when player is about to dump high-cost spells
+        if (playerState.energy >= 3 && can('carapace_chauffee')) {
+          return { kind: 'spell', spellId: 'carapace_chauffee' }
+        }
         if (can('explosion')) return { kind: 'spell', spellId: 'explosion' }
         if (can('brasier'))   return { kind: 'spell', spellId: 'brasier' }
+        break
       }
-      if (botState.embers < 3 && can('frappe_ardente')) return { kind: 'spell', spellId: 'frappe_ardente' }
-      if (can('fournaise'))  return { kind: 'spell', spellId: 'fournaise' }
-      if (can('immolation')) return { kind: 'spell', spellId: 'immolation' }
-      // Carapace when player is about to burst
-      if (playerState.energy >= 4 && can('carapace_chauffee')) return { kind: 'spell', spellId: 'carapace_chauffee' }
-    }
 
-    if (type === 'nemo') {
-      // Core loop: malediction to lock player's best spell; barrier proactively; siphon for sustain
-      if (can('malediction')) return { kind: 'spell', spellId: 'malediction' }
-      if (!hasStatus(botState, 'barrier') && playerState.energy >= 3 && can('barriere')) {
-        return { kind: 'spell', spellId: 'barriere' }
+      case 'nemo': {
+        // Malediction: lock player's most-expensive spell for 2 turns (cast on every cooldown)
+        if (can('malediction')) return { kind: 'spell', spellId: 'malediction' }
+        // Proactive barrier when player is about to attack hard
+        if (!hasStatus(botState, 'barrier') && playerState.energy >= 3 && can('barriere')) {
+          return { kind: 'spell', spellId: 'barriere' }
+        }
+        // Abysse: highest single-spell payoff (damage + reduces own damage taken)
+        if (can('abysse')) return { kind: 'spell', spellId: 'abysse' }
+        // Siphon: consistent life-steal even at moderate HP
+        if (can('siphon')) return { kind: 'spell', spellId: 'siphon' }
+        // Marée curative: damage + solid heal
+        if (can('maree_curative')) return { kind: 'spell', spellId: 'maree_curative' }
+        // Raz-de-marée: pure nuke
+        if (can('raz_de_maree')) return { kind: 'spell', spellId: 'raz_de_maree' }
+        // Regeneration only when genuinely low
+        if (botState.hp < 45 && can('regeneration')) return { kind: 'spell', spellId: 'regeneration' }
+        if (can('barriere')) return { kind: 'spell', spellId: 'barriere' }
+        break
       }
-      if (botState.hp < 55 && can('siphon')) return { kind: 'spell', spellId: 'siphon' }
-      if (can('abysse'))       return { kind: 'spell', spellId: 'abysse' }
-      if (botState.hp < 55 && can('maree_curative')) return { kind: 'spell', spellId: 'maree_curative' }
-      if (can('raz_de_maree')) return { kind: 'spell', spellId: 'raz_de_maree' }
-      if (can('siphon'))       return { kind: 'spell', spellId: 'siphon' }
-    }
 
-    if (type === 'sylva') {
-      // Core loop: volute for dodge boost → embuscade_parfaite for massive damage
-      if (!hasStatus(botState, 'dodge_up') && can('volute')) return { kind: 'spell', spellId: 'volute' }
-      if (hasStatus(botState, 'dodge_up') && can('embuscade_parfaite')) return { kind: 'spell', spellId: 'embuscade_parfaite' }
-      if (hasStatus(botState, 'dodge_up') && can('embuscade')) return { kind: 'spell', spellId: 'embuscade' }
-      if (can('laceration_voilee')) return { kind: 'spell', spellId: 'laceration_voilee' }
-      if (can('brouillard_total'))  return { kind: 'spell', spellId: 'brouillard_total' }
-      if (can('ecran_fumee'))       return { kind: 'spell', spellId: 'ecran_fumee' }
-      if (can('coup_voile'))        return { kind: 'spell', spellId: 'coup_voile' }
-    }
+      case 'sylva': {
+        // Brouillard when dangerously low (hides own state from player)
+        if (botState.hp < 35 && can('brouillard_total')) return { kind: 'spell', spellId: 'brouillard_total' }
+        // Core: volute → embuscade_parfaite (ignores dodge while volute active)
+        if (!hasStatus(botState, 'dodge_up') && can('volute')) return { kind: 'spell', spellId: 'volute' }
+        if (hasStatus(botState, 'dodge_up') && can('embuscade_parfaite')) {
+          return { kind: 'spell', spellId: 'embuscade_parfaite' }
+        }
+        // embuscade ×2 damage while dodge_up is active
+        if (hasStatus(botState, 'dodge_up') && can('embuscade')) return { kind: 'spell', spellId: 'embuscade' }
+        // Lacération: chip damage + 2-turn brouillage on player
+        if (can('laceration_voilee')) return { kind: 'spell', spellId: 'laceration_voilee' }
+        // Brouillard: information denial
+        if (can('brouillard_total')) return { kind: 'spell', spellId: 'brouillard_total' }
+        // Écran fumée: hides own energy + action this turn
+        if (can('ecran_fumee')) return { kind: 'spell', spellId: 'ecran_fumee' }
+        if (can('coup_voile')) return { kind: 'spell', spellId: 'coup_voile' }
+        // Embuscade without volute still deals decent damage
+        if (can('embuscade')) return { kind: 'spell', spellId: 'embuscade' }
+        break
+      }
 
-    if (type === 'zapp') {
-      // Core loop: decharge (priority hit) every turn; tempete/surcharge when energy is full
-      if (can('decharge')) return { kind: 'spell', spellId: 'decharge' }
-      if (botState.energy >= 4) {
-        if (can('tempete'))   return { kind: 'spell', spellId: 'tempete' }
+      case 'zapp': {
+        // Tempête (4 hits) is the crown spell — save energy for it
+        if (botState.energy >= 4 && can('tempete')) return { kind: 'spell', spellId: 'tempete' }
+        // Fulguration: priority + 20% paralysis (stronger than décharge when usable)
+        if (can('fulguration')) return { kind: 'spell', spellId: 'fulguration' }
+        // Arc paralysant: 30% stun chance — strong disruption
+        if (can('arc_paralysant')) return { kind: 'spell', spellId: 'arc_paralysant' }
+        // Rafale: multi-hit (good vs barrier)
+        if (can('rafale')) return { kind: 'spell', spellId: 'rafale' }
+        // Surcharge: huge damage but causes exhaustion — save for kill shots
+        if (playerState.hp <= 35 && can('surcharge')) return { kind: 'spell', spellId: 'surcharge' }
+        // Décharge: priority filler when nothing better is available
+        if (can('decharge')) return { kind: 'spell', spellId: 'decharge' }
+        // Esquive vive (cost 0) when player is about to burst and we have nothing else
+        if (botState.energy === 0 && playerState.energy >= 3 && can('esquive_vive')) {
+          return { kind: 'spell', spellId: 'esquive_vive' }
+        }
+        // Save up for Tempête if it's in the loadout
+        if (inLoadout('tempete')) return { kind: 'charge' }
         if (can('surcharge')) return { kind: 'spell', spellId: 'surcharge' }
+        break
       }
-      if (can('fulguration')) return { kind: 'spell', spellId: 'fulguration' }
-      // Esquive vive when player is about to land a big spell
-      if (playerState.energy >= 4 && can('esquive_vive')) return { kind: 'spell', spellId: 'esquive_vive' }
-      if (can('arc_paralysant')) return { kind: 'spell', spellId: 'arc_paralysant' }
-      if (can('rafale'))         return { kind: 'spell', spellId: 'rafale' }
-      if (can('surcharge'))      return { kind: 'spell', spellId: 'surcharge' }
     }
 
-    // 5. Fallback: highest-cost usable spell
-    const bySortedCost = ([...loadout] as SpellId[]).sort((a, b) => SPELL_CATALOG[b].energyCost - SPELL_CATALOG[a].energyCost)
-    for (const id of bySortedCost) {
+    // F. Fallback: highest-cost usable spell
+    const byCost = ([...loadout] as SpellId[]).sort((a, b) => SPELL_CATALOG[b].energyCost - SPELL_CATALOG[a].energyCost)
+    for (const id of byCost) {
       if (canUseSpell(id, botState, maxEnergy)) return { kind: 'spell', spellId: id }
     }
     return { kind: 'charge' }
   }
 
-  // ── MEDIUM: reactive, energy-aware ───────────────────────
-  const healSpells: SpellId[] = ['regeneration', 'barriere', 'carapace_chauffee', 'volute', 'esquive_vive', 'dissipation', 'maree_curative', 'abysse']
-
+  // ── MEDIUM: type-aware, reactive ─────────────────────────
+  // Heal when low
   if (botState.hp < 20) {
-    for (const id of loadout) {
-      if (healSpells.includes(id) && canUseSpell(id, botState, maxEnergy)) {
-        return { kind: 'spell', spellId: id }
-      }
+    for (const id of ['regeneration', 'maree_curative', 'barriere', 'carapace_chauffee', 'siphon'] as SpellId[]) {
+      if (can(id)) return { kind: 'spell', spellId: id }
     }
   }
 
-  if (botState.energy >= 3) {
-    const byEnergy = ([...loadout] as SpellId[]).sort((a, b) => SPELL_CATALOG[b].energyCost - SPELL_CATALOG[a].energyCost)
-    for (const id of byEnergy) {
-      if (SPELL_CATALOG[id].energyCost >= 3 && canUseSpell(id, botState, maxEnergy)) {
-        return { kind: 'spell', spellId: id }
+  // Type-specific basic loop
+  switch (type) {
+    case 'ignis': {
+      if (botState.embers >= 3) {
+        if (can('explosion')) return { kind: 'spell', spellId: 'explosion' }
+        if (can('brasier'))   return { kind: 'spell', spellId: 'brasier' }
       }
+      if (botState.energy >= 3) {
+        if (can('fournaise'))  return { kind: 'spell', spellId: 'fournaise' }
+        if (can('immolation')) return { kind: 'spell', spellId: 'immolation' }
+        if (can('explosion'))  return { kind: 'spell', spellId: 'explosion' }
+        if (can('brasier'))    return { kind: 'spell', spellId: 'brasier' }
+      }
+      if (can('frappe_ardente')) return { kind: 'spell', spellId: 'frappe_ardente' }
+      break
+    }
+    case 'nemo': {
+      if (botState.hp < 40 && can('regeneration')) return { kind: 'spell', spellId: 'regeneration' }
+      if (botState.energy >= 3) {
+        if (can('raz_de_maree'))   return { kind: 'spell', spellId: 'raz_de_maree' }
+        if (can('abysse'))         return { kind: 'spell', spellId: 'abysse' }
+        if (can('malediction'))    return { kind: 'spell', spellId: 'malediction' }
+        if (can('maree_curative')) return { kind: 'spell', spellId: 'maree_curative' }
+      }
+      if (can('siphon')) return { kind: 'spell', spellId: 'siphon' }
+      break
+    }
+    case 'sylva': {
+      if (!hasStatus(botState, 'dodge_up') && can('volute')) return { kind: 'spell', spellId: 'volute' }
+      if (botState.energy >= 2) {
+        if (can('embuscade_parfaite')) return { kind: 'spell', spellId: 'embuscade_parfaite' }
+        if (can('laceration_voilee'))  return { kind: 'spell', spellId: 'laceration_voilee' }
+        if (can('embuscade'))          return { kind: 'spell', spellId: 'embuscade' }
+      }
+      if (can('coup_voile'))      return { kind: 'spell', spellId: 'coup_voile' }
+      if (can('brouillard_total')) return { kind: 'spell', spellId: 'brouillard_total' }
+      break
+    }
+    case 'zapp': {
+      if (can('decharge')) return { kind: 'spell', spellId: 'decharge' }
+      if (botState.energy >= 3) {
+        if (can('tempete'))    return { kind: 'spell', spellId: 'tempete' }
+        if (can('surcharge'))  return { kind: 'spell', spellId: 'surcharge' }
+        if (can('fulguration')) return { kind: 'spell', spellId: 'fulguration' }
+      }
+      if (can('arc_paralysant')) return { kind: 'spell', spellId: 'arc_paralysant' }
+      if (can('rafale'))         return { kind: 'spell', spellId: 'rafale' }
+      break
     }
   }
 
-  const damageSpells: SpellId[] = [
-    'frappe_ardente', 'explosion', 'immolation', 'brasier', 'provocation',
-    'vague', 'siphon', 'raz_de_maree', 'malediction',
-    'coup_voile', 'embuscade', 'brouillard_total', 'ecran_fumee',
-    'decharge', 'arc_paralysant', 'rafale', 'surcharge', 'tempete',
-  ]
+  // Generic medium fallback: cheapest usable spell
   const byCheap = ([...loadout] as SpellId[]).sort((a, b) => SPELL_CATALOG[a].energyCost - SPELL_CATALOG[b].energyCost)
   for (const id of byCheap) {
-    if (damageSpells.includes(id) && canUseSpell(id, botState, maxEnergy)) {
-      return { kind: 'spell', spellId: id }
-    }
-  }
-
-  for (const id of loadout) {
     if (canUseSpell(id, botState, maxEnergy)) return { kind: 'spell', spellId: id }
   }
 
