@@ -10,16 +10,16 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native'
-import { Creature, Crossing, CreatureType, SocialAttitude, SocialEvent, SocialEventType, SocialRelation, SpellId, SpellLoadout } from '../types'
+import { Creature, Crossing, CreatureType, SocialDial, SocialEvent, SocialEventType, SocialProfile, SocialRelation, SpellId, SpellLoadout } from '../types'
 import { CREATURE_COLORS } from '../utils/creature'
 import {
   loadCrossings,
-  loadSocialAttitude,
   loadSocialEvents,
+  loadSocialProfile,
   loadSocialRelations,
   saveCrossings,
-  saveSocialAttitude,
   saveSocialEvents,
+  saveSocialProfile,
   saveSocialRelations,
 } from '../utils/storage'
 import CombatScreen, { CombatOpponent } from './CombatScreen'
@@ -75,11 +75,41 @@ const BOT_USERNAMES: Record<CreatureType, string[]> = {
   zapp:  ['StormCatcher', 'VoltSeeker', 'BoltChaser', 'ZapMaster'],
 }
 
-const ATTITUDE_COPY: Record<SocialAttitude, { label: string; icon: string; desc: string }> = {
-  pacifique: { label: 'Pacifique', icon: 'OK', desc: 'Amitie, cadeaux, evite les conflits.' },
-  taquin:    { label: 'Taquin',    icon: '!',  desc: 'Duels amicaux, petites surprises.' },
-  filou:     { label: 'Filou',     icon: '$',  desc: 'Vole parfois, reputation risquee.' },
+const DEFAULT_SOCIAL_PROFILE: SocialProfile = {
+  sociability: 'mid',
+  aggression: 'low',
+  mischief: 'low',
+  generosity: 'mid',
+  loyalty: 'high',
+  curiosity: 'mid',
+  rules: {
+    neverStealFriends: true,
+    duelRivalsOnly: false,
+    helpWeaker: true,
+    avoidThieves: true,
+    giftSadMonsters: true,
+  },
 }
+
+const SOCIAL_DIALS: SocialDial[] = ['low', 'mid', 'high']
+const SOCIAL_DIAL_LABELS: Record<SocialDial, string> = { low: 'Bas', mid: 'Moyen', high: 'Fort' }
+
+const PROFILE_DIALS: { key: keyof Omit<SocialProfile, 'rules'>; label: string; desc: string }[] = [
+  { key: 'sociability', label: 'Sociabilite', desc: 'Va vers les autres et cree des liens.' },
+  { key: 'aggression', label: 'Agressivite', desc: 'Provoque plus facilement des duels.' },
+  { key: 'mischief', label: 'Filouterie', desc: 'Tente des chapardages risques.' },
+  { key: 'generosity', label: 'Generosite', desc: 'Offre et echange plus souvent.' },
+  { key: 'loyalty', label: 'Loyaute', desc: 'Protege les amis et les pactes.' },
+  { key: 'curiosity', label: 'Curiosite', desc: 'Cherche skins, voyageurs et surprises.' },
+]
+
+const PROFILE_RULES: { key: keyof SocialProfile['rules']; label: string }[] = [
+  { key: 'neverStealFriends', label: 'Ne vole jamais les amis' },
+  { key: 'duelRivalsOnly', label: 'Defie surtout les rivaux' },
+  { key: 'helpWeaker', label: 'Aide les plus faibles' },
+  { key: 'avoidThieves', label: 'Se mefie des filous' },
+  { key: 'giftSadMonsters', label: 'Console les monstres tristes' },
+]
 
 const EVENT_COLORS: Record<SocialEventType, string> = {
   friendship: retro.mint,
@@ -112,18 +142,72 @@ function eventToInteraction(type: SocialEventType): Crossing['interactionType'] 
   return 'friendly'
 }
 
-function chooseSocialEvent(attitude: SocialAttitude, relation: SocialRelation, player: Creature, opponent: CombatOpponent): SocialEventType {
-  const levelGap = player.stats.level - opponent.level
-  if (Math.abs(levelGap) >= 7 && relation.crossings >= 1) return 'mentor'
-  if (relation.crossings >= 5 && relation.friendshipLevel >= 3) return 'friendship'
-  if (attitude === 'filou') return Math.random() < 0.55 ? 'theft' : 'duel'
-  if (attitude === 'taquin') {
-    if (Math.random() < 0.42) return 'duel'
-    if (Math.random() < 0.18) return 'theft'
-    return Math.random() < 0.5 ? 'gift' : 'mood'
+function dialWeight(value: SocialDial): number {
+  if (value === 'high') return 2
+  if (value === 'mid') return 1
+  return 0
+}
+
+function chooseWeightedEvent(weights: Partial<Record<SocialEventType, number>>): SocialEventType {
+  const entries = Object.entries(weights).filter(([, weight]) => weight > 0) as [SocialEventType, number][]
+  const total = entries.reduce((sum, [, weight]) => sum + weight, 0)
+  let roll = Math.random() * total
+  for (const [type, weight] of entries) {
+    roll -= weight
+    if (roll <= 0) return type
   }
-  if (Math.random() < 0.18) return 'skin'
-  return Math.random() < 0.58 ? 'friendship' : 'mood'
+  return 'friendship'
+}
+
+function deriveSocialArchetype(profile: SocialProfile): string {
+  const brave = dialWeight(profile.aggression)
+  const sly = dialWeight(profile.mischief)
+  const warm = dialWeight(profile.sociability) + dialWeight(profile.generosity) + dialWeight(profile.loyalty)
+  const explorer = dialWeight(profile.curiosity)
+  if (sly >= 2 && brave >= 1) return 'Petit filou temeraire'
+  if (brave >= 2 && profile.rules.duelRivalsOnly) return 'Rival discipline'
+  if (brave >= 2) return 'Bagarreur social'
+  if (warm >= 5) return 'Protecteur attachant'
+  if (explorer >= 2 && dialWeight(profile.sociability) >= 1) return 'Explorateur curieux'
+  return 'Compagnon equilibre'
+}
+
+function chooseSocialEvent(profile: SocialProfile, relation: SocialRelation, player: Creature, opponent: CombatOpponent): SocialEventType {
+  const levelGap = player.stats.level - opponent.level
+  const isFriend = relation.friendshipLevel >= 3
+  const isRival = relation.rivalryWins + relation.rivalryLosses >= 2
+  const isThief = relation.filouReputation >= 3
+
+  if (profile.rules.avoidThieves && isThief && Math.random() < 0.45) return 'mood'
+  if (profile.rules.helpWeaker && levelGap >= 7 && relation.crossings >= 1) return 'mentor'
+  if (relation.crossings >= 6 && isFriend && dialWeight(profile.loyalty) >= 1 && Math.random() < 0.36) return 'friendship'
+
+  const sociability = dialWeight(profile.sociability)
+  const aggression = dialWeight(profile.aggression)
+  const mischief = dialWeight(profile.mischief)
+  const generosity = dialWeight(profile.generosity)
+  const loyalty = dialWeight(profile.loyalty)
+  const curiosity = dialWeight(profile.curiosity)
+
+  const weights: Partial<Record<SocialEventType, number>> = {
+    friendship: 8 + sociability * 5 + loyalty * 4 + relation.friendshipLevel * 2,
+    mood: 7 + sociability * 3 + (profile.rules.giftSadMonsters ? 3 : 0),
+    gift: 3 + generosity * 5 + (isFriend ? 4 : 0),
+    duel: 2 + aggression * 7 + (isRival ? 6 : 0),
+    theft: 1 + mischief * 8,
+    mentor: profile.rules.helpWeaker && Math.abs(levelGap) >= 5 ? 5 : 1,
+    skin: 1 + curiosity * 5,
+    traveler: 1 + curiosity * 3,
+  }
+
+  if (profile.rules.neverStealFriends && isFriend) weights.theft = 0
+  if (profile.rules.duelRivalsOnly && !isRival) weights.duel = Math.max(0, (weights.duel ?? 0) - 8)
+  if (profile.rules.avoidThieves && isThief) {
+    weights.theft = 0
+    weights.duel = (weights.duel ?? 0) + aggression * 3
+  }
+
+  return chooseWeightedEvent(weights)
 }
 
 function buildSocialEvent(type: SocialEventType, relation: SocialRelation, opponent: CombatOpponent): SocialEvent {
@@ -458,7 +542,7 @@ export default function CrossingsScreen({ player, onCombatEnd }: Props) {
   const [crossings, setCrossings] = useState<Crossing[]>([])
   const [relations, setRelations] = useState<SocialRelation[]>([])
   const [events, setEvents] = useState<SocialEvent[]>([])
-  const [attitude, setAttitude] = useState<SocialAttitude>('pacifique')
+  const [socialProfile, setSocialProfile] = useState<SocialProfile>(DEFAULT_SOCIAL_PROFILE)
   const [loading, setLoading]     = useState(true)
   const [combat, setCombat]       = useState<CombatOpponent | null>(null)
   const [showCrossings, setShowCrossings] = useState(false)
@@ -476,19 +560,29 @@ export default function CrossingsScreen({ player, onCombatEnd }: Props) {
       loadCrossings(),
       loadSocialRelations(),
       loadSocialEvents(),
-      loadSocialAttitude(),
-    ]).then(([crossData, relationData, eventData, attitudeData]) => {
+      loadSocialProfile(),
+    ]).then(([crossData, relationData, eventData, profileData]) => {
       setCrossings(crossData ?? [])
       setRelations(relationData ?? [])
       setEvents(eventData ?? [])
-      setAttitude(attitudeData ?? 'pacifique')
+      setSocialProfile(profileData ? { ...DEFAULT_SOCIAL_PROFILE, ...profileData, rules: { ...DEFAULT_SOCIAL_PROFILE.rules, ...profileData.rules } } : DEFAULT_SOCIAL_PROFILE)
       setLoading(false)
     })
   }, [])
 
-  const updateAttitude = async (next: SocialAttitude) => {
-    setAttitude(next)
-    await saveSocialAttitude(next)
+  const updateSocialDial = async (key: keyof Omit<SocialProfile, 'rules'>, value: SocialDial) => {
+    const next = { ...socialProfile, [key]: value }
+    setSocialProfile(next)
+    await saveSocialProfile(next)
+  }
+
+  const toggleSocialRule = async (key: keyof SocialProfile['rules']) => {
+    const next = {
+      ...socialProfile,
+      rules: { ...socialProfile.rules, [key]: !socialProfile.rules[key] },
+    }
+    setSocialProfile(next)
+    await saveSocialProfile(next)
   }
 
   const startCombat = (opponent: CombatOpponent) => {
@@ -521,7 +615,7 @@ export default function CrossingsScreen({ player, onCombatEnd }: Props) {
       tags: [],
       lastCrossedAt: now,
     }
-    const eventType = chooseSocialEvent(attitude, baseRelation, player, opponent)
+    const eventType = chooseSocialEvent(socialProfile, baseRelation, player, opponent)
     const nextRelation: SocialRelation = {
       ...baseRelation,
       creatureName: opponent.creatureName,
@@ -529,7 +623,7 @@ export default function CrossingsScreen({ player, onCombatEnd }: Props) {
       level: opponent.level,
       crossings: baseRelation.crossings + 1,
       friendshipLevel: Math.min(5, baseRelation.friendshipLevel + (eventType === 'theft' ? 0 : 1)),
-      filouReputation: Math.max(0, baseRelation.filouReputation + (eventType === 'theft' ? 1 : attitude === 'pacifique' ? -1 : 0)),
+      filouReputation: Math.max(0, baseRelation.filouReputation + (eventType === 'theft' ? 1 : socialProfile.mischief === 'low' ? -1 : 0)),
       rivalryLosses: baseRelation.rivalryLosses + (eventType === 'duel' ? 1 : 0),
       mentorCount: baseRelation.mentorCount + (eventType === 'mentor' ? 1 : 0),
       lastCrossedAt: now,
@@ -641,27 +735,56 @@ export default function CrossingsScreen({ player, onCombatEnd }: Props) {
       </View>
 
       <View style={styles.socialPanel}>
-        <Text style={styles.socialTitle}>Vie sociale</Text>
-        <View style={styles.attitudeRow}>
-          {(['pacifique', 'taquin', 'filou'] as SocialAttitude[]).map((key) => {
-            const copy = ATTITUDE_COPY[key]
-            const active = attitude === key
+        <View style={styles.socialHeaderRow}>
+          <View>
+            <Text style={styles.socialTitle}>Profil social</Text>
+            <Text style={styles.socialArchetype}>{deriveSocialArchetype(socialProfile)}</Text>
+          </View>
+          <TouchableOpacity style={styles.crossingPulseBtn} onPress={handleSocialCrossing}>
+            <Text style={styles.crossingPulseText}>Croisement</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={styles.profileGrid}>
+          {PROFILE_DIALS.map((dial) => (
+            <View key={dial.key} style={styles.dialRow}>
+              <View style={styles.dialText}>
+                <Text style={styles.dialLabel}>{dial.label}</Text>
+                <Text style={styles.dialDesc}>{dial.desc}</Text>
+              </View>
+              <View style={styles.dialOptions}>
+                {SOCIAL_DIALS.map((value) => {
+                  const active = socialProfile[dial.key] === value
+                  return (
+                    <TouchableOpacity
+                      key={value}
+                      style={[styles.dialOption, active && styles.dialOptionActive]}
+                      onPress={() => updateSocialDial(dial.key, value)}
+                    >
+                      <Text style={[styles.dialOptionText, active && styles.dialOptionTextActive]}>
+                        {SOCIAL_DIAL_LABELS[value]}
+                      </Text>
+                    </TouchableOpacity>
+                  )
+                })}
+              </View>
+            </View>
+          ))}
+        </View>
+        <View style={styles.ruleGrid}>
+          {PROFILE_RULES.map((rule) => {
+            const active = socialProfile.rules[rule.key]
             return (
               <TouchableOpacity
-                key={key}
-                style={[styles.attitudeBtn, active && styles.attitudeBtnActive]}
-                onPress={() => updateAttitude(key)}
+                key={rule.key}
+                style={[styles.rulePill, active && styles.rulePillActive]}
+                onPress={() => toggleSocialRule(rule.key)}
               >
-                <Text style={styles.attitudeIcon}>{copy.icon}</Text>
-                <Text style={[styles.attitudeLabel, active && styles.attitudeLabelActive]}>{copy.label}</Text>
+                <Text style={[styles.ruleMark, active && styles.ruleMarkActive]}>{active ? 'ON' : '--'}</Text>
+                <Text style={[styles.ruleText, active && styles.ruleTextActive]}>{rule.label}</Text>
               </TouchableOpacity>
             )
           })}
         </View>
-        <Text style={styles.attitudeDesc}>{ATTITUDE_COPY[attitude].desc}</Text>
-        <TouchableOpacity style={styles.crossingPulseBtn} onPress={handleSocialCrossing}>
-          <Text style={styles.crossingPulseText}>Simuler un croisement</Text>
-        </TouchableOpacity>
         {relations.length > 0 && (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.relationScroll}>
             {relations.slice(0, 8).map((relation) => (
@@ -779,28 +902,60 @@ const styles = StyleSheet.create({
     ...retroShadow,
   },
   socialTitle: { color: retro.ink, fontSize: 15, fontWeight: '900', fontFamily: 'monospace' },
-  attitudeRow: { flexDirection: 'row', gap: 8 },
-  attitudeBtn: {
-    flex: 1,
-    minHeight: 54,
+  socialHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
+  socialArchetype: { color: retro.muted, fontSize: 11, marginTop: 2 },
+  profileGrid: { gap: 8 },
+  dialRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
     backgroundColor: retro.paper2,
     borderRadius: 4,
     borderWidth: 2,
     borderColor: retro.line,
+    padding: 8,
   },
-  attitudeBtnActive: { backgroundColor: retro.gold },
-  attitudeIcon: { fontSize: 13, fontWeight: '900', color: retro.ink, fontFamily: 'monospace' },
-  attitudeLabel: { color: retro.ink, fontSize: 10, fontWeight: '900', fontFamily: 'monospace' },
-  attitudeLabelActive: { color: retro.ink },
-  attitudeDesc: { color: retro.muted, fontSize: 11 },
+  dialText: { flex: 1 },
+  dialLabel: { color: retro.ink, fontSize: 11, fontWeight: '900', fontFamily: 'monospace' },
+  dialDesc: { color: retro.muted, fontSize: 9, marginTop: 2 },
+  dialOptions: { flexDirection: 'row', gap: 4 },
+  dialOption: {
+    minWidth: 42,
+    paddingVertical: 7,
+    alignItems: 'center',
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: retro.line,
+    backgroundColor: retro.white,
+  },
+  dialOptionActive: { backgroundColor: retro.gold },
+  dialOptionText: { color: retro.ink, fontSize: 8, fontWeight: '900', fontFamily: 'monospace' },
+  dialOptionTextActive: { color: retro.ink },
+  ruleGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  rulePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 7,
+    backgroundColor: retro.paper,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: retro.line,
+  },
+  rulePillActive: { backgroundColor: retro.mint },
+  ruleMark: { color: retro.muted, fontSize: 8, fontWeight: '900', fontFamily: 'monospace' },
+  ruleMarkActive: { color: retro.ink },
+  ruleText: { color: retro.ink, fontSize: 9, fontWeight: '800' },
+  ruleTextActive: { color: retro.ink },
   crossingPulseBtn: {
     backgroundColor: retro.ink,
     borderRadius: 4,
     borderWidth: 2,
     borderColor: retro.line,
-    paddingVertical: 11,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
     alignItems: 'center',
   },
   crossingPulseText: { color: retro.white, fontSize: 12, fontWeight: '900', fontFamily: 'monospace' },

@@ -112,6 +112,24 @@ export interface Crossing {
 
 export type SocialAttitude = 'pacifique' | 'taquin' | 'filou'
 
+export type SocialDial = 'low' | 'mid' | 'high'
+
+export interface SocialProfile {
+  sociability: SocialDial
+  aggression: SocialDial
+  mischief: SocialDial
+  generosity: SocialDial
+  loyalty: SocialDial
+  curiosity: SocialDial
+  rules: {
+    neverStealFriends: boolean
+    duelRivalsOnly: boolean
+    helpWeaker: boolean
+    avoidThieves: boolean
+    giftSadMonsters: boolean
+  }
+}
+
 export type SocialEventType =
   | 'friendship'
   | 'duel'

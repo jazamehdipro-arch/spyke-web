@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import { Creature, Crossing, CreatureType, DailyQuest, GameEvent, InventoryItem, JournalEntry, Player, Quest, SocialAttitude, SocialEvent, SocialRelation } from '../types'
+import { Creature, Crossing, CreatureType, DailyQuest, GameEvent, InventoryItem, JournalEntry, Player, Quest, SocialAttitude, SocialEvent, SocialProfile, SocialRelation } from '../types'
 
 // Migrate old type names (flame→ignis, aqua→nemo, leaf→sylva, spark→zapp)
 const TYPE_MIGRATION: Record<string, CreatureType> = {
@@ -26,6 +26,7 @@ const KEYS = {
   STREAK:       'croisio:streak',
   ADVENTURE:    'croisio:adventure',
   SOCIAL_ATTITUDE: 'croisio:social_attitude',
+  SOCIAL_PROFILE:  'croisio:social_profile',
   SOCIAL_EVENTS:   'croisio:social_events',
   SOCIAL_RELATIONS:'croisio:social_relations',
 }
@@ -87,6 +88,8 @@ export const saveAdventureProgress = (p: Record<string, number[]>) => set(KEYS.A
 export const loadAdventureProgress = () => get<Record<string, number[]>>(KEYS.ADVENTURE)
 export const saveSocialAttitude = (a: SocialAttitude) => set(KEYS.SOCIAL_ATTITUDE, a)
 export const loadSocialAttitude = () => get<SocialAttitude>(KEYS.SOCIAL_ATTITUDE)
+export const saveSocialProfile = (profile: SocialProfile) => set(KEYS.SOCIAL_PROFILE, profile)
+export const loadSocialProfile = () => get<SocialProfile>(KEYS.SOCIAL_PROFILE)
 export const saveSocialEvents = (events: SocialEvent[]) => set(KEYS.SOCIAL_EVENTS, events.slice(0, 60))
 export const loadSocialEvents = () => get<SocialEvent[]>(KEYS.SOCIAL_EVENTS)
 export const saveSocialRelations = (relations: SocialRelation[]) => set(KEYS.SOCIAL_RELATIONS, relations.slice(0, 80))
