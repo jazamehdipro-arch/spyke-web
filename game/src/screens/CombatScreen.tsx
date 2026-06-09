@@ -565,6 +565,9 @@ function botChooseAction(
   if (difficulty === 'easy') {
     const avail = loadout.filter(id => canUseSpell(id, botState, maxEnergy))
     if (avail.length === 0) return { kind: 'charge' }
+    if (Math.random() < DIFFICULTY_RULES.easy.easyHesitation) {
+      return botState.energy < 2 ? { kind: 'charge' } : { kind: 'defend' }
+    }
     if (botState.hp < 10) {
       const h = avail.find(id => ['regeneration', 'maree_curative', 'barriere', 'carapace_chauffee'].includes(id))
       if (h) return { kind: 'spell', spellId: h }
@@ -964,6 +967,52 @@ interface Props {
 
 type Difficulty = 'easy' | 'medium' | 'hard'
 
+const DIFFICULTY_RULES: Record<Difficulty, {
+  hpMult: number
+  dmgMult: number
+  playerEnergyBonus: number
+  opponentEnergyBonus: number
+  timerBonus: number
+  easyHesitation: number
+  winXP: number
+  adventureWinXP: number
+  lossXP: number
+}> = {
+  easy: {
+    hpMult: 0.75,
+    dmgMult: 0.75,
+    playerEnergyBonus: 1,
+    opponentEnergyBonus: -1,
+    timerBonus: 4,
+    easyHesitation: 0.34,
+    winXP: 24,
+    adventureWinXP: 16,
+    lossXP: 8,
+  },
+  medium: {
+    hpMult: 1,
+    dmgMult: 1,
+    playerEnergyBonus: 0,
+    opponentEnergyBonus: 0,
+    timerBonus: 0,
+    easyHesitation: 0,
+    winXP: 40,
+    adventureWinXP: 25,
+    lossXP: 12,
+  },
+  hard: {
+    hpMult: 1.18,
+    dmgMult: 1.22,
+    playerEnergyBonus: 0,
+    opponentEnergyBonus: 2,
+    timerBonus: -3,
+    easyHesitation: 0,
+    winXP: 70,
+    adventureWinXP: 45,
+    lossXP: 18,
+  },
+}
+
 // ─── main component ─────────────────────────────────────
 export default function CombatScreen({ player, opponent, onFinish, isAdventure, debugOverride }: Props) {
   const playerMods = useRef<CombatModifiers>(computeModifiers(player, opponent.creatureType)).current
@@ -976,8 +1025,9 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
 
   // ── Difficulty ──────────────────────────────────────────
   const [difficulty, setDifficulty] = useState<Difficulty | null>(null)
-  const diffHPMult   = difficulty === 'easy' ? 0.7 : difficulty === 'hard' ? 1.4 : 1.0
-  const diffDmgMult  = difficulty === 'easy' ? 0.7 : difficulty === 'hard' ? 1.5 : 1.0
+  const difficultyRules = DIFFICULTY_RULES[difficulty ?? 'medium']
+  const diffHPMult = difficultyRules.hpMult
+  const diffDmgMult = difficultyRules.dmgMult
 
   const playerMaxHP  = calcHP(playerLevel, playerMods.hpMult, playerType) + playerMods.trainingHpBonus
   const opponentMaxHP = calcHP(opponent.level, diffHPMult, opponent.creatureType)
@@ -1012,16 +1062,29 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
   const [playerDefendLocked, setPlayerDefendLocked] = useState(false)
 
   const handleSelectDifficulty = useCallback((d: Difficulty) => {
-    const hpMult = d === 'easy' ? 0.7 : d === 'hard' ? 1.4 : 1.0
+    const rules = DIFFICULTY_RULES[d]
+    setPState((cur) => ({
+      ...cur,
+      hp: playerMaxHP,
+      energy: Math.max(0, Math.min(playerMods.maxEnergy, startEnergy + rules.playerEnergyBonus)),
+      cooldowns: {},
+      statuses: [],
+      embers: 0,
+    }))
     setOState({
-      hp: calcHP(opponent.level, hpMult, opponent.creatureType),
-      energy: opponentProfile.startEnergy,
+      hp: calcHP(opponent.level, rules.hpMult, opponent.creatureType),
+      energy: Math.max(0, Math.min(OPPONENT_MAX_ENERGY, opponentProfile.startEnergy + rules.opponentEnergyBonus)),
       cooldowns: {},
       statuses: [],
       embers: 0,
     })
     setDifficulty(d)
-  }, [opponent.level, opponent.creatureType, opponentProfile.startEnergy])
+    setLog(d === 'easy'
+      ? 'Mode facile: tu commences avec plus d energie, l ennemi hesite.'
+      : d === 'hard'
+        ? 'Mode difficile: l ennemi commence charge et te laisse moins de temps.'
+        : 'Mode moyen: combat standard.')
+  }, [opponent.level, opponent.creatureType, opponentProfile.startEnergy, playerMaxHP, playerMods.maxEnergy, startEnergy])
 
   const pStateRef = useRef(pState)
   const oStateRef = useRef(oState)
@@ -1064,7 +1127,8 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
   }
 
   const startTimer = useCallback(() => {
-    const effectiveSeconds = Math.max(2, TIMER_SECONDS - playerMods.timerReduction + playerMods.timerBonus)
+    const rules = DIFFICULTY_RULES[difficulty ?? 'medium']
+    const effectiveSeconds = Math.max(2, TIMER_SECONDS - playerMods.timerReduction + playerMods.timerBonus + rules.timerBonus)
     setTimeLeft(effectiveSeconds)
     setChose(false)
     timerAnim.setValue(1)
@@ -1078,7 +1142,7 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
         return t - 1
       })
     }, 1000)
-  }, [playerMods.timerReduction, playerMods.timerBonus, timerAnim])
+  }, [difficulty, playerMods.timerReduction, playerMods.timerBonus, timerAnim])
 
   useEffect(() => {
     if (phase !== 'choosing') return
@@ -1447,9 +1511,9 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
   // ── Difficulty picker (shown before combat starts) ──────
   if (difficulty === null) {
     const DIFF_OPTIONS: { key: Difficulty; label: string; sub: string; color: string; emoji: string }[] = [
-      { key: 'easy',   label: 'Facile',    sub: 'IA aléatoire · PV et dégâts −30%',            color: '#22C55E', emoji: '😊' },
-      { key: 'medium', label: 'Moyen',     sub: 'IA réactive · stats normales',                 color: '#F59E0B', emoji: '⚔️' },
-      { key: 'hard',   label: 'Difficile', sub: 'Combos optimaux · PV +40% · dégâts +50% 💀',  color: '#EF4444', emoji: '💀' },
+      { key: 'easy',   label: 'Facile',    sub: '+1 énergie au départ · timer long · IA qui hésite · XP réduite', color: '#22C55E', emoji: '😊' },
+      { key: 'medium', label: 'Moyen',     sub: 'Règles normales · IA réactive · XP standard',                    color: '#F59E0B', emoji: '⚔️' },
+      { key: 'hard',   label: 'Difficile', sub: 'Ennemi +2 énergie · timer court · IA combo · grosse XP',          color: '#EF4444', emoji: '💀' },
     ]
     return (
       <View style={[s.root, { justifyContent: 'center', alignItems: 'center', padding: 28 }]}>
@@ -1474,7 +1538,9 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
   }
 
   const won = pState.hp > 0 && oState.hp <= 0
-  const xpGained = won ? (isAdventure ? 25 : 40) : 12
+  const xpGained = won
+    ? (isAdventure ? difficultyRules.adventureWinXP : difficultyRules.winXP)
+    : difficultyRules.lossXP
 
   const playerSprite  = SPRITES[spriteKey(playerType, playerLevel)]
   const opponentSprite = SPRITES[spriteKey(opponent.creatureType, opponent.level)]

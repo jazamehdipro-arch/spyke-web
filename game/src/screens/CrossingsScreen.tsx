@@ -734,6 +734,10 @@ export default function CrossingsScreen({ player, onCombatEnd }: Props) {
         </View>
       </View>
 
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.mainScroll}
+      >
       <View style={styles.socialPanel}>
         <View style={styles.socialHeaderRow}>
           <View>
@@ -787,20 +791,21 @@ export default function CrossingsScreen({ player, onCombatEnd }: Props) {
         </View>
         {relations.length > 0 && (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.relationScroll}>
-            {relations.slice(0, 8).map((relation) => (
+            {relations.slice(0, 6).map((relation) => (
               <RelationChip key={relation.id} relation={relation} />
             ))}
           </ScrollView>
         )}
         {events.length > 0 && (
           <View style={styles.eventStack}>
-            {events.slice(0, 3).map((event) => (
-              <SocialEventCard
-                key={event.id}
-                event={event}
-                onCombat={() => startSocialCombat(event)}
-              />
-            ))}
+            <SocialEventCard
+              key={events[0].id}
+              event={events[0]}
+              onCombat={() => startSocialCombat(events[0])}
+            />
+            {events.length > 1 && (
+              <Text style={styles.eventMoreText}>+{events.length - 1} anciennes actions dans l'historique</Text>
+            )}
           </View>
         )}
       </View>
@@ -830,6 +835,7 @@ export default function CrossingsScreen({ player, onCombatEnd }: Props) {
           </Text>
         </TouchableOpacity>
       </View>
+      </ScrollView>
 
       {/* Crossings / bots sheet */}
       <Modal visible={showCrossings} transparent animationType="slide">
@@ -876,6 +882,7 @@ export default function CrossingsScreen({ player, onCombatEnd }: Props) {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: retro.paper },
+  mainScroll: { paddingBottom: 34 },
   header: { paddingTop: 16, paddingHorizontal: 20, paddingBottom: 12 },
   headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   title: { fontSize: 28, fontWeight: '900', color: retro.ink, letterSpacing: 0, fontFamily: 'monospace' },
@@ -972,6 +979,7 @@ const styles = StyleSheet.create({
   relationName: { color: retro.ink, fontSize: 11, fontWeight: '900' },
   relationMeta: { color: retro.muted, fontSize: 9, marginTop: 2 },
   eventStack: { gap: 8 },
+  eventMoreText: { color: retro.muted, fontSize: 10, textAlign: 'center', fontWeight: '800' },
   socialEventCard: {
     flexDirection: 'row',
     alignItems: 'center',
