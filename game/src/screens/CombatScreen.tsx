@@ -547,66 +547,130 @@ function canUseSpell(spellId: SpellId, state: Combatant, _maxEnergy: number): bo
 
 // ─── bot AI ─────────────────────────────────────────────
 function botChooseAction(
-  _type: CreatureType,
+  type: CreatureType,
   botState: Combatant,
-  _playerState: Combatant,
+  playerState: Combatant,
   loadout: SpellLoadout,
   _passiveLevel: 1 | 2 | 3,
   difficulty: 'easy' | 'medium' | 'hard' = 'medium',
 ): CombatAction {
   const maxEnergy = OPPONENT_MAX_ENERGY
-  const healSpells: SpellId[] = ['regeneration', 'barriere', 'carapace_chauffee', 'volute', 'esquive_vive', 'dissipation', 'maree_curative', 'abysse']
+  const can = (id: SpellId): boolean => (loadout as readonly SpellId[]).includes(id) && canUseSpell(id, botState, maxEnergy)
 
-  // ── EASY: random pick, no smart healing ───────────────
+  // ── EASY: mostly random, no strategy ─────────────────────
   if (difficulty === 'easy') {
-    const usable = loadout.filter(id => canUseSpell(id, botState, maxEnergy))
-    if (usable.length === 0) return { kind: 'charge' }
-    // Only heal at critical HP
+    const avail = loadout.filter(id => canUseSpell(id, botState, maxEnergy))
+    if (avail.length === 0) return { kind: 'charge' }
     if (botState.hp < 10) {
-      const heal = usable.find(id => healSpells.includes(id))
+      const heal = avail.find(id =>
+        ['regeneration', 'maree_curative', 'barriere', 'carapace_chauffee'].includes(id)
+      )
       if (heal) return { kind: 'spell', spellId: heal }
     }
-    // Otherwise random
-    return { kind: 'spell', spellId: usable[Math.floor(Math.random() * usable.length)] }
+    return { kind: 'spell', spellId: avail[Math.floor(Math.random() * avail.length)] }
   }
 
-  // ── HARD: aggressive, heal early, never charges ───────
+  // ── HARD: type-specific combos + player state counter-play ─
   if (difficulty === 'hard') {
-    // Heal at 30 HP (more aggressive threshold than medium)
-    if (botState.hp < 30) {
-      for (const spellId of loadout) {
-        if (healSpells.includes(spellId) && canUseSpell(spellId, botState, maxEnergy)) {
-          return { kind: 'spell', spellId }
-        }
+    const playerLowHP = playerState.hp <= 22
+    const botDebuffed = botState.statuses.some(s =>
+      (['burn', 'paralyzed', 'cursed', 'exhausted', 'provoked'] as string[]).includes(s.type)
+    )
+
+    // 1. Dissipation: always purge debuffs immediately
+    if (botDebuffed && can('dissipation')) return { kind: 'spell', spellId: 'dissipation' }
+
+    // 2. Emergency heal (heal earlier and with better spell priority than medium)
+    if (botState.hp < 26) {
+      for (const id of ['maree_curative', 'regeneration', 'abysse', 'barriere', 'carapace_chauffee', 'siphon'] as SpellId[]) {
+        if (can(id)) return { kind: 'spell', spellId: id }
       }
     }
-    // Always pick highest-energy available spell (maximum damage pressure)
-    const sorted = [...loadout].sort((a, b) => SPELL_CATALOG[b].energyCost - SPELL_CATALOG[a].energyCost)
-    for (const spellId of sorted) {
-      if (canUseSpell(spellId, botState, maxEnergy)) {
-        return { kind: 'spell', spellId }
+
+    // 3. Finishing blow when player is low HP — pick highest raw damage
+    if (playerLowHP) {
+      for (const id of ['brasier', 'tempete', 'abysse', 'raz_de_maree', 'surcharge', 'explosion', 'embuscade_parfaite', 'fournaise', 'immolation'] as SpellId[]) {
+        if (can(id)) return { kind: 'spell', spellId: id }
       }
+    }
+
+    // 4. Type-specific optimal spell sequences
+    if (type === 'ignis') {
+      // Core loop: stack braises to 3 with frappe_ardente, then spend with explosion/brasier
+      if (botState.embers >= 3) {
+        if (can('explosion')) return { kind: 'spell', spellId: 'explosion' }
+        if (can('brasier'))   return { kind: 'spell', spellId: 'brasier' }
+      }
+      if (botState.embers < 3 && can('frappe_ardente')) return { kind: 'spell', spellId: 'frappe_ardente' }
+      if (can('fournaise'))  return { kind: 'spell', spellId: 'fournaise' }
+      if (can('immolation')) return { kind: 'spell', spellId: 'immolation' }
+      // Carapace when player is about to burst
+      if (playerState.energy >= 4 && can('carapace_chauffee')) return { kind: 'spell', spellId: 'carapace_chauffee' }
+    }
+
+    if (type === 'nemo') {
+      // Core loop: malediction to lock player's best spell; barrier proactively; siphon for sustain
+      if (can('malediction')) return { kind: 'spell', spellId: 'malediction' }
+      if (!hasStatus(botState, 'barrier') && playerState.energy >= 3 && can('barriere')) {
+        return { kind: 'spell', spellId: 'barriere' }
+      }
+      if (botState.hp < 55 && can('siphon')) return { kind: 'spell', spellId: 'siphon' }
+      if (can('abysse'))       return { kind: 'spell', spellId: 'abysse' }
+      if (botState.hp < 55 && can('maree_curative')) return { kind: 'spell', spellId: 'maree_curative' }
+      if (can('raz_de_maree')) return { kind: 'spell', spellId: 'raz_de_maree' }
+      if (can('siphon'))       return { kind: 'spell', spellId: 'siphon' }
+    }
+
+    if (type === 'sylva') {
+      // Core loop: volute for dodge boost → embuscade_parfaite for massive damage
+      if (!hasStatus(botState, 'dodge_up') && can('volute')) return { kind: 'spell', spellId: 'volute' }
+      if (hasStatus(botState, 'dodge_up') && can('embuscade_parfaite')) return { kind: 'spell', spellId: 'embuscade_parfaite' }
+      if (hasStatus(botState, 'dodge_up') && can('embuscade')) return { kind: 'spell', spellId: 'embuscade' }
+      if (can('laceration_voilee')) return { kind: 'spell', spellId: 'laceration_voilee' }
+      if (can('brouillard_total'))  return { kind: 'spell', spellId: 'brouillard_total' }
+      if (can('ecran_fumee'))       return { kind: 'spell', spellId: 'ecran_fumee' }
+      if (can('coup_voile'))        return { kind: 'spell', spellId: 'coup_voile' }
+    }
+
+    if (type === 'zapp') {
+      // Core loop: decharge (priority hit) every turn; tempete/surcharge when energy is full
+      if (can('decharge')) return { kind: 'spell', spellId: 'decharge' }
+      if (botState.energy >= 4) {
+        if (can('tempete'))   return { kind: 'spell', spellId: 'tempete' }
+        if (can('surcharge')) return { kind: 'spell', spellId: 'surcharge' }
+      }
+      if (can('fulguration')) return { kind: 'spell', spellId: 'fulguration' }
+      // Esquive vive when player is about to land a big spell
+      if (playerState.energy >= 4 && can('esquive_vive')) return { kind: 'spell', spellId: 'esquive_vive' }
+      if (can('arc_paralysant')) return { kind: 'spell', spellId: 'arc_paralysant' }
+      if (can('rafale'))         return { kind: 'spell', spellId: 'rafale' }
+      if (can('surcharge'))      return { kind: 'spell', spellId: 'surcharge' }
+    }
+
+    // 5. Fallback: highest-cost usable spell
+    const bySortedCost = ([...loadout] as SpellId[]).sort((a, b) => SPELL_CATALOG[b].energyCost - SPELL_CATALOG[a].energyCost)
+    for (const id of bySortedCost) {
+      if (canUseSpell(id, botState, maxEnergy)) return { kind: 'spell', spellId: id }
     }
     return { kind: 'charge' }
   }
 
-  // ── MEDIUM (current logic) ─────────────────────────────
-  const isLowHP = botState.hp < 20
+  // ── MEDIUM: reactive, energy-aware ───────────────────────
+  const healSpells: SpellId[] = ['regeneration', 'barriere', 'carapace_chauffee', 'volute', 'esquive_vive', 'dissipation', 'maree_curative', 'abysse']
 
-  if (isLowHP) {
-    for (const spellId of loadout) {
-      if (healSpells.includes(spellId) && canUseSpell(spellId, botState, maxEnergy)) {
-        return { kind: 'spell', spellId }
+  if (botState.hp < 20) {
+    for (const id of loadout) {
+      if (healSpells.includes(id) && canUseSpell(id, botState, maxEnergy)) {
+        return { kind: 'spell', spellId: id }
       }
     }
   }
 
   if (botState.energy >= 3) {
-    const sorted = [...loadout].sort((a, b) => SPELL_CATALOG[b].energyCost - SPELL_CATALOG[a].energyCost)
-    for (const spellId of sorted) {
-      const spell = SPELL_CATALOG[spellId]
-      if (spell.energyCost >= 3 && canUseSpell(spellId, botState, maxEnergy)) {
-        return { kind: 'spell', spellId }
+    const byEnergy = ([...loadout] as SpellId[]).sort((a, b) => SPELL_CATALOG[b].energyCost - SPELL_CATALOG[a].energyCost)
+    for (const id of byEnergy) {
+      if (SPELL_CATALOG[id].energyCost >= 3 && canUseSpell(id, botState, maxEnergy)) {
+        return { kind: 'spell', spellId: id }
       }
     }
   }
@@ -617,17 +681,15 @@ function botChooseAction(
     'coup_voile', 'embuscade', 'brouillard_total', 'ecran_fumee',
     'decharge', 'arc_paralysant', 'rafale', 'surcharge', 'tempete',
   ]
-  const sorted = [...loadout].sort((a, b) => SPELL_CATALOG[a].energyCost - SPELL_CATALOG[b].energyCost)
-  for (const spellId of sorted) {
-    if (damageSpells.includes(spellId) && canUseSpell(spellId, botState, maxEnergy)) {
-      return { kind: 'spell', spellId }
+  const byCheap = ([...loadout] as SpellId[]).sort((a, b) => SPELL_CATALOG[a].energyCost - SPELL_CATALOG[b].energyCost)
+  for (const id of byCheap) {
+    if (damageSpells.includes(id) && canUseSpell(id, botState, maxEnergy)) {
+      return { kind: 'spell', spellId: id }
     }
   }
 
-  for (const spellId of loadout) {
-    if (canUseSpell(spellId, botState, maxEnergy)) {
-      return { kind: 'spell', spellId }
-    }
+  for (const id of loadout) {
+    if (canUseSpell(id, botState, maxEnergy)) return { kind: 'spell', spellId: id }
   }
 
   return { kind: 'charge' }
@@ -1305,9 +1367,9 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
   // ── Difficulty picker (shown before combat starts) ──────
   if (difficulty === null) {
     const DIFF_OPTIONS: { key: Difficulty; label: string; sub: string; color: string; emoji: string }[] = [
-      { key: 'easy',   label: 'Facile',    sub: 'IA moins forte, moins de PV',    color: '#22C55E', emoji: '😊' },
-      { key: 'medium', label: 'Moyen',     sub: 'Combat équilibré',               color: '#F59E0B', emoji: '⚔️' },
-      { key: 'hard',   label: 'Difficile', sub: 'IA impitoyable — danger !',      color: '#EF4444', emoji: '💀' },
+      { key: 'easy',   label: 'Facile',    sub: 'IA aléatoire · PV et dégâts −30%',            color: '#22C55E', emoji: '😊' },
+      { key: 'medium', label: 'Moyen',     sub: 'IA réactive · stats normales',                 color: '#F59E0B', emoji: '⚔️' },
+      { key: 'hard',   label: 'Difficile', sub: 'Combos optimaux · PV +40% · dégâts +50% 💀',  color: '#EF4444', emoji: '💀' },
     ]
     return (
       <View style={[s.root, { justifyContent: 'center', alignItems: 'center', padding: 28 }]}>
