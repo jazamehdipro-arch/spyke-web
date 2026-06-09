@@ -545,13 +545,40 @@ function canUseSpell(spellId: SpellId, state: Combatant, _maxEnergy: number): bo
   return true
 }
 
+function estimateSpellPressure(spellId: SpellId, caster: Combatant, passiveLevel: 1 | 2 | 3): number {
+  const braise = caster.embers >= 3 ? 1.5 : 1
+  switch (spellId) {
+    case 'frappe_ardente': return Math.round(7 * braise)
+    case 'explosion': return Math.round(9.9 * braise)
+    case 'immolation': return Math.round(11 * braise)
+    case 'brasier': return Math.round(15 * braise) + 6
+    case 'fournaise': return Math.round(11.3 * braise)
+    case 'vague': return 7
+    case 'siphon': return 10
+    case 'raz_de_maree': return 16
+    case 'maree_curative': return 18
+    case 'abysse': return 20
+    case 'coup_voile': return 6
+    case 'laceration_voilee': return 10
+    case 'embuscade': return hasStatus(caster, 'dodge_up') ? 18 : 9
+    case 'embuscade_parfaite': return hasStatus(caster, 'dodge_up') ? 17 : 10
+    case 'decharge': return 9
+    case 'arc_paralysant': return 11
+    case 'rafale': return passiveLevel >= 3 ? 12 : 8
+    case 'surcharge': return 16
+    case 'tempete': return 24
+    case 'fulguration': return 12
+    default: return 0
+  }
+}
+
 // ─── bot AI ─────────────────────────────────────────────
 function botChooseAction(
   type: CreatureType,
   botState: Combatant,
   playerState: Combatant,
   loadout: SpellLoadout,
-  _passiveLevel: 1 | 2 | 3,
+  passiveLevel: 1 | 2 | 3,
   difficulty: 'easy' | 'medium' | 'hard' = 'medium',
 ): CombatAction {
   const maxEnergy = OPPONENT_MAX_ENERGY
@@ -583,22 +610,36 @@ function botChooseAction(
     const playerParalyzed = hasStatus(playerState, 'paralyzed')
     const playerDodging   = hasStatus(playerState, 'dodge_up') || hasStatus(playerState, 'dodge_ready')
     const playerLow       = playerState.hp <= 22
+    const playerReadyToBurst = playerState.energy >= 3
+    const botLow = botState.hp <= 34
+    const usable = ([...loadout] as SpellId[]).filter(id => can(id))
+    const strongest = [...usable].sort((a, b) =>
+      estimateSpellPressure(b, botState, passiveLevel) - estimateSpellPressure(a, botState, passiveLevel)
+    )
 
     // A. Clear own debuffs first
     if (botDebuffed && can('dissipation')) return { kind: 'spell', spellId: 'dissipation' }
 
+    const finisher = strongest.find(id => estimateSpellPressure(id, botState, passiveLevel) * 1.65 >= playerState.hp)
+    if (finisher) return { kind: 'spell', spellId: finisher }
+
     // B. Emergency heal (lower threshold than medium)
-    if (botState.hp < 26) {
-      for (const id of ['maree_curative', 'regeneration', 'abysse', 'barriere', 'carapace_chauffee', 'siphon'] as SpellId[]) {
+    if (botLow) {
+      for (const id of ['maree_curative', 'regeneration', 'siphon', 'abysse', 'barriere', 'carapace_chauffee', 'volute', 'esquive_vive'] as SpellId[]) {
         if (can(id)) return { kind: 'spell', spellId: id }
       }
     }
 
     // C. Free turn — player paralyzed: land the heaviest hit
     if (playerParalyzed) {
-      for (const id of ['brasier', 'tempete', 'abysse', 'raz_de_maree', 'surcharge', 'explosion',
-                        'embuscade_parfaite', 'fournaise', 'immolation', 'rafale'] as SpellId[]) {
-        if (can(id)) return { kind: 'spell', spellId: id }
+      if (strongest[0]) return { kind: 'spell', spellId: strongest[0] }
+    }
+
+    if (playerReadyToBurst) {
+      for (const id of ['barriere', 'carapace_chauffee', 'esquive_vive', 'volute', 'brouillard_total'] as SpellId[]) {
+        if (can(id) && !hasStatus(botState, 'barrier') && !hasStatus(botState, 'dodge_up') && !hasStatus(botState, 'dodge_ready')) {
+          return { kind: 'spell', spellId: id }
+        }
       }
     }
 
@@ -619,6 +660,7 @@ function botChooseAction(
         if (botState.embers >= 3) {
           if (can('explosion')) return { kind: 'spell', spellId: 'explosion' }
           if (can('brasier'))   return { kind: 'spell', spellId: 'brasier' }
+          if (inLoadout('explosion') || inLoadout('brasier')) return { kind: 'charge' }
         }
         // fournaise: adds 1 braise AND deals good damage (better than frappe_ardente when usable)
         if (can('fournaise')) return { kind: 'spell', spellId: 'fournaise' }
@@ -637,7 +679,7 @@ function botChooseAction(
 
       case 'nemo': {
         // Malediction: lock player's most-expensive spell for 2 turns (cast on every cooldown)
-        if (can('malediction')) return { kind: 'spell', spellId: 'malediction' }
+        if (playerReadyToBurst && !hasStatus(playerState, 'cursed') && can('malediction')) return { kind: 'spell', spellId: 'malediction' }
         // Proactive barrier when player is about to attack hard
         if (!hasStatus(botState, 'barrier') && playerState.energy >= 3 && can('barriere')) {
           return { kind: 'spell', spellId: 'barriere' }
@@ -681,6 +723,7 @@ function botChooseAction(
       case 'zapp': {
         // Tempête (4 hits) is the crown spell — save energy for it
         if (botState.energy >= 4 && can('tempete')) return { kind: 'spell', spellId: 'tempete' }
+        if (inLoadout('tempete') && botState.energy < 4 && botState.hp > 28 && playerState.hp > 28) return { kind: 'charge' }
         // Fulguration: priority + 20% paralysis (stronger than décharge when usable)
         if (can('fulguration')) return { kind: 'spell', spellId: 'fulguration' }
         // Arc paralysant: 30% stun chance — strong disruption
@@ -1001,11 +1044,11 @@ const DIFFICULTY_RULES: Record<Difficulty, {
     lossXP: 12,
   },
   hard: {
-    hpMult: 1.18,
-    dmgMult: 1.22,
+    hpMult: 1.05,
+    dmgMult: 1.06,
     playerEnergyBonus: 0,
-    opponentEnergyBonus: 2,
-    timerBonus: -3,
+    opponentEnergyBonus: 0,
+    timerBonus: -1,
     easyHesitation: 0,
     winXP: 70,
     adventureWinXP: 45,
@@ -1082,7 +1125,7 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
     setLog(d === 'easy'
       ? 'Mode facile: tu commences avec plus d energie, l ennemi hesite.'
       : d === 'hard'
-        ? 'Mode difficile: l ennemi commence charge et te laisse moins de temps.'
+        ? 'Mode difficile: l IA joue son kit et punit les tours mal prepares.'
         : 'Mode moyen: combat standard.')
   }, [opponent.level, opponent.creatureType, opponentProfile.startEnergy, playerMaxHP, playerMods.maxEnergy, startEnergy])
 
@@ -1513,7 +1556,7 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
     const DIFF_OPTIONS: { key: Difficulty; label: string; sub: string; color: string; emoji: string }[] = [
       { key: 'easy',   label: 'Facile',    sub: '+1 énergie au départ · timer long · IA qui hésite · XP réduite', color: '#22C55E', emoji: '😊' },
       { key: 'medium', label: 'Moyen',     sub: 'Règles normales · IA réactive · XP standard',                    color: '#F59E0B', emoji: '⚔️' },
-      { key: 'hard',   label: 'Difficile', sub: 'Ennemi +2 énergie · timer court · IA combo · grosse XP',          color: '#EF4444', emoji: '💀' },
+      { key: 'hard',   label: 'Difficile', sub: 'IA tactique · combos de monstre · timer un peu court · grosse XP', color: '#EF4444', emoji: '💀' },
     ]
     return (
       <View style={[s.root, { justifyContent: 'center', alignItems: 'center', padding: 28 }]}>
