@@ -1,6 +1,8 @@
 import React from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import { CreatureStats } from '../types'
+import { Panel, PixelBar, SmoothBar } from './ui'
+import { font, retro } from '../styles/retro'
 
 interface StatBarProps {
   label: string
@@ -14,14 +16,7 @@ function StatBar({ label, value, color, icon }: StatBarProps) {
     <View style={styles.statRow}>
       <Text style={styles.statIcon}>{icon}</Text>
       <Text style={styles.statLabel}>{label}</Text>
-      <View style={styles.barBg}>
-        <View
-          style={[
-            styles.barFill,
-            { width: `${value}%` as any, backgroundColor: color },
-          ]}
-        />
-      </View>
+      <PixelBar value={value / 100} color={color} style={styles.bar} />
       <Text style={styles.statValue}>{Math.round(value)}</Text>
     </View>
   )
@@ -33,43 +28,31 @@ interface Props {
 
 export default function StatsPanel({ stats }: Props) {
   return (
-    <View style={styles.container}>
-      <StatBar label="Faim"    value={stats.hunger}    color="#FF6B6B" icon="🍖" />
-      <StatBar label="Bonheur" value={stats.happiness} color="#FFD93D" icon="⭐" />
-      <StatBar label="Énergie" value={stats.energy}    color="#6BCB77" icon="⚡" />
+    <Panel label="Vitalité" style={styles.container}>
+      <StatBar label="Faim"    value={stats.hunger}    color={retro.red}  icon="🍖" />
+      <StatBar label="Bonheur" value={stats.happiness} color={retro.gold} icon="⭐" />
+      <StatBar label="Énergie" value={stats.energy}    color={retro.mint} icon="⚡" />
 
       <View style={styles.xpRow}>
         <Text style={styles.xpLabel}>XP</Text>
-        <View style={styles.barBg}>
-          <View
-            style={[
-              styles.barFill,
-              {
-                width: `${(stats.xp / stats.xpToNextLevel) * 100}%` as any,
-                backgroundColor: '#A855F7',
-              },
-            ]}
-          />
-        </View>
-        <Text style={styles.statValue}>
+        <SmoothBar
+          value={stats.xp / stats.xpToNextLevel}
+          color={retro.purple}
+          height={12}
+          style={styles.bar}
+        />
+        <Text style={styles.xpValue}>
           {stats.xp}/{stats.xpToNextLevel}
         </Text>
       </View>
-    </View>
+    </Panel>
   )
 }
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 16,
     marginHorizontal: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 3,
+    padding: 14,
     gap: 10,
   },
   statRow: {
@@ -81,42 +64,44 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginTop: 4,
+    marginTop: 2,
     paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
+    borderTopWidth: 2,
+    borderTopColor: retro.line,
+    borderStyle: 'dashed',
   },
   statIcon: {
-    fontSize: 16,
+    fontSize: 15,
     width: 22,
+    textAlign: 'center',
   },
   statLabel: {
-    width: 60,
-    fontSize: 13,
-    color: '#666',
-    fontWeight: '500',
+    ...font.label,
+    width: 64,
+    fontSize: 11,
+    color: retro.ink,
   },
   xpLabel: {
+    ...font.label,
     width: 22,
-    fontSize: 13,
-    color: '#A855F7',
-    fontWeight: '700',
+    fontSize: 11,
+    color: retro.purple,
   },
-  barBg: {
+  bar: {
     flex: 1,
-    height: 8,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  barFill: {
-    height: '100%',
-    borderRadius: 4,
   },
   statValue: {
+    ...font.mono,
     width: 36,
-    fontSize: 12,
-    color: '#999',
+    fontSize: 11,
+    color: retro.muted,
     textAlign: 'right',
+  },
+  xpValue: {
+    ...font.mono,
+    fontSize: 11,
+    color: retro.purpleDark,
+    textAlign: 'right',
+    minWidth: 36,
   },
 })

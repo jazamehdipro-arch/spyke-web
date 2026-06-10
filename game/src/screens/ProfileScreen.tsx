@@ -9,8 +9,8 @@ import {
   View,
 } from 'react-native'
 import { Creature, CreatureType } from '../types'
-import { CREATURE_COLORS, CREATURE_LABELS, getMood, getMoodEmoji } from '../utils/creature'
-import { retro, retroShadow } from '../styles/retro'
+import { CREATURE_LABELS, getMood, getMoodEmoji } from '../utils/creature'
+import { retro, retroShadow, typeTheme } from '../styles/retro'
 
 const SPRITES_BASE: Record<CreatureType, ImageSourcePropType> = {
   ignis: require('../../assets/sprites/ignis_e1_clean.png'),
@@ -44,7 +44,7 @@ interface Props {
 }
 
 export default function ProfileScreen({ creature, username, crossingsCount }: Props) {
-  const color = CREATURE_COLORS[creature.type]
+  const theme = typeTheme[creature.type]
   const mood  = getMood(creature.stats)
   const moodEmoji = getMoodEmoji(mood)
   const { name: typeName } = CREATURE_LABELS[creature.type]
@@ -66,13 +66,13 @@ export default function ProfileScreen({ creature, username, crossingsCount }: Pr
       <ScrollView contentContainerStyle={styles.container}>
         <Text style={styles.title}>Profil</Text>
 
-        <View style={[styles.creatureCard, { borderColor: color + '44' }]}>
-          <View style={[styles.avatarBg, { backgroundColor: color + '22' }]}>
+        <View style={[styles.creatureCard, { borderColor: theme.dark }]}>
+          <View style={[styles.avatarBg, { backgroundColor: theme.soft }]}>
             <Image source={getEvoSprite(creature.type, creature.stats.level)} style={styles.avatarSprite} resizeMode="contain" />
           </View>
           <Text style={styles.creatureName}>{creature.name}</Text>
           <Text style={styles.username}>@{username}</Text>
-          <View style={[styles.typeBadge, { backgroundColor: color }]}>
+          <View style={[styles.typeBadge, { backgroundColor: theme.main }]}>
             <Text style={styles.typeBadgeText}>
               {moodEmoji} Humeur {mood}
             </Text>

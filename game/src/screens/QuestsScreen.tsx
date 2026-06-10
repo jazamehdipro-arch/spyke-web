@@ -2,14 +2,13 @@ import React from 'react'
 import {
   FlatList,
   SafeAreaView,
-  SectionList,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from 'react-native'
 import { DailyQuest, Quest } from '../types'
-import { retro, retroShadow } from '../styles/retro'
+import { font, retro } from '../styles/retro'
+import { Chip, Panel, PixelButton, ScreenTitle, SectionTitle, SmoothBar } from '../components/ui'
 
 interface Props {
   quests: Quest[]
@@ -24,8 +23,11 @@ function QuestCard({ quest, onClaim }: { quest: Quest; onClaim: () => void }) {
   const isClaimed = quest.claimed
 
   return (
-    <View style={[styles.card, isClaimed && styles.cardClaimed]}>
-      <Text style={styles.questEmoji}>{quest.emoji}</Text>
+    <Panel shadow="sm" style={[styles.card, ...(isClaimed ? [styles.cardClaimed] : [])]}>
+      <View style={styles.emojiSlot}>
+        <Text style={styles.questEmoji}>{quest.emoji}</Text>
+      </View>
+
       <View style={styles.questInfo}>
         <Text style={[styles.questTitle, isClaimed && styles.textFaded]}>
           {quest.title}
@@ -35,29 +37,28 @@ function QuestCard({ quest, onClaim }: { quest: Quest; onClaim: () => void }) {
         </Text>
 
         <View style={styles.progressRow}>
-          <View style={styles.barBg}>
-            <View style={[styles.barFill, { width: `${pct * 100}%` as any }]} />
-          </View>
+          <SmoothBar value={pct} color={retro.screenDark} height={10} style={styles.bar} />
           <Text style={styles.progressText}>
             {quest.progress}/{quest.target}
           </Text>
         </View>
 
-        <Text style={styles.rewardText}>
-          Récompense : +{quest.reward.xp} XP
-          {quest.reward.itemId ? ' + item' : ''}
-        </Text>
+        <View style={styles.rewardRow}>
+          <Text style={styles.rewardLabel}>Récompense :</Text>
+          <Chip text={`+${quest.reward.xp} XP`} color={retro.paper2} textColor={retro.blueDark} />
+          {quest.reward.itemId ? (
+            <Chip text="+ item" color={retro.paper2} textColor={retro.purpleDark} />
+          ) : null}
+        </View>
       </View>
 
       {isDone && (
-        <TouchableOpacity style={styles.claimBtn} onPress={onClaim}>
-          <Text style={styles.claimText}>Récupérer !</Text>
-        </TouchableOpacity>
+        <PixelButton small title="Récupérer !" onPress={onClaim} color={retro.ink} />
       )}
       {isClaimed && (
         <Text style={styles.claimedBadge}>✓</Text>
       )}
-    </View>
+    </Panel>
   )
 }
 
@@ -67,44 +68,42 @@ function DailyQuestCard({ quest, onClaim }: { quest: DailyQuest; onClaim: () => 
   const isClaimed = quest.claimed
 
   return (
-    <View style={[styles.card, styles.dailyCard, isClaimed && styles.cardClaimed]}>
-      <Text style={styles.questEmoji}>{quest.emoji}</Text>
+    <Panel shadow="sm" style={[styles.card, styles.dailyCard, ...(isClaimed ? [styles.cardClaimed] : [])]}>
+      <View style={[styles.emojiSlot, styles.dailyEmojiSlot]}>
+        <Text style={styles.questEmoji}>{quest.emoji}</Text>
+      </View>
+
       <View style={styles.questInfo}>
         <View style={styles.dailyTitleRow}>
           <Text style={[styles.questTitle, isClaimed && styles.textFaded]}>
             {quest.title}
           </Text>
-          <View style={styles.dailyBadge}>
-            <Text style={styles.dailyBadgeText}>Quotidien</Text>
-          </View>
+          <Chip text="Quotidien" color={retro.gold} textColor={retro.ink} />
         </View>
         <Text style={[styles.questDesc, isClaimed && styles.textFaded]}>
           {quest.description}
         </Text>
 
         <View style={styles.progressRow}>
-          <View style={styles.barBg}>
-            <View style={[styles.barFill, styles.dailyBarFill, { width: `${pct * 100}%` as any }]} />
-          </View>
+          <SmoothBar value={pct} color={retro.gold} height={10} style={styles.bar} />
           <Text style={styles.progressText}>
             {quest.progress}/{quest.target}
           </Text>
         </View>
 
-        <Text style={styles.dailyRewardText}>
-          +{quest.reward.xp} XP · {quest.reward.coins} pièces
-        </Text>
+        <View style={styles.rewardRow}>
+          <Chip text={`+${quest.reward.xp} XP`} color={retro.paper2} textColor={retro.goldDark} />
+          <Chip text={`🪙 ${quest.reward.coins} pièces`} color={retro.paper2} textColor={retro.goldDark} />
+        </View>
       </View>
 
       {isDone && (
-        <TouchableOpacity style={[styles.claimBtn, styles.dailyClaimBtn]} onPress={onClaim}>
-          <Text style={styles.claimText}>Réclamer !</Text>
-        </TouchableOpacity>
+        <PixelButton small title="Réclamer !" onPress={onClaim} color={retro.red} />
       )}
       {isClaimed && (
         <Text style={styles.claimedBadge}>✓</Text>
       )}
-    </View>
+    </Panel>
   )
 }
 
@@ -116,17 +115,15 @@ export default function QuestsScreen({ quests, onClaimReward, dailyQuests, onCla
 
   return (
     <SafeAreaView style={styles.safe}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Objectifs</Text>
-        <Text style={styles.subtitle}>
-          {active.filter((q) => q.completed).length} à récupérer •{' '}
-          {done.length} complétés
-        </Text>
-      </View>
+      <ScreenTitle
+        title="Objectifs"
+        subtitle={`${active.filter((q) => q.completed).length} à récupérer • ${done.length} complétés`}
+        style={styles.header}
+      />
 
       {hasDailyQuests && (
         <View style={styles.dailySection}>
-          <Text style={styles.sectionLabel}>Quêtes du jour</Text>
+          <SectionTitle title="Quêtes du jour" color={retro.goldDark} style={styles.sectionTitle} />
           {dailyQuests!.map((dq) => (
             <DailyQuestCard
               key={dq.id}
@@ -137,7 +134,7 @@ export default function QuestsScreen({ quests, onClaimReward, dailyQuests, onCla
         </View>
       )}
 
-      <Text style={styles.sectionLabel2}>Objectifs permanents</Text>
+      <SectionTitle title="Objectifs permanents" color={retro.muted} style={styles.permanentTitle} />
       <FlatList
         data={[...active, ...done]}
         keyExtractor={(q) => q.id}
@@ -154,102 +151,89 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: retro.paper },
   header: {
     paddingTop: 16,
-    paddingHorizontal: 20,
-    paddingBottom: 8,
+    paddingHorizontal: 16,
+    paddingBottom: 14,
   },
-  title: {
-    fontSize: 32,
-    fontWeight: '900',
-    color: retro.ink,
-    letterSpacing: 0,
-    fontFamily: 'monospace',
+  sectionTitle: {
+    marginBottom: 10,
   },
-  subtitle: { fontSize: 14, color: retro.muted, marginTop: 2 },
-  sectionLabel: {
-    fontSize: 12,
-    fontWeight: '900',
-    color: retro.red,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    paddingHorizontal: 20,
-    marginBottom: 8,
-    marginTop: 4,
-  },
-  sectionLabel2: {
-    fontSize: 12,
-    fontWeight: '900',
-    color: retro.muted,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    paddingHorizontal: 20,
-    marginBottom: 4,
-    marginTop: 8,
+  permanentTitle: {
+    paddingHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 10,
   },
   dailySection: {
     paddingHorizontal: 16,
-    gap: 8,
-    marginBottom: 4,
+    gap: 12,
   },
   list: {
     paddingHorizontal: 16,
     paddingBottom: 30,
-    gap: 10,
+    gap: 12,
   },
+
+  // card
   card: {
-    backgroundColor: retro.white,
-    borderRadius: 4,
-    padding: 14,
+    padding: 12,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    borderWidth: 2,
-    borderColor: retro.line,
-    ...retroShadow,
-    elevation: 2,
   },
   dailyCard: {
-    borderLeftWidth: 3,
+    borderLeftWidth: 4,
     borderLeftColor: retro.gold,
   },
-  cardClaimed: { opacity: 0.5 },
-  questEmoji: { fontSize: 30, width: 40 },
-  questInfo: { flex: 1, gap: 3 },
-  dailyTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  questTitle: { fontSize: 15, fontWeight: '900', color: retro.ink },
-  questDesc: { fontSize: 12, color: retro.muted },
-  progressRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 },
-  barBg: {
-    flex: 1, height: 8, backgroundColor: retro.paper2,
-    borderRadius: 0, overflow: 'hidden', borderWidth: 1, borderColor: retro.line,
-  },
-  barFill: {
-    height: '100%', backgroundColor: retro.screenDark, borderRadius: 0,
-  },
-  dailyBarFill: {
-    backgroundColor: retro.gold,
-  },
-  progressText: { fontSize: 11, color: retro.muted, width: 36, fontFamily: 'monospace', fontWeight: '900' },
-  rewardText: { fontSize: 11, color: retro.blue, fontWeight: '900', marginTop: 2 },
-  dailyRewardText: { fontSize: 11, color: retro.red, fontWeight: '900', marginTop: 2 },
-  dailyBadge: {
+  cardClaimed: { opacity: 0.45 },
+
+  // emoji recess
+  emojiSlot: {
+    width: 46,
+    height: 46,
     backgroundColor: retro.paper2,
-    borderRadius: 0,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  dailyBadgeText: { fontSize: 9, fontWeight: '900', color: retro.red, fontFamily: 'monospace' },
-  claimBtn: {
-    backgroundColor: retro.ink,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 4,
     borderWidth: 2,
     borderColor: retro.line,
+    borderRadius: 3,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  dailyClaimBtn: {
-    backgroundColor: retro.red,
+  dailyEmojiSlot: {
+    backgroundColor: retro.gold + '33',
   },
-  claimText: { color: retro.white, fontSize: 12, fontWeight: '900', fontFamily: 'monospace' },
-  claimedBadge: { fontSize: 20, color: retro.mint, fontWeight: '900' },
-  textFaded: { color: retro.muted },
+  questEmoji: { fontSize: 24 },
+
+  questInfo: { flex: 1, gap: 3 },
+  dailyTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
+  questTitle: {
+    ...font.title,
+    fontSize: 14,
+    flexShrink: 1,
+  },
+  questDesc: { fontSize: 12, color: retro.muted },
+
+  progressRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 5 },
+  bar: { flex: 1 },
+  progressText: {
+    ...font.mono,
+    fontWeight: '900',
+    fontSize: 11,
+    color: retro.muted,
+    width: 40,
+    textAlign: 'right',
+  },
+
+  rewardRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6, flexWrap: 'wrap' },
+  rewardLabel: {
+    ...font.label,
+    fontSize: 9,
+    color: retro.muted,
+  },
+
+  claimedBadge: {
+    ...font.display,
+    fontSize: 26,
+    color: retro.mintDark,
+    paddingHorizontal: 4,
+  },
+  textFaded: { color: retro.faded },
 })
+

@@ -1680,21 +1680,40 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
       { key: 'hard',   label: 'Difficile', sub: 'IA tactique · combos de monstre · timer un peu court · grosse XP', color: '#EF4444', emoji: '💀' },
     ]
     return (
-      <View style={[s.root, { justifyContent: 'center', alignItems: 'center', padding: 28 }]}>
-        <Text style={{ color: '#FFCE3A', fontFamily: 'monospace', fontSize: 12, letterSpacing: 2, marginBottom: 6 }}>COMBAT vs {opponent.creatureName}</Text>
-        <Text style={{ color: '#fff', fontSize: 22, fontWeight: '900', marginBottom: 28 }}>Choisir la difficulté</Text>
+      <View style={[s.root, { justifyContent: 'center', alignItems: 'center', padding: 24 }]}>
+        <Text style={{ color: retro.gold, fontFamily: 'monospace', fontSize: 11, letterSpacing: 2, marginBottom: 4, fontWeight: '900' }}>COMBAT vs {opponent.creatureName}</Text>
+        <Text style={{ color: retro.white, fontSize: 22, fontWeight: '900', fontFamily: 'monospace', marginBottom: 28 }}>Choisir la difficulté</Text>
         {DIFF_OPTIONS.map((opt) => (
           <TouchableOpacity
             key={opt.key}
-            style={{ width: '100%', backgroundColor: opt.color + '22', borderWidth: 1.5, borderColor: opt.color, borderRadius: 16, padding: 18, marginBottom: 14, flexDirection: 'row', alignItems: 'center', gap: 16 }}
+            style={{
+              width: '100%',
+              backgroundColor: opt.key === 'hard' ? retro.night : retro.ink2,
+              borderWidth: 3,
+              borderColor: opt.color,
+              borderRadius: 4,
+              padding: 16,
+              marginBottom: 12,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 14,
+              shadowColor: opt.color,
+              shadowOffset: { width: 4, height: 4 },
+              shadowOpacity: 1,
+              shadowRadius: 0,
+              elevation: 5,
+            }}
             onPress={() => handleSelectDifficulty(opt.key)}
             activeOpacity={0.8}
           >
-            <Text style={{ fontSize: 30 }}>{opt.emoji}</Text>
-            <View style={{ flex: 1 }}>
-              <Text style={{ color: opt.color, fontSize: 18, fontWeight: '800' }}>{opt.label}</Text>
-              <Text style={{ color: '#aaa', fontSize: 13, marginTop: 2 }}>{opt.sub}</Text>
+            <View style={{ width: 44, height: 44, backgroundColor: retro.ink, borderWidth: 2, borderColor: opt.color, borderRadius: 3, alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={{ fontSize: 24 }}>{opt.emoji}</Text>
             </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: opt.color, fontSize: 17, fontWeight: '900', fontFamily: 'monospace' }}>{opt.label}</Text>
+              <Text style={{ color: retro.faded, fontSize: 12, marginTop: 3, fontFamily: 'monospace' }}>{opt.sub}</Text>
+            </View>
+            <Text style={{ color: opt.color, fontSize: 20, fontWeight: '900', fontFamily: 'monospace' }}>›</Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -2041,7 +2060,7 @@ const s = StyleSheet.create({
   hpBarFill: { position: 'absolute', top: 0, left: 0, bottom: 0, borderRadius: 0 },
   hpBarText: {
     position: 'absolute', left: 0, right: 0, textAlign: 'center',
-    fontSize: 9, fontWeight: '900', fontFamily: 'monospace', color: '#fff',
+    fontSize: 9, fontWeight: '900', fontFamily: 'monospace', color: retro.white,
     textShadowColor: 'rgba(0,0,0,0.8)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 2,
   },
 
@@ -2094,8 +2113,8 @@ const s = StyleSheet.create({
     textAlign: 'center', fontSize: 11, color: retro.paper2, fontWeight: '900', fontFamily: 'monospace',
   },
   logLine:   { fontSize: 10, fontWeight: '900', lineHeight: 16, fontFamily: 'monospace' },
-  logPlayer: { color: '#7DF9FF' },
-  logEnemy:  { color: '#FF9966' },
+  logPlayer: { color: retro.screenSoft },
+  logEnemy:  { color: retro.orange },
   logSystem: { color: retro.paper2 },
 
   // DECK
@@ -2118,8 +2137,8 @@ const s = StyleSheet.create({
     borderWidth: 3, borderColor: retro.line, ...retroShadow,
   },
   baseActionIcon: { fontSize: 18 },
-  baseActionLabel: { color: '#fff', fontWeight: '900', fontSize: 12, fontFamily: 'monospace', letterSpacing: 0.5 },
-  chargeSubText: { color: 'rgba(255,255,255,0.6)', fontSize: 10, fontFamily: 'monospace' },
+  baseActionLabel: { color: retro.white, fontWeight: '900', fontSize: 12, fontFamily: 'monospace', letterSpacing: 0.5 },
+  chargeSubText: { color: retro.paper2, fontSize: 10, fontFamily: 'monospace' },
 
   spellRow: { flexDirection: 'row', gap: 8 },
   spellCard: {
@@ -2173,7 +2192,7 @@ const s = StyleSheet.create({
   debuffItem: { color: retro.ink, fontSize: 12, fontWeight: '800' },
 
   finishEmoji: { fontSize: 64 },
-  finishTitle: { fontSize: 40, fontWeight: '900', color: '#fff', letterSpacing: 2 },
+  finishTitle: { fontSize: 40, fontWeight: '900', color: retro.white, letterSpacing: 2, fontFamily: 'monospace' },
   finishXP: { fontSize: 22, color: retro.gold, fontWeight: '900', fontFamily: 'monospace' },
   finishBtn: {
     backgroundColor: retro.gold, paddingHorizontal: 48, paddingVertical: 16,

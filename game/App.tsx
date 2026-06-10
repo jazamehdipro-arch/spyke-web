@@ -11,7 +11,7 @@ import { Creature, Crossing, CreatureType, DailyQuest, GameEvent, InventoryItem,
 import { addXP, createNewCreature, decayStats, getMood } from './src/utils/creature'
 import { ITEM_CATALOG, drawMysteryBox, getStarterInventory } from './src/utils/items'
 import { QUEST_DEFINITIONS } from './src/utils/quests'
-import { retro, retroShadow } from './src/styles/retro'
+import { retro } from './src/styles/retro'
 import { generateDailyQuests, isDailyQuestStale } from './src/utils/dailyQuests'
 import {
   addItemToInventory,
@@ -422,27 +422,29 @@ export default function App() {
       </View>
 
       <View style={styles.tabBar}>
-        {tabs.map((tab) => (
-          <TouchableOpacity
-            key={tab.key}
-            style={styles.tab}
-            onPress={() => setActiveTab(tab.key)}
-            activeOpacity={0.7}
-          >
-            <View style={styles.iconWrapper}>
-              <Text style={styles.tabIcon}>{tab.icon}</Text>
-              {!!tab.badge && (
-                <View style={styles.badge}>
-                  <Text style={styles.badgeText}>{tab.badge}</Text>
-                </View>
-              )}
-            </View>
-            <Text style={[styles.tabLabel, activeTab === tab.key && styles.tabLabelActive]}>
-              {tab.label}
-            </Text>
-            {activeTab === tab.key && <View style={styles.tabDot} />}
-          </TouchableOpacity>
-        ))}
+        {tabs.map((tab) => {
+          const active = activeTab === tab.key
+          return (
+            <TouchableOpacity
+              key={tab.key}
+              style={styles.tab}
+              onPress={() => setActiveTab(tab.key)}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.tabKey, active && styles.tabKeyActive]}>
+                <Text style={[styles.tabIcon, !active && styles.tabIconIdle]}>{tab.icon}</Text>
+                {!!tab.badge && (
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>{tab.badge}</Text>
+                  </View>
+                )}
+              </View>
+              <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          )
+        })}
       </View>
     </View>
   )
@@ -453,33 +455,50 @@ const styles = StyleSheet.create({
   content: { flex: 1 },
   tabBar: {
     flexDirection: 'row',
-    backgroundColor: retro.ink,
-    paddingBottom: 24,
-    paddingTop: 10,
+    backgroundColor: retro.night,
+    paddingBottom: 26,
+    paddingTop: 12,
+    paddingHorizontal: 8,
     borderTopWidth: 3,
     borderTopColor: retro.line,
-    ...retroShadow,
-    elevation: 10,
+    gap: 4,
   },
-  tab: { flex: 1, alignItems: 'center', gap: 3 },
-  iconWrapper: { position: 'relative' },
-  tabIcon: { fontSize: 22 },
+  tab: { flex: 1, alignItems: 'center', gap: 4 },
+  tabKey: {
+    width: 44,
+    height: 36,
+    borderRadius: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  tabKeyActive: {
+    backgroundColor: retro.screenSoft,
+    borderColor: retro.line,
+    shadowColor: retro.screenDeep,
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 3,
+  },
+  tabIcon: { fontSize: 20 },
+  tabIconIdle: { opacity: 0.55 },
   badge: {
     position: 'absolute',
-    top: -4,
-    right: -8,
+    top: -7,
+    right: -7,
     backgroundColor: retro.red,
     borderRadius: 2,
-    minWidth: 16,
-    height: 16,
+    minWidth: 17,
+    height: 17,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 3,
-    borderWidth: 1,
-    borderColor: retro.paper,
+    borderWidth: 1.5,
+    borderColor: retro.night,
   },
   badgeText: { color: retro.white, fontSize: 10, fontWeight: '900', fontFamily: 'monospace' },
-  tabLabel: { fontSize: 10, color: retro.paper2, fontWeight: '800', fontFamily: 'monospace' },
+  tabLabel: { fontSize: 9, color: retro.faded, fontWeight: '800', fontFamily: 'monospace', letterSpacing: 0.5 },
   tabLabelActive: { color: retro.screenSoft, fontWeight: '900' },
-  tabDot: { width: 12, height: 3, borderRadius: 0, backgroundColor: retro.screen },
 })

@@ -3,10 +3,11 @@ import {
   Modal,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from 'react-native'
 import { GameEvent } from '../types'
+import { font, retro, retroShadowSm } from '../styles/retro'
+import { Chip, Panel, PixelButton } from './ui'
 
 interface Props {
   event: GameEvent | null
@@ -19,18 +20,24 @@ export default function EventModal({ event, onClose }: Props) {
   return (
     <Modal visible={!!event} transparent animationType="fade">
       <View style={styles.overlay}>
-        <View style={styles.card}>
-          <Text style={styles.emoji}>{event.emoji}</Text>
+        <Panel label="ÉVÉNEMENT" labelColor={retro.gold} shadow="lg" style={styles.card}>
+          <View style={styles.emojiSlot}>
+            <Text style={styles.emoji}>{event.emoji}</Text>
+          </View>
           <Text style={styles.title}>{event.title}</Text>
           <Text style={styles.message}>{event.message}</Text>
 
           {event.reward && (
             <View style={styles.rewardBox}>
               <Text style={styles.rewardLabel}>Récompense</Text>
-              <Text style={styles.rewardText}>
-                {event.reward.xp ? `+${event.reward.xp} XP` : ''}
-                {event.reward.itemId ? ' + item dans l\'inventaire !' : ''}
-              </Text>
+              <View style={styles.rewardChips}>
+                {event.reward.xp ? (
+                  <Chip text={`+${event.reward.xp} XP`} color={retro.gold} textColor={retro.ink} />
+                ) : null}
+                {event.reward.itemId ? (
+                  <Chip text={"+ item dans l'inventaire !"} color={retro.gold} textColor={retro.ink} />
+                ) : null}
+              </View>
             </View>
           )}
 
@@ -42,10 +49,8 @@ export default function EventModal({ event, onClose }: Props) {
             </View>
           )}
 
-          <TouchableOpacity style={styles.btn} onPress={onClose}>
-            <Text style={styles.btnText}>OK !</Text>
-          </TouchableOpacity>
-        </View>
+          <PixelButton title="OK !" onPress={onClose} color={retro.ink} textColor={retro.white} style={{ alignSelf: 'stretch' }} />
+        </Panel>
       </View>
     </Modal>
   )
@@ -54,74 +59,77 @@ export default function EventModal({ event, onClose }: Props) {
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(26,26,46,0.7)',
+    backgroundColor: 'rgba(23,27,46,0.85)',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
   },
   card: {
-    backgroundColor: '#fff',
-    borderRadius: 24,
-    padding: 28,
     width: '100%',
     alignItems: 'center',
     gap: 12,
+    padding: 22,
+    paddingTop: 26,
+    backgroundColor: retro.paper,
+  },
+  emojiSlot: {
+    width: 84,
+    height: 84,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: retro.paper2,
+    borderWidth: 2,
+    borderColor: retro.line,
+    borderRadius: 3,
+    ...retroShadowSm,
   },
   emoji: {
-    fontSize: 56,
+    fontSize: 48,
   },
   title: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#1a1a2e',
+    ...font.title,
+    fontSize: 20,
     textAlign: 'center',
   },
   message: {
-    fontSize: 15,
-    color: '#555',
+    fontSize: 14,
+    color: retro.ink2,
     textAlign: 'center',
-    lineHeight: 22,
+    lineHeight: 21,
   },
   rewardBox: {
-    backgroundColor: '#F3E8FF',
-    borderRadius: 12,
+    backgroundColor: retro.white,
+    borderWidth: 2,
+    borderColor: retro.line,
+    borderRadius: 3,
     padding: 12,
     width: '100%',
     alignItems: 'center',
+    gap: 7,
   },
   rewardLabel: {
-    fontSize: 11,
-    color: '#A855F7',
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    marginBottom: 2,
+    ...font.label,
+    fontSize: 9,
+    color: retro.goldDark,
   },
-  rewardText: {
-    fontSize: 15,
-    color: '#1a1a2e',
-    fontWeight: '700',
+  rewardChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 6,
   },
   alertBox: {
-    backgroundColor: '#FFF3CD',
-    borderRadius: 12,
+    backgroundColor: '#F6DCC9',
+    borderWidth: 2,
+    borderColor: retro.line,
+    borderRadius: 3,
     padding: 12,
     width: '100%',
   },
   alertText: {
-    fontSize: 14,
-    color: '#856404',
+    ...font.mono,
+    fontSize: 12,
+    color: retro.redDark,
     textAlign: 'center',
-  },
-  btn: {
-    backgroundColor: '#1a1a2e',
-    paddingHorizontal: 40,
-    paddingVertical: 14,
-    borderRadius: 16,
-    marginTop: 4,
-  },
-  btnText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '700',
   },
 })

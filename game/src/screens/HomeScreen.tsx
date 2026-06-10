@@ -449,9 +449,9 @@ export default function HomeScreen({
         <View style={s.section}>
           <Text style={s.sectionLbl}>État</Text>
           {([
-            { label: 'Faim',    icon: '🍖', value: creature.stats.hunger,    max: 100, color: '#FF6B6B' },
-            { label: 'Bonheur', icon: '⭐', value: creature.stats.happiness, max: 100, color: '#FFD700' },
-            { label: 'Énergie', icon: '⚡', value: creature.stats.energy,    max: 100, color: '#44CC66' },
+            { label: 'Faim',    icon: '🍖', value: creature.stats.hunger,    max: 100, color: retro.red },
+            { label: 'Bonheur', icon: '⭐', value: creature.stats.happiness, max: 100, color: retro.gold },
+            { label: 'Énergie', icon: '⚡', value: creature.stats.energy,    max: 100, color: retro.mint },
           ] as const).map(({ label, icon, value, max, color }) => (
             <View key={label} style={s.statRow}>
               <Text style={s.statIcon}>{icon}</Text>
@@ -474,17 +474,17 @@ export default function HomeScreen({
           })()}
           <View style={s.statRow}>
             <Text style={s.statIcon}>  </Text>
-            <Text style={[s.statName, { color: '#A855F7' }]}>XP</Text>
+            <Text style={[s.statName, { color: retro.purple }]}>XP</Text>
             <View style={s.statTrack}>
-              <View style={[s.statFill, { width: `${Math.min(100, (creature.stats.xp / creature.stats.xpToNextLevel) * 100)}%` as any, backgroundColor: '#A855F7' }]} />
+              <View style={[s.statFill, { width: `${Math.min(100, (creature.stats.xp / creature.stats.xpToNextLevel) * 100)}%` as any, backgroundColor: retro.purple }]} />
             </View>
             <Text style={s.statVal}>{Math.round(creature.stats.xp)}/{creature.stats.xpToNextLevel}</Text>
           </View>
           <View style={s.statRow}>
             <Text style={s.statIcon}>  </Text>
-            <Text style={[s.statName, { color: '#888', fontSize: 11 }]}>Soin/jour</Text>
+            <Text style={[s.statName, { color: retro.faded, fontSize: 11 }]}>Soin/jour</Text>
             <View style={s.statTrack}>
-              <View style={[s.statFill, { width: `${Math.min(100, (todayCareXP / DAILY_CARE_XP_CAP) * 100)}%` as any, backgroundColor: todayCareXP >= DAILY_CARE_XP_CAP ? '#FF6B6B' : '#888' }]} />
+              <View style={[s.statFill, { width: `${Math.min(100, (todayCareXP / DAILY_CARE_XP_CAP) * 100)}%` as any, backgroundColor: todayCareXP >= DAILY_CARE_XP_CAP ? retro.red : retro.faded }]} />
             </View>
             <Text style={[s.statVal, { fontSize: 11 }]}>{todayCareXP}/{DAILY_CARE_XP_CAP}</Text>
           </View>
@@ -525,7 +525,7 @@ export default function HomeScreen({
           <TouchableOpacity style={s.adventureBtn} onPress={onOpenCrossings} activeOpacity={0.85}>
             <Text style={s.modeIcon}>📜</Text>
             <View>
-              <Text style={[s.modeTitle, { color: '#C084FC' }]}>AVENTURE</Text>
+              <Text style={[s.modeTitle, { color: retro.white }]}>AVENTURE</Text>
               <Text style={s.modeSub}>Explore et gagne{'\n'}des récompenses</Text>
             </View>
           </TouchableOpacity>
@@ -626,9 +626,9 @@ export default function HomeScreen({
               </Text>
             </View>
             {(creature.pendingTrainingPoints ?? 0) > 0 && (
-              <View style={{ backgroundColor: '#A855F722', borderRadius: 10, padding: 10, marginBottom: 10, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <View style={{ backgroundColor: retro.paper2, borderRadius: 3, padding: 10, marginBottom: 10, flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 2, borderColor: retro.purple }}>
                 <Text style={{ fontSize: 18 }}>✨</Text>
-                <Text style={{ color: '#A855F7', fontWeight: '700', fontSize: 13 }}>
+                <Text style={{ color: retro.purple, fontWeight: '900', fontSize: 13, fontFamily: 'monospace' }}>
                   {creature.pendingTrainingPoints} point{(creature.pendingTrainingPoints ?? 0) > 1 ? 's' : ''} de niveau — entraînement gratuit !
                 </Text>
               </View>
@@ -826,12 +826,17 @@ const s = StyleSheet.create({
   formeLbl: { fontSize: 13, fontWeight: '900', color: retro.ink, fontFamily: 'monospace' },
   formeVal:  { fontSize: 13, fontWeight: '700' },
 
-  buffRow: { marginTop: 4, backgroundColor: '#FFD70011', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5, borderWidth: 1, borderColor: '#FFD70033' },
-  buffTxt: { fontSize: 11, fontWeight: '700', color: '#C47A00' },
+  buffRow: { marginTop: 4, backgroundColor: retro.paper2, borderRadius: 3, paddingHorizontal: 10, paddingVertical: 5, borderWidth: 2, borderColor: retro.goldDark },
+  buffTxt: { fontSize: 11, fontWeight: '800', color: retro.goldDark, fontFamily: 'monospace' },
 
   // Actions
   actionsRow: { flexDirection: 'row', gap: 8 },
-  actionBtn: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: retro.paper2, borderRadius: 4, paddingVertical: 13, gap: 5, borderWidth: 2, borderColor: retro.line },
+  actionBtn: {
+    flex: 1, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: retro.white, borderRadius: 4, paddingVertical: 13, gap: 5,
+    borderWidth: 2, borderColor: retro.line,
+    shadowColor: retro.line, shadowOffset: { width: 3, height: 3 }, shadowOpacity: 1, shadowRadius: 0, elevation: 3,
+  },
   actionDisabled: { opacity: 0.35 },
   actionIcon: { fontSize: 24 },
   actionLbl: { fontSize: 11, fontWeight: '900', color: retro.ink, fontFamily: 'monospace' },

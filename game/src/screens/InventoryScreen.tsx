@@ -5,17 +5,17 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from 'react-native'
-import { Creature, InventoryItem } from '../types'
+import { Creature, InventoryItem, ItemRarity } from '../types'
 import { ITEM_CATALOG, SHOP_ITEMS } from '../utils/items'
-import { retro, retroShadow } from '../styles/retro'
+import { font, retro } from '../styles/retro'
+import { Chip, Panel, PixelButton, ScreenTitle, SectionTitle } from '../components/ui'
 
-const RARITY_COLORS = {
-  common: '#888',
-  rare:   '#3B82F6',
-  epic:   '#A855F7',
+const RARITY_STYLE: Record<ItemRarity, { chip: string; chipText: string; border: string }> = {
+  common: { chip: retro.paper2, chipText: retro.muted, border: retro.line },
+  rare:   { chip: retro.blue,   chipText: retro.white, border: retro.blue },
+  epic:   { chip: retro.purple, chipText: retro.white, border: retro.purple },
 }
 
 const RARITY_LABELS = {
@@ -34,17 +34,26 @@ interface Props {
 }
 
 function ItemCard({ item, creature, onUse }: { item: InventoryItem; creature: Creature; onUse: () => void }) {
-  const color  = RARITY_COLORS[item.rarity]
+  const rarity = RARITY_STYLE[item.rarity]
   const canUse = item.id === 'medicine' ? creature.stats.isSick : true
   const label  = item.id === 'mystery_box' ? 'Ouvrir' : 'Utiliser'
 
   return (
-    <View style={[styles.card, { borderLeftColor: color, borderLeftWidth: 3 }]}>
-      <Text style={styles.itemEmoji}>{item.emoji}</Text>
+    <Panel
+      shadow="sm"
+      style={[styles.card, item.rarity !== 'common' ? { borderColor: rarity.border } : undefined]}
+    >
+      <View style={styles.emojiSlot}>
+        <Text style={styles.itemEmoji}>{item.emoji}</Text>
+      </View>
       <View style={styles.itemInfo}>
         <View style={styles.itemHeader}>
-          <Text style={styles.itemName}>{item.name}</Text>
-          <Text style={[styles.rarity, { color }]}>{RARITY_LABELS[item.rarity]}</Text>
+          <Text style={styles.itemName} numberOfLines={1}>{item.name}</Text>
+          <Chip
+            text={RARITY_LABELS[item.rarity]}
+            color={rarity.chip}
+            textColor={rarity.chipText}
+          />
         </View>
         <Text style={styles.itemDesc}>{item.description}</Text>
         <Text style={styles.itemEffect}>
@@ -56,16 +65,19 @@ function ItemCard({ item, creature, onUse }: { item: InventoryItem; creature: Cr
         </Text>
       </View>
       <View style={styles.itemRight}>
-        <Text style={styles.quantity}>x{item.quantity}</Text>
-        <TouchableOpacity
-          style={[styles.useBtn, !canUse && styles.useBtnDisabled]}
+        <View style={styles.qtyBadge}>
+          <Text style={styles.quantity}>×{item.quantity}</Text>
+        </View>
+        <PixelButton
+          small
+          title={label}
+          color={retro.mint}
+          textColor={retro.ink}
           onPress={onUse}
           disabled={!canUse}
-        >
-          <Text style={styles.useBtnText}>{label}</Text>
-        </TouchableOpacity>
+        />
       </View>
-    </View>
+    </Panel>
   )
 }
 
@@ -82,34 +94,46 @@ function ShopItemRow({
 }) {
   const def    = ITEM_CATALOG[itemId]
   if (!def) return null
-  const color  = RARITY_COLORS[def.rarity]
+  const rarity = RARITY_STYLE[def.rarity]
   const canBuy = coins >= price
 
   return (
-    <View style={styles.shopRow}>
-      <Text style={styles.shopEmoji}>{def.emoji}</Text>
-      <View style={styles.shopInfo}>
+    <Panel
+      shadow="sm"
+      style={[styles.card, def.rarity !== 'common' ? { borderColor: rarity.border } : undefined]}
+    >
+      <View style={styles.emojiSlot}>
+        <Text style={styles.itemEmoji}>{def.emoji}</Text>
+      </View>
+      <View style={styles.itemInfo}>
         <View style={styles.itemHeader}>
-          <Text style={styles.itemName}>{def.name}</Text>
-          <Text style={[styles.rarity, { color }]}>{RARITY_LABELS[def.rarity]}</Text>
+          <Text style={styles.itemName} numberOfLines={1}>{def.name}</Text>
+          <Chip
+            text={RARITY_LABELS[def.rarity]}
+            color={rarity.chip}
+            textColor={rarity.chipText}
+          />
         </View>
         <Text style={styles.itemDesc} numberOfLines={1}>{def.description}</Text>
       </View>
-      <TouchableOpacity
-        style={[styles.buyBtn, !canBuy && styles.buyBtnDisabled]}
+      <PixelButton
+        small
+        title={`💰 ${price}`}
+        color={retro.gold}
+        textColor={retro.ink}
         onPress={onBuy}
         disabled={!canBuy}
-      >
-        <Text style={styles.buyBtnText}>💰 {price}</Text>
-      </TouchableOpacity>
-    </View>
+      />
+    </Panel>
   )
 }
 
 function EmptyInventory() {
   return (
     <View style={styles.empty}>
-      <Text style={styles.emptyEmoji}>🎒</Text>
+      <View style={styles.emptySlot}>
+        <Text style={styles.emptyEmoji}>🎒</Text>
+      </View>
       <Text style={styles.emptyTitle}>Inventaire vide</Text>
       <Text style={styles.emptyText}>
         Vis des aventures et croise des joueurs pour trouver des objets !
@@ -123,16 +147,13 @@ export default function InventoryScreen({ inventory, creature, coins, onUseItem,
     return (
       <SafeAreaView style={styles.safe}>
         <View style={styles.header}>
-          <View>
-            <Text style={styles.title}>🛍️ Boutique</Text>
-            <Text style={styles.subtitle}>Dépense tes pièces</Text>
-          </View>
-          <View style={styles.coinsDisplay}>
-            <Text style={styles.coinsText}>💰 {coins} pièces</Text>
-          </View>
+          <ScreenTitle title="🛍️ Boutique" subtitle="Dépense tes pièces" style={{ flex: 1 }} />
+          <Chip text={`💰 ${coins} pièces`} color={retro.gold} textColor={retro.ink} style={styles.coinsChip} />
         </View>
-        <Text style={styles.sheetSub}>Aucun avantage au combat — objets cosmétiques & confort uniquement !</Text>
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 30 }}>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.list}>
+          <Panel shadow="sm" label="BOUTIQUE" labelColor={retro.gold} tint={retro.paper2} style={styles.noticePanel}>
+            <Text style={styles.noticeText}>Aucun avantage au combat — objets cosmétiques & confort uniquement !</Text>
+          </Panel>
           {SHOP_ITEMS.map((s) => (
             <ShopItemRow
               key={s.itemId}
@@ -150,22 +171,24 @@ export default function InventoryScreen({ inventory, creature, coins, onUseItem,
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.header}>
-        <View>
-          <Text style={styles.title}>🎒 Inventaire</Text>
-          <Text style={styles.subtitle}>
-            {inventory.length > 0
+        <ScreenTitle
+          title="🎒 Inventaire"
+          subtitle={
+            inventory.length > 0
               ? `${inventory.reduce((s, i) => s + i.quantity, 0)} objets`
-              : 'Rien pour l\'instant'}
-          </Text>
-        </View>
+              : 'Rien pour l\'instant'
+          }
+          style={{ flex: 1 }}
+        />
+        <Chip text={`💰 ${coins}`} color={retro.gold} textColor={retro.ink} style={styles.coinsChip} />
       </View>
 
       {creature.stats.isSick && (
-        <View style={styles.sickBanner}>
+        <Panel shadow="sm" tint={retro.gold} style={styles.sickBanner}>
           <Text style={styles.sickText}>
             🤒 {creature.name} est malade ! Utilise un médicament.
           </Text>
-        </View>
+        </Panel>
       )}
 
       <FlatList
@@ -174,6 +197,9 @@ export default function InventoryScreen({ inventory, creature, coins, onUseItem,
         renderItem={({ item }) => (
           <ItemCard item={item} creature={creature} onUse={() => onUseItem(item)} />
         )}
+        ListHeaderComponent={
+          inventory.length > 0 ? <SectionTitle title="SAC" style={styles.sectionGap} /> : null
+        }
         ListEmptyComponent={EmptyInventory}
         contentContainerStyle={styles.list}
       />
@@ -185,124 +211,76 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: retro.paper },
   header: {
     paddingTop: 16,
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingBottom: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
+    gap: 10,
   },
-  title: { fontSize: 28, fontWeight: '900', color: retro.ink, letterSpacing: 0, fontFamily: 'monospace' },
-  subtitle: { fontSize: 14, color: retro.muted, marginTop: 2 },
-
-  shopBtn: {
-    backgroundColor: retro.ink,
-    borderRadius: 4,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    alignItems: 'center',
-    gap: 4,
-    marginTop: 4,
-  },
-  shopBtnText: { color: retro.white, fontSize: 13, fontWeight: '900', fontFamily: 'monospace' },
-  shopCoinsBadge: { color: retro.gold, fontSize: 12, fontWeight: '900', fontFamily: 'monospace' },
+  coinsChip: { marginTop: 8 },
 
   sickBanner: {
-    backgroundColor: retro.gold,
     marginHorizontal: 16,
-    borderRadius: 4,
     padding: 12,
-    marginBottom: 8,
-    borderWidth: 2,
-    borderColor: retro.line,
+    marginBottom: 10,
   },
-  sickText: { fontSize: 14, color: retro.ink, fontWeight: '900', fontFamily: 'monospace' },
-  list: { paddingHorizontal: 16, paddingBottom: 30, gap: 10, flexGrow: 1 },
+  sickText: { ...font.mono, fontSize: 13, fontWeight: '900', color: retro.ink },
+
+  sectionGap: { marginBottom: 2 },
+  list: { paddingHorizontal: 16, paddingBottom: 30, gap: 12, flexGrow: 1 },
+
+  noticePanel: { padding: 10, marginTop: 6 },
+  noticeText: { ...font.mono, fontSize: 11, color: retro.ink2 },
+
   card: {
-    backgroundColor: retro.white,
-    borderRadius: 4,
-    padding: 14,
+    padding: 12,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+  },
+  emojiSlot: {
+    width: 52,
+    height: 52,
+    backgroundColor: retro.paper2,
     borderWidth: 2,
     borderColor: retro.line,
-    ...retroShadow,
-    elevation: 2,
+    borderRadius: 3,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  itemEmoji: { fontSize: 34, width: 44 },
-  itemInfo: { flex: 1, gap: 2 },
+  itemEmoji: { fontSize: 28 },
+  itemInfo: { flex: 1, gap: 3 },
   itemHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  itemName: { fontSize: 15, fontWeight: '900', color: retro.ink },
-  rarity: { fontSize: 11, fontWeight: '900', fontFamily: 'monospace' },
+  itemName: { ...font.title, fontSize: 14, flexShrink: 1 },
   itemDesc: { fontSize: 12, color: retro.muted },
-  itemEffect: { fontSize: 12, color: retro.ink2, marginTop: 2 },
-  itemRight: { alignItems: 'center', gap: 6 },
-  quantity: { fontSize: 13, fontWeight: '900', color: retro.ink, fontFamily: 'monospace' },
-  useBtn: {
-    backgroundColor: retro.ink,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 4,
-    borderWidth: 2,
+  itemEffect: { ...font.mono, fontSize: 11, color: retro.ink2, marginTop: 1 },
+  itemRight: { alignItems: 'center', gap: 8 },
+  qtyBadge: {
+    backgroundColor: retro.paper2,
+    borderWidth: 1.5,
     borderColor: retro.line,
+    borderRadius: 2,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
   },
-  useBtnDisabled: { backgroundColor: '#ddd' },
-  useBtnText: { color: retro.white, fontSize: 12, fontWeight: '900', fontFamily: 'monospace' },
+  quantity: { ...font.mono, fontSize: 12, fontWeight: '900', color: retro.ink },
+
   empty: {
     flex: 1, alignItems: 'center', justifyContent: 'center',
     paddingHorizontal: 40, paddingTop: 80, gap: 12,
   },
-  emptyEmoji: { fontSize: 56 },
-  emptyTitle: { fontSize: 20, fontWeight: '900', color: retro.ink, fontFamily: 'monospace' },
+  emptySlot: {
+    width: 96,
+    height: 96,
+    backgroundColor: retro.paper2,
+    borderWidth: 2,
+    borderColor: retro.line,
+    borderRadius: 3,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyEmoji: { fontSize: 48 },
+  emptyTitle: { ...font.title, fontSize: 20 },
   emptyText: { fontSize: 14, color: retro.muted, textAlign: 'center', lineHeight: 22 },
-
-  // Shop
-  sheetOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  sheet: {
-    backgroundColor: retro.white,
-    borderTopLeftRadius: 6,
-    borderTopRightRadius: 6,
-    maxHeight: '85%',
-    overflow: 'hidden',
-  },
-  sheetHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 6,
-  },
-  sheetTitle: { fontSize: 22, fontWeight: '900', color: retro.ink, fontFamily: 'monospace' },
-  coinsDisplay: {
-    backgroundColor: retro.ink,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 4,
-    borderWidth: 2,
-    borderColor: retro.line,
-  },
-  coinsText: { color: retro.gold, fontSize: 13, fontWeight: '900', fontFamily: 'monospace' },
-  sheetSub: { fontSize: 12, color: retro.muted, paddingHorizontal: 20, marginBottom: 12 },
-  sheetScroll: { paddingHorizontal: 16 },
-  shopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    gap: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: retro.paper2,
-  },
-  shopEmoji: { fontSize: 30, width: 42 },
-  shopInfo: { flex: 1, gap: 2 },
-  buyBtn: {
-    backgroundColor: retro.ink,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 4,
-    borderWidth: 2,
-    borderColor: retro.line,
-  },
-  buyBtnDisabled: { backgroundColor: '#ddd' },
-  buyBtnText: { color: retro.gold, fontSize: 13, fontWeight: '900', fontFamily: 'monospace' },
 })

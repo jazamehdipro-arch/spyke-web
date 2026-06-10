@@ -7,12 +7,12 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from 'react-native'
 import { CreatureType } from '../types'
-import { CREATURE_COLORS, CREATURE_LABELS, CREATURE_NAMES } from '../utils/creature'
-import { retro, retroShadow } from '../styles/retro'
+import { CREATURE_LABELS, CREATURE_NAMES } from '../utils/creature'
+import { font, retro, retroShadow, typeTheme } from '../styles/retro'
+import { Chip, PixelButton } from '../components/ui'
 
 const CREATURE_SPRITES: Record<CreatureType, ImageSourcePropType> = {
   ignis: require('../../assets/sprites/ignis_e1_clean.png'),
@@ -42,19 +42,34 @@ export default function OnboardingScreen({ onComplete }: Props) {
     }
   }
 
+  const ctaDisabled = step === 'username' ? username.trim().length < 2 : !selectedType
+
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.logo}>Croisio</Text>
-        <Text style={styles.tagline}>Élève ta créature, croise le monde.</Text>
+        {/* ── Hero logotype with gold echo ── */}
+        <View style={styles.logoWrap}>
+          <View>
+            <Text style={styles.logoEcho}>Croisio</Text>
+            <Text style={styles.logo}>Croisio</Text>
+          </View>
+          <View style={styles.taglineRow}>
+            <View style={styles.taglineRule} />
+            <Text style={styles.tagline}>Élève ta créature, croise le monde.</Text>
+            <View style={styles.taglineRule} />
+          </View>
+        </View>
 
         {step === 'username' ? (
           <View style={styles.stepContainer}>
-            <Text style={styles.stepTitle}>Comment tu t'appelles ?</Text>
+            <View style={styles.stepHeader}>
+              <Chip text="1/2" color={retro.ink} textColor={retro.white} />
+              <Text style={styles.stepTitle}>Comment tu t'appelles ?</Text>
+            </View>
             <TextInput
               style={styles.input}
               placeholder="Ton pseudo"
-              placeholderTextColor="#bbb"
+              placeholderTextColor={retro.faded}
               value={username}
               onChangeText={setUsername}
               maxLength={20}
@@ -63,55 +78,62 @@ export default function OnboardingScreen({ onComplete }: Props) {
           </View>
         ) : (
           <View style={styles.stepContainer}>
-            <Text style={styles.stepTitle}>Choisis ta créature</Text>
+            <View style={styles.stepHeader}>
+              <Chip text="2/2" color={retro.ink} textColor={retro.white} />
+              <Text style={styles.stepTitle}>Choisis ta créature</Text>
+            </View>
             <View style={styles.creatureGrid}>
               {CREATURE_TYPES.map((type) => {
-                const color = CREATURE_COLORS[type]
+                const theme = typeTheme[type]
                 const { name: label, description } = CREATURE_LABELS[type]
                 const firstName = CREATURE_NAMES[type][0]
                 const selected = selectedType === type
 
                 return (
-                  <TouchableOpacity
+                  <PixelButton
                     key={type}
+                    onPress={() => setSelectedType(type)}
+                    color={selected ? theme.soft : retro.white}
                     style={[
                       styles.creatureCard,
-                      selected && { borderColor: color, borderWidth: 2, backgroundColor: color + '11' },
+                      ...(selected ? [{ borderColor: theme.dark }] : []),
                     ]}
-                    onPress={() => setSelectedType(type)}
-                    activeOpacity={0.8}
                   >
-                    <Image
-                      source={CREATURE_SPRITES[type]}
-                      style={styles.creatureSprite}
-                      resizeMode="contain"
-                    />
-                    <Text style={[styles.creatureLabel, selected && { color }]}>{label}</Text>
+                    <View style={styles.spriteSlot}>
+                      <Image
+                        source={CREATURE_SPRITES[type]}
+                        style={styles.creatureSprite}
+                        resizeMode="contain"
+                      />
+                    </View>
+                    <Text style={[styles.creatureLabel, selected && { color: theme.dark }]}>
+                      {label}
+                    </Text>
                     <Text style={styles.firstName}>{firstName}</Text>
                     <Text style={styles.creatureDesc}>{description}</Text>
                     {selected && (
-                      <View style={[styles.selectedDot, { backgroundColor: color }]} />
+                      <Chip
+                        text="✓"
+                        color={theme.main}
+                        textColor={retro.white}
+                        style={styles.checkChip}
+                      />
                     )}
-                  </TouchableOpacity>
+                  </PixelButton>
                 )
               })}
             </View>
           </View>
         )}
 
-        <TouchableOpacity
-          style={[
-            styles.button,
-            (step === 'username' ? username.trim().length < 2 : !selectedType) &&
-              styles.buttonDisabled,
-          ]}
+        <PixelButton
+          big
+          title={step === 'username' ? 'Suivant →' : 'Commencer !'}
           onPress={handleNext}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.buttonText}>
-            {step === 'username' ? 'Suivant →' : 'Commencer !'}
-          </Text>
-        </TouchableOpacity>
+          disabled={ctaDisabled}
+          color={retro.ink}
+          style={styles.cta}
+        />
       </ScrollView>
     </SafeAreaView>
   )
@@ -124,48 +146,84 @@ const styles = StyleSheet.create({
   },
   container: {
     flexGrow: 1,
-    paddingHorizontal: 24,
-    paddingTop: 60,
+    paddingHorizontal: 16,
+    paddingTop: 56,
     paddingBottom: 40,
   },
-  logo: {
-    fontSize: 42,
-    fontWeight: '900',
-    color: retro.ink,
-    letterSpacing: 0,
+
+  // hero
+  logoWrap: {
+    alignItems: 'center',
+    marginBottom: 44,
+    gap: 12,
+  },
+  logoEcho: {
+    ...font.display,
+    fontSize: 46,
     textAlign: 'center',
-    fontFamily: 'monospace',
+    position: 'absolute',
+    left: 4,
+    top: 4,
+    color: retro.gold,
+    opacity: 0.6,
+  },
+  logo: {
+    ...font.display,
+    fontSize: 46,
+    textAlign: 'center',
+  },
+  taglineRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    alignSelf: 'stretch',
+    paddingHorizontal: 4,
+  },
+  taglineRule: {
+    flex: 1,
+    borderBottomWidth: 2,
+    borderStyle: 'dashed',
+    borderColor: retro.ink,
+    opacity: 0.25,
   },
   tagline: {
-    fontSize: 16,
+    fontSize: 13,
     color: retro.muted,
     textAlign: 'center',
-    marginTop: 8,
-    marginBottom: 50,
   },
+
+  // step
   stepContainer: {
     flex: 1,
-    gap: 20,
+    gap: 16,
+  },
+  stepHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
   stepTitle: {
-    fontSize: 24,
-    fontWeight: '900',
-    color: retro.ink,
-    marginBottom: 8,
-    fontFamily: 'monospace',
+    ...font.title,
+    fontSize: 20,
+    flexShrink: 1,
   },
+
+  // username input
   input: {
     backgroundColor: retro.white,
     borderRadius: 4,
-    paddingHorizontal: 18,
-    paddingVertical: 16,
-    fontSize: 18,
+    paddingHorizontal: 16,
+    paddingVertical: 15,
+    fontSize: 17,
     color: retro.ink,
+    fontFamily: 'monospace',
+    fontWeight: '800',
     borderWidth: 3,
     borderColor: retro.line,
     ...retroShadow,
-    elevation: 3,
   },
+
+  // creature pick
   creatureGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -173,28 +231,30 @@ const styles = StyleSheet.create({
   },
   creatureCard: {
     width: '47%',
-    backgroundColor: retro.white,
-    borderRadius: 4,
-    padding: 12,
-    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+  },
+  spriteSlot: {
+    backgroundColor: retro.paper2,
     borderWidth: 2,
     borderColor: retro.line,
-    ...retroShadow,
-    elevation: 3,
+    borderRadius: 3,
+    padding: 8,
+    marginBottom: 8,
+    alignSelf: 'stretch',
+    alignItems: 'center',
   },
   creatureSprite: {
-    width: 72,
-    height: 72,
-    marginBottom: 6,
+    width: 64,
+    height: 64,
   },
   creatureLabel: {
+    ...font.title,
     fontSize: 16,
-    fontWeight: '900',
-    color: retro.ink,
-    fontFamily: 'monospace',
   },
   firstName: {
-    fontSize: 12,
+    ...font.mono,
+    fontSize: 11,
     color: retro.muted,
     marginTop: 2,
   },
@@ -204,29 +264,14 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 4,
   },
-  selectedDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 0,
-    marginTop: 8,
+  checkChip: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
   },
-  button: {
-    backgroundColor: retro.ink,
-    borderRadius: 4,
-    paddingVertical: 18,
-    alignItems: 'center',
-    marginTop: 30,
-    borderWidth: 3,
-    borderColor: retro.line,
-    ...retroShadow,
-  },
-  buttonDisabled: {
-    opacity: 0.3,
-  },
-  buttonText: {
-    color: retro.white,
-    fontSize: 17,
-    fontWeight: '900',
-    fontFamily: 'monospace',
+
+  // CTA
+  cta: {
+    marginTop: 28,
   },
 })

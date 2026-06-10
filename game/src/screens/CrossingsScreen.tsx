@@ -817,7 +817,7 @@ export default function CrossingsScreen({ player, onCombatEnd }: Props) {
           <Text style={styles.modeTitle}>Aventure</Text>
           <Text style={styles.modeSub}>6 routes · PNJ · Récompenses</Text>
         </View>
-        <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 22, fontWeight: '900' }}>›</Text>
+        <Text style={{ color: retro.paper2, fontSize: 22, fontWeight: '900' }}>›</Text>
       </TouchableOpacity>
       <View style={styles.modeRow}>
         <TouchableOpacity style={[styles.modeCard, styles.modeCardAI]} onPress={handleQuickAI} activeOpacity={0.85}>
