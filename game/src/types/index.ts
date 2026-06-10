@@ -27,7 +27,7 @@ export type SpellId =
   | 'frappe_ardente' | 'explosion' | 'carapace_chauffee' | 'provocation' | 'immolation' | 'brasier' | 'fournaise'
   | 'vague' | 'siphon' | 'regeneration' | 'barriere' | 'malediction' | 'raz_de_maree' | 'maree_curative' | 'abysse'
   | 'coup_voile' | 'ecran_fumee' | 'volute' | 'dissipation' | 'embuscade' | 'brouillard_total' | 'laceration_voilee' | 'embuscade_parfaite'
-  | 'decharge' | 'arc_paralysant' | 'esquive_vive' | 'rafale' | 'surcharge' | 'tempete' | 'fulguration'
+  | 'decharge' | 'arc_paralysant' | 'boost' | 'esquive_vive' | 'rafale' | 'surcharge' | 'tempete' | 'fulguration'
 
 export type StatusType =
   | 'burn'        // dégâts par tour
@@ -40,6 +40,7 @@ export type StatusType =
   | 'exhausted'   // malus énergie prochain tour
   | 'provoked'    // +30% dégâts reçus ce tour
   | 'dodge_ready' // esquive garantie prochain coup
+  | 'damage_boost' // prochain degat inflige augmente
 
 export interface StatusEffect {
   type: StatusType

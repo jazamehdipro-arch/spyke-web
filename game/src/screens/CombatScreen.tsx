@@ -61,7 +61,7 @@ const CREATURE_PROFILES: Record<CreatureType, {
   dodgeBase: number
 }> = {
   ignis: { hpMult: 0.85, baseDamageMult: 1.16, startEnergy: 0, dodgeBase: 0.0  },
-  nemo:  { hpMult: 1.15, baseDamageMult: 0.77, startEnergy: 1, dodgeBase: 0.0  },
+  nemo:  { hpMult: 1.15, baseDamageMult: 0.77, startEnergy: 0, dodgeBase: 0.0  },
   sylva: { hpMult: 1.0,  baseDamageMult: 0.93, startEnergy: 0, dodgeBase: 0.17 },
   zapp:  { hpMult: 0.9,  baseDamageMult: 1.0,  startEnergy: 0, dodgeBase: 0.0  },
 }
@@ -170,8 +170,15 @@ function computeDisplayMult(type: CreatureType, level: number): number {
 const OPPONENT_MAX_ENERGY = 5
 const TIMER_SECONDS = 10
 const BASE_HP = 68
+const E1_BASE_HP: Record<CreatureType, number> = {
+  ignis: 60,
+  nemo: 75,
+  sylva: 68,
+  zapp: 63,
+}
 
 function calcHP(level: number, hpMult = 1.0, creatureType?: CreatureType) {
+  if (creatureType && level < 10) return Math.round(E1_BASE_HP[creatureType] * hpMult)
   const typeMult = creatureType ? CREATURE_PROFILES[creatureType].hpMult : 1.0
   return Math.round((BASE_HP + (level - 1) * 2) * hpMult * typeMult)
 }
@@ -267,7 +274,8 @@ function resolveSpell(
       const newEmbers = Math.min(3, caster.embers + 1)
       // Passive: 3 braises → ×1.5 on next fire spell (triggers here too)
       const braiseBonus = caster.embers === 3
-      const raw = braiseBonus ? Math.round(7 * 1.5) : 7
+      const base = passiveLevel === 1 ? 8 : 7
+      const raw = braiseBonus ? Math.round(base * 1.5) : base
       return {
         ...empty,
         targetHpDelta: -raw,
@@ -278,7 +286,8 @@ function resolveSpell(
     case 'explosion': {
       const embers = caster.embers
       const braiseBonus = embers >= 3
-      const raw = braiseBonus ? Math.round(9.9 * 1.5) : 9.9
+      const base = passiveLevel === 1 ? 20 : 9.9
+      const raw = braiseBonus ? Math.round(base * 1.5) : base
       const dmg = Math.round(raw)
       return {
         ...empty,
@@ -288,9 +297,11 @@ function resolveSpell(
       }
     }
     case 'carapace_chauffee': {
+      const newEmbers = Math.min(3, caster.embers + 1)
       return {
         ...empty,
-        casterStatusesToAdd: [{ type: 'barrier', turnsLeft: 1, value: 30, data: 'reflect' }],
+        casterStatusesToAdd: [{ type: 'barrier', turnsLeft: 1, value: passiveLevel === 1 ? 100 : 30, data: 'reflect' }],
+        newCasterEmbers: passiveLevel === 1 ? newEmbers : undefined,
         log: '🛡️ Carapace chauffée ! +barrière réfléchissante',
       }
     }
@@ -304,7 +315,8 @@ function resolveSpell(
     case 'immolation': {
       // Guaranteed — dodge/barrier skipped in commitAction for this spell
       const braiseBonus = caster.embers === 3
-      const raw = braiseBonus ? Math.round(11 * 1.5) : 11
+      const base = passiveLevel === 1 ? 20 : 11
+      const raw = braiseBonus ? Math.round(base * 1.5) : base
       return {
         ...empty,
         casterHpDelta: -8,
@@ -347,17 +359,18 @@ function resolveSpell(
     case 'siphon': {
       // Life steal: always heal +4, +2 bonus if low HP (sustain passive)
       const lowHp = caster.hp < 25
-      const heal = lowHp ? 6 : 4
+      const heal = passiveLevel === 1 ? 4 : (lowHp ? 6 : 4)
+      const dmg = passiveLevel === 1 ? 10 : 6
       return {
         ...empty,
         casterHpDelta: heal,
-        targetHpDelta: -6,
-        log: `💧 Siphon ! -6 HP + vol de vie (+${heal} PV)${lowHp ? ' (sustain !)' : ''}`,
+        targetHpDelta: -dmg,
+        log: `💧 Siphon ! -${dmg} HP + vol de vie (+${heal} PV)${lowHp && passiveLevel !== 1 ? ' (sustain !)' : ''}`,
       }
     }
     case 'regeneration': {
       const lowHp = caster.hp < 25
-      const heal = lowHp ? 18 : 14
+      const heal = passiveLevel === 1 ? (lowHp ? 14 : 10) : (lowHp ? 18 : 14)
       return {
         ...empty,
         casterHpDelta: heal,
@@ -384,8 +397,8 @@ function resolveSpell(
     case 'raz_de_maree': {
       return {
         ...empty,
-        targetHpDelta: -16,
-        log: '🌊💥 Raz-de-marée ! -16 HP',
+        targetHpDelta: passiveLevel === 1 ? -20 : -16,
+        log: `🌊💥 Raz-de-marée ! -${passiveLevel === 1 ? 20 : 16} HP`,
       }
     }
     case 'maree_curative': {
@@ -409,13 +422,14 @@ function resolveSpell(
 
     // ── sylva ──
     case 'coup_voile': {
-      const fogChance = Math.random() < 0.2
-      const fogStatus: StatusEffect[] = fogChance ? [{ type: 'fog', turnsLeft: 2 }] : []
+      const fogStatus: StatusEffect[] = passiveLevel === 1
+        ? [{ type: 'fog', turnsLeft: 2, value: 15, data: 'accuracy_down' }]
+        : (Math.random() < 0.2 ? [{ type: 'fog', turnsLeft: 2 }] : [])
       return {
         ...empty,
-        targetHpDelta: -Math.round(6.2),
+        targetHpDelta: passiveLevel === 1 ? -7 : -Math.round(6.2),
         targetStatusesToAdd: fogStatus,
-        log: `👊 Coup voilé ! -6 HP${fogChance ? ' + brouillage ennemi !' : ''}`,
+        log: `👊 Coup voilé ! -${passiveLevel === 1 ? 7 : 6} HP${fogStatus.length ? ' + brouillage ennemi !' : ''}`,
       }
     }
     case 'laceration_voilee': {
@@ -441,8 +455,8 @@ function resolveSpell(
     case 'volute': {
       return {
         ...empty,
-        casterStatusesToAdd: [{ type: 'dodge_up', turnsLeft: 3, value: 15 }],
-        log: '🌀 Volute ! +15% esquive 3 tours',
+        casterStatusesToAdd: [{ type: 'dodge_up', turnsLeft: 3, value: passiveLevel === 1 ? 20 : 15 }],
+        log: `🌀 Volute ! +${passiveLevel === 1 ? 20 : 15}% esquive 3 tours`,
       }
     }
     case 'dissipation': {
@@ -464,8 +478,11 @@ function resolveSpell(
     case 'brouillard_total': {
       return {
         ...empty,
-        targetStatusesToAdd: [{ type: 'fog', turnsLeft: 2 }],
-        log: '🌫️ Brouillard total ! Info ennemie masquée 2 tours',
+        casterStatusesToAdd: passiveLevel === 1 ? [{ type: 'smoke', turnsLeft: 3 }] : [],
+        targetStatusesToAdd: passiveLevel === 1 ? [] : [{ type: 'fog', turnsLeft: 2 }],
+        log: passiveLevel === 1
+          ? '🌫️ Brouillard ! Infos du panda masquées 3 tours'
+          : '🌫️ Brouillard total ! Info ennemie masquée 2 tours',
       }
     }
 
@@ -473,8 +490,8 @@ function resolveSpell(
     case 'decharge': {
       return {
         ...empty,
-        targetHpDelta: -8,
-        log: '⚡ Décharge ! -8 HP (priorité)',
+        targetHpDelta: passiveLevel === 1 ? -10 : -8,
+        log: `⚡ Décharge ! -${passiveLevel === 1 ? 10 : 8} HP (priorité)`,
       }
     }
     case 'arc_paralysant': {
@@ -482,9 +499,16 @@ function resolveSpell(
       const paralysisStatus: StatusEffect[] = paralyzed ? [{ type: 'paralyzed', turnsLeft: 2 }] : []
       return {
         ...empty,
-        targetHpDelta: -5,
+        targetHpDelta: passiveLevel === 1 ? -15 : -5,
         targetStatusesToAdd: paralysisStatus,
-        log: `🎯 Arc paralysant ! -5 HP${paralyzed ? ' · Ennemi paralysé !' : ' · Rate la paralysie.'}`,
+        log: `🎯 Arc paralysant ! -${passiveLevel === 1 ? 15 : 5} HP${paralyzed ? ' · Ennemi paralysé !' : ' · Rate la paralysie.'}`,
+      }
+    }
+    case 'boost': {
+      return {
+        ...empty,
+        casterStatusesToAdd: [{ type: 'damage_boost', turnsLeft: 99, value: 50 }],
+        log: '⬆️ Boost ! Prochain dégât +50%',
       }
     }
     case 'esquive_vive': {
@@ -506,9 +530,9 @@ function resolveSpell(
     case 'surcharge': {
       return {
         ...empty,
-        targetHpDelta: -16,
+        targetHpDelta: passiveLevel === 1 ? -25 : -16,
         casterStatusesToAdd: [{ type: 'exhausted', turnsLeft: 2, value: 2 }],
-        log: '🔋 Surcharge ! -16 HP + épuisement prochain tour',
+        log: `🔋 Surcharge ! -${passiveLevel === 1 ? 25 : 16} HP + épuisement prochain tour`,
       }
     }
     case 'tempete': {
@@ -564,6 +588,7 @@ function estimateSpellPressure(spellId: SpellId, caster: Combatant, passiveLevel
     case 'embuscade_parfaite': return hasStatus(caster, 'dodge_up') ? 17 : 10
     case 'decharge': return 9
     case 'arc_paralysant': return 11
+    case 'boost': return 0
     case 'rafale': return passiveLevel >= 3 ? 12 : 8
     case 'surcharge': return 16
     case 'tempete': return 24
@@ -724,6 +749,7 @@ function botChooseAction(
         // Tempête (4 hits) is the crown spell — save energy for it
         if (botState.energy >= 4 && can('tempete')) return { kind: 'spell', spellId: 'tempete' }
         if (inLoadout('tempete') && botState.energy < 4 && botState.hp > 28 && playerState.hp > 28) return { kind: 'charge' }
+        if (!hasStatus(botState, 'damage_boost') && can('boost') && playerState.hp > 25) return { kind: 'spell', spellId: 'boost' }
         // Fulguration: priority + 20% paralysis (stronger than décharge when usable)
         if (can('fulguration')) return { kind: 'spell', spellId: 'fulguration' }
         // Arc paralysant: 30% stun chance — strong disruption
@@ -806,6 +832,7 @@ function botChooseAction(
         if (can('surcharge'))  return { kind: 'spell', spellId: 'surcharge' }
         if (can('fulguration')) return { kind: 'spell', spellId: 'fulguration' }
       }
+      if (!hasStatus(botState, 'damage_boost') && can('boost') && botState.energy >= 2) return { kind: 'spell', spellId: 'boost' }
       if (can('arc_paralysant')) return { kind: 'spell', spellId: 'arc_paralysant' }
       if (can('rafale'))         return { kind: 'spell', spellId: 'rafale' }
       break
@@ -833,6 +860,7 @@ const STATUS_ICONS: Record<StatusType, string> = {
   exhausted: '😴',
   provoked: '😤',
   dodge_ready: '💨⚡',
+  damage_boost: '⬆️',
 }
 
 // ─── sub-components ─────────────────────────────────────
@@ -1208,10 +1236,15 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
     if (hasStatus(curP, 'paralyzed')) {
       pAction = { kind: 'defend' }
     }
+    if (hasStatus(curP, 'exhausted')) {
+      pAction = { kind: 'charge' }
+    }
 
     // 2. Bot choisit son action
     let oAction: CombatAction
-    if (hasStatus(curO, 'paralyzed')) {
+    if (hasStatus(curO, 'exhausted')) {
+      oAction = { kind: 'charge' }
+    } else if (hasStatus(curO, 'paralyzed')) {
       oAction = { kind: 'defend' }
     } else {
       oAction = botChooseAction(opponent.creatureType, curO, curP, opponentLoadout, oPassiveLevel, difficulty ?? 'medium')
@@ -1237,6 +1270,7 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
     if (hasStatus(curO, 'paralyzed')) logParts.push('⚡ Ennemi paralysé ! Sa défense est forcée.')
 
     // ── Player turn ──
+    let playerDmgToOpponent = 0
     if (pAction.kind === 'charge') {
       if (hasStatus(newP, 'exhausted')) {
         logParts.push('>😴 Épuisé ! Tu ne peux pas charger.')
@@ -1272,28 +1306,53 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
 
         // Apply target deltas to newO with dodge + barrier checks
         let finalDmg = Math.max(0, -result.targetHpDelta)
+        let blockedDmg = 0
         if (finalDmg > 0) {
-          if (oAction.kind === 'defend') {
+          if (oAction.kind === 'defend' || (oAction.kind === 'spell' && oAction.spellId === 'carapace_chauffee')) {
+            blockedDmg = finalDmg
             finalDmg = 0
             logParts.push('Ennemi bloque tous les degats !')
           }
         }
         if (finalDmg > 0) {
+          const accuracyDown = getStatus(newP, 'fog')
+          if (accuracyDown?.data === 'accuracy_down' && Math.random() < (accuracyDown.value ?? 15) / 100) {
+            finalDmg = 0
+            logParts.push('Ton attaque rate dans le brouillage !')
+          }
+        }
+        if (finalDmg > 0) {
+          const dodgeUp = getStatus(newO, 'dodge_up')
           const dodgeChance =
-            (hasStatus(newO, 'dodge_up') ? 0.15 : 0) +
+            (opponent.creatureType === 'sylva' ? CREATURE_PROFILES.sylva.dodgeBase : 0) +
+            ((dodgeUp?.value ?? 0) / 100) +
             (hasStatus(newO, 'dodge_ready') ? 1.0 : 0)
           if (Math.random() < dodgeChance) {
             finalDmg = 0
             logParts.push('Ennemi esquive ! 💨')
             newO = removeStatus(newO, 'dodge_ready')
           } else {
-            finalDmg = Math.round(finalDmg * playerMods.damageMult * playerMods.counterBonus)
+            if (pPassiveLevel !== 1) {
+              finalDmg = Math.round(finalDmg * playerMods.damageMult * playerMods.counterBonus)
+            }
+            const boost = getStatus(newP, 'damage_boost')
+            if (boost) {
+              finalDmg = Math.round(finalDmg * (1 + (boost.value ?? 50) / 100))
+              newP = removeStatus(newP, 'damage_boost')
+              logParts.push('Boost consomme : degats +50% !')
+            }
             if (hasStatus(newO, 'barrier')) {
               const b = getStatus(newO, 'barrier')!
               finalDmg = Math.round(finalDmg * (1 - (b.value ?? 50) / 100))
             }
           }
         }
+        if (blockedDmg > 0 && oAction.kind === 'spell' && oAction.spellId === 'carapace_chauffee') {
+          const reflected = Math.round(blockedDmg * (oPassiveLevel === 1 ? 0.5 : 0.3))
+          newP = { ...newP, hp: Math.max(0, newP.hp - reflected) }
+          logParts.push(`Carapace ennemie renvoie ${reflected} PV !`)
+        }
+        playerDmgToOpponent = finalDmg
         newO = { ...newO, hp: Math.max(0, newO.hp - finalDmg) }
         newO = { ...newO, energy: Math.max(0, Math.min(OPPONENT_MAX_ENERGY, newO.energy + result.targetEnergyDelta)) }
         for (const st of result.targetStatusesToAdd) newO = addStatus(newO, st)
@@ -1346,16 +1405,26 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
 
         // Apply target (player) deltas
         let finalDmgToPlayer = Math.max(0, -result.targetHpDelta)
+        let blockedDmgToPlayer = 0
         if (finalDmgToPlayer > 0) {
-          if (pAction.kind === 'defend') {
+          if (pAction.kind === 'defend' || (pAction.kind === 'spell' && pAction.spellId === 'carapace_chauffee')) {
+            blockedDmgToPlayer = finalDmgToPlayer
             finalDmgToPlayer = 0
             logParts.push('Tu bloques tous les degats !')
           }
         }
         if (finalDmgToPlayer > 0) {
+          const accuracyDown = getStatus(newO, 'fog')
+          if (accuracyDown?.data === 'accuracy_down' && Math.random() < (accuracyDown.value ?? 15) / 100) {
+            finalDmgToPlayer = 0
+            logParts.push('L attaque ennemie rate dans le brouillage !')
+          }
+        }
+        if (finalDmgToPlayer > 0) {
+          const playerDodgeUp = getStatus(newP, 'dodge_up')
           const playerDodge =
             playerMods.dodgeChance +
-            (hasStatus(newP, 'dodge_up') ? 0.15 : 0) +
+            ((playerDodgeUp?.value ?? 0) / 100) +
             (hasStatus(newP, 'dodge_ready') ? 1.0 : 0)
           if (Math.random() < playerDodge) {
             finalDmgToPlayer = 0
@@ -1367,14 +1436,22 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
               logParts.push('🌀 Sylva +1⚡ (esquive)')
             }
           } else {
-            finalDmgToPlayer = Math.round(
-              finalDmgToPlayer
-              * opponentCounterBonus
-              * opponentProfile.baseDamageMult
-              * GLOBAL_DMG_BOOST
-              * (1 + 0.03 * (opponent.level - 1))
-              * diffDmgMult
-            )
+            if (oPassiveLevel !== 1) {
+              finalDmgToPlayer = Math.round(
+                finalDmgToPlayer
+                * opponentCounterBonus
+                * opponentProfile.baseDamageMult
+                * GLOBAL_DMG_BOOST
+                * (1 + 0.03 * (opponent.level - 1))
+                * diffDmgMult
+              )
+            }
+            const boost = getStatus(newO, 'damage_boost')
+            if (boost) {
+              finalDmgToPlayer = Math.round(finalDmgToPlayer * (1 + (boost.value ?? 50) / 100))
+              newO = removeStatus(newO, 'damage_boost')
+              logParts.push('Boost ennemi consomme : degats +50% !')
+            }
             if (hasStatus(newP, 'barrier')) {
               const b = getStatus(newP, 'barrier')!
               finalDmgToPlayer = Math.round(finalDmgToPlayer * (1 - (b.value ?? 50) / 100))
@@ -1399,6 +1476,11 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
           }
           opponentDmgToPlayer = finalDmgToPlayer
         }
+        if (blockedDmgToPlayer > 0 && pAction.kind === 'spell' && pAction.spellId === 'carapace_chauffee') {
+          const reflected = Math.round(blockedDmgToPlayer * (pPassiveLevel === 1 ? 0.5 : 0.3))
+          newO = { ...newO, hp: Math.max(0, newO.hp - reflected) }
+          logParts.push(`Carapace reflechit ${reflected} PV a l'ennemi !`)
+        }
 
         newP = { ...newP, hp: Math.max(0, newP.hp - finalDmgToPlayer) }
         newP = { ...newP, energy: Math.max(0, Math.min(playerMods.maxEnergy, newP.energy + result.targetEnergyDelta)) }
@@ -1418,12 +1500,14 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
       const hasVoluteActive = hasStatus(newP, 'dodge_up')
       const bonusCondition = opponentMissed || hasVoluteActive
 
-      const rawBase = isParfaite ? 10.3 : 8.9
-      const rawDmg = isParfaite
-        ? Math.round(rawBase)
-        : Math.round(bonusCondition ? rawBase * 2 : rawBase)
+      const rawBase = pPassiveLevel === 1 ? 14 : (isParfaite ? 10.3 : 8.9)
+      const rawDmg = pPassiveLevel === 1
+        ? (bonusCondition ? 25 : 14)
+        : (isParfaite ? Math.round(rawBase) : Math.round(bonusCondition ? rawBase * 2 : rawBase))
 
-      let embDmg = Math.round(rawDmg * playerMods.damageMult * playerMods.counterBonus)
+      let embDmg = pPassiveLevel === 1
+        ? rawDmg
+        : Math.round(rawDmg * playerMods.damageMult * playerMods.counterBonus)
 
       // Embuscade parfaite ignores dodge/barrier if Volute active
       if (!(isParfaite && hasVoluteActive)) {
@@ -1434,11 +1518,48 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
       }
 
       newO = { ...newO, hp: Math.max(0, newO.hp - embDmg) }
+      playerDmgToOpponent = embDmg
       const condStr = bonusCondition
         ? (opponentMissed ? ' 🎯 Ambush !' : ' 🌀 Volute !')
         : ''
       const spellName = isParfaite ? 'Embuscade parfaite' : 'Embuscade'
       logParts.push(`>🗡️ ${spellName} ! -${embDmg} HP${condStr}`)
+    }
+
+    if (oAction.kind === 'spell' && (oAction.spellId === 'embuscade' || oAction.spellId === 'embuscade_parfaite')) {
+      const isParfaite = oAction.spellId === 'embuscade_parfaite'
+      const playerMissed = playerDmgToOpponent === 0 && pAction.kind !== 'charge'
+      const hasVoluteActive = hasStatus(newO, 'dodge_up')
+      const bonusCondition = playerMissed || hasVoluteActive
+
+      const rawBase = oPassiveLevel === 1 ? 14 : (isParfaite ? 10.3 : 8.9)
+      const rawDmg = oPassiveLevel === 1
+        ? (bonusCondition ? 25 : 14)
+        : (isParfaite ? Math.round(rawBase) : Math.round(bonusCondition ? rawBase * 2 : rawBase))
+
+      let embDmg = oPassiveLevel === 1
+        ? rawDmg
+        : Math.round(
+            rawDmg
+            * opponentCounterBonus
+            * opponentProfile.baseDamageMult
+            * GLOBAL_DMG_BOOST
+            * (1 + 0.03 * (opponent.level - 1))
+            * diffDmgMult
+          )
+
+      if (!(isParfaite && hasVoluteActive) && hasStatus(newP, 'barrier')) {
+        const b = getStatus(newP, 'barrier')!
+        embDmg = Math.round(embDmg * (1 - (b.value ?? 50) / 100))
+      }
+
+      newP = { ...newP, hp: Math.max(0, newP.hp - embDmg) }
+      opponentDmgToPlayer = embDmg
+      const condStr = bonusCondition
+        ? (playerMissed ? ' Ambush !' : ' Volute !')
+        : ''
+      const spellName = isParfaite ? 'Embuscade parfaite' : 'Embuscade'
+      logParts.push(`<${spellName} ennemi ! -${embDmg} HP${condStr}`)
     }
 
     // Burn DoT
