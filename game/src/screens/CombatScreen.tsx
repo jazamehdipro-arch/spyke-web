@@ -705,6 +705,46 @@ function chooseHardE1NemoAction(
   return { kind: 'charge' }
 }
 
+function chooseHardE1ZappAction(
+  botState: Combatant,
+  playerState: Combatant,
+  can: (id: SpellId) => boolean,
+  defendLocked: boolean,
+): CombatAction {
+  if (!defendLocked) {
+    const defendChanceByEnergy = [0, 0.15, 0.3, 0.45, 0.6, 0.6]
+    const defendChance = defendChanceByEnergy[Math.min(5, Math.max(0, playerState.energy))] ?? 0
+    if (Math.random() < defendChance) return { kind: 'defend' }
+  }
+
+  const attackChance =
+    botState.energy <= 0 ? 0 :
+    botState.energy === 1 ? 0.35 :
+    botState.energy === 2 ? 0.6 :
+    botState.energy === 3 ? 0.8 :
+    1
+  if (Math.random() >= attackChance) return { kind: 'charge' }
+
+  const aboveHalf = botState.hp > E1_BASE_HP.zapp / 2
+  const dechargeWeight = aboveHalf ? 15 : 40
+  const arcWeight = aboveHalf ? 15 : 35
+  const boostWeight = 20
+  const surchargeWeight = aboveHalf ? 50 : 5
+  const roll = Math.random() * (dechargeWeight + arcWeight + boostWeight + surchargeWeight)
+
+  let picked: SpellId = 'decharge'
+  if (roll < dechargeWeight) picked = 'decharge'
+  else if (roll < dechargeWeight + arcWeight) picked = 'arc_paralysant'
+  else if (roll < dechargeWeight + arcWeight + boostWeight) picked = 'boost'
+  else picked = 'surcharge'
+
+  if (picked === 'decharge' && can('decharge')) return { kind: 'spell', spellId: 'decharge' }
+  if (picked === 'arc_paralysant' && can('arc_paralysant')) return { kind: 'spell', spellId: 'arc_paralysant' }
+  if (picked === 'boost' && can('boost')) return { kind: 'spell', spellId: 'boost' }
+  if (picked === 'surcharge' && can('surcharge')) return { kind: 'spell', spellId: 'surcharge' }
+  return { kind: 'charge' }
+}
+
 function chooseHardE1SylvaAction(
   botState: Combatant,
   playerState: Combatant,
@@ -803,6 +843,9 @@ function botChooseAction(
     }
     if (type === 'nemo' && passiveLevel === 1) {
       return chooseHardE1NemoAction(botState, playerState, can, defendLocked)
+    }
+    if (type === 'zapp' && passiveLevel === 1) {
+      return chooseHardE1ZappAction(botState, playerState, can, defendLocked)
     }
     if (type === 'sylva' && passiveLevel === 1) {
       return chooseHardE1SylvaAction(botState, playerState, can, defendLocked)
