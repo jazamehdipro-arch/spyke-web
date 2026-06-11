@@ -62,24 +62,60 @@ export function decayStats(
   traits?: PersonalityTrait[]
 ): CreatureStats {
   const now = Date.now()
-  const lastFed = new Date(creature.lastFed).getTime()
-  const hoursSinceFed = (now - lastFed) / (1000 * 60 * 60)
+  const lastCare = Math.max(
+    new Date(creature.lastFed).getTime(),
+    new Date(creature.lastPlayed).getTime(),
+  )
+  const hoursSinceCare = Math.max(0, (now - lastCare) / (1000 * 60 * 60))
 
   const effectiveTraits = traits ?? creature.traits
-  const energySlowdown = hasTrait(effectiveTraits, 'paresseux') ? 0.7 : 1.0
+  const energyRecoveryMult = hasTrait(effectiveTraits, 'paresseux') ? 1.15 : 1.0
 
-  const hungerDecay    = Math.min(hoursSinceFed * 5, 100)
-  const energyDecay    = Math.min(hoursSinceFed * 2 * energySlowdown, 100)
-  // Cross-stat: faim basse → bonheur décline plus vite
-  const bonheurMult    = creature.stats.hunger < 30 ? 1.5 : 1.0
-  const happinessDecay = Math.min(hoursSinceFed * 2 * bonheurMult, 100)
+  const hungerDecay = Math.min(hoursSinceCare * 3, 100)
+  const restedEnergy = Math.min(80, creature.stats.energy + hoursSinceCare * 5 * energyRecoveryMult)
+  const happinessDecay = Math.min(hoursSinceCare * 1.5, 100)
 
   return {
     ...creature.stats,
-    hunger:    Math.max(0, creature.stats.hunger    - hungerDecay),
-    happiness: Math.max(0, creature.stats.happiness - happinessDecay),
-    energy:    Math.max(0, creature.stats.energy    - energyDecay),
+    hunger: Math.max(10, creature.stats.hunger - hungerDecay),
+    happiness: Math.max(25, creature.stats.happiness - happinessDecay),
+    energy: Math.max(10, restedEnergy),
   }
+}
+
+export function applyOfflineCareDecay(creature: Creature): Creature {
+  const now = new Date().toISOString()
+  const stats = decayStats(creature)
+  return {
+    ...creature,
+    stats,
+    mood: getMood(stats),
+    lastFed: now,
+    lastPlayed: now,
+  }
+}
+
+export function applyActiveCareTick(creature: Creature, hours: number): Creature {
+  if (hours <= 0) return creature
+  if (creature.stats.energy <= 0) {
+    const stats = {
+      ...creature.stats,
+      hunger: Math.max(10, creature.stats.hunger - hours * 3),
+      energy: Math.min(100, creature.stats.energy + hours * 20),
+      happiness: Math.max(0, creature.stats.happiness - hours * 3),
+    }
+    return { ...creature, stats, mood: getMood(stats), lastPlayed: new Date().toISOString() }
+  }
+  const hunger = Math.max(0, creature.stats.hunger - hours * 8)
+  const lowNeeds = hunger < 30 || creature.stats.energy < 20
+  const happinessDrift = lowNeeds ? hours * 3 : Math.max(0, creature.stats.happiness - 70) * Math.min(1, hours * 0.1)
+  const stats = {
+    ...creature.stats,
+    hunger,
+    energy: Math.max(0, creature.stats.energy - hours * 5),
+    happiness: Math.max(0, creature.stats.happiness - happinessDrift),
+  }
+  return { ...creature, stats, mood: getMood(stats), lastPlayed: new Date().toISOString() }
 }
 
 export const DAILY_CARE_XP_CAP = 30

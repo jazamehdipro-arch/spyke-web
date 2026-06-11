@@ -18,7 +18,7 @@ import EventModal from '../components/EventModal'
 import MiniGame from '../components/MiniGame'
 import ParticleEffect from '../components/ParticleEffect'
 import { Creature, GameEvent, InventoryItem, JournalEntry, Quest, TrainingStats } from '../types'
-import { DAILY_CARE_XP_CAP, FORME_LABELS, addCareXP, addXP, decayStats, getFormeLevel, getMood, xpForLevel } from '../utils/creature'
+import { DAILY_CARE_XP_CAP, FORME_LABELS, addCareXP, addXP, applyActiveCareTick, applyOfflineCareDecay, getFormeLevel, getMood, xpForLevel } from '../utils/creature'
 import { generateRandomEvent, getRewardItem, shouldTriggerEvent } from '../utils/events'
 import { getCreatureSpeech, getReactionMessage } from '../utils/speech'
 import { addItemToInventory, addJournalEntry, saveCreature, saveEvents, saveInventory, saveJournal, saveQuests } from '../utils/storage'
@@ -30,10 +30,10 @@ const { height: SCREEN_H } = Dimensions.get('window')
 const HERO_H = Math.round(SCREEN_H * 0.44)
 
 const TRAINING_CONFIG: Record<keyof TrainingStats, { label: string; emoji: string; desc: string; costEnergy: number; costHunger: number }> = {
-  strength:  { label: 'Force',     emoji: '💪', desc: '+0.8% dégâts',       costEnergy: 15, costHunger: 10 },
-  reflexes:  { label: 'Réflexes',  emoji: '🔰', desc: '-0.7% dégâts reçus', costEnergy: 10, costHunger: 8  },
-  endurance: { label: 'Endurance', emoji: '🛡️', desc: '+énergie & +PV max', costEnergy: 20, costHunger: 15 },
-  defense:   { label: 'Défense',   emoji: '🎯', desc: '+0.65% esquive',      costEnergy: 12, costHunger: 8  },
+  strength:  { label: 'Force',     emoji: '💪', desc: '+0.8% dégâts',       costEnergy: 18, costHunger: 0  },
+  reflexes:  { label: 'Réflexes',  emoji: '🔰', desc: '-0.7% dégâts reçus', costEnergy: 18, costHunger: 0  },
+  endurance: { label: 'Endurance', emoji: '🛡️', desc: '+énergie & +PV max', costEnergy: 18, costHunger: 0  },
+  defense:   { label: 'Défense',   emoji: '🎯', desc: '+0.65% esquive',      costEnergy: 18, costHunger: 0  },
 }
 
 const MAX_TRAINING_POINTS = 40
@@ -43,10 +43,10 @@ const PLAY_ACTIVITIES: Record<string, {
   stat: keyof TrainingStats
   costEnergy: number; costHunger: number; happinessGain: number
 }> = {
-  sparring:  { label: 'Combat',    emoji: '🥊', desc: 'Entraînement de force au sac',       stat: 'strength',  costEnergy: 20, costHunger: 15, happinessGain: 15 },
-  agility:   { label: 'Agilité',   emoji: '🏃', desc: "Parcours d'obstacles et de vitesse", stat: 'reflexes',  costEnergy: 15, costHunger: 10, happinessGain: 20 },
-  endurance: { label: 'Endurance', emoji: '🧗', desc: 'Escalade et exercices cardio',        stat: 'endurance', costEnergy: 25, costHunger: 20, happinessGain: 12 },
-  puzzle:    { label: 'Stratégie', emoji: '🧩', desc: 'Puzzles tactiques et réflexion',      stat: 'defense',   costEnergy: 12, costHunger: 8,  happinessGain: 25 },
+  sparring:  { label: 'Combat',    emoji: '🥊', desc: 'Entraînement de force au sac',       stat: 'strength',  costEnergy: 10, costHunger: 0,  happinessGain: 15 },
+  agility:   { label: 'Agilité',   emoji: '🏃', desc: "Parcours d'obstacles et de vitesse", stat: 'reflexes',  costEnergy: 10, costHunger: 0,  happinessGain: 15 },
+  endurance: { label: 'Endurance', emoji: '🧗', desc: 'Escalade et exercices cardio',        stat: 'endurance', costEnergy: 10, costHunger: 0,  happinessGain: 15 },
+  puzzle:    { label: 'Stratégie', emoji: '🧩', desc: 'Puzzles tactiques et réflexion',      stat: 'defense',   costEnergy: 10, costHunger: 0,  happinessGain: 15 },
 }
 
 function formatFoodEffects(item: InventoryItem): string {
@@ -108,6 +108,8 @@ export default function HomeScreen({
   const [pendingActivity, setPendingActivity] = useState<keyof typeof PLAY_ACTIVITIES | null>(null)
   const evolveScale = useRef(new Animated.Value(0)).current
   const speechTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const activeCareTick = useRef(Date.now())
+  const boredomRef = useRef<{ key: string | null; count: number }>({ key: null, count: 0 })
   const titleTapCount = useRef(0)
   const titleTapTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -130,6 +132,21 @@ export default function HomeScreen({
     const interval = setInterval(() => showSpeech(getCreatureSpeech(creature)), 12000)
     return () => clearInterval(interval)
   }, [creature.stats.hunger, creature.stats.happiness, creature.stats.energy, creature.stats.isSick])
+
+  useEffect(() => {
+    activeCareTick.current = Date.now()
+    const interval = setInterval(async () => {
+      const now = Date.now()
+      const hours = (now - activeCareTick.current) / (1000 * 60 * 60)
+      activeCareTick.current = now
+      if (hours <= 0) return
+      const updated = applyActiveCareTick(creature, hours)
+      if (updated === creature) return
+      await saveCreature(updated)
+      onUpdate(updated)
+    }, 60 * 1000)
+    return () => clearInterval(interval)
+  }, [creature, onUpdate])
 
   const triggerParticles = (emojis: string[]) => {
     setParticleEmojis(emojis)
@@ -161,6 +178,7 @@ export default function HomeScreen({
 
   const handleFeedWith = async (item: InventoryItem) => {
     setShowFoodPicker(false)
+    boredomRef.current = { key: null, count: 0 }
     triggerPose('eat')
     let isSick = creature.stats.isSick
     if (item.effect.combatBuff?.sickChance && Math.random() < item.effect.combatBuff.sickChance) isSick = true
@@ -169,12 +187,13 @@ export default function HomeScreen({
       const expiresAt = new Date(Date.now() + item.effect.combatBuff.durationMin * 60 * 1000).toISOString()
       activeCombatBuff = { damageMult: item.effect.combatBuff.damageMult, expiresAt }
     }
+    const hungerBonus = creature.stats.hunger < 30 && (item.effect.hunger ?? 0) > 0 ? 5 : 0
     let updated: Creature = {
       ...creature, lastFed: new Date().toISOString(), totalFed: creature.totalFed + 1, activeCombatBuff,
       stats: {
         ...creature.stats,
         hunger:    Math.min(100, creature.stats.hunger    + (item.effect.hunger    ?? 0)),
-        happiness: Math.min(100, Math.max(0, creature.stats.happiness + (item.effect.happiness ?? 0))),
+        happiness: Math.min(100, Math.max(0, creature.stats.happiness + (item.effect.happiness ?? 0) + hungerBonus)),
         energy:    Math.min(100, Math.max(0, creature.stats.energy    + (item.effect.energy    ?? 0))),
         isSick,
       },
@@ -192,6 +211,7 @@ export default function HomeScreen({
   }
 
   const handleTrain = async (type: keyof TrainingStats) => {
+    boredomRef.current = { key: null, count: 0 }
     const cfg = TRAINING_CONFIG[type]
     const tr = creature.training ?? { strength: 0, reflexes: 0, endurance: 0, defense: 0 }
     const current = tr[type]
@@ -244,7 +264,15 @@ export default function HomeScreen({
     setShowMiniGame(false)
     setCurrentPose(null)
     const act = pendingActivity ? PLAY_ACTIVITIES[pendingActivity] : null
-    const happinessGain = Math.min(40, act ? act.happinessGain + score : score * 2 + 10)
+    const boredomKey = pendingActivity ?? 'play'
+    if (boredomRef.current.key === boredomKey) {
+      boredomRef.current.count += 1
+    } else {
+      boredomRef.current = { key: boredomKey, count: 1 }
+    }
+    const boredomMult = Math.pow(0.8, Math.max(0, boredomRef.current.count - 1))
+    const baseHappinessGain = Math.min(40, act ? act.happinessGain + score : score * 2 + 10)
+    const happinessGain = Math.max(1, Math.round(baseHappinessGain * boredomMult))
     const tr = creature.training ?? { strength: 0, reflexes: 0, endurance: 0, defense: 0 }
     const totalPts = Object.values(tr).reduce((a, b) => a + b, 0)
     const newTr = act && tr[act.stat] < 20 && totalPts < MAX_TRAINING_POINTS
@@ -256,7 +284,7 @@ export default function HomeScreen({
         ...creature.stats,
         happiness: Math.min(100, creature.stats.happiness + happinessGain),
         energy:    Math.max(0, creature.stats.energy - (act?.costEnergy ?? 15)),
-        hunger:    Math.max(0, creature.stats.hunger  - (act?.costHunger ?? 10)),
+        hunger:    Math.max(0, creature.stats.hunger  - (act?.costHunger ?? 0)),
       },
     }
     updated = { ...addCareXP(updated, 5), mood: getMood(updated.stats) }
@@ -274,12 +302,13 @@ export default function HomeScreen({
   }
 
   const handleSleep = async () => {
+    boredomRef.current = { key: null, count: 0 }
     if (creature.stats.energy >= 95) { showSpeech('Je suis en pleine forme ! ⚡'); return }
     triggerPose('sleep', 3500)
-    const sleepRecovery = creature.stats.hunger < 30 ? 20 : 40
+    const sleepRecovery = 60
     let updated: Creature = {
-      ...creature, totalSlept: creature.totalSlept + 1,
-      stats: { ...creature.stats, energy: Math.min(100, creature.stats.energy + sleepRecovery), hunger: Math.max(0, creature.stats.hunger - 5) },
+      ...creature, lastPlayed: new Date().toISOString(), totalSlept: creature.totalSlept + 1,
+      stats: { ...creature.stats, energy: Math.min(100, creature.stats.energy + sleepRecovery), hunger: Math.max(10, creature.stats.hunger - 3) },
     }
     updated = { ...addCareXP(updated, 5), mood: getMood(updated.stats) }
     let nq = updateQuestsAfterAction(quests, 'sleep')
@@ -309,8 +338,7 @@ export default function HomeScreen({
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true)
-    const decayed = { ...creature, stats: decayStats(creature) }
-    const withMood = { ...decayed, mood: getMood(decayed.stats) }
+    const withMood = applyOfflineCareDecay(creature)
     await saveCreature(withMood)
     onUpdate(withMood)
     setRefreshing(false)
@@ -623,7 +651,7 @@ export default function HomeScreen({
                   <Text style={s.sheetRowIcon}>{act.emoji}</Text>
                   <View style={{ flex: 1 }}>
                     <Text style={s.sheetRowName}>{act.label} · {maxed ? '✅ Max' : `${TRAINING_CONFIG[act.stat].label} Lv ${curLv}/20`}</Text>
-                    <Text style={s.sheetRowSub}>{act.desc} · -{act.costEnergy}⚡ -{act.costHunger}🍖</Text>
+                    <Text style={s.sheetRowSub}>{act.desc} · -{act.costEnergy}⚡{act.costHunger > 0 ? ` -${act.costHunger}🍖` : ''}</Text>
                   </View>
                 </TouchableOpacity>
               )
@@ -657,7 +685,7 @@ export default function HomeScreen({
               const canTrain = cur < 20 && totalTrainingPts < MAX_TRAINING_POINTS && (
                 hasPending || (creature.stats.energy >= cfg.costEnergy && creature.stats.hunger >= cfg.costHunger)
               )
-              const costLabel = hasPending ? '✨ Gratuit' : `-${cfg.costEnergy}⚡ -${cfg.costHunger}🍖`
+              const costLabel = hasPending ? '✨ Gratuit' : `-${cfg.costEnergy}⚡${cfg.costHunger > 0 ? ` -${cfg.costHunger}🍖` : ''}`
               return (
                 <TouchableOpacity key={type} style={[s.sheetRow, !canTrain && { opacity: 0.4 }]}
                   onPress={() => canTrain && handleTrain(type)} activeOpacity={canTrain ? 0.75 : 1}>

@@ -8,7 +8,7 @@ import OnboardingScreen from './src/screens/OnboardingScreen'
 import ProfileScreen from './src/screens/ProfileScreen'
 import QuestsScreen from './src/screens/QuestsScreen'
 import { Creature, Crossing, CreatureType, DailyQuest, GameEvent, InventoryItem, JournalEntry, Quest } from './src/types'
-import { addXP, createNewCreature, decayStats, getMood } from './src/utils/creature'
+import { addXP, applyOfflineCareDecay, createNewCreature, getMood } from './src/utils/creature'
 import { ITEM_CATALOG, drawMysteryBox, getStarterInventory } from './src/utils/items'
 import { QUEST_DEFINITIONS } from './src/utils/quests'
 import { retro } from './src/styles/retro'
@@ -82,8 +82,7 @@ export default function App() {
       ])
 
       if (savedCreature && savedPlayer) {
-        const decayed = { ...savedCreature, stats: decayStats(savedCreature) }
-        const withMood = { ...decayed, mood: getMood(decayed.stats) }
+        const withMood = applyOfflineCareDecay(savedCreature)
 
         // Resolve daily quests (refresh if stale)
         let dailyQuests: DailyQuest[]
@@ -111,6 +110,8 @@ export default function App() {
           }
           await saveStreak(streak, today)
         }
+
+        await saveCreature(withMood)
 
         // Coins from player data or default 0
         const coins = savedPlayer.coins ?? 0
@@ -234,12 +235,15 @@ export default function App() {
       return
     }
 
+    const hungerBonus = creature.stats.hunger < 30 && (item.effect.hunger ?? 0) > 0 ? 5 : 0
+    const now = new Date().toISOString()
     let updatedCreature: Creature = {
       ...creature,
+      lastFed: (item.effect.hunger ?? 0) > 0 ? now : creature.lastFed,
       stats: {
         ...creature.stats,
         hunger:    Math.min(100, creature.stats.hunger    + (item.effect.hunger    ?? 0)),
-        happiness: Math.min(100, creature.stats.happiness + (item.effect.happiness ?? 0)),
+        happiness: Math.min(100, creature.stats.happiness + (item.effect.happiness ?? 0) + hungerBonus),
         energy:    Math.min(100, creature.stats.energy    + (item.effect.energy    ?? 0)),
         isSick:    item.effect.healsSickness ? false : creature.stats.isSick,
       },
@@ -389,6 +393,15 @@ export default function App() {
             player={state.creature}
             onCombatEnd={async (won, xpGained, coinsGained) => {
               let updated = addXP(state.creature, xpGained)
+              updated = {
+                ...updated,
+                lastPlayed: new Date().toISOString(),
+                stats: {
+                  ...updated.stats,
+                  energy: Math.max(0, updated.stats.energy - 18),
+                  happiness: Math.min(100, updated.stats.happiness + (won ? 10 : 0)),
+                },
+              }
               updated = { ...updated, mood: getMood(updated.stats) }
               await saveCreature(updated)
               let newInventory = state.inventory
