@@ -216,7 +216,7 @@ function chooseSocialEvent(profile: SocialProfile, relation: SocialRelation, pla
   const curiosity = dialWeight(profile.curiosity)
 
   const weights: Partial<Record<SocialEventType, number>> = {
-    friendship: 18 + sociability * 5 + loyalty * 4 + relation.friendshipLevel * 2,
+    friendship: 8 + sociability * 5 + loyalty * 4 + relation.friendshipLevel * 2,
     mood: 7 + sociability * 3 + (profile.rules.giftSadMonsters ? 3 : 0),
     gift: 3 + generosity * 5 + (isFriend ? 4 : 0),
     duel: 2 + aggression * 7 + (isRival ? 6 : 0),
@@ -512,49 +512,49 @@ function EncounterModal({ encounter, onFight, onDismiss, playerType }: {
                   <PixelButton title="COMBATTRE" icon="⚔️" color={retro.red} big onPress={onFight} style={{ alignSelf: 'stretch' }} />
                   <TouchableOpacity onPress={onDismiss} style={st.encGhostBtn}><Text style={st.encGhostTxt}>Plus tard</Text></TouchableOpacity>
                 </>
-              ) : event.type === 'friendship' ? (
-                gameResult ? (
-                  <>
-                    <View style={[st.gameResultBanner, {
-                      backgroundColor:
-                        gameResult === 'win'  ? retro.mint + '30' :
-                        gameResult === 'loss' ? retro.red  + '30' : retro.gold + '30',
-                      borderColor:
+              ) : gameResult ? (
+                <>
+                  <View style={[st.gameResultBanner, {
+                    backgroundColor:
+                      gameResult === 'win'  ? retro.mint + '30' :
+                      gameResult === 'loss' ? retro.red  + '30' : retro.gold + '30',
+                    borderColor:
+                      gameResult === 'win'  ? retro.mint :
+                      gameResult === 'loss' ? retro.red  : retro.gold,
+                  }]}>
+                    <Text style={[st.gameResultTxt, {
+                      color:
                         gameResult === 'win'  ? retro.mint :
                         gameResult === 'loss' ? retro.red  : retro.gold,
                     }]}>
-                      <Text style={[st.gameResultTxt, {
-                        color:
-                          gameResult === 'win'  ? retro.mint :
-                          gameResult === 'loss' ? retro.red  : retro.gold,
-                      }]}>
-                        {gameResult === 'win'
-                          ? '🏆 Duel gagné ! Amitié renforcée'
-                          : gameResult === 'loss'
-                          ? '💀 Duel perdu... jusqu\'à la prochaine !'
-                          : '🤝 Match nul, belle partie !'}
-                      </Text>
-                    </View>
-                    <PixelButton title="CONTINUER" color={retro.gold} textColor={retro.ink} big onPress={onDismiss} style={{ alignSelf: 'stretch' }} />
-                  </>
-                ) : (
-                  <>
-                    <PixelButton title="🎮 DUEL AMICAL" color={retro.mint} textColor={retro.ink} big onPress={() => setShowGame(true)} style={{ alignSelf: 'stretch' }} />
-                    <TouchableOpacity onPress={onDismiss} style={st.encGhostBtn}><Text style={st.encGhostTxt}>Passer</Text></TouchableOpacity>
-                  </>
-                )
+                      {gameResult === 'win'
+                        ? '🏆 Gagné ! Quel talent'
+                        : gameResult === 'loss'
+                        ? '💥 Perdu... revanche au prochain croisement !'
+                        : '🤝 Égalité, pas mal du tout !'}
+                    </Text>
+                  </View>
+                  <PixelButton title="CONTINUER" color={retro.gold} textColor={retro.ink} big onPress={onDismiss} style={{ alignSelf: 'stretch' }} />
+                </>
               ) : (
-                <PixelButton title="CONTINUER" color={retro.gold} textColor={retro.ink} big onPress={onDismiss} style={{ alignSelf: 'stretch' }} />
+                <>
+                  <PixelButton title="🎮 MINI-JEU" color={retro.mint} textColor={retro.ink} big onPress={() => setShowGame(true)} style={{ alignSelf: 'stretch' }} />
+                  <TouchableOpacity onPress={onDismiss} style={st.encGhostBtn}><Text style={st.encGhostTxt}>Passer</Text></TouchableOpacity>
+                </>
               )}
             </View>
 
             {/* Crossing mini-game overlay */}
             <CrossingGame
               visible={showGame}
+              eventType={event.type}
               playerType={playerType}
               opponentType={opponent.creatureType}
               opponentName={`@${opponent.username}`}
-              onClose={(result) => { setShowGame(false); setGameResult(result) }}
+              onClose={(result) => {
+                setShowGame(false)
+                if (result !== 'skip') setGameResult(result)
+              }}
             />
           </View>
         )}

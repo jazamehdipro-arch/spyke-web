@@ -3,7 +3,7 @@ import {
   Animated, Easing, Image, StyleSheet,
   Text, TouchableOpacity, View,
 } from 'react-native'
-import { CreatureType } from '../types'
+import { CreatureType, SocialEventType } from '../types'
 import { retro, typeTheme } from '../styles/retro'
 
 const SPRITES: Record<CreatureType, any> = {
@@ -13,325 +13,420 @@ const SPRITES: Record<CreatureType, any> = {
   zapp:  require('../../assets/sprites/zapp_e1_clean.png'),
 }
 
-const ICONS: Record<CreatureType, string> = { ignis: '🔥', nemo: '💧', sylva: '🌿', zapp: '⚡' }
-const ALL_TYPES: CreatureType[] = ['ignis', 'nemo', 'sylva', 'zapp']
+export type GameResult = 'win' | 'draw' | 'loss'
 
-// Cycle: ignis → nemo → zapp → sylva → ignis
-const BEATS: Record<CreatureType, CreatureType> = { ignis: 'nemo', nemo: 'zapp', zapp: 'sylva', sylva: 'ignis' }
+// ── Which game for which interaction ────────────────────────
+type GameKind = 'timing' | 'mole' | 'memory' | 'sequence'
 
-function resolveRound(player: CreatureType, opp: CreatureType): 'win' | 'draw' | 'loss' {
-  if (player === opp) return 'draw'
-  return BEATS[player] === opp ? 'win' : 'loss'
+const EVENT_GAME: Record<SocialEventType, GameKind> = {
+  friendship: 'timing',
+  traveler:   'timing',
+  theft:      'mole',
+  mood:       'mole',
+  duel:       'mole',
+  gift:       'memory',
+  skin:       'memory',
+  mentor:     'sequence',
 }
 
-function aiPick(oppType: CreatureType): CreatureType {
-  // Opponent favors their own type (4:1:1:1 weight)
-  const r = Math.random() * 7
-  if (r < 4) return oppType
-  const others = ALL_TYPES.filter(t => t !== oppType)
-  return others[Math.floor(Math.random() * others.length)]
+const THEMES: Record<SocialEventType, { emoji: string; title: string; desc: string; target: string }> = {
+  friendship: { emoji: '🤝', title: 'HIGH FIVE !',        desc: 'Tape quand le cercle doré touche le cercle blanc', target: '🤝' },
+  traveler:   { emoji: '🧭', title: 'SYNCHRO !',          desc: 'Tape quand le cercle doré touche le cercle blanc', target: '🧭' },
+  theft:      { emoji: '🦝', title: 'ATTRAPE LE FILOU !', desc: 'Tape sur le filou dès qu\'il apparaît',            target: '🦝' },
+  mood:       { emoji: '💖', title: 'REMONTE LE MORAL !', desc: 'Tape sur les cœurs dès qu\'ils apparaissent',      target: '💖' },
+  duel:       { emoji: '⚔️', title: 'RÉFLEXES !',         desc: 'Tape sur la cible dès qu\'elle apparaît',          target: '🎯' },
+  gift:       { emoji: '🎁', title: 'CADEAUX CACHÉS !',   desc: 'Mémorise où sont les 2 cadeaux, puis retrouve-les', target: '🎁' },
+  skin:       { emoji: '✨', title: 'ÉTOILES CACHÉES !',  desc: 'Mémorise où sont les 2 étoiles, puis retrouve-les', target: '✨' },
+  mentor:     { emoji: '📘', title: 'LA LEÇON !',         desc: 'Regarde la séquence de flèches, puis répète-la',   target: '📘' },
 }
 
-type Phase = 'countdown' | 'choose' | 'reveal' | 'result'
-type RoundResult = 'win' | 'draw' | 'loss'
-const ROUNDS = 3
-const CHOOSE_SECS = 3
+// ─────────────────────────────────────────────────────────────
+// HIGH FIVE — un cercle rétrécit, tape quand il touche la cible
+// ─────────────────────────────────────────────────────────────
+function TimingGame({ target, onDone }: { target: string; onDone: (r: GameResult) => void }) {
+  const ROUNDS  = 3
+  const DUR     = 1700
+  // Ring scales linearly 2.3 → 0.4; it matches the target (scale 1) at this instant
+  const PERFECT = DUR * ((2.3 - 1) / (2.3 - 0.4))
+  const WINDOW  = 200
 
-interface Props {
-  visible: boolean
-  playerType: CreatureType
-  opponentType: CreatureType
-  opponentName: string
-  onClose: (result: 'win' | 'draw' | 'loss') => void
-}
+  const [round, setRound] = useState(0)
+  const [hits, setHits]   = useState(0)
+  const [fb, setFb]       = useState<'hit' | 'miss' | null>(null)
+  const scale    = useRef(new Animated.Value(2.3)).current
+  const startAt  = useRef(0)
+  const locked   = useRef(true)
+  const hitsRef  = useRef(0)
+  const roundRef = useRef(0)
+  const missT    = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const nextT    = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-export default function CrossingGame({ visible, playerType, opponentType, opponentName, onClose }: Props) {
-  const [phase, setPhase]         = useState<Phase>('countdown')
-  const [countNum, setCountNum]   = useState(3)
-  const [timeLeft, setTimeLeft]   = useState(CHOOSE_SECS)
-  const [round, setRound]         = useState(0)
-  const [pChoice, setPChoice]     = useState<CreatureType | null>(null)
-  const [oChoice, setOChoice]     = useState<CreatureType | null>(null)
-  const [roundRes, setRoundRes]   = useState<RoundResult | null>(null)
-  const [roundHist, setRoundHist] = useState<RoundResult[]>([])
-  const [scores, setScores]       = useState({ p: 0, o: 0 })
-  const [finalRes, setFinalRes]   = useState<'win' | 'draw' | 'loss'>('draw')
-
-  const timerW     = useRef(new Animated.Value(1)).current
-  const pChipScale = useRef(new Animated.Value(0)).current
-  const oChipScale = useRef(new Animated.Value(0)).current
-  const cntScale   = useRef(new Animated.Value(1)).current
-  const pBounce    = useRef(new Animated.Value(0)).current
-  const oBounce    = useRef(new Animated.Value(0)).current
-
-  const scoresRef = useRef({ p: 0, o: 0 })
-  const histRef   = useRef<RoundResult[]>([])
-  const roundRef  = useRef(0)
-  const phaseRef  = useRef<Phase>('countdown')
-
-  const goPhase = useCallback((p: Phase) => { phaseRef.current = p; setPhase(p) }, [])
-
-  // Reset when game opens
-  useEffect(() => {
-    if (!visible) return
-    scoresRef.current = { p: 0, o: 0 }
-    histRef.current   = []
-    roundRef.current  = 0
-    setScores({ p: 0, o: 0 })
-    setRoundHist([])
-    setRound(0)
-    setCountNum(3)
-    goPhase('countdown')
-  }, [visible])
-
-  // Countdown phase
-  useEffect(() => {
-    if (phase !== 'countdown' || !visible) return
-    let n = 3
-    setCountNum(n)
-    cntScale.setValue(1.6)
-    Animated.spring(cntScale, { toValue: 1, useNativeDriver: true, bounciness: 14 }).start()
-    const iv = setInterval(() => {
-      n--
-      if (n <= 0) {
-        clearInterval(iv)
-        goPhase('choose')
+  const finishRound = useCallback((hit: boolean) => {
+    if (locked.current) return
+    locked.current = true
+    if (missT.current) clearTimeout(missT.current)
+    scale.stopAnimation()
+    if (hit) { hitsRef.current += 1; setHits(hitsRef.current) }
+    setFb(hit ? 'hit' : 'miss')
+    nextT.current = setTimeout(() => {
+      roundRef.current += 1
+      if (roundRef.current >= ROUNDS) {
+        const h = hitsRef.current
+        onDone(h >= 2 ? 'win' : h === 1 ? 'draw' : 'loss')
       } else {
-        setCountNum(n)
-        cntScale.setValue(1.6)
-        Animated.spring(cntScale, { toValue: 1, useNativeDriver: true, bounciness: 14 }).start()
+        setRound(roundRef.current)
+        startRound()
       }
     }, 800)
-    return () => clearInterval(iv)
-  }, [phase, round, visible])
+  }, [onDone])
 
-  const doReveal = useCallback((pPick: CreatureType) => {
-    if (phaseRef.current !== 'choose') return
-    timerW.stopAnimation()
+  const startRound = useCallback(() => {
+    setFb(null)
+    scale.setValue(2.3)
+    startAt.current = Date.now()
+    locked.current = false
+    Animated.timing(scale, { toValue: 0.4, duration: DUR, easing: Easing.linear, useNativeDriver: true }).start()
+    missT.current = setTimeout(() => finishRound(false), DUR + 40)
+  }, [finishRound])
 
-    const oPick     = aiPick(opponentType)
-    const res       = resolveRound(pPick, oPick)
-    const newScores = {
-      p: scoresRef.current.p + (res === 'win' ? 1 : 0),
-      o: scoresRef.current.o + (res === 'loss' ? 1 : 0),
-    }
-    scoresRef.current = newScores
-    const newHist = [...histRef.current, res]
-    histRef.current  = newHist
-    const nextRound  = roundRef.current + 1
-    roundRef.current = nextRound
-
-    setPChoice(pPick)
-    setOChoice(oPick)
-    setRoundRes(res)
-    setScores(newScores)
-    setRoundHist(newHist)
-    pChipScale.setValue(0)
-    oChipScale.setValue(0)
-    goPhase('reveal')
-
-    Animated.parallel([
-      Animated.spring(oChipScale, { toValue: 1, useNativeDriver: true, bounciness: 16 }),
-      Animated.spring(pChipScale, { toValue: 1, useNativeDriver: true, bounciness: 16, speed: 7 }),
-    ]).start()
-
-    const bounceTarget = res === 'win' ? pBounce : res === 'loss' ? oBounce : null
-    if (bounceTarget) {
-      Animated.sequence([
-        Animated.timing(bounceTarget, { toValue: -18, duration: 160, useNativeDriver: true }),
-        Animated.spring(bounceTarget, { toValue: 0, useNativeDriver: true }),
-      ]).start()
-    }
-
-    setTimeout(() => {
-      setRound(nextRound)
-      if (nextRound >= ROUNDS) {
-        const final: 'win' | 'draw' | 'loss' =
-          newScores.p > newScores.o ? 'win' :
-          newScores.p < newScores.o ? 'loss' : 'draw'
-        setFinalRes(final)
-        goPhase('result')
-      } else {
-        goPhase('countdown')
-      }
-    }, 1500)
-  }, [opponentType, goPhase])
-
-  // Choose phase
   useEffect(() => {
-    if (phase !== 'choose' || !visible) return
-    setPChoice(null)
-    setOChoice(null)
-    setRoundRes(null)
-    setTimeLeft(CHOOSE_SECS)
-    timerW.setValue(1)
-    Animated.timing(timerW, {
-      toValue: 0, duration: CHOOSE_SECS * 1000, easing: Easing.linear, useNativeDriver: false,
-    }).start()
-    const iv = setInterval(() => setTimeLeft(t => Math.max(0, t - 1)), 1000)
-    const to = setTimeout(() => doReveal(playerType), CHOOSE_SECS * 1000)
-    return () => { clearInterval(iv); clearTimeout(to); timerW.stopAnimation() }
-  }, [phase, round, visible, doReveal, playerType])
+    const t = setTimeout(startRound, 600)
+    return () => {
+      clearTimeout(t)
+      if (missT.current) clearTimeout(missT.current)
+      if (nextT.current) clearTimeout(nextT.current)
+    }
+  }, [])
 
-  const pick = (t: CreatureType) => {
-    if (phaseRef.current !== 'choose') return
-    doReveal(t)
+  const tap = () => {
+    const dt = Date.now() - startAt.current
+    finishRound(Math.abs(dt - PERFECT) <= WINDOW)
   }
 
-  const pTheme = typeTheme[playerType]
-  const oTheme = typeTheme[opponentType]
+  return (
+    <TouchableOpacity style={s.gameArea} activeOpacity={1} onPress={tap}>
+      <View style={s.hud}>
+        <Text style={s.hudTxt}>Essai {Math.min(round + 1, ROUNDS)}/{ROUNDS}</Text>
+        <Text style={s.hudTxt}>✓ {hits}</Text>
+      </View>
+      <View style={s.timingCenter}>
+        {/* Fixed target ring */}
+        <View style={s.timingTarget}>
+          <Text style={s.timingEmoji}>{target}</Text>
+        </View>
+        {/* Shrinking ring */}
+        <Animated.View pointerEvents="none" style={[s.timingRing, { transform: [{ scale }] }]} />
+        <Text style={[s.timingFb, fb === 'hit' ? s.fbGood : s.fbBad]}>
+          {fb === 'hit' ? 'PARFAIT !' : fb === 'miss' ? 'RATÉ !' : ' '}
+        </Text>
+      </View>
+      <Text style={s.bottomHint}>Tape n'importe où quand le cercle doré touche le blanc !</Text>
+    </TouchableOpacity>
+  )
+}
 
-  if (!visible) return null
+// ─────────────────────────────────────────────────────────────
+// ATTRAPE — la cible surgit dans une grille 3×3, tape vite
+// ─────────────────────────────────────────────────────────────
+function MoleGame({ target, onDone }: { target: string; onDone: (r: GameResult) => void }) {
+  const SPAWNS = 6
+  const SHOW   = 800
+  const GAP    = 380
+
+  const [active, setActive] = useState<number | null>(null)
+  const [hits, setHits]     = useState(0)
+  const [spawnN, setSpawnN] = useState(0)
+  const activeRef = useRef<number | null>(null)
+  const hitsRef   = useRef(0)
+  const spawnRef  = useRef(0)
+  const timers    = useRef<ReturnType<typeof setTimeout>[]>([])
+
+  useEffect(() => {
+    let cancelled = false
+    const later = (fn: () => void, ms: number) => {
+      const t = setTimeout(() => { if (!cancelled) fn() }, ms)
+      timers.current.push(t)
+    }
+    const doSpawn = () => {
+      if (spawnRef.current >= SPAWNS) {
+        const h = hitsRef.current
+        onDone(h >= 4 ? 'win' : h >= 2 ? 'draw' : 'loss')
+        return
+      }
+      spawnRef.current += 1
+      setSpawnN(spawnRef.current)
+      const cell = Math.floor(Math.random() * 9)
+      activeRef.current = cell
+      setActive(cell)
+      later(() => {
+        activeRef.current = null
+        setActive(null)
+        later(doSpawn, GAP)
+      }, SHOW)
+    }
+    later(doSpawn, 800)
+    return () => { cancelled = true; timers.current.forEach(clearTimeout) }
+  }, [])
+
+  const tapCell = (i: number) => {
+    if (activeRef.current !== i) return
+    activeRef.current = null
+    setActive(null)
+    hitsRef.current += 1
+    setHits(hitsRef.current)
+  }
 
   return (
-    <View style={s.overlay}>
-      {/* Top bar: title + round pips */}
-      <View style={s.topBar}>
-        <Text style={s.gameTitle}>⚔ DUEL AMICAL</Text>
-        <View style={s.pips}>
-          {Array.from({ length: ROUNDS }).map((_, i) => {
-            const r = roundHist[i]
-            return (
-              <View key={i} style={[
-                s.pip,
-                r === 'win'  ? s.pipW :
-                r === 'loss' ? s.pipL :
-                r === 'draw' ? s.pipD : s.pipE,
-              ]} />
-            )
-          })}
-        </View>
+    <View style={s.gameArea}>
+      <View style={s.hud}>
+        <Text style={s.hudTxt}>{Math.min(spawnN, SPAWNS)}/{SPAWNS}</Text>
+        <Text style={s.hudTxt}>✓ {hits}</Text>
       </View>
-
-      {/* Score */}
-      <View style={s.scoreBand}>
-        <Text style={[s.scoreN, { color: oTheme.main }]}>{scores.o}</Text>
-        <Text style={s.scoreSep}>—</Text>
-        <Text style={[s.scoreN, { color: pTheme.main }]}>{scores.p}</Text>
+      <View style={s.moleGrid}>
+        {Array.from({ length: 9 }).map((_, i) => (
+          <TouchableOpacity
+            key={i}
+            style={[s.moleCell, active === i && s.moleCellActive]}
+            onPress={() => tapCell(i)}
+            activeOpacity={0.7}
+          >
+            <Text style={s.moleEmoji}>{active === i ? target : ''}</Text>
+          </TouchableOpacity>
+        ))}
       </View>
-
-      {/* Arena */}
-      <View style={s.arena}>
-        {/* Opponent fighter */}
-        <View style={s.fighter}>
-          <Animated.View style={{ transform: [{ translateY: oBounce }] }}>
-            <Image source={SPRITES[opponentType]} style={[s.sprite, s.spriteFlip]} resizeMode="contain" />
-          </Animated.View>
-          <Text style={[s.fighterName, { color: oTheme.main }]} numberOfLines={1}>{opponentName}</Text>
-        </View>
-
-        {/* Center zone */}
-        <View style={s.center}>
-          {phase === 'countdown' && (
-            <Animated.Text style={[s.countdownBig, { transform: [{ scale: cntScale }] }]}>
-              {countNum}
-            </Animated.Text>
-          )}
-          {phase === 'choose' && <Text style={s.swordsIcon}>⚔️</Text>}
-          {phase === 'reveal' && pChoice && oChoice && (
-            <View style={s.revealStack}>
-              <Animated.View style={[s.chip, { backgroundColor: oTheme.dark, borderColor: oTheme.main }, { transform: [{ scale: oChipScale }] }]}>
-                <Text style={s.chipIcon}>{ICONS[oChoice]}</Text>
-              </Animated.View>
-              <Text style={s.chipVs}>VS</Text>
-              <Animated.View style={[s.chip, { backgroundColor: pTheme.dark, borderColor: pTheme.main }, { transform: [{ scale: pChipScale }] }]}>
-                <Text style={s.chipIcon}>{ICONS[pChoice]}</Text>
-              </Animated.View>
-            </View>
-          )}
-          {phase === 'result' && (
-            <Text style={s.resultTrophy}>
-              {finalRes === 'win' ? '🏆' : finalRes === 'loss' ? '💀' : '🤝'}
-            </Text>
-          )}
-        </View>
-
-        {/* Player fighter */}
-        <View style={s.fighter}>
-          <Animated.View style={{ transform: [{ translateY: pBounce }] }}>
-            <Image source={SPRITES[playerType]} style={s.sprite} resizeMode="contain" />
-          </Animated.View>
-          <Text style={[s.fighterName, { color: pTheme.main }]}>TOI</Text>
-        </View>
-      </View>
-
-      {/* Round result label — always rendered to avoid layout shift */}
-      <Text style={[
-        s.roundLabel,
-        roundRes === 'win'  ? s.roundLblW :
-        roundRes === 'loss' ? s.roundLblL : s.roundLblD,
-      ]}>
-        {phase === 'reveal' && roundRes
-          ? roundRes === 'win' ? '✦ VICTOIRE ✦' : roundRes === 'loss' ? '✦ DÉFAITE ✦' : '✦ ÉGALITÉ ✦'
-          : ''}
-      </Text>
-
-      {/* Bottom zone — fixed minHeight to avoid layout shifts */}
-      <View style={s.bottomZone}>
-        {phase === 'choose' && (
-          <View style={s.chooseArea}>
-            <View style={s.timerTrack}>
-              <Animated.View style={[s.timerFill, {
-                width: timerW.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }),
-                backgroundColor: timeLeft <= 1 ? retro.red : retro.gold,
-              }]} />
-            </View>
-            <Text style={s.chooseHint}>CHOISIS TON ATTAQUE</Text>
-            <View style={s.typeGrid}>
-              {ALL_TYPES.map(t => {
-                const th = typeTheme[t]
-                return (
-                  <TouchableOpacity
-                    key={t}
-                    style={[s.typeBtn, { backgroundColor: th.dark, borderColor: th.main }]}
-                    onPress={() => pick(t)}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={s.typeBtnIcon}>{ICONS[t]}</Text>
-                    <Text style={[s.typeBtnName, { color: th.main }]}>{t.toUpperCase()}</Text>
-                  </TouchableOpacity>
-                )
-              })}
-            </View>
-          </View>
-        )}
-
-        {phase === 'result' && (
-          <View style={s.resultArea}>
-            <Text style={[
-              s.finalTitle,
-              finalRes === 'win'  ? s.finalTitleW :
-              finalRes === 'loss' ? s.finalTitleL : s.finalTitleD,
-            ]}>
-              {finalRes === 'win' ? 'TU GAGNES !' : finalRes === 'loss' ? 'DÉFAITE...' : 'ÉGALITÉ !'}
-            </Text>
-            <Text style={s.finalSub}>
-              {finalRes === 'win'
-                ? '🤝 Lien d\'amitié renforcé !'
-                : finalRes === 'loss'
-                ? '💪 La revanche sera pour la prochaine fois !'
-                : '🌟 Un vrai match nul, bien joué !'}
-            </Text>
-            <Text style={s.finalScore}>{scores.p} – {scores.o}</Text>
-            <TouchableOpacity
-              style={[s.continueBtn, {
-                backgroundColor:
-                  finalRes === 'win'  ? retro.gold :
-                  finalRes === 'loss' ? retro.red   : retro.mint,
-              }]}
-              onPress={() => onClose(finalRes)}
-              activeOpacity={0.8}
-            >
-              <Text style={[s.continueBtnTxt, {
-                color: finalRes === 'win' ? retro.ink : retro.paper,
-              }]}>CONTINUER</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-      </View>
+      <Text style={s.bottomHint}>Tape sur {target} dès qu'il apparaît !</Text>
     </View>
   )
 }
+
+// ─────────────────────────────────────────────────────────────
+// MÉMOIRE — 2 cibles montrées 1,5 s parmi 6 boîtes, retrouve-les
+// ─────────────────────────────────────────────────────────────
+function MemoryGame({ target, onDone }: { target: string; onDone: (r: GameResult) => void }) {
+  const [targets] = useState<number[]>(() => {
+    const a = Math.floor(Math.random() * 6)
+    let b = Math.floor(Math.random() * 6)
+    while (b === a) b = Math.floor(Math.random() * 6)
+    return [a, b]
+  })
+  const [phase, setPhase] = useState<'show' | 'pick' | 'done'>('show')
+  const [picks, setPicks] = useState<number[]>([])
+
+  useEffect(() => {
+    const t = setTimeout(() => setPhase('pick'), 1600)
+    return () => clearTimeout(t)
+  }, [])
+
+  const tap = (i: number) => {
+    if (phase !== 'pick' || picks.includes(i)) return
+    const np = [...picks, i]
+    setPicks(np)
+    if (np.length === 2) {
+      setPhase('done')
+      const found = np.filter(p => targets.includes(p)).length
+      setTimeout(() => onDone(found === 2 ? 'win' : found === 1 ? 'draw' : 'loss'), 1200)
+    }
+  }
+
+  const boxContent = (i: number): string => {
+    const isTarget = targets.includes(i)
+    if (phase === 'show') return isTarget ? target : ''
+    if (phase === 'done') return isTarget ? target : picks.includes(i) ? '✖' : ''
+    if (picks.includes(i)) return isTarget ? target : '✖'
+    return '?'
+  }
+
+  return (
+    <View style={s.gameArea}>
+      <View style={s.hud}>
+        <Text style={s.hudTxt}>
+          {phase === 'show' ? '👀 MÉMORISE...' : phase === 'pick' ? `Choisis ${2 - picks.length} boîte${2 - picks.length > 1 ? 's' : ''}` : ' '}
+        </Text>
+        <Text style={s.hudTxt}>✓ {picks.filter(p => targets.includes(p)).length}</Text>
+      </View>
+      <View style={s.memGrid}>
+        {Array.from({ length: 6 }).map((_, i) => {
+          const revealed = phase === 'show' || picks.includes(i) || phase === 'done'
+          const good = revealed && targets.includes(i)
+          const bad  = phase !== 'show' && picks.includes(i) && !targets.includes(i)
+          return (
+            <TouchableOpacity
+              key={i}
+              style={[s.memBox, good && s.memBoxGood, bad && s.memBoxBad]}
+              onPress={() => tap(i)}
+              activeOpacity={0.7}
+              disabled={phase !== 'pick'}
+            >
+              <Text style={s.memEmoji}>{boxContent(i)}</Text>
+            </TouchableOpacity>
+          )
+        })}
+      </View>
+      <Text style={s.bottomHint}>Retrouve les 2 {target} cachés !</Text>
+    </View>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────
+// LA LEÇON — répète la séquence de flèches
+// ─────────────────────────────────────────────────────────────
+const ARROWS = ['⬆️', '➡️', '⬇️', '⬅️']
+const SEQ_LENGTHS = [3, 4, 5]
+
+function SequenceGame({ onDone }: { onDone: (r: GameResult) => void }) {
+  const [roundIdx, setRoundIdx] = useState(0)
+  const [shown, setShown]       = useState<number | null>(null)
+  const [phase, setPhase]       = useState<'show' | 'input' | 'good' | 'bad'>('show')
+  const [inputN, setInputN]     = useState(0)
+  const seqRef    = useRef<number[]>([])
+  const inputRef  = useRef(0)
+  const roundRef  = useRef(0)
+  const timers    = useRef<ReturnType<typeof setTimeout>[]>([])
+
+  const later = (fn: () => void, ms: number) => {
+    const t = setTimeout(fn, ms)
+    timers.current.push(t)
+  }
+
+  const startRound = useCallback(() => {
+    const len = SEQ_LENGTHS[roundRef.current]
+    const seq = Array.from({ length: len }, () => Math.floor(Math.random() * 4))
+    seqRef.current = seq
+    inputRef.current = 0
+    setInputN(0)
+    setPhase('show')
+    seq.forEach((arrow, i) => {
+      later(() => setShown(arrow), 500 + i * 700)
+      later(() => setShown(null),  500 + i * 700 + 550)
+    })
+    later(() => setPhase('input'), 500 + len * 700)
+  }, [])
+
+  useEffect(() => {
+    startRound()
+    return () => timers.current.forEach(clearTimeout)
+  }, [])
+
+  const finish = (completed: number) => {
+    onDone(completed >= 3 ? 'win' : completed === 2 ? 'draw' : 'loss')
+  }
+
+  const tap = (a: number) => {
+    if (phase !== 'input') return
+    if (a !== seqRef.current[inputRef.current]) {
+      setPhase('bad')
+      later(() => finish(roundRef.current), 900)
+      return
+    }
+    inputRef.current += 1
+    setInputN(inputRef.current)
+    if (inputRef.current === seqRef.current.length) {
+      setPhase('good')
+      roundRef.current += 1
+      if (roundRef.current >= SEQ_LENGTHS.length) {
+        later(() => finish(3), 900)
+      } else {
+        later(() => { setRoundIdx(roundRef.current); startRound() }, 900)
+      }
+    }
+  }
+
+  const statusTxt =
+    phase === 'show'  ? '👀 Regarde bien...' :
+    phase === 'input' ? `À toi ! (${inputN}/${seqRef.current.length})` :
+    phase === 'good'  ? '✅ Bravo !' : '❌ Raté !'
+
+  return (
+    <View style={s.gameArea}>
+      <View style={s.hud}>
+        <Text style={s.hudTxt}>Leçon {Math.min(roundIdx + 1, 3)}/3</Text>
+        <Text style={s.hudTxt}>{statusTxt}</Text>
+      </View>
+      <View style={s.seqDisplay}>
+        <Text style={s.seqArrowBig}>{shown !== null ? ARROWS[shown] : phase === 'input' ? '❔' : ' '}</Text>
+      </View>
+      <View style={s.seqBtnRow}>
+        {ARROWS.map((a, i) => (
+          <TouchableOpacity
+            key={a}
+            style={[s.seqBtn, phase !== 'input' && s.seqBtnOff]}
+            onPress={() => tap(i)}
+            disabled={phase !== 'input'}
+            activeOpacity={0.7}
+          >
+            <Text style={s.seqBtnTxt}>{a}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+      <Text style={s.bottomHint}>Reproduis la séquence dans l'ordre !</Text>
+    </View>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────
+// MAIN
+// ─────────────────────────────────────────────────────────────
+interface Props {
+  visible: boolean
+  eventType: SocialEventType
+  playerType: CreatureType
+  opponentType: CreatureType
+  opponentName: string
+  onClose: (result: GameResult | 'skip') => void
+}
+
+export default function CrossingGame({ visible, eventType, playerType, opponentType, opponentName, onClose }: Props) {
+  const [started, setStarted] = useState(false)
+
+  useEffect(() => { if (visible) setStarted(false) }, [visible])
+
+  if (!visible) return null
+
+  const theme = THEMES[eventType]
+  const kind  = EVENT_GAME[eventType]
+  const pTheme = typeTheme[playerType]
+  const oTheme = typeTheme[opponentType]
+  const done = (r: GameResult) => onClose(r)
+
+  return (
+    <View style={s.overlay}>
+      {!started ? (
+        <View style={s.intro}>
+          <View style={s.introVs}>
+            <View style={s.introFighter}>
+              <Image source={SPRITES[playerType]} style={s.introSprite} resizeMode="contain" />
+              <Text style={[s.introFighterName, { color: pTheme.main }]}>TOI</Text>
+            </View>
+            <Text style={s.introVsTxt}>VS</Text>
+            <View style={s.introFighter}>
+              <Image source={SPRITES[opponentType]} style={[s.introSprite, s.introSpriteFlip]} resizeMode="contain" />
+              <Text style={[s.introFighterName, { color: oTheme.main }]} numberOfLines={1}>{opponentName}</Text>
+            </View>
+          </View>
+          <Text style={s.introEmoji}>{theme.emoji}</Text>
+          <Text style={s.introTitle}>{theme.title}</Text>
+          <View style={s.introDescBox}>
+            <Text style={s.introDesc}>{theme.desc}</Text>
+          </View>
+          <TouchableOpacity style={s.playBtn} onPress={() => setStarted(true)} activeOpacity={0.8}>
+            <Text style={s.playBtnTxt}>JOUER !</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => onClose('skip')} style={s.skipBtn}>
+            <Text style={s.skipTxt}>Passer</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        kind === 'timing'   ? <TimingGame   target={theme.target} onDone={done} /> :
+        kind === 'mole'     ? <MoleGame     target={theme.target} onDone={done} /> :
+        kind === 'memory'   ? <MemoryGame   target={theme.target} onDone={done} /> :
+                              <SequenceGame onDone={done} />
+      )}
+    </View>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────
+const CELL = 88
 
 const s = StyleSheet.create({
   overlay: {
@@ -340,73 +435,94 @@ const s = StyleSheet.create({
     paddingTop: 52,
     zIndex: 20,
   },
+  gameArea: { flex: 1 },
 
-  topBar: {
+  // HUD
+  hud: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 20, marginBottom: 4,
+    paddingHorizontal: 24, paddingBottom: 8,
   },
-  gameTitle: { fontSize: 14, fontWeight: '900', color: retro.paper, fontFamily: 'monospace', letterSpacing: 2 },
-  pips:  { flexDirection: 'row', gap: 8 },
-  pip:   { width: 14, height: 14, borderRadius: 2, borderWidth: 2 },
-  pipE:  { backgroundColor: 'transparent', borderColor: retro.faded },
-  pipW:  { backgroundColor: retro.mint,    borderColor: retro.mint },
-  pipL:  { backgroundColor: retro.red,     borderColor: retro.red },
-  pipD:  { backgroundColor: retro.gold,    borderColor: retro.gold },
+  hudTxt: { fontSize: 15, fontWeight: '900', color: retro.paper, fontFamily: 'monospace' },
 
-  scoreBand: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 18, paddingVertical: 4 },
-  scoreN:    { fontSize: 44, fontWeight: '900', fontFamily: 'monospace' },
-  scoreSep:  { fontSize: 22, color: retro.faded, fontFamily: 'monospace' },
-
-  arena: {
-    flex: 1,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around',
-    paddingHorizontal: 8,
+  bottomHint: {
+    textAlign: 'center', color: retro.faded, fontSize: 12,
+    paddingBottom: 26, paddingHorizontal: 24, fontFamily: 'monospace',
   },
-  fighter:     { alignItems: 'center', gap: 6, width: 92 },
-  sprite:      { width: 88, height: 96 },
-  spriteFlip:  { transform: [{ scaleX: -1 }] },
-  fighterName: { fontSize: 11, fontWeight: '900', fontFamily: 'monospace', letterSpacing: 1, textAlign: 'center' },
 
-  center:       { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  countdownBig: { fontSize: 80, fontWeight: '900', color: retro.paper, fontFamily: 'monospace' },
-  swordsIcon:   { fontSize: 42 },
-
-  revealStack: { alignItems: 'center', gap: 6 },
-  chip:        { width: 58, height: 58, borderRadius: 4, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
-  chipIcon:    { fontSize: 32 },
-  chipVs:      { fontSize: 10, fontWeight: '900', color: retro.faded, fontFamily: 'monospace', letterSpacing: 1 },
-
-  resultTrophy: { fontSize: 56 },
-
-  roundLabel: {
-    textAlign: 'center', fontSize: 15, fontWeight: '900',
-    fontFamily: 'monospace', letterSpacing: 3, height: 26,
+  // Intro
+  intro: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 28, gap: 14 },
+  introVs: { flexDirection: 'row', alignItems: 'center', gap: 18, marginBottom: 6 },
+  introFighter: { alignItems: 'center', gap: 4, width: 96 },
+  introSprite: { width: 72, height: 80 },
+  introSpriteFlip: { transform: [{ scaleX: -1 }] },
+  introFighterName: { fontSize: 10, fontWeight: '900', fontFamily: 'monospace', letterSpacing: 1, textAlign: 'center' },
+  introVsTxt: { fontSize: 16, fontWeight: '900', color: retro.faded, fontFamily: 'monospace' },
+  introEmoji: { fontSize: 46 },
+  introTitle: { fontSize: 24, fontWeight: '900', color: retro.paper, fontFamily: 'monospace', textAlign: 'center', letterSpacing: 1 },
+  introDescBox: {
+    backgroundColor: retro.ink2, borderRadius: 4, borderWidth: 1, borderColor: retro.ink3,
+    paddingVertical: 12, paddingHorizontal: 18, alignSelf: 'stretch',
   },
-  roundLblW: { color: retro.mint },
-  roundLblL: { color: retro.red },
-  roundLblD: { color: retro.gold },
-
-  bottomZone: { minHeight: 220, paddingBottom: 16 },
-
-  chooseArea: { paddingHorizontal: 16, gap: 10, paddingTop: 4 },
-  timerTrack: { height: 8, backgroundColor: retro.ink2, borderRadius: 2, overflow: 'hidden' },
-  timerFill:  { height: '100%', borderRadius: 2 },
-  chooseHint: {
-    textAlign: 'center', fontSize: 11, fontWeight: '900',
-    color: retro.faded, fontFamily: 'monospace', letterSpacing: 3,
+  introDesc: { fontSize: 14, color: retro.paper, textAlign: 'center', lineHeight: 21 },
+  playBtn: {
+    backgroundColor: retro.gold, paddingHorizontal: 52, paddingVertical: 16,
+    borderRadius: 4, marginTop: 6,
   },
-  typeGrid:    { flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'center' },
-  typeBtn:     { width: '46%', borderRadius: 4, borderWidth: 2, paddingVertical: 12, alignItems: 'center', gap: 4 },
-  typeBtnIcon: { fontSize: 28 },
-  typeBtnName: { fontSize: 12, fontWeight: '900', fontFamily: 'monospace', letterSpacing: 1 },
+  playBtnTxt: { color: retro.ink, fontSize: 17, fontWeight: '900', fontFamily: 'monospace', letterSpacing: 2 },
+  skipBtn: { paddingVertical: 8 },
+  skipTxt: { color: retro.faded, fontSize: 13, fontFamily: 'monospace' },
 
-  resultArea:  { paddingHorizontal: 24, paddingTop: 4, alignItems: 'center', gap: 10 },
-  finalTitle:  { fontSize: 26, fontWeight: '900', fontFamily: 'monospace', letterSpacing: 2 },
-  finalTitleW: { color: retro.gold },
-  finalTitleL: { color: retro.red },
-  finalTitleD: { color: retro.mint },
-  finalSub:    { fontSize: 13, color: retro.faded, textAlign: 'center', lineHeight: 20 },
-  finalScore:  { fontSize: 38, fontWeight: '900', color: retro.paper, fontFamily: 'monospace' },
-  continueBtn: { paddingHorizontal: 44, paddingVertical: 15, borderRadius: 4, marginTop: 4 },
-  continueBtnTxt: { fontSize: 15, fontWeight: '900', fontFamily: 'monospace', letterSpacing: 2 },
+  // Timing
+  timingCenter: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  timingTarget: {
+    width: 120, height: 120, borderRadius: 60, borderWidth: 3, borderColor: retro.paper,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  timingEmoji: { fontSize: 44 },
+  timingRing: {
+    position: 'absolute', width: 120, height: 120, borderRadius: 60,
+    borderWidth: 4, borderColor: retro.gold,
+  },
+  timingFb: { position: 'absolute', bottom: 40, fontSize: 20, fontWeight: '900', fontFamily: 'monospace', letterSpacing: 2 },
+  fbGood: { color: retro.mint },
+  fbBad:  { color: retro.red },
+
+  // Mole
+  moleGrid: {
+    flex: 1, flexDirection: 'row', flexWrap: 'wrap', gap: 10,
+    alignContent: 'center', justifyContent: 'center', paddingHorizontal: 16,
+  },
+  moleCell: {
+    width: CELL, height: CELL, borderRadius: 4,
+    backgroundColor: retro.ink2, borderWidth: 2, borderColor: retro.ink3,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  moleCellActive: { backgroundColor: retro.goldDark, borderColor: retro.gold },
+  moleEmoji: { fontSize: 40 },
+
+  // Memory
+  memGrid: {
+    flex: 1, flexDirection: 'row', flexWrap: 'wrap', gap: 12,
+    alignContent: 'center', justifyContent: 'center', paddingHorizontal: 24,
+  },
+  memBox: {
+    width: 96, height: 96, borderRadius: 4,
+    backgroundColor: retro.ink2, borderWidth: 2, borderColor: retro.ink3,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  memBoxGood: { backgroundColor: retro.mintDark, borderColor: retro.mint },
+  memBoxBad:  { backgroundColor: retro.redDark,  borderColor: retro.red },
+  memEmoji: { fontSize: 38, color: retro.paper, fontWeight: '900' },
+
+  // Sequence
+  seqDisplay: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  seqArrowBig: { fontSize: 88 },
+  seqBtnRow: { flexDirection: 'row', gap: 12, justifyContent: 'center', paddingBottom: 16 },
+  seqBtn: {
+    width: 72, height: 72, borderRadius: 4,
+    backgroundColor: retro.ink2, borderWidth: 2, borderColor: retro.gold,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  seqBtnOff: { opacity: 0.35, borderColor: retro.ink3 },
+  seqBtnTxt: { fontSize: 34 },
 })
