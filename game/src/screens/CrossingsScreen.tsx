@@ -1,5 +1,7 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import {
+  Animated,
+  Easing,
   Image,
   ImageSourcePropType,
   Modal,
@@ -11,7 +13,6 @@ import {
   View,
 } from 'react-native'
 import { Creature, Crossing, CreatureType, SocialDial, SocialEvent, SocialEventType, SocialProfile, SocialRelation, SpellId, SpellLoadout } from '../types'
-import { CREATURE_COLORS } from '../utils/creature'
 import {
   loadCrossings,
   loadSocialEvents,
@@ -25,7 +26,8 @@ import {
 import CombatScreen, { CombatOpponent } from './CombatScreen'
 import { DEFAULT_LOADOUTS, EvoStage, getEvoStage, SPELL_CATALOG } from '../utils/spells'
 import AdventureScreen from './AdventureScreen'
-import { retro, retroShadow } from '../styles/retro'
+import { retro, retroShadow, typeTheme } from '../styles/retro'
+import { PixelButton, SectionTitle } from '../components/ui'
 
 const SPRITES_E1: Record<CreatureType, ImageSourcePropType> = {
   ignis: require('../../assets/sprites/ignis_e1_clean.png'),
@@ -94,20 +96,20 @@ const DEFAULT_SOCIAL_PROFILE: SocialProfile = {
 const SOCIAL_DIALS: SocialDial[] = ['low', 'mid', 'high']
 const SOCIAL_DIAL_LABELS: Record<SocialDial, string> = { low: 'Bas', mid: 'Moyen', high: 'Fort' }
 
-const PROFILE_DIALS: { key: keyof Omit<SocialProfile, 'rules'>; label: string; desc: string }[] = [
-  { key: 'sociability', label: 'Sociabilite', desc: 'Va vers les autres et cree des liens.' },
-  { key: 'aggression', label: 'Agressivite', desc: 'Provoque plus facilement des duels.' },
-  { key: 'mischief', label: 'Filouterie', desc: 'Tente des chapardages risques.' },
-  { key: 'generosity', label: 'Generosite', desc: 'Offre et echange plus souvent.' },
-  { key: 'loyalty', label: 'Loyaute', desc: 'Protege les amis et les pactes.' },
-  { key: 'curiosity', label: 'Curiosite', desc: 'Cherche skins, voyageurs et surprises.' },
+const PROFILE_DIALS: { key: keyof Omit<SocialProfile, 'rules'>; label: string; emoji: string; desc: string }[] = [
+  { key: 'sociability', label: 'Sociabilité', emoji: '🤝', desc: 'Va vers les autres et crée des liens.' },
+  { key: 'aggression',  label: 'Agressivité', emoji: '⚔️', desc: 'Provoque plus facilement des duels.' },
+  { key: 'mischief',    label: 'Filouterie',  emoji: '🦝', desc: 'Tente des chapardages risqués.' },
+  { key: 'generosity',  label: 'Générosité',  emoji: '🎁', desc: 'Offre et échange plus souvent.' },
+  { key: 'loyalty',     label: 'Loyauté',     emoji: '🛡️', desc: 'Protège les amis et les pactes.' },
+  { key: 'curiosity',   label: 'Curiosité',   emoji: '🧭', desc: 'Cherche skins, voyageurs et surprises.' },
 ]
 
 const PROFILE_RULES: { key: keyof SocialProfile['rules']; label: string }[] = [
   { key: 'neverStealFriends', label: 'Ne vole jamais les amis' },
-  { key: 'duelRivalsOnly', label: 'Defie surtout les rivaux' },
+  { key: 'duelRivalsOnly', label: 'Défie surtout les rivaux' },
   { key: 'helpWeaker', label: 'Aide les plus faibles' },
-  { key: 'avoidThieves', label: 'Se mefie des filous' },
+  { key: 'avoidThieves', label: 'Se méfie des filous' },
   { key: 'giftSadMonsters', label: 'Console les monstres tristes' },
 ]
 
@@ -120,6 +122,18 @@ const EVENT_COLORS: Record<SocialEventType, string> = {
   mentor: retro.gold,
   skin: retro.blue,
   traveler: retro.ink,
+}
+
+// Display emoji per event type (works for old stored events too)
+const EVENT_EMOJI: Record<SocialEventType, string> = {
+  friendship: '🤝',
+  duel: '⚔️',
+  theft: '💰',
+  gift: '🎁',
+  mood: '💫',
+  mentor: '🎓',
+  skin: '🎨',
+  traveler: '🧭',
 }
 
 function relationTags(relation: SocialRelation): string[] {
@@ -164,12 +178,12 @@ function deriveSocialArchetype(profile: SocialProfile): string {
   const sly = dialWeight(profile.mischief)
   const warm = dialWeight(profile.sociability) + dialWeight(profile.generosity) + dialWeight(profile.loyalty)
   const explorer = dialWeight(profile.curiosity)
-  if (sly >= 2 && brave >= 1) return 'Petit filou temeraire'
-  if (brave >= 2 && profile.rules.duelRivalsOnly) return 'Rival discipline'
+  if (sly >= 2 && brave >= 1) return 'Petit filou téméraire'
+  if (brave >= 2 && profile.rules.duelRivalsOnly) return 'Rival discipliné'
   if (brave >= 2) return 'Bagarreur social'
   if (warm >= 5) return 'Protecteur attachant'
   if (explorer >= 2 && dialWeight(profile.sociability) >= 1) return 'Explorateur curieux'
-  return 'Compagnon equilibre'
+  return 'Compagnon équilibré'
 }
 
 function chooseSocialEvent(profile: SocialProfile, relation: SocialRelation, player: Creature, opponent: CombatOpponent): SocialEventType {
@@ -227,59 +241,59 @@ function buildSocialEvent(type: SocialEventType, relation: SocialRelation, oppon
     case 'theft':
       return {
         ...base,
-        emoji: '$',
+        emoji: '💰',
         title: 'Tentative de vol',
-        message: `${opponent.creatureName} tente de chaparder une petite recompense. Tu peux le repousser en combat.`,
+        message: `${opponent.creatureName} tente de chaparder une petite récompense. Tu peux le repousser en combat.`,
         pendingCombat: true,
         rewardCoins: 8,
       }
     case 'duel':
       return {
         ...base,
-        emoji: 'VS',
-        title: 'Defi lance',
-        message: `${opponent.creatureName} provoque ton monstre. Une revanche peut lancer une rivalite.`,
+        emoji: '⚔️',
+        title: 'Défi lancé',
+        message: `${opponent.creatureName} provoque ton monstre. Une revanche peut lancer une rivalité.`,
         pendingCombat: true,
         rewardCoins: 12,
       }
     case 'mentor':
       return {
         ...base,
-        emoji: 'XP',
+        emoji: '🎓',
         title: 'Mentorat',
-        message: 'Le plus experimente montre quelques astuces. Le lien mentor/disciple se renforce.',
+        message: 'Le plus expérimenté montre quelques astuces. Le lien mentor/disciple se renforce.',
         rewardCoins: 4,
       }
     case 'gift':
       return {
         ...base,
-        emoji: 'BOX',
-        title: 'Echange spontane',
-        message: `${opponent.creatureName} laisse un petit souvenir apres le croisement.`,
+        emoji: '🎁',
+        title: 'Échange spontané',
+        message: `${opponent.creatureName} laisse un petit souvenir après le croisement.`,
         rewardCoins: 5,
       }
     case 'mood':
       return {
         ...base,
-        emoji: '+',
-        title: 'Contagion d humeur',
-        message: 'L humeur des deux monstres se melange. Une bonne rencontre peut egayer la journee.',
+        emoji: '💫',
+        title: "Contagion d'humeur",
+        message: "L'humeur des deux monstres se mélange. Une bonne rencontre peut égayer la journée.",
         rewardCoins: 2,
       }
     case 'skin':
       return {
         ...base,
-        emoji: 'ART',
+        emoji: '🎨',
         title: 'Inspiration de skin',
-        message: `${opponent.creatureName} donne une idee de style a ton monstre.`,
+        message: `${opponent.creatureName} donne une idée de style à ton monstre.`,
         rewardCoins: 3,
       }
     default:
       return {
         ...base,
-        emoji: 'AMI',
-        title: 'Amitie fidele',
-        message: `${opponent.creatureName} reconnait ton monstre. Les retrouvailles deviennent plus chaleureuses.`,
+        emoji: '🤝',
+        title: 'Amitié fidèle',
+        message: `${opponent.creatureName} reconnaît ton monstre. Les retrouvailles deviennent plus chaleureuses.`,
         rewardCoins: 4,
       }
   }
@@ -297,6 +311,17 @@ function generateAIOpponent(playerLevel: number): CombatOpponent {
   const usernames = BOT_USERNAMES[type]
   const username = usernames[Math.floor(Math.random() * usernames.length)] + (Math.floor(Math.random() * 900) + 100)
   return { username, creatureName, creatureType: type, level }
+}
+
+function timeAgo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime()
+  const mins = Math.floor(diff / 60000)
+  const hours = Math.floor(mins / 60)
+  const days = Math.floor(hours / 24)
+  if (days > 0) return `il y a ${days}j`
+  if (hours > 0) return `il y a ${hours}h`
+  if (mins > 0) return `il y a ${mins}min`
+  return "à l'instant"
 }
 
 interface DebugConfig {
@@ -436,106 +461,281 @@ function DebugSetupPanel({ onStart, onClose }: { onStart: (cfg: DebugConfig) => 
   )
 }
 
-interface Props {
-  player: Creature
-  onCombatEnd: (won: boolean, xpGained: number, coinsGained?: number) => void
-}
+// ─── Radar scan zone — animated pulsing rings ─────────────
+function RadarPulse() {
+  const pulse1 = useRef(new Animated.Value(0)).current
+  const pulse2 = useRef(new Animated.Value(0)).current
 
-function CrossingCard({ item, onChallenge }: { item: Crossing; onChallenge: () => void }) {
-  const color  = CREATURE_COLORS[item.creatureType]
-  const sprite = SPRITES_E1[item.creatureType]
+  useEffect(() => {
+    const mkLoop = (v: Animated.Value, delay: number) =>
+      Animated.loop(
+        Animated.sequence([
+          Animated.delay(delay),
+          Animated.timing(v, { toValue: 1, duration: 2200, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+          Animated.timing(v, { toValue: 0, duration: 0, useNativeDriver: true }),
+        ])
+      )
+    const a1 = mkLoop(pulse1, 0)
+    const a2 = mkLoop(pulse2, 1100)
+    a1.start(); a2.start()
+    return () => { a1.stop(); a2.stop() }
+  }, [])
 
-  const interactionLabel = {
-    friendly: 'Amical',
-    battle: 'Combat',
-    gift: 'Cadeau',
-    theft: 'Vol',
-    mentor: 'Mentor',
-    mood: 'Humeur',
-    skin: 'Style',
-  }[item.interactionType]
-
-  const timeAgo = () => {
-    const diff = Date.now() - new Date(item.crossedAt).getTime()
-    const mins = Math.floor(diff / 60000)
-    const hours = Math.floor(mins / 60)
-    const days = Math.floor(hours / 24)
-    if (days > 0) return `il y a ${days}j`
-    if (hours > 0) return `il y a ${hours}h`
-    return `il y a ${mins}min`
-  }
+  const ring = (v: Animated.Value) => ({
+    opacity: v.interpolate({ inputRange: [0, 0.15, 1], outputRange: [0, 0.5, 0] }),
+    transform: [{ scale: v.interpolate({ inputRange: [0, 1], outputRange: [0.3, 1.8] }) }],
+  })
 
   return (
-    <View style={styles.card}>
-      <View style={[styles.avatarCircle, { backgroundColor: color + '22' }]}>
-        <Image source={sprite} style={styles.avatarSprite} resizeMode="contain" />
-      </View>
-      <View style={styles.cardInfo}>
-        <Text style={styles.cardName}>{item.username}</Text>
-        <Text style={styles.cardCreature}>{item.creatureName}</Text>
-        <Text style={styles.cardInteraction}>{interactionLabel}</Text>
-      </View>
-      <View style={styles.cardRight}>
-        <Text style={styles.cardTime}>{timeAgo()}</Text>
-        <TouchableOpacity style={[styles.challengeBtn, { backgroundColor: color }]} onPress={onChallenge}>
-          <Text style={styles.challengeText}>⚔️ Défier</Text>
-        </TouchableOpacity>
-      </View>
+    <View style={st.radarPulseWrap} pointerEvents="none">
+      <Animated.View style={[st.radarRing, ring(pulse1)]} />
+      <Animated.View style={[st.radarRing, ring(pulse2)]} />
+      <View style={st.radarDot} />
     </View>
   )
 }
 
-function SocialEventCard({ event, onCombat }: { event: SocialEvent; onCombat: () => void }) {
+// ─── Encounter modal — the cinematic crossing reveal ──────
+interface EncounterData {
+  event: SocialEvent
+  opponent: CombatOpponent
+  relation: SocialRelation
+}
+
+function EncounterModal({ encounter, onFight, onDismiss }: {
+  encounter: EncounterData | null
+  onFight: () => void
+  onDismiss: () => void
+}) {
+  const [phase, setPhase] = useState<'search' | 'reveal'>('search')
+  const spriteScale = useRef(new Animated.Value(0)).current
+  const cardSlide   = useRef(new Animated.Value(0)).current
+  const searchPulse = useRef(new Animated.Value(0)).current
+
+  useEffect(() => {
+    if (!encounter) return
+    setPhase('search')
+    spriteScale.setValue(0)
+    cardSlide.setValue(0)
+    const pulseAnim = Animated.loop(
+      Animated.sequence([
+        Animated.timing(searchPulse, { toValue: 1, duration: 600, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        Animated.timing(searchPulse, { toValue: 0, duration: 600, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+      ])
+    )
+    pulseAnim.start()
+    const t = setTimeout(() => {
+      pulseAnim.stop()
+      setPhase('reveal')
+      Animated.parallel([
+        Animated.spring(spriteScale, { toValue: 1, bounciness: 13, useNativeDriver: true }),
+        Animated.timing(cardSlide, { toValue: 1, duration: 420, easing: Easing.out(Easing.back(1.4)), useNativeDriver: true }),
+      ]).start()
+    }, 1700)
+    return () => { clearTimeout(t); pulseAnim.stop() }
+  }, [encounter?.event.id])
+
+  if (!encounter) return null
+
+  const { event, opponent, relation } = encounter
+  const theme = typeTheme[opponent.creatureType]
+  const evColor = EVENT_COLORS[event.type]
+  const sprite = getOpponentSprite(opponent.creatureType, opponent.level)
+  const tags = relation.tags
+  const nth = relation.crossings
+
+  return (
+    <Modal visible transparent animationType="fade">
+      <View style={st.encOverlay}>
+        {phase === 'search' ? (
+          <View style={st.encSearchWrap}>
+            <Animated.View style={[st.encSearchGlow, {
+              opacity: searchPulse.interpolate({ inputRange: [0, 1], outputRange: [0.2, 0.6] }),
+              transform: [{ scale: searchPulse.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1.15] }) }],
+            }]} />
+            <Animated.Text style={[st.encSearchMark, {
+              opacity: searchPulse.interpolate({ inputRange: [0, 1], outputRange: [0.5, 1] }),
+            }]}>?</Animated.Text>
+            <Text style={st.encSearchTxt}>SCAN EN COURS…</Text>
+            <Text style={st.encSearchSub}>Un voyageur approche</Text>
+          </View>
+        ) : (
+          <View style={st.encRevealWrap}>
+            {/* Glow behind sprite */}
+            <View style={st.encGlowAnchor} pointerEvents="none">
+              <View style={[st.encGlow, { width: 240, height: 240, borderRadius: 120, left: -120, top: -120, backgroundColor: theme.main + '14' }]} />
+              <View style={[st.encGlow, { width: 170, height: 170, borderRadius: 85, left: -85, top: -85, backgroundColor: theme.main + '22' }]} />
+              <View style={[st.encGlow, { width: 110, height: 110, borderRadius: 55, left: -55, top: -55, backgroundColor: theme.main + '30' }]} />
+            </View>
+
+            <Text style={st.encKicker}>✦ CROISEMENT ✦</Text>
+
+            <Animated.View style={{ transform: [{ scale: spriteScale }], alignItems: 'center' }}>
+              <Image source={sprite} style={st.encSprite} resizeMode="contain" />
+            </Animated.View>
+
+            {/* Identity */}
+            <View style={st.encIdentity}>
+              <Text style={st.encCreatureName}>{opponent.creatureName}</Text>
+              <View style={st.encIdentityRow}>
+                <View style={[st.encChip, { backgroundColor: theme.main, borderColor: theme.dark }]}>
+                  <Text style={st.encChipTxt}>Niv.{opponent.level}</Text>
+                </View>
+                <Text style={st.encUsername}>@{opponent.username}</Text>
+              </View>
+              {(tags.length > 0 || nth > 1) && (
+                <View style={st.encTagRow}>
+                  {tags.map((t) => (
+                    <View key={t} style={st.encTag}><Text style={st.encTagTxt}>{t}</Text></View>
+                  ))}
+                  {nth > 1 && (
+                    <View style={[st.encTag, { backgroundColor: 'transparent' }]}>
+                      <Text style={[st.encTagTxt, { color: retro.faded }]}>{nth}ᵉ croisement</Text>
+                    </View>
+                  )}
+                </View>
+              )}
+            </View>
+
+            {/* Event card */}
+            <Animated.View style={[st.encEventCard, { borderColor: evColor }, {
+              opacity: cardSlide,
+              transform: [{ translateY: cardSlide.interpolate({ inputRange: [0, 1], outputRange: [26, 0] }) }],
+            }]}>
+              <View style={[st.encEventStrap, { backgroundColor: evColor }]}>
+                <Text style={st.encEventStrapTxt}>{EVENT_EMOJI[event.type]} {event.title.toUpperCase()}</Text>
+              </View>
+              <Text style={st.encEventMsg}>{event.message}</Text>
+              {(event.rewardCoins ?? 0) > 0 && (
+                <View style={st.encRewardRow}>
+                  <Text style={st.encRewardTxt}>RÉCOMPENSE</Text>
+                  <Text style={st.encRewardVal}>+{event.rewardCoins} 💰</Text>
+                </View>
+              )}
+            </Animated.View>
+
+            {/* Actions */}
+            <View style={st.encActions}>
+              {event.pendingCombat ? (
+                <>
+                  <PixelButton title="COMBATTRE" icon="⚔️" color={retro.red} big onPress={onFight} style={{ alignSelf: 'stretch' }} />
+                  <TouchableOpacity onPress={onDismiss} style={st.encGhostBtn}>
+                    <Text style={st.encGhostTxt}>Plus tard</Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <PixelButton title="CONTINUER" color={retro.gold} textColor={retro.ink} big onPress={onDismiss} style={{ alignSelf: 'stretch' }} />
+              )}
+            </View>
+          </View>
+        )}
+      </View>
+    </Modal>
+  )
+}
+
+// ─── Event history card ────────────────────────────────────
+function EventCard({ event, onCombat }: { event: SocialEvent; onCombat: () => void }) {
   const color = EVENT_COLORS[event.type]
   return (
-    <View style={[styles.socialEventCard, { borderColor: color + 'AA' }]}>
-      <View style={[styles.socialEventIcon, { backgroundColor: color + '22' }]}>
-        <Text style={styles.socialEventEmoji}>{event.emoji}</Text>
+    <View style={[st.evCard, { borderLeftColor: color }]}>
+      <View style={[st.evSlot, { backgroundColor: color + '22', borderColor: color }]}>
+        <Text style={st.evEmoji}>{EVENT_EMOJI[event.type]}</Text>
       </View>
-      <View style={styles.socialEventInfo}>
-        <Text style={styles.socialEventTitle}>{event.title}</Text>
-        <Text style={styles.socialEventText} numberOfLines={2}>{event.message}</Text>
+      <View style={st.evBody}>
+        <View style={st.evTitleRow}>
+          <Text style={st.evTitle}>{event.title}</Text>
+          <Text style={st.evTime}>{timeAgo(event.createdAt)}</Text>
+        </View>
+        <Text style={st.evMsg} numberOfLines={2}>{event.message}</Text>
       </View>
       {event.pendingCombat && (
-        <TouchableOpacity style={[styles.socialFightBtn, { backgroundColor: color }]} onPress={onCombat}>
-          <Text style={styles.socialFightText}>Fight</Text>
+        <TouchableOpacity style={[st.evFightBtn, { backgroundColor: color }]} onPress={onCombat}>
+          <Text style={st.evFightTxt}>⚔️</Text>
         </TouchableOpacity>
       )}
     </View>
   )
 }
 
-function RelationChip({ relation }: { relation: SocialRelation }) {
-  const color = CREATURE_COLORS[relation.creatureType]
+// ─── Relation card — bond with a recurring traveler ────────
+function RelationCard({ relation }: { relation: SocialRelation }) {
+  const theme = typeTheme[relation.creatureType]
+  const sprite = getOpponentSprite(relation.creatureType, relation.level)
   const tag = relation.tags[0] ?? `Lien ${relation.friendshipLevel}`
   return (
-    <View style={[styles.relationChip, { borderColor: color + '88' }]}>
-      <Text style={styles.relationName}>{relation.creatureName}</Text>
-      <Text style={styles.relationMeta}>{tag} - {relation.crossings}x</Text>
+    <View style={[st.relCard, { borderColor: theme.dark }]}>
+      <View style={[st.relSpriteBox, { backgroundColor: theme.soft }]}>
+        <Image source={sprite} style={st.relSprite} resizeMode="contain" />
+      </View>
+      <Text style={st.relName} numberOfLines={1}>{relation.creatureName}</Text>
+      <View style={[st.relTagChip, { backgroundColor: theme.main }]}>
+        <Text style={st.relTagTxt}>{tag}</Text>
+      </View>
+      {/* friendship hearts */}
+      <Text style={st.relHearts}>
+        {'♥'.repeat(Math.min(5, relation.friendshipLevel))}{'♡'.repeat(Math.max(0, 5 - relation.friendshipLevel))}
+      </Text>
+      <Text style={st.relCount}>{relation.crossings} croisement{relation.crossings > 1 ? 's' : ''}</Text>
     </View>
   )
 }
 
 function BotCard({ bot, onChallenge }: { bot: CombatOpponent; onChallenge: () => void }) {
-  const color  = CREATURE_COLORS[bot.creatureType]
+  const theme  = typeTheme[bot.creatureType]
   const sprite = getOpponentSprite(bot.creatureType, bot.level)
   const evo = getEvoStage(bot.level)
   const evoLabel = evo === 'e3' ? '★★★' : evo === 'e2' ? '★★' : '★'
   return (
-    <View style={[styles.card, styles.botCard]}>
-      <View style={[styles.avatarCircle, { backgroundColor: color + '22' }]}>
-        <Image source={sprite} style={styles.avatarSprite} resizeMode="contain" />
+    <View style={st.botCard}>
+      <View style={[st.botAvatar, { backgroundColor: theme.soft, borderColor: theme.dark }]}>
+        <Image source={sprite} style={st.botSprite} resizeMode="contain" />
       </View>
-      <View style={styles.cardInfo}>
-        <Text style={styles.cardName}>{bot.username}</Text>
-        <Text style={styles.cardCreature}>{bot.creatureName}</Text>
-        <Text style={styles.cardInteraction}>🤖 Lv {bot.level} · {evoLabel}</Text>
+      <View style={{ flex: 1 }}>
+        <Text style={st.botName}>{bot.creatureName}</Text>
+        <Text style={st.botUser}>@{bot.username}</Text>
+        <Text style={st.botMeta}>🤖 Niv.{bot.level} · {evoLabel}</Text>
       </View>
-      <TouchableOpacity style={[styles.challengeBtn, { backgroundColor: color }]} onPress={onChallenge}>
-        <Text style={styles.challengeText}>⚔️ Défier</Text>
+      <TouchableOpacity style={[st.botFightBtn, { backgroundColor: theme.main, borderColor: theme.dark }]} onPress={onChallenge}>
+        <Text style={st.botFightTxt}>⚔️ Défier</Text>
       </TouchableOpacity>
     </View>
   )
+}
+
+function CrossingCard({ item, onChallenge }: { item: Crossing; onChallenge: () => void }) {
+  const theme  = typeTheme[item.creatureType]
+  const sprite = SPRITES_E1[item.creatureType]
+  const interactionLabel = {
+    friendly: '🤝 Amical',
+    battle: '⚔️ Combat',
+    gift: '🎁 Cadeau',
+    theft: '💰 Vol',
+    mentor: '🎓 Mentor',
+    mood: '💫 Humeur',
+    skin: '🎨 Style',
+  }[item.interactionType]
+
+  return (
+    <View style={st.botCard}>
+      <View style={[st.botAvatar, { backgroundColor: theme.soft, borderColor: theme.dark }]}>
+        <Image source={sprite} style={st.botSprite} resizeMode="contain" />
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={st.botName}>{item.creatureName}</Text>
+        <Text style={st.botUser}>@{item.username}</Text>
+        <Text style={st.botMeta}>{interactionLabel} · {timeAgo(item.crossedAt)}</Text>
+      </View>
+      <TouchableOpacity style={[st.botFightBtn, { backgroundColor: theme.main, borderColor: theme.dark }]} onPress={onChallenge}>
+        <Text style={st.botFightTxt}>⚔️ Défier</Text>
+      </TouchableOpacity>
+    </View>
+  )
+}
+
+interface Props {
+  player: Creature
+  onCombatEnd: (won: boolean, xpGained: number, coinsGained?: number) => void
 }
 
 export default function CrossingsScreen({ player, onCombatEnd }: Props) {
@@ -547,6 +747,8 @@ export default function CrossingsScreen({ player, onCombatEnd }: Props) {
   const [combat, setCombat]       = useState<CombatOpponent | null>(null)
   const [showCrossings, setShowCrossings] = useState(false)
   const [showAdventure, setShowAdventure] = useState(false)
+  const [showPersonality, setShowPersonality] = useState(false)
+  const [encounter, setEncounter] = useState<EncounterData | null>(null)
   const [debugSetup, setDebugSetup] = useState(false)
   const [debugOverride, setDebugOverride] = useState<{
     playerType: CreatureType
@@ -653,6 +855,7 @@ export default function CrossingsScreen({ player, onCombatEnd }: Props) {
     setRelations(nextRelations)
     setEvents(nextEvents)
     setCrossings(nextCrossings)
+    setEncounter({ event: socialEvent, opponent, relation: nextRelation })
     await Promise.all([
       saveSocialRelations(nextRelations),
       saveSocialEvents(nextEvents),
@@ -663,6 +866,7 @@ export default function CrossingsScreen({ player, onCombatEnd }: Props) {
   const startSocialCombat = (event: SocialEvent) => {
     if (!event.opponent) return
     setShowCrossings(false)
+    setEncounter(null)
     setDebugOverride(undefined)
     setCombat(event.opponent)
   }
@@ -718,136 +922,198 @@ export default function CrossingsScreen({ player, onCombatEnd }: Props) {
   const playerLevel = player.stats.level
   const minLv = Math.max(1, playerLevel - 2)
   const maxLv = playerLevel + 5
+  const archetype = deriveSocialArchetype(socialProfile)
 
   return (
-    <SafeAreaView style={styles.safe}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerTop}>
-          <View>
-            <Text style={styles.title}>Combats</Text>
-            <Text style={styles.subtitle}>{player.name} · Lv {playerLevel}</Text>
-          </View>
-          <TouchableOpacity style={styles.debugBtn} onPress={() => setDebugSetup(true)}>
-            <Text style={styles.debugBtnText}>🐛 Debug</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+    <SafeAreaView style={st.safe}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={st.mainScroll}>
 
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.mainScroll}
-      >
-      <View style={styles.socialPanel}>
-        <View style={styles.socialHeaderRow}>
+        {/* Header */}
+        <View style={st.header}>
           <View>
-            <Text style={styles.socialTitle}>Profil social</Text>
-            <Text style={styles.socialArchetype}>{deriveSocialArchetype(socialProfile)}</Text>
+            <Text style={st.titleEcho}>Rencontres</Text>
+            <Text style={st.title}>Rencontres</Text>
+            <Text style={st.subtitle}>{player.name} · Niv.{playerLevel}</Text>
           </View>
-          <TouchableOpacity style={styles.crossingPulseBtn} onPress={handleSocialCrossing}>
-            <Text style={styles.crossingPulseText}>Croisement</Text>
+          <TouchableOpacity style={st.debugBtn} onPress={() => setDebugSetup(true)}>
+            <Text style={st.debugBtnTxt}>🐛</Text>
           </TouchableOpacity>
         </View>
-        <View style={styles.profileGrid}>
-          {PROFILE_DIALS.map((dial) => (
-            <View key={dial.key} style={styles.dialRow}>
-              <View style={styles.dialText}>
-                <Text style={styles.dialLabel}>{dial.label}</Text>
-                <Text style={styles.dialDesc}>{dial.desc}</Text>
-              </View>
-              <View style={styles.dialOptions}>
-                {SOCIAL_DIALS.map((value) => {
-                  const active = socialProfile[dial.key] === value
+
+        {/* ── RADAR — the crossing launcher ─────────────────── */}
+        <View style={st.radar}>
+          <RadarPulse />
+          <View style={st.radarTopRow}>
+            <View style={st.radarStatus}>
+              <View style={st.radarLed} />
+              <Text style={st.radarStatusTxt}>RADAR ACTIF</Text>
+            </View>
+            <TouchableOpacity style={st.personaBtn} onPress={() => setShowPersonality(true)}>
+              <Text style={st.personaBtnTxt}>⚙ Caractère</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={st.radarCenter}>
+            <Text style={st.radarTitle}>CROISEMENT</Text>
+            <Text style={st.radarSub}>Scanne les environs à la recherche{'\n'}d'autres dresseurs</Text>
+          </View>
+
+          <View style={st.radarArchetypeRow}>
+            <Text style={st.radarArchetypeLbl}>STYLE SOCIAL</Text>
+            <Text style={st.radarArchetypeVal}>{archetype}</Text>
+          </View>
+
+          <PixelButton
+            title="LANCER UN SCAN"
+            icon="📡"
+            color={retro.gold}
+            textColor={retro.ink}
+            big
+            onPress={handleSocialCrossing}
+            style={{ alignSelf: 'stretch' }}
+          />
+
+          <View style={st.radarFooter}>
+            <Text style={st.radarFooterTxt}>{relations.length} lien{relations.length !== 1 ? 's' : ''}</Text>
+            <Text style={st.radarFooterDot}>·</Text>
+            <Text style={st.radarFooterTxt}>{crossings.length} croisement{crossings.length !== 1 ? 's' : ''}</Text>
+          </View>
+        </View>
+
+        {/* ── LIENS TISSÉS ───────────────────────────────────── */}
+        {relations.length > 0 && (
+          <>
+            <SectionTitle title="LIENS TISSÉS" color={retro.red} style={st.sectionTitle} />
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={st.relScroll}>
+              {relations.slice(0, 10).map((relation) => (
+                <RelationCard key={relation.id} relation={relation} />
+              ))}
+            </ScrollView>
+          </>
+        )}
+
+        {/* ── DERNIERS CROISEMENTS ───────────────────────────── */}
+        {events.length > 0 && (
+          <>
+            <SectionTitle title="DERNIERS CROISEMENTS" color={retro.red} style={st.sectionTitle} />
+            <View style={st.evList}>
+              {events.slice(0, 5).map((event) => (
+                <EventCard key={event.id} event={event} onCombat={() => startSocialCombat(event)} />
+              ))}
+              {events.length > 5 && (
+                <Text style={st.evMore}>+{events.length - 5} dans l'historique</Text>
+              )}
+            </View>
+          </>
+        )}
+
+        {/* ── MODES DE COMBAT ────────────────────────────────── */}
+        <SectionTitle title="MODES DE COMBAT" color={retro.red} style={st.sectionTitle} />
+        <TouchableOpacity style={[st.modeCardWide, { backgroundColor: retro.blue }]} onPress={() => setShowAdventure(true)} activeOpacity={0.85}>
+          <Text style={st.modeEmoji}>🗺️</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={st.modeTitle}>AVENTURE</Text>
+            <Text style={st.modeSub}>6 routes · PNJ · Récompenses</Text>
+          </View>
+          <Text style={st.modeArrow}>›</Text>
+        </TouchableOpacity>
+        <View style={st.modeRow}>
+          <TouchableOpacity style={[st.modeCard, { backgroundColor: retro.ink }]} onPress={handleQuickAI} activeOpacity={0.85}>
+            <Text style={st.modeEmoji}>🤖</Text>
+            <Text style={st.modeTitle}>COMBAT IA</Text>
+            <Text style={st.modeSub}>Niv {minLv}–{maxLv}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[st.modeCard, { backgroundColor: retro.red }]} onPress={() => setShowCrossings(true)} activeOpacity={0.85}>
+            <Text style={st.modeEmoji}>👥</Text>
+            <Text style={st.modeTitle}>MULTI</Text>
+            <Text style={st.modeSub}>
+              {crossings.length > 0 ? `${crossings.length} croisement${crossings.length !== 1 ? 's' : ''}` : 'Bots dispo'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+
+      {/* ── Encounter cinematic ──────────────────────────────── */}
+      <EncounterModal
+        encounter={encounter}
+        onFight={() => encounter && startSocialCombat(encounter.event)}
+        onDismiss={() => setEncounter(null)}
+      />
+
+      {/* ── Personality sheet ────────────────────────────────── */}
+      <Modal visible={showPersonality} transparent animationType="slide">
+        <TouchableOpacity style={st.sheetOverlay} onPress={() => setShowPersonality(false)} activeOpacity={1}>
+          <TouchableOpacity activeOpacity={1} style={st.sheetCard}>
+            <View style={st.sheetHandle} />
+            <Text style={st.sheetTitle}>Caractère de {player.name}</Text>
+            <Text style={st.sheetSub}>Son comportement pendant les croisements</Text>
+            <View style={st.archetypeBanner}>
+              <Text style={st.archetypeBannerTxt}>✦ {archetype}</Text>
+            </View>
+            <ScrollView showsVerticalScrollIndicator={false} style={{ flexGrow: 0 }}>
+              {PROFILE_DIALS.map((dial) => (
+                <View key={dial.key} style={st.dialRow}>
+                  <View style={st.dialText}>
+                    <Text style={st.dialLabel}>{dial.emoji} {dial.label}</Text>
+                    <Text style={st.dialDesc}>{dial.desc}</Text>
+                  </View>
+                  <View style={st.dialSeg}>
+                    {SOCIAL_DIALS.map((value, i) => {
+                      const active = socialProfile[dial.key] === value
+                      return (
+                        <TouchableOpacity
+                          key={value}
+                          style={[
+                            st.dialSegBtn,
+                            i === 0 && st.dialSegFirst,
+                            i === SOCIAL_DIALS.length - 1 && st.dialSegLast,
+                            active && st.dialSegActive,
+                          ]}
+                          onPress={() => updateSocialDial(dial.key, value)}
+                        >
+                          <Text style={[st.dialSegTxt, active && st.dialSegTxtActive]}>
+                            {SOCIAL_DIAL_LABELS[value]}
+                          </Text>
+                        </TouchableOpacity>
+                      )
+                    })}
+                  </View>
+                </View>
+              ))}
+              <Text style={st.rulesLabel}>◆ RÈGLES DE CONDUITE</Text>
+              <View style={st.ruleGrid}>
+                {PROFILE_RULES.map((rule) => {
+                  const active = socialProfile.rules[rule.key]
                   return (
                     <TouchableOpacity
-                      key={value}
-                      style={[styles.dialOption, active && styles.dialOptionActive]}
-                      onPress={() => updateSocialDial(dial.key, value)}
+                      key={rule.key}
+                      style={[st.rulePill, active && st.rulePillActive]}
+                      onPress={() => toggleSocialRule(rule.key)}
                     >
-                      <Text style={[styles.dialOptionText, active && styles.dialOptionTextActive]}>
-                        {SOCIAL_DIAL_LABELS[value]}
-                      </Text>
+                      <Text style={[st.ruleMark, active && st.ruleMarkActive]}>{active ? '✓' : '✗'}</Text>
+                      <Text style={[st.ruleText, active && st.ruleTextActive]}>{rule.label}</Text>
                     </TouchableOpacity>
                   )
                 })}
               </View>
-            </View>
-          ))}
-        </View>
-        <View style={styles.ruleGrid}>
-          {PROFILE_RULES.map((rule) => {
-            const active = socialProfile.rules[rule.key]
-            return (
-              <TouchableOpacity
-                key={rule.key}
-                style={[styles.rulePill, active && styles.rulePillActive]}
-                onPress={() => toggleSocialRule(rule.key)}
-              >
-                <Text style={[styles.ruleMark, active && styles.ruleMarkActive]}>{active ? 'ON' : '--'}</Text>
-                <Text style={[styles.ruleText, active && styles.ruleTextActive]}>{rule.label}</Text>
-              </TouchableOpacity>
-            )
-          })}
-        </View>
-        {relations.length > 0 && (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.relationScroll}>
-            {relations.slice(0, 6).map((relation) => (
-              <RelationChip key={relation.id} relation={relation} />
-            ))}
-          </ScrollView>
-        )}
-        {events.length > 0 && (
-          <View style={styles.eventStack}>
-            <SocialEventCard
-              key={events[0].id}
-              event={events[0]}
-              onCombat={() => startSocialCombat(events[0])}
-            />
-            {events.length > 1 && (
-              <Text style={styles.eventMoreText}>+{events.length - 1} anciennes actions dans l'historique</Text>
-            )}
-          </View>
-        )}
-      </View>
-
-      {/* Mode cards */}
-      <TouchableOpacity style={[styles.modeCardWide, styles.modeCardAdventure]} onPress={() => setShowAdventure(true)} activeOpacity={0.85}>
-        <Text style={styles.modeEmoji}>🗺️</Text>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.modeTitle}>Aventure</Text>
-          <Text style={styles.modeSub}>6 routes · PNJ · Récompenses</Text>
-        </View>
-        <Text style={{ color: retro.paper2, fontSize: 22, fontWeight: '900' }}>›</Text>
-      </TouchableOpacity>
-      <View style={styles.modeRow}>
-        <TouchableOpacity style={[styles.modeCard, styles.modeCardAI]} onPress={handleQuickAI} activeOpacity={0.85}>
-          <Text style={styles.modeEmoji}>🤖</Text>
-          <Text style={styles.modeTitle}>Combat IA</Text>
-          <Text style={styles.modeSub}>Aléatoire · Lv {minLv}–{maxLv}</Text>
+            </ScrollView>
+            <PixelButton title="FERMER" color={retro.ink} onPress={() => setShowPersonality(false)} style={{ alignSelf: 'stretch', marginTop: 12 }} />
+          </TouchableOpacity>
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.modeCard, styles.modeCardMP]} onPress={() => setShowCrossings(true)} activeOpacity={0.85}>
-          <Text style={styles.modeEmoji}>👥</Text>
-          <Text style={styles.modeTitle}>Multijoueur</Text>
-          <Text style={styles.modeSub}>
-            {crossings.length > 0
-              ? `${crossings.length} croisement${crossings.length !== 1 ? 's' : ''}`
-              : 'Bots disponibles'}
-          </Text>
-        </TouchableOpacity>
-      </View>
-      </ScrollView>
+      </Modal>
 
-      {/* Crossings / bots sheet */}
+      {/* ── Crossings / bots sheet ───────────────────────────── */}
       <Modal visible={showCrossings} transparent animationType="slide">
-        <TouchableOpacity style={styles.sheetOverlay} onPress={() => setShowCrossings(false)} activeOpacity={1}>
-          <View style={styles.sheetCard}>
-            <Text style={styles.sheetTitle}>
-              {crossings.length > 0 ? '⚔️ Tes croisements' : '🤖 Bots d\'entraînement'}
+        <TouchableOpacity style={st.sheetOverlay} onPress={() => setShowCrossings(false)} activeOpacity={1}>
+          <View style={st.sheetCard}>
+            <View style={st.sheetHandle} />
+            <Text style={st.sheetTitle}>
+              {crossings.length > 0 ? '⚔️ Tes croisements' : "🤖 Bots d'entraînement"}
             </Text>
             {crossings.length === 0 && (
-              <Text style={styles.sheetSub}>Entraîne-toi en attendant de vrais croisements !</Text>
+              <Text style={st.sheetSub}>Entraîne-toi en attendant de vrais croisements !</Text>
             )}
-            <ScrollView showsVerticalScrollIndicator={false} style={styles.sheetScroll}>
+            <ScrollView showsVerticalScrollIndicator={false} style={{ flexGrow: 0, marginTop: 8 }}>
               {crossings.length > 0
                 ? crossings.map((c) => (
                     <CrossingCard
@@ -880,213 +1146,395 @@ export default function CrossingsScreen({ player, onCombatEnd }: Props) {
   )
 }
 
-const styles = StyleSheet.create({
+const st = StyleSheet.create({
   safe: { flex: 1, backgroundColor: retro.paper },
   mainScroll: { paddingBottom: 34 },
-  header: { paddingTop: 16, paddingHorizontal: 20, paddingBottom: 12 },
-  headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  title: { fontSize: 28, fontWeight: '900', color: retro.ink, letterSpacing: 0, fontFamily: 'monospace' },
-  subtitle: { fontSize: 14, color: retro.muted, marginTop: 2 },
-  debugBtn: {
-    backgroundColor: retro.ink,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 4,
-    marginTop: 4,
-  },
-  debugBtnText: { color: retro.white, fontSize: 12, fontWeight: '900', fontFamily: 'monospace' },
 
-  // Social
-  socialPanel: {
+  // Header
+  header: {
+    paddingTop: 16,
+    paddingHorizontal: 20,
+    paddingBottom: 14,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  titleEcho: {
+    fontSize: 30, fontWeight: '900', fontFamily: 'monospace', letterSpacing: -0.5,
+    position: 'absolute', left: 2.5, top: 2.5, color: retro.gold, opacity: 0.5,
+  },
+  title: { fontSize: 30, fontWeight: '900', color: retro.ink, fontFamily: 'monospace', letterSpacing: -0.5 },
+  subtitle: { fontSize: 13, color: retro.muted, marginTop: 3 },
+  debugBtn: {
+    width: 36, height: 36, borderRadius: 4,
+    backgroundColor: retro.paper2, borderWidth: 2, borderColor: retro.line,
+    alignItems: 'center', justifyContent: 'center', marginTop: 4,
+  },
+  debugBtnTxt: { fontSize: 16 },
+
+  // ── Radar panel ─────────────────────────────────────────
+  radar: {
     marginHorizontal: 16,
-    marginBottom: 12,
-    padding: 14,
-    backgroundColor: retro.white,
-    borderRadius: 4,
+    backgroundColor: retro.night,
+    borderRadius: 6,
     borderWidth: 3,
     borderColor: retro.line,
-    gap: 10,
+    padding: 16,
+    gap: 14,
+    overflow: 'hidden',
     ...retroShadow,
   },
-  socialTitle: { color: retro.ink, fontSize: 15, fontWeight: '900', fontFamily: 'monospace' },
-  socialHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
-  socialArchetype: { color: retro.muted, fontSize: 11, marginTop: 2 },
-  profileGrid: { gap: 8 },
-  dialRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 8,
-    backgroundColor: retro.paper2,
-    borderRadius: 4,
-    borderWidth: 2,
-    borderColor: retro.line,
-    padding: 8,
-  },
-  dialText: { flex: 1 },
-  dialLabel: { color: retro.ink, fontSize: 11, fontWeight: '900', fontFamily: 'monospace' },
-  dialDesc: { color: retro.muted, fontSize: 9, marginTop: 2 },
-  dialOptions: { flexDirection: 'row', gap: 4 },
-  dialOption: {
-    minWidth: 42,
-    paddingVertical: 7,
-    alignItems: 'center',
-    borderRadius: 4,
-    borderWidth: 2,
-    borderColor: retro.line,
-    backgroundColor: retro.white,
-  },
-  dialOptionActive: { backgroundColor: retro.gold },
-  dialOptionText: { color: retro.ink, fontSize: 8, fontWeight: '900', fontFamily: 'monospace' },
-  dialOptionTextActive: { color: retro.ink },
-  ruleGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  rulePill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 8,
-    paddingVertical: 7,
-    backgroundColor: retro.paper,
-    borderRadius: 4,
-    borderWidth: 2,
-    borderColor: retro.line,
-  },
-  rulePillActive: { backgroundColor: retro.mint },
-  ruleMark: { color: retro.muted, fontSize: 8, fontWeight: '900', fontFamily: 'monospace' },
-  ruleMarkActive: { color: retro.ink },
-  ruleText: { color: retro.ink, fontSize: 9, fontWeight: '800' },
-  ruleTextActive: { color: retro.ink },
-  crossingPulseBtn: {
-    backgroundColor: retro.ink,
-    borderRadius: 4,
-    borderWidth: 2,
-    borderColor: retro.line,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-    alignItems: 'center',
-  },
-  crossingPulseText: { color: retro.white, fontSize: 12, fontWeight: '900', fontFamily: 'monospace' },
-  relationScroll: { marginHorizontal: -2 },
-  relationChip: {
-    minWidth: 92,
-    marginRight: 8,
-    paddingHorizontal: 9,
-    paddingVertical: 7,
-    backgroundColor: retro.paper2,
-    borderRadius: 4,
-    borderWidth: 2,
-  },
-  relationName: { color: retro.ink, fontSize: 11, fontWeight: '900' },
-  relationMeta: { color: retro.muted, fontSize: 9, marginTop: 2 },
-  eventStack: { gap: 8 },
-  eventMoreText: { color: retro.muted, fontSize: 10, textAlign: 'center', fontWeight: '800' },
-  socialEventCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 9,
-    backgroundColor: retro.paper,
-    borderRadius: 4,
-    borderWidth: 2,
-    padding: 9,
-  },
-  socialEventIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 4,
+  radarPulseWrap: {
+    position: 'absolute',
+    top: '50%', left: '50%',
+    width: 0, height: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: retro.line,
   },
-  socialEventEmoji: { fontSize: 10, fontWeight: '900', color: retro.ink, fontFamily: 'monospace' },
-  socialEventInfo: { flex: 1 },
-  socialEventTitle: { color: retro.ink, fontSize: 12, fontWeight: '900', fontFamily: 'monospace' },
-  socialEventText: { color: retro.muted, fontSize: 10, lineHeight: 13 },
-  socialFightBtn: {
-    minWidth: 44,
-    paddingHorizontal: 8,
-    paddingVertical: 7,
+  radarRing: {
+    position: 'absolute',
+    width: 220, height: 220,
+    left: -110, top: -110,
+    borderRadius: 110,
+    borderWidth: 2,
+    borderColor: retro.screen,
+  },
+  radarDot: {
+    position: 'absolute',
+    width: 6, height: 6,
+    left: -3, top: -3,
+    backgroundColor: retro.screenSoft,
+    borderRadius: 3,
+    opacity: 0.7,
+  },
+  radarTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  radarStatus: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  radarLed: { width: 8, height: 8, borderRadius: 1, backgroundColor: retro.screenSoft },
+  radarStatusTxt: { color: retro.screenSoft, fontSize: 10, fontWeight: '900', fontFamily: 'monospace', letterSpacing: 1.5 },
+  personaBtn: {
+    backgroundColor: retro.ink2,
+    borderWidth: 2,
+    borderColor: retro.ink3,
+    borderRadius: 3,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+  },
+  personaBtnTxt: { color: retro.paper, fontSize: 10, fontWeight: '900', fontFamily: 'monospace' },
+  radarCenter: { alignItems: 'center', paddingVertical: 8 },
+  radarTitle: {
+    color: retro.white, fontSize: 26, fontWeight: '900', fontFamily: 'monospace', letterSpacing: 3,
+    textShadowColor: retro.screenDark, textShadowOffset: { width: 2, height: 2 }, textShadowRadius: 0,
+  },
+  radarSub: { color: retro.faded, fontSize: 11, textAlign: 'center', marginTop: 6, lineHeight: 16 },
+  radarArchetypeRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    backgroundColor: retro.ink2, borderRadius: 3, borderWidth: 2, borderColor: retro.ink3,
+    paddingHorizontal: 12, paddingVertical: 8,
+  },
+  radarArchetypeLbl: { color: retro.faded, fontSize: 9, fontWeight: '900', fontFamily: 'monospace', letterSpacing: 1 },
+  radarArchetypeVal: { color: retro.screenSoft, fontSize: 12, fontWeight: '900', fontFamily: 'monospace' },
+  radarFooter: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8 },
+  radarFooterTxt: { color: retro.faded, fontSize: 10, fontFamily: 'monospace', fontWeight: '800' },
+  radarFooterDot: { color: retro.faded, fontSize: 10 },
+
+  sectionTitle: { paddingHorizontal: 20, marginTop: 20, marginBottom: 10 },
+
+  // ── Relation cards ──────────────────────────────────────
+  relScroll: { paddingHorizontal: 16, gap: 10 },
+  relCard: {
+    width: 108,
+    backgroundColor: retro.white,
+    borderWidth: 2,
     borderRadius: 4,
+    padding: 8,
+    alignItems: 'center',
+    gap: 4,
+    shadowColor: retro.line, shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 1, shadowRadius: 0, elevation: 2,
+  },
+  relSpriteBox: {
+    width: 64, height: 64,
+    borderRadius: 3,
     borderWidth: 2,
     borderColor: retro.line,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  socialFightText: { color: retro.white, fontSize: 10, fontWeight: '900', fontFamily: 'monospace' },
+  relSprite: { width: 50, height: 50 },
+  relName: { fontSize: 12, fontWeight: '900', color: retro.ink, fontFamily: 'monospace' },
+  relTagChip: { borderRadius: 2, paddingHorizontal: 6, paddingVertical: 2, borderWidth: 1.5, borderColor: retro.line },
+  relTagTxt: { fontSize: 8, fontWeight: '900', color: retro.white, fontFamily: 'monospace', textTransform: 'uppercase' },
+  relHearts: { fontSize: 10, color: retro.red, letterSpacing: 1 },
+  relCount: { fontSize: 8, color: retro.faded, fontFamily: 'monospace', fontWeight: '800' },
 
-  // Mode cards
-  modeRow: { flexDirection: 'row', paddingHorizontal: 16, gap: 12, marginTop: 10 },
+  // ── Event history ───────────────────────────────────────
+  evList: { paddingHorizontal: 16, gap: 8 },
+  evCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: retro.white,
+    borderWidth: 2,
+    borderColor: retro.line,
+    borderLeftWidth: 5,
+    borderRadius: 4,
+    padding: 10,
+    shadowColor: retro.line, shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 1, shadowRadius: 0, elevation: 2,
+  },
+  evSlot: {
+    width: 38, height: 38,
+    borderRadius: 3,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  evEmoji: { fontSize: 18 },
+  evBody: { flex: 1, gap: 2 },
+  evTitleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  evTitle: { fontSize: 12, fontWeight: '900', color: retro.ink, fontFamily: 'monospace' },
+  evTime: { fontSize: 9, color: retro.faded, fontFamily: 'monospace', fontWeight: '800' },
+  evMsg: { fontSize: 11, color: retro.muted, lineHeight: 15 },
+  evFightBtn: {
+    width: 38, height: 38,
+    borderRadius: 3,
+    borderWidth: 2,
+    borderColor: retro.line,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  evFightTxt: { fontSize: 16 },
+  evMore: { fontSize: 10, color: retro.faded, textAlign: 'center', fontWeight: '800', fontFamily: 'monospace', marginTop: 2 },
+
+  // ── Mode cards ──────────────────────────────────────────
+  modeRow: { flexDirection: 'row', paddingHorizontal: 16, gap: 10, marginTop: 10 },
   modeCard: {
     flex: 1,
     borderRadius: 4,
-    paddingVertical: 22,
-    paddingHorizontal: 16,
+    paddingVertical: 18,
+    paddingHorizontal: 14,
     alignItems: 'center',
-    gap: 6,
+    gap: 5,
     borderWidth: 3,
     borderColor: retro.line,
     ...retroShadow,
-    elevation: 5,
   },
   modeCardWide: {
     marginHorizontal: 16,
     borderRadius: 4,
-    paddingVertical: 18,
-    paddingHorizontal: 20,
+    paddingVertical: 16,
+    paddingHorizontal: 18,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
     borderWidth: 3,
     borderColor: retro.line,
     ...retroShadow,
-    elevation: 6,
   },
-  modeCardAdventure: { backgroundColor: retro.blue },
-  modeCardAI: { backgroundColor: retro.ink },
-  modeCardMP: { backgroundColor: retro.red },
-  modeEmoji: { fontSize: 36 },
-  modeTitle: { fontSize: 16, fontWeight: '900', color: retro.white, fontFamily: 'monospace' },
-  modeSub: { fontSize: 11, color: retro.paper, textAlign: 'center' },
+  modeEmoji: { fontSize: 32 },
+  modeTitle: { fontSize: 15, fontWeight: '900', color: retro.white, fontFamily: 'monospace', letterSpacing: 0.5 },
+  modeSub: { fontSize: 10, color: retro.paper, textAlign: 'center', fontWeight: '700' },
+  modeArrow: { color: retro.paper2, fontSize: 24, fontWeight: '900' },
 
-  // Sheet modal
-  sheetOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  // ── Encounter modal ─────────────────────────────────────
+  encOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(11,13,24,0.96)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  encSearchWrap: { alignItems: 'center', justifyContent: 'center', gap: 8 },
+  encSearchGlow: {
+    position: 'absolute',
+    width: 200, height: 200, borderRadius: 100,
+    backgroundColor: retro.screenDark,
+  },
+  encSearchMark: {
+    fontSize: 84, fontWeight: '900', color: retro.screenSoft, fontFamily: 'monospace',
+  },
+  encSearchTxt: {
+    color: retro.screenSoft, fontSize: 15, fontWeight: '900', fontFamily: 'monospace', letterSpacing: 3, marginTop: 18,
+  },
+  encSearchSub: { color: retro.faded, fontSize: 12 },
+
+  encRevealWrap: { alignItems: 'center', alignSelf: 'stretch', gap: 14 },
+  encGlowAnchor: { position: 'absolute', top: 150, left: '50%', width: 0, height: 0 },
+  encGlow: { position: 'absolute' },
+  encKicker: {
+    color: retro.gold, fontSize: 13, fontWeight: '900', fontFamily: 'monospace', letterSpacing: 4,
+  },
+  encSprite: { width: 150, height: 165 },
+  encIdentity: { alignItems: 'center', gap: 6 },
+  encCreatureName: {
+    color: retro.white, fontSize: 26, fontWeight: '900', fontFamily: 'monospace', letterSpacing: 0.5,
+    textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 2, height: 2 }, textShadowRadius: 0,
+  },
+  encIdentityRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  encChip: {
+    borderRadius: 2, paddingHorizontal: 9, paddingVertical: 3, borderWidth: 2,
+  },
+  encChipTxt: { color: retro.white, fontSize: 11, fontWeight: '900', fontFamily: 'monospace' },
+  encUsername: { color: retro.faded, fontSize: 12, fontFamily: 'monospace', fontWeight: '800' },
+  encTagRow: { flexDirection: 'row', gap: 6, flexWrap: 'wrap', justifyContent: 'center' },
+  encTag: {
+    backgroundColor: retro.ink2, borderRadius: 2, paddingHorizontal: 7, paddingVertical: 2.5,
+    borderWidth: 1.5, borderColor: retro.ink3,
+  },
+  encTagTxt: { color: retro.paper, fontSize: 9, fontWeight: '900', fontFamily: 'monospace', textTransform: 'uppercase' },
+
+  encEventCard: {
+    alignSelf: 'stretch',
+    backgroundColor: retro.white,
+    borderWidth: 3,
+    borderRadius: 4,
+    padding: 14,
+    paddingTop: 18,
+    marginTop: 10,
+    gap: 10,
+    ...retroShadow,
+  },
+  encEventStrap: {
+    position: 'absolute',
+    top: -12,
+    alignSelf: 'center',
+    borderRadius: 2,
+    borderWidth: 2,
+    borderColor: retro.line,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+  },
+  encEventStrapTxt: { color: retro.white, fontSize: 11, fontWeight: '900', fontFamily: 'monospace', letterSpacing: 1 },
+  encEventMsg: { color: retro.ink2, fontSize: 13, lineHeight: 19, textAlign: 'center' },
+  encRewardRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    backgroundColor: retro.paper2, borderRadius: 3, borderWidth: 2, borderColor: retro.line,
+    paddingHorizontal: 12, paddingVertical: 7,
+  },
+  encRewardTxt: { color: retro.muted, fontSize: 9, fontWeight: '900', fontFamily: 'monospace', letterSpacing: 1 },
+  encRewardVal: { color: retro.goldDark, fontSize: 14, fontWeight: '900', fontFamily: 'monospace' },
+
+  encActions: { alignSelf: 'stretch', gap: 10, marginTop: 4 },
+  encGhostBtn: { alignItems: 'center', paddingVertical: 8 },
+  encGhostTxt: { color: retro.faded, fontSize: 13, fontWeight: '800', fontFamily: 'monospace' },
+
+  // ── Sheets (personality + crossings) ────────────────────
+  sheetOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
   sheetCard: {
     backgroundColor: retro.white,
     borderTopLeftRadius: 6,
     borderTopRightRadius: 6,
-    padding: 24,
-    paddingBottom: 40,
-    gap: 12,
-    maxHeight: '80%',
+    borderWidth: 3,
+    borderColor: retro.line,
+    padding: 20,
+    paddingBottom: 36,
+    maxHeight: '86%',
   },
-  sheetTitle: { fontSize: 18, fontWeight: '900', color: retro.ink, textAlign: 'center', fontFamily: 'monospace' },
-  sheetSub: { fontSize: 13, color: retro.muted, textAlign: 'center', marginTop: -6 },
-  sheetScroll: { flexGrow: 0 },
+  sheetHandle: {
+    width: 44, height: 5, borderRadius: 2,
+    backgroundColor: retro.paper3,
+    alignSelf: 'center',
+    marginBottom: 12,
+  },
+  sheetTitle: { fontSize: 18, fontWeight: '900', color: retro.ink, fontFamily: 'monospace' },
+  sheetSub: { fontSize: 12, color: retro.muted, marginTop: 2, marginBottom: 10 },
+  archetypeBanner: {
+    backgroundColor: retro.paper2,
+    borderWidth: 2,
+    borderColor: retro.goldDark,
+    borderRadius: 3,
+    paddingVertical: 8,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  archetypeBannerTxt: { color: retro.goldDark, fontSize: 13, fontWeight: '900', fontFamily: 'monospace' },
 
-  // Cards
-  card: {
+  // Personality dials
+  dialRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+    paddingVertical: 9,
+    borderBottomWidth: 1.5,
+    borderBottomColor: retro.paper2,
+  },
+  dialText: { flex: 1 },
+  dialLabel: { color: retro.ink, fontSize: 12, fontWeight: '900', fontFamily: 'monospace' },
+  dialDesc: { color: retro.muted, fontSize: 9.5, marginTop: 2 },
+  dialSeg: {
+    flexDirection: 'row',
+    borderWidth: 2,
+    borderColor: retro.line,
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  dialSegBtn: {
+    paddingHorizontal: 9,
+    paddingVertical: 7,
     backgroundColor: retro.white,
-    borderRadius: 4,
-    padding: 14,
+    borderRightWidth: 2,
+    borderRightColor: retro.line,
+  },
+  dialSegFirst: {},
+  dialSegLast: { borderRightWidth: 0 },
+  dialSegActive: { backgroundColor: retro.gold },
+  dialSegTxt: { color: retro.muted, fontSize: 9, fontWeight: '900', fontFamily: 'monospace' },
+  dialSegTxtActive: { color: retro.ink },
+
+  rulesLabel: {
+    color: retro.red, fontSize: 10, fontWeight: '900', fontFamily: 'monospace',
+    letterSpacing: 1, marginTop: 14, marginBottom: 8,
+  },
+  ruleGrid: { gap: 6 },
+  rulePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 9,
+    backgroundColor: retro.paper,
+    borderRadius: 3,
+    borderWidth: 2,
+    borderColor: retro.paper3,
+  },
+  rulePillActive: { backgroundColor: retro.white, borderColor: retro.mintDark },
+  ruleMark: { color: retro.faded, fontSize: 12, fontWeight: '900', fontFamily: 'monospace', width: 14, textAlign: 'center' },
+  ruleMarkActive: { color: retro.mintDark },
+  ruleText: { color: retro.muted, fontSize: 11, fontWeight: '800', flex: 1 },
+  ruleTextActive: { color: retro.ink },
+
+  // ── Bot / crossing cards in sheet ───────────────────────
+  botCard: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    marginBottom: 10,
+    backgroundColor: retro.paper,
     borderWidth: 2,
     borderColor: retro.line,
-    ...retroShadow,
-    elevation: 2,
+    borderRadius: 4,
+    padding: 10,
+    marginBottom: 8,
   },
-  botCard: { borderWidth: 2, borderColor: retro.line },
-  avatarCircle: { width: 52, height: 52, borderRadius: 4, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: retro.line },
-  avatarSprite: { width: 40, height: 40 },
-  cardInfo: { flex: 1 },
-  cardName: { fontSize: 15, fontWeight: '900', color: retro.ink },
-  cardCreature: { fontSize: 13, color: retro.ink2, marginTop: 1 },
-  cardInteraction: { fontSize: 12, color: retro.muted, marginTop: 2 },
-  cardRight: { alignItems: 'flex-end', gap: 6 },
-  cardTime: { fontSize: 12, color: retro.muted },
-  challengeBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 4, borderWidth: 2, borderColor: retro.line },
-  challengeText: { color: retro.white, fontSize: 12, fontWeight: '900', fontFamily: 'monospace' },
+  botAvatar: {
+    width: 52, height: 52,
+    borderRadius: 3,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  botSprite: { width: 42, height: 42 },
+  botName: { fontSize: 14, fontWeight: '900', color: retro.ink, fontFamily: 'monospace' },
+  botUser: { fontSize: 10, color: retro.muted, fontFamily: 'monospace', marginTop: 1 },
+  botMeta: { fontSize: 10, color: retro.faded, marginTop: 2, fontWeight: '700' },
+  botFightBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 3,
+    borderWidth: 2,
+  },
+  botFightTxt: { color: retro.white, fontSize: 11, fontWeight: '900', fontFamily: 'monospace' },
 })
 
 const ds = StyleSheet.create({
