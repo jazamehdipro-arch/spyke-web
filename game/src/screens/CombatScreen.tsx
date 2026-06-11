@@ -806,6 +806,21 @@ function chooseHardE1SylvaAction(
   return { kind: 'charge' }
 }
 
+function chooseDumbE1Action(
+  botState: Combatant,
+  loadout: SpellLoadout,
+  passiveLevel: 1 | 2 | 3,
+  can: (id: SpellId) => boolean,
+): CombatAction {
+  if (Math.random() >= 0.7) return { kind: 'charge' }
+
+  const attacks = ([...loadout] as SpellId[]).filter(id =>
+    can(id) && estimateSpellPressure(id, botState, passiveLevel) > 0
+  )
+  if (attacks.length === 0) return { kind: 'charge' }
+  return { kind: 'spell', spellId: attacks[Math.floor(Math.random() * attacks.length)] }
+}
+
 function botChooseAction(
   type: CreatureType,
   botState: Combatant,
@@ -821,6 +836,14 @@ function botChooseAction(
     (loadout as readonly SpellId[]).includes(id) && canUseSpell(id, botState, maxEnergy)
   // inLoadout(id): spell exists in this creature's build (regardless of cooldown/energy)
   const inLoadout = (id: SpellId): boolean => (loadout as readonly SpellId[]).includes(id)
+
+  if (passiveLevel === 1 && (difficulty === 'easy' || difficulty === 'medium')) {
+    const errorRate = difficulty === 'easy' ? 0.7 : 0.3
+    if (Math.random() < errorRate) {
+      return chooseDumbE1Action(botState, loadout, passiveLevel, can)
+    }
+    return botChooseAction(type, botState, playerState, loadout, passiveLevel, 'hard', defendLocked)
+  }
 
   // ── EASY: random pick, barely functional ─────────────────
   if (difficulty === 'easy') {
