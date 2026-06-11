@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { Animated, Image, ImageSourcePropType, StyleSheet, Text, TouchableWithoutFeedback, View } from 'react-native'
+import { Animated, Easing, Image, ImageSourcePropType, StyleSheet, Text, TouchableWithoutFeedback, View } from 'react-native'
 import { Creature, CreatureMood, CreatureType } from '../types'
 
 import { CREATURE_COLORS, getMood } from '../utils/creature'
@@ -151,13 +151,13 @@ const PARTICLE_COLORS: Record<CreatureType, string[]> = {
 function FloatingParticles({ color, type }: { color: string; type: CreatureType }) {
   const colors = PARTICLE_COLORS[type]
   const particles = useRef(
-    Array.from({ length: 3 }, (_, i) => ({
-      x: 44 + i * 44,
+    Array.from({ length: 5 }, (_, i) => ({
+      x: 28 + i * 48,
       y: useRef(new Animated.Value(60 + Math.random() * 40)).current,
       opacity: useRef(new Animated.Value(0)).current,
-      size: 4 + (i % 3) * 2,
+      size: 3 + (i % 3) * 2,
       color: colors[i % colors.length],
-      delay: i * 300,
+      delay: i * 200,
     }))
   ).current
 
@@ -232,8 +232,9 @@ interface Props {
 }
 
 export default function CreatureDisplay({ creature, pose, onEvolve, variant = 'gameboy' }: Props) {
-  const bounce = useRef(new Animated.Value(0)).current
-  const scale  = useRef(new Animated.Value(1)).current
+  const bounce  = useRef(new Animated.Value(0)).current
+  const scale   = useRef(new Animated.Value(1)).current
+  const breathe = useRef(new Animated.Value(1)).current
   const [frameIdx, setFrameIdx] = useState(0)
   const [reacting, setReacting] = useState(false)
   const prevLevelRef = useRef(creature.stats.level)
@@ -277,6 +278,21 @@ export default function CreatureDisplay({ creature, pose, onEvolve, variant = 'g
     return () => anim.stop()
   }, [mood, creature.stats.isSick, pose])
 
+  // slow breathing scale — gives the creature life
+  useEffect(() => {
+    if (pose) { breathe.setValue(1); return }
+    const period = mood === 'excited' ? 1600 : mood === 'happy' ? 2400 : 3200
+    const amp = mood === 'excited' ? 1.03 : 1.018
+    const anim = Animated.loop(
+      Animated.sequence([
+        Animated.timing(breathe, { toValue: amp,  duration: period, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        Animated.timing(breathe, { toValue: 1,    duration: period, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+      ])
+    )
+    anim.start()
+    return () => anim.stop()
+  }, [pose, mood])
+
   const handlePress = () => {
     if (reacting) return
     setReacting(true)
@@ -307,9 +323,22 @@ export default function CreatureDisplay({ creature, pose, onEvolve, variant = 'g
   if (variant === 'hero') {
     return (
       <View style={styles.heroContainer}>
+        {/* Ambient glow — 3 concentric circles anchored at the flex center via 0-size View */}
+        <View style={{ width: 0, height: 0 }} pointerEvents="none">
+          <View style={[styles.glowRing, { width: 260, height: 260, borderRadius: 130, left: -130, top: -130, backgroundColor: color + '0B' }]} />
+          <View style={[styles.glowRing, { width: 190, height: 190, borderRadius: 95,  left: -95,  top: -95,  backgroundColor: color + '18' }]} />
+          <View style={[styles.glowRing, { width: 128, height: 128, borderRadius: 64,  left: -64,  top: -64,  backgroundColor: color + '26' }]} />
+        </View>
+
         {!isSick && <FloatingParticles color={color} type={creature.type} />}
+
         <TouchableWithoutFeedback onPress={handlePress}>
-          <Animated.View style={[styles.heroSpritePlate, { transform: [{ translateY: bounce }, { scale }], opacity: isSick ? 0.75 : 1 }]}>
+          <Animated.View
+            style={{
+              opacity: isSick ? 0.75 : 1,
+              transform: [{ translateY: bounce }, { scale }, { scale: breathe }],
+            }}
+          >
             <Image source={sprite} style={styles.heroSprite} resizeMode="contain" />
           </Animated.View>
         </TouchableWithoutFeedback>
@@ -366,16 +395,9 @@ export default function CreatureDisplay({ creature, pose, onEvolve, variant = 'g
 const styles = StyleSheet.create({
   // ── Hero variant ──────────────────────────────────────────
   heroContainer: { alignItems: 'center', justifyContent: 'center', flex: 1 },
-  heroSpritePlate: {
-    width: 188,
-    height: 188,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255,248,220,0.72)',
-    borderWidth: 3,
-    borderColor: 'rgba(32,40,61,0.55)',
-  },
-  heroSprite: { width: 136, height: 150 },
+  // Glow ring base — position/size/color set inline
+  glowRing: { position: 'absolute' },
+  heroSprite: { width: 154, height: 170 },
   container: {
     alignItems: 'center',
     paddingVertical: 12,
