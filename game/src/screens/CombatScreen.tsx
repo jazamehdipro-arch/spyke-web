@@ -598,6 +598,43 @@ function estimateSpellPressure(spellId: SpellId, caster: Combatant, passiveLevel
 }
 
 // ─── bot AI ─────────────────────────────────────────────
+function chooseHardE1NemoAction(
+  botState: Combatant,
+  playerState: Combatant,
+  can: (id: SpellId) => boolean,
+  defendLocked: boolean,
+): CombatAction {
+  const maxHp = E1_BASE_HP.nemo
+  const underHalf = botState.hp <= maxHp / 2
+
+  if (can('raz_de_maree') && playerState.hp <= 20) return { kind: 'spell', spellId: 'raz_de_maree' }
+  if (can('siphon') && playerState.hp <= 10) return { kind: 'spell', spellId: 'siphon' }
+
+  if (can('regeneration')) {
+    if (botState.hp < 25 && Math.random() < 0.8) return { kind: 'spell', spellId: 'regeneration' }
+    if (botState.hp >= 25 && underHalf && Math.random() < 0.45) return { kind: 'spell', spellId: 'regeneration' }
+  }
+
+  if (can('malediction') && !hasStatus(playerState, 'cursed') && playerState.energy >= 3 && Math.random() < 0.6) {
+    return { kind: 'spell', spellId: 'malediction' }
+  }
+
+  if (underHalf && !can('regeneration') && playerState.energy >= 3 && !defendLocked && Math.random() < 0.4) {
+    return { kind: 'defend' }
+  }
+
+  if (botState.energy <= 1) return { kind: 'charge' }
+
+  const attackChance = botState.energy === 2 ? 0.7 : botState.energy === 3 ? 0.8 : 0.95
+  if (Math.random() >= attackChance) return { kind: 'charge' }
+
+  const preferRaz = underHalf ? Math.random() < 0.3 : Math.random() < 0.55
+  if (preferRaz && can('raz_de_maree')) return { kind: 'spell', spellId: 'raz_de_maree' }
+  if (can('siphon')) return { kind: 'spell', spellId: 'siphon' }
+  if (can('raz_de_maree')) return { kind: 'spell', spellId: 'raz_de_maree' }
+  return { kind: 'charge' }
+}
+
 function botChooseAction(
   type: CreatureType,
   botState: Combatant,
@@ -605,6 +642,7 @@ function botChooseAction(
   loadout: SpellLoadout,
   passiveLevel: 1 | 2 | 3,
   difficulty: 'easy' | 'medium' | 'hard' = 'medium',
+  defendLocked = false,
 ): CombatAction {
   const maxEnergy = OPPONENT_MAX_ENERGY
   // can(id): spell is in loadout AND usable this turn
@@ -629,6 +667,10 @@ function botChooseAction(
 
   // ── HARD: type-specific combos + reading opponent state ───
   if (difficulty === 'hard') {
+    if (type === 'nemo' && passiveLevel === 1) {
+      return chooseHardE1NemoAction(botState, playerState, can, defendLocked)
+    }
+
     const botDebuffed = botState.statuses.some(s =>
       (['burn', 'paralyzed', 'cursed', 'exhausted', 'provoked'] as string[]).includes(s.type)
     )
@@ -1247,7 +1289,7 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
     } else if (hasStatus(curO, 'paralyzed')) {
       oAction = { kind: 'defend' }
     } else {
-      oAction = botChooseAction(opponent.creatureType, curO, curP, opponentLoadout, oPassiveLevel, difficulty ?? 'medium')
+      oAction = botChooseAction(opponent.creatureType, curO, curP, opponentLoadout, oPassiveLevel, difficulty ?? 'medium', opponentDefendLockedRef.current)
     }
     if (oAction.kind === 'defend' && opponentDefendLockedRef.current && !hasStatus(curO, 'paralyzed')) {
       oAction = { kind: 'charge' }
