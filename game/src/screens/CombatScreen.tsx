@@ -171,7 +171,7 @@ const OPPONENT_MAX_ENERGY = 5
 const TIMER_SECONDS = 10
 const BASE_HP = 68
 const E1_BASE_HP: Record<CreatureType, number> = {
-  ignis: 60,
+  ignis: 63,
   nemo: 75,
   sylva: 68,
   zapp: 63,
@@ -272,7 +272,7 @@ function resolveSpell(
     // ── ignis ──
     case 'frappe_ardente': {
       const newEmbers = Math.min(3, caster.embers + 1)
-      // Passive: 3 braises → ×1.5 on next fire spell (triggers here too)
+      // Passive E1: 2 braises boost Explosion; later stages keep the 3-braise rule.
       const braiseBonus = caster.embers === 3
       const base = passiveLevel === 1 ? 8 : 7
       const raw = braiseBonus ? Math.round(base * 1.5) : base
@@ -285,7 +285,7 @@ function resolveSpell(
     }
     case 'explosion': {
       const embers = caster.embers
-      const braiseBonus = embers >= 3
+      const braiseBonus = passiveLevel === 1 ? embers >= 2 : embers >= 3
       const base = passiveLevel === 1 ? 20 : 9.9
       const raw = braiseBonus ? Math.round(base * 1.5) : base
       const dmg = Math.round(raw)
@@ -319,10 +319,10 @@ function resolveSpell(
       const raw = braiseBonus ? Math.round(base * 1.5) : base
       return {
         ...empty,
-        casterHpDelta: -8,
+        casterHpDelta: passiveLevel === 1 ? -5 : -8,
         targetHpDelta: -raw,
         newCasterEmbers: braiseBonus ? 0 : undefined,
-        log: `🩸 Immolation ! -8 PV sur soi → -${raw} HP ennemi (garanti)${braiseBonus ? ' (×1.5 braises !)' : ''}`,
+        log: `🩸 Immolation ! -${passiveLevel === 1 ? 5 : 8} PV sur soi → -${raw} HP ennemi (garanti)${braiseBonus ? ' (×1.5 braises !)' : ''}`,
       }
     }
     case 'brasier': {
@@ -359,7 +359,7 @@ function resolveSpell(
     case 'siphon': {
       // Life steal: always heal +4, +2 bonus if low HP (sustain passive)
       const lowHp = caster.hp < 25
-      const heal = passiveLevel === 1 ? 4 : (lowHp ? 6 : 4)
+      const heal = passiveLevel === 1 ? 2 : (lowHp ? 6 : 4)
       const dmg = passiveLevel === 1 ? 10 : 6
       return {
         ...empty,
@@ -370,7 +370,7 @@ function resolveSpell(
     }
     case 'regeneration': {
       const lowHp = caster.hp < 25
-      const heal = passiveLevel === 1 ? (lowHp ? 14 : 10) : (lowHp ? 18 : 14)
+      const heal = passiveLevel === 1 ? (lowHp ? 12 : 8) : (lowHp ? 18 : 14)
       return {
         ...empty,
         casterHpDelta: heal,
@@ -390,8 +390,8 @@ function resolveSpell(
         : 'raz_de_maree'
       return {
         ...empty,
-        targetStatusesToAdd: [{ type: 'cursed', turnsLeft: 2, data: blocked }],
-        log: `🔮 Malédiction ! Sort ${SPELL_CATALOG[blocked as SpellId]?.name ?? blocked} bloqué 2 tours`,
+        targetStatusesToAdd: [{ type: 'cursed', turnsLeft: passiveLevel === 1 ? 1 : 2, data: blocked }],
+        log: `🔮 Malédiction ! Sort ${SPELL_CATALOG[blocked as SpellId]?.name ?? blocked} bloqué ${passiveLevel === 1 ? 1 : 2} tour(s)`,
       }
     }
     case 'raz_de_maree': {
@@ -530,9 +530,9 @@ function resolveSpell(
     case 'surcharge': {
       return {
         ...empty,
-        targetHpDelta: passiveLevel === 1 ? -25 : -16,
+        targetHpDelta: passiveLevel === 1 ? -22 : -16,
         casterStatusesToAdd: [{ type: 'exhausted', turnsLeft: 2, value: 2 }],
-        log: `🔋 Surcharge ! -${passiveLevel === 1 ? 25 : 16} HP + épuisement prochain tour`,
+        log: `🔋 Surcharge ! -${passiveLevel === 1 ? 22 : 16} HP + épuisement prochain tour`,
       }
     }
     case 'tempete': {
@@ -570,7 +570,7 @@ function canUseSpell(spellId: SpellId, state: Combatant, _maxEnergy: number): bo
 }
 
 function estimateSpellPressure(spellId: SpellId, caster: Combatant, passiveLevel: 1 | 2 | 3): number {
-  const braise = caster.embers >= 3 ? 1.5 : 1
+  const braise = caster.embers >= (passiveLevel === 1 ? 2 : 3) ? 1.5 : 1
   switch (spellId) {
     case 'frappe_ardente': return Math.round(7 * braise)
     case 'explosion': return Math.round(9.9 * braise)
@@ -590,7 +590,7 @@ function estimateSpellPressure(spellId: SpellId, caster: Combatant, passiveLevel
     case 'arc_paralysant': return 11
     case 'boost': return 0
     case 'rafale': return passiveLevel >= 3 ? 12 : 8
-    case 'surcharge': return 16
+    case 'surcharge': return passiveLevel === 1 ? 22 : 16
     case 'tempete': return 24
     case 'fulguration': return 12
     default: return 0
@@ -681,8 +681,8 @@ function botChooseAction(
       case 'ignis': {
         // Guaranteed damage vs high-dodge player (immolation ignores dodge)
         if (playerDodging && can('immolation')) return { kind: 'spell', spellId: 'immolation' }
-        // Core: stack 3 braises → spend with explosion/brasier (×1.5 burst)
-        if (botState.embers >= 3) {
+        // Core: stack braises, then spend with explosion/brasier (×1.5 burst)
+        if (botState.embers >= (passiveLevel === 1 ? 2 : 3)) {
           if (can('explosion')) return { kind: 'spell', spellId: 'explosion' }
           if (can('brasier'))   return { kind: 'spell', spellId: 'brasier' }
           if (inLoadout('explosion') || inLoadout('brasier')) return { kind: 'charge' }
@@ -790,7 +790,7 @@ function botChooseAction(
   // Type-specific basic loop
   switch (type) {
     case 'ignis': {
-      if (botState.embers >= 3) {
+      if (botState.embers >= (passiveLevel === 1 ? 2 : 3)) {
         if (can('explosion')) return { kind: 'spell', spellId: 'explosion' }
         if (can('brasier'))   return { kind: 'spell', spellId: 'brasier' }
       }

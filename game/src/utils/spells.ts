@@ -7,8 +7,8 @@ export const SPELL_CATALOG: Record<SpellId, Spell> = {
     scaledDesc: () => `8 dégâts + 1 braise (max 3)` },
 
   explosion:         { id: 'explosion',          name: 'Explosion',           emoji: '💥',   energyCost: 4, cooldown: 0,
-    description: '20 dégâts, 30 dégâts à 3 braises',
-    scaledDesc: () => `20 dégâts, 30 dégâts à 3 braises` },
+    description: '20 dégâts, 30 dégâts dès 2 braises',
+    scaledDesc: () => `20 dégâts, 30 dégâts dès 2 braises` },
 
   carapace_chauffee: { id: 'carapace_chauffee',  name: 'Carapace',            emoji: '🛡️',   energyCost: 0, cooldown: 2,
     description: 'Bloque tout, renvoie 50% et gagne 1 braise' },
@@ -17,8 +17,8 @@ export const SPELL_CATALOG: Record<SpellId, Spell> = {
     description: 'Ennemi : +30% dégâts reçus prochain tour' },
 
   immolation:        { id: 'immolation',         name: 'Immolation',          emoji: '🩸',   energyCost: 2, cooldown: 0,
-    description: '-8 PV sur soi → 20 dégâts garantis',
-    scaledDesc: () => `-8 PV sur soi → 20 dégâts garantis` },
+    description: '-5 PV sur soi → 20 dégâts garantis',
+    scaledDesc: () => `-5 PV sur soi → 20 dégâts garantis` },
 
   brasier:           { id: 'brasier',            name: 'Brasier',             emoji: '🌋',   energyCost: 4, cooldown: 0,
     description: '27 dégâts + brûlure 3 tours (4/tour)',
@@ -34,17 +34,17 @@ export const SPELL_CATALOG: Record<SpellId, Spell> = {
     scaledDesc: (m) => `${Math.round(7*m)} dégâts directs` },
 
   siphon:            { id: 'siphon',             name: 'Siphon',              emoji: '💧',   energyCost: 2, cooldown: 0,
-    description: '10 dégâts + vol de vie (+4 PV)',
-    scaledDesc: () => `10 dégâts + vol de vie (+4 PV)` },
+    description: '10 dégâts + vol de vie (+2 PV)',
+    scaledDesc: () => `10 dégâts + vol de vie (+2 PV)` },
 
   regeneration:      { id: 'regeneration',       name: 'Régénération',        emoji: '💚',   energyCost: 2, cooldown: 0,
-    description: '+10 PV, +14 PV sous 25 PV' },
+    description: '+8 PV, +12 PV sous 25 PV' },
 
   barriere:          { id: 'barriere',           name: 'Barrière',            emoji: '🔷',   energyCost: 0, cooldown: 3,
     description: '-50% dégâts reçus pendant 2 tours' },
 
   malediction:       { id: 'malediction',        name: 'Malédiction',         emoji: '🔮',   energyCost: 3, cooldown: 0,
-    description: 'Bloque le sort le + coûteux ennemi 2 tours' },
+    description: 'Bloque le sort le + coûteux ennemi 1 tour' },
 
   raz_de_maree:      { id: 'raz_de_maree',       name: 'Raz-de-marée',        emoji: '🌊💥', energyCost: 3, cooldown: 0,
     description: '20 dégâts (nuke pur)',
@@ -107,8 +107,8 @@ export const SPELL_CATALOG: Record<SpellId, Spell> = {
     scaledDesc: (m) => `2×${Math.round(4*m)} dégâts (3× à E3)` },
 
   surcharge:         { id: 'surcharge',          name: 'Surcharge',           emoji: '🔋',   energyCost: 3, cooldown: 0,
-    description: '25 dégâts — surfatigue prochain tour',
-    scaledDesc: () => `25 dégâts — surfatigue prochain tour` },
+    description: '22 dégâts — surfatigue prochain tour',
+    scaledDesc: () => `22 dégâts — surfatigue prochain tour` },
 
   tempete:           { id: 'tempete',            name: 'Tempête',             emoji: '⛈️',   energyCost: 4, cooldown: 0,
     description: '4×9 dégâts',
