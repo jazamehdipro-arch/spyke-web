@@ -23,10 +23,11 @@ import { generateRandomEvent, getRewardItem, shouldTriggerEvent } from '../utils
 import { getCreatureSpeech, getReactionMessage } from '../utils/speech'
 import { addItemToInventory, addJournalEntry, saveCreature, saveEvents, saveInventory, saveJournal, saveQuests } from '../utils/storage'
 import { updateQuestsAfterAction } from '../utils/quests'
-import { retro, retroShadow } from '../styles/retro'
+import { retro, retroShadow, typeTheme } from '../styles/retro'
+import { PixelBar, PixelButton, SectionTitle } from '../components/ui'
 
 const { height: SCREEN_H } = Dimensions.get('window')
-const HERO_H = Math.round(SCREEN_H * 0.42)
+const HERO_H = Math.round(SCREEN_H * 0.44)
 
 const TRAINING_CONFIG: Record<keyof TrainingStats, { label: string; emoji: string; desc: string; costEnergy: number; costHunger: number }> = {
   strength:  { label: 'Force',     emoji: '💪', desc: '+0.8% dégâts',       costEnergy: 15, costHunger: 10 },
@@ -275,7 +276,6 @@ export default function HomeScreen({
   const handleSleep = async () => {
     if (creature.stats.energy >= 95) { showSpeech('Je suis en pleine forme ! ⚡'); return }
     triggerPose('sleep', 3500)
-    // Faim < 30 → sommeil moins récupérateur (÷2)
     const sleepRecovery = creature.stats.hunger < 30 ? 20 : 40
     let updated: Creature = {
       ...creature, totalSlept: creature.totalSlept + 1,
@@ -349,7 +349,6 @@ export default function HomeScreen({
     triggerParticles(['⭐', '✨', '💫', '🌟'])
   }, [creature.stats.level])
 
-  // Skin navigation
   const allSkins = [null, ...(creature.ownedSkins ?? [])]
   const curSkinIdx = creature.skin ? Math.max(0, allSkins.indexOf(creature.skin)) : 0
   const handleSkinLeft  = () => onSkinChange(allSkins[(curSkinIdx - 1 + allSkins.length) % allSkins.length])
@@ -360,8 +359,8 @@ export default function HomeScreen({
   const foodItems = inventory.filter((i) => (i.effect.hunger ?? 0) > 0)
   const previewInv = inventory.slice(0, 5)
 
-  // iOS safe area top: 54 covers Dynamic Island (59) and notch (44) with a bit of margin
   const statusBarH = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 24) : 54
+  const theme = typeTheme[creature.type]
 
   return (
     <View style={s.root}>
@@ -370,18 +369,22 @@ export default function HomeScreen({
 
       {/* ── Hero ─────────────────────────────────────────────── */}
       <View style={s.hero}>
-        <View style={[s.heroImg, s.heroScreen]}>
-          <View style={s.heroPixelGrid} pointerEvents="none" />
+        {/* Dark LCD bezel */}
+        <View style={s.heroBezel}>
+          {/* Ground shadow */}
           <View style={s.heroGround} pointerEvents="none" />
+          {/* Bottom fade to paper */}
           <View style={s.heroVignette} pointerEvents="none" />
 
-          {/* Header */}
-          <View style={[s.heroHeader, { paddingTop: statusBarH + 12 }]}>
+          {/* Header bar */}
+          <View style={[s.heroHeader, { paddingTop: statusBarH + 10 }]}>
             <TouchableOpacity onPress={handleTitleTap} activeOpacity={1}>
               <Text style={s.heroTitle}>Croisio</Text>
             </TouchableOpacity>
             <View style={{ flex: 1 }} />
-            <View style={s.chip}><Text style={[s.chipTxt, { color: '#F5A623' }]}>💰 {coins ?? 0}</Text></View>
+            <View style={s.coinChip}>
+              <Text style={s.coinTxt}>💰 {coins ?? 0}</Text>
+            </View>
             <TouchableOpacity style={s.heroIconBtn} onPress={() => setShowAdmin(true)}>
               <Text style={s.heroIconTxt}>⚙️</Text>
             </TouchableOpacity>
@@ -389,29 +392,31 @@ export default function HomeScreen({
 
           {/* Speech bubble */}
           {speechVisible && (
-            <View style={[s.speech, { top: statusBarH + 58 }]} pointerEvents="none">
+            <View style={[s.speech, { top: statusBarH + 56 }]} pointerEvents="none">
               <Text style={s.speechQ}>❝</Text>
               <Text style={s.speechTxt}>{speechMsg}</Text>
             </View>
           )}
 
-          {/* Level badges */}
-          <View style={[s.heroBadges, { top: statusBarH + 58 }]}>
-            <View style={s.lvBadge}><Text style={s.lvTxt}>Niv. {creature.stats.level}</Text></View>
-            {creature.stats.level >= 20 && <View style={s.maxBadge}><Text style={s.maxTxt}>★ MAX</Text></View>}
-            {creature.stats.level >= 10 && creature.stats.level < 20 && <View style={[s.maxBadge, { backgroundColor: '#555' }]}><Text style={s.maxTxt}>★ ADO</Text></View>}
+          {/* Level + evo badges — right column */}
+          <View style={[s.heroBadges, { top: statusBarH + 56 }]}>
+            <View style={s.lvBadge}><Text style={s.lvTxt}>Niv.{creature.stats.level}</Text></View>
+            {creature.stats.level >= 20 && (
+              <View style={[s.evoBadge, { backgroundColor: retro.gold, borderColor: retro.goldDark }]}>
+                <Text style={s.evoTxt}>★ MAX</Text>
+              </View>
+            )}
+            {creature.stats.level >= 10 && creature.stats.level < 20 && (
+              <View style={[s.evoBadge, { backgroundColor: retro.ink2, borderColor: retro.ink }]}>
+                <Text style={s.evoTxt}>★ ADO</Text>
+              </View>
+            )}
           </View>
 
           {/* Creature */}
           <View style={s.heroCreature} pointerEvents="box-none">
             <CreatureDisplay creature={creature} pose={currentPose} onEvolve={handleEvolve} variant="hero" />
           </View>
-
-          {/* Inventaire side badge */}
-          <TouchableOpacity style={s.invSideBtn} onPress={onOpenInventory} activeOpacity={0.8}>
-            <Text style={s.invSideBtnEmoji}>🎒</Text>
-            <Text style={s.invSideBtnLbl}>Sac</Text>
-          </TouchableOpacity>
 
           {/* Sick badge */}
           {creature.stats.isSick && !currentPose && (
@@ -420,21 +425,35 @@ export default function HomeScreen({
             </View>
           )}
 
-          {/* Skin arrows */}
-          {allSkins.length > 1 && (
-            <>
-              <TouchableOpacity style={[s.arrow, s.arrowL]} onPress={handleSkinLeft} activeOpacity={0.7}>
-                <View style={s.arrowCircle}>
-                  <Text style={s.arrowTxt}>‹</Text>
-                </View>
-              </TouchableOpacity>
-              <TouchableOpacity style={[s.arrow, s.arrowR]} onPress={handleSkinRight} activeOpacity={0.7}>
-                <View style={s.arrowCircle}>
-                  <Text style={s.arrowTxt}>›</Text>
-                </View>
-              </TouchableOpacity>
-            </>
-          )}
+          {/* Sac + skin nav — bottom left */}
+          <View style={s.heroBottomLeft}>
+            <TouchableOpacity style={s.invSideBtn} onPress={onOpenInventory} activeOpacity={0.8}>
+              <Text style={s.invSideBtnEmoji}>🎒</Text>
+              <Text style={s.invSideBtnLbl}>Sac</Text>
+            </TouchableOpacity>
+            {allSkins.length > 1 && (
+              <View style={s.skinNav}>
+                <TouchableOpacity style={s.skinArrow} onPress={handleSkinLeft} activeOpacity={0.7}>
+                  <Text style={s.skinArrowTxt}>‹</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={s.skinArrow} onPress={handleSkinRight} activeOpacity={0.7}>
+                  <Text style={s.skinArrowTxt}>›</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+        </View>
+
+        {/* Colored nameplate — type accent bar */}
+        <View style={[s.nameplate, { backgroundColor: theme.main, borderColor: theme.dark }]}>
+          <Text style={s.nameplateCreature}>{creature.name}</Text>
+          <View style={s.nameplateRight}>
+            {(() => {
+              const fl = getFormeLevel(creature.stats)
+              const flData = FORME_LABELS[fl]
+              return <Text style={s.nameplateForm}>{flData.emoji} {flData.label}</Text>
+            })()}
+          </View>
         </View>
       </View>
 
@@ -447,7 +466,7 @@ export default function HomeScreen({
       >
         {/* ÉTAT */}
         <View style={s.section}>
-          <Text style={s.sectionLbl}>État</Text>
+          <SectionTitle title="ÉTAT" color={retro.red} style={{ marginBottom: 12 }} />
           {([
             { label: 'Faim',    icon: '🍖', value: creature.stats.hunger,    max: 100, color: retro.red },
             { label: 'Bonheur', icon: '⭐', value: creature.stats.happiness, max: 100, color: retro.gold },
@@ -456,10 +475,8 @@ export default function HomeScreen({
             <View key={label} style={s.statRow}>
               <Text style={s.statIcon}>{icon}</Text>
               <Text style={s.statName}>{label}</Text>
-              <View style={s.statTrack}>
-                <View style={[s.statFill, { width: `${Math.min(100, (value / max) * 100)}%` as any, backgroundColor: color }]} />
-              </View>
-              <Text style={s.statVal}>{Math.round(value)}/{max}</Text>
+              <PixelBar value={value / max} color={color} cells={10} height={12} style={{ flex: 1 }} />
+              <Text style={s.statVal}>{Math.round(value)}</Text>
             </View>
           ))}
           {(() => {
@@ -475,18 +492,18 @@ export default function HomeScreen({
           <View style={s.statRow}>
             <Text style={s.statIcon}>  </Text>
             <Text style={[s.statName, { color: retro.purple }]}>XP</Text>
-            <View style={s.statTrack}>
-              <View style={[s.statFill, { width: `${Math.min(100, (creature.stats.xp / creature.stats.xpToNextLevel) * 100)}%` as any, backgroundColor: retro.purple }]} />
-            </View>
+            <PixelBar value={creature.stats.xp / creature.stats.xpToNextLevel} color={retro.purple} cells={10} height={12} style={{ flex: 1 }} />
             <Text style={s.statVal}>{Math.round(creature.stats.xp)}/{creature.stats.xpToNextLevel}</Text>
           </View>
           <View style={s.statRow}>
             <Text style={s.statIcon}>  </Text>
-            <Text style={[s.statName, { color: retro.faded, fontSize: 11 }]}>Soin/jour</Text>
-            <View style={s.statTrack}>
-              <View style={[s.statFill, { width: `${Math.min(100, (todayCareXP / DAILY_CARE_XP_CAP) * 100)}%` as any, backgroundColor: todayCareXP >= DAILY_CARE_XP_CAP ? retro.red : retro.faded }]} />
-            </View>
-            <Text style={[s.statVal, { fontSize: 11 }]}>{todayCareXP}/{DAILY_CARE_XP_CAP}</Text>
+            <Text style={[s.statName, { color: retro.faded, fontSize: 11 }]}>Soin/j</Text>
+            <PixelBar
+              value={todayCareXP / DAILY_CARE_XP_CAP}
+              color={todayCareXP >= DAILY_CARE_XP_CAP ? retro.red : retro.faded}
+              cells={10} height={10} style={{ flex: 1 }}
+            />
+            <Text style={[s.statVal, { fontSize: 10 }]}>{todayCareXP}/{DAILY_CARE_XP_CAP}</Text>
           </View>
           {creature.activeCombatBuff && creature.activeCombatBuff.expiresAt > new Date().toISOString() && (
             <View style={s.buffRow}>
@@ -497,18 +514,18 @@ export default function HomeScreen({
 
         {/* ACTIONS */}
         <View style={s.section}>
-          <Text style={s.sectionLbl}>Actions</Text>
+          <SectionTitle title="ACTIONS" color={retro.red} style={{ marginBottom: 12 }} />
           <View style={s.actionsRow}>
             {([
-              { label: 'Nourrir',     icon: '🍖', onPress: handleFeed,              disabled: creature.stats.hunger >= 90 },
-              { label: 'Jouer',       icon: '🎮', onPress: handlePlay,              disabled: creature.stats.energy < 20 },
-              { label: "S'entraîner", icon: '🏋️', onPress: () => setShowTraining(true), disabled: false },
-              { label: 'Dormir',      icon: '💤', onPress: handleSleep,             disabled: creature.stats.energy >= 95 },
-            ]).map(({ label, icon, onPress, disabled }) => (
-              <TouchableOpacity key={label} style={[s.actionBtn, disabled && s.actionDisabled]} onPress={onPress} activeOpacity={0.75}>
-                <Text style={s.actionIcon}>{icon}</Text>
+              { label: 'Nourrir',     icon: '🍖', onPress: handleFeed,                   disabled: creature.stats.hunger >= 90,  color: retro.red },
+              { label: 'Jouer',       icon: '🎮', onPress: handlePlay,                   disabled: creature.stats.energy < 20,   color: retro.blue },
+              { label: "S'entraîner", icon: '🏋️', onPress: () => setShowTraining(true),  disabled: false,                        color: retro.purple },
+              { label: 'Dormir',      icon: '💤', onPress: handleSleep,                  disabled: creature.stats.energy >= 95,  color: retro.mintDark },
+            ]).map(({ label, icon, onPress, disabled, color }) => (
+              <PixelButton key={label} onPress={onPress} disabled={disabled} color={color} style={{ flex: 1 }}>
+                <Text style={{ fontSize: 22, textAlign: 'center' }}>{icon}</Text>
                 <Text style={s.actionLbl}>{label}</Text>
-              </TouchableOpacity>
+              </PixelButton>
             ))}
           </View>
         </View>
@@ -525,7 +542,7 @@ export default function HomeScreen({
           <TouchableOpacity style={s.adventureBtn} onPress={onOpenCrossings} activeOpacity={0.85}>
             <Text style={s.modeIcon}>📜</Text>
             <View>
-              <Text style={[s.modeTitle, { color: retro.white }]}>AVENTURE</Text>
+              <Text style={s.modeTitle}>AVENTURE</Text>
               <Text style={s.modeSub}>Explore et gagne{'\n'}des récompenses</Text>
             </View>
           </TouchableOpacity>
@@ -534,7 +551,7 @@ export default function HomeScreen({
         {/* INVENTAIRE */}
         <View style={s.section}>
           <View style={s.invHeader}>
-            <Text style={s.sectionLbl}>Inventaire</Text>
+            <SectionTitle title="INVENTAIRE" color={retro.red} />
             <TouchableOpacity onPress={onOpenInventory}>
               <Text style={s.viewAll}>Voir tout ›</Text>
             </TouchableOpacity>
@@ -542,7 +559,7 @@ export default function HomeScreen({
           {inventory.length === 0 ? (
             <Text style={s.invEmpty}>Aucun objet. Gagne des combats !</Text>
           ) : (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingTop: 10 }}>
               {previewInv.map((item) => (
                 <View key={item.id} style={s.invItem}>
                   <Text style={s.invIcon}>{item.emoji}</Text>
@@ -621,7 +638,7 @@ export default function HomeScreen({
           <View style={s.sheet}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
               <Text style={s.sheetTitle}>⚔️ Entraînement</Text>
-              <Text style={[s.sheetTitle, { fontSize: 13, color: totalTrainingPts >= MAX_TRAINING_POINTS ? '#FF6B6B' : '#888' }]}>
+              <Text style={[s.sheetTitle, { fontSize: 13, color: totalTrainingPts >= MAX_TRAINING_POINTS ? retro.red : retro.muted }]}>
                 {totalTrainingPts}/{MAX_TRAINING_POINTS} pts
               </Text>
             </View>
@@ -668,12 +685,8 @@ export default function HomeScreen({
           <View style={s.adminCard}>
             <Text style={s.adminTitle}>👾 Panel Admin</Text>
             <Text style={s.adminSub}>Lv {creature.stats.level} · {creature.stats.xp}/{creature.stats.xpToNextLevel} XP</Text>
-            {(['XP', 'Niveau direct', 'Monstre', 'Stats'] as const).map((section) => (
-              <Text key={section} style={s.adminSection}>{section}</Text>
-            ))}
             <Text style={s.adminSection}>XP</Text>
             <View style={s.adminRow}>
-              {(['xp100', '+100 XP'] as const).map ? null : null}
               {([['xp100','+100 XP'],['xp500','+500 XP'],['xp9999','+9999 XP']] as [string,string][]).map(([a,l]) => (
                 <TouchableOpacity key={a} style={s.adminBtn} onPress={() => adminAction(a)}><Text style={s.adminBtnTxt}>{l}</Text></TouchableOpacity>
               ))}
@@ -681,23 +694,23 @@ export default function HomeScreen({
             <Text style={s.adminSection}>Niveau</Text>
             <View style={s.adminRow}>
               {([['lv1','Niv 1'],['lv10','Niv 10'],['lv20','Niv 20']] as [string,string][]).map(([a,l]) => (
-                <TouchableOpacity key={a} style={[s.adminBtn,{backgroundColor:'#A855F7'}]} onPress={() => adminAction(a)}><Text style={s.adminBtnTxt}>{l}</Text></TouchableOpacity>
+                <TouchableOpacity key={a} style={[s.adminBtn,{backgroundColor:retro.purple}]} onPress={() => adminAction(a)}><Text style={s.adminBtnTxt}>{l}</Text></TouchableOpacity>
               ))}
             </View>
             <Text style={s.adminSection}>Type</Text>
             <View style={s.adminRow}>
-              {([['type_ignis','🔥 Ignis','#C41E0F'],['type_nemo','🌊 Némo','#1A3A6B'],['type_sylva','🌿 Sylva','#2D6A2D'],['type_zapp','⚡ Zapp','#C47A00']] as [string,string,string][]).map(([a,l,c]) => (
+              {([['type_ignis','🔥 Ignis',retro.red],['type_nemo','🌊 Némo',retro.blue],['type_sylva','🌿 Sylva',retro.mint],['type_zapp','⚡ Zapp',retro.gold]] as [string,string,string][]).map(([a,l,c]) => (
                 <TouchableOpacity key={a} style={[s.adminBtn,{backgroundColor:c}]} onPress={() => adminAction(a)}><Text style={s.adminBtnTxt}>{l}</Text></TouchableOpacity>
               ))}
             </View>
             <Text style={s.adminSection}>Stats</Text>
             <View style={s.adminRow}>
-              <TouchableOpacity style={[s.adminBtn,{backgroundColor:'#22C55E'}]} onPress={() => adminAction('maxstats')}><Text style={s.adminBtnTxt}>Max tout</Text></TouchableOpacity>
-              <TouchableOpacity style={[s.adminBtn,{backgroundColor:'#3B82F6'}]} onPress={() => adminAction('heal')}><Text style={s.adminBtnTxt}>Soigner</Text></TouchableOpacity>
+              <TouchableOpacity style={[s.adminBtn,{backgroundColor:retro.mint}]} onPress={() => adminAction('maxstats')}><Text style={s.adminBtnTxt}>Max tout</Text></TouchableOpacity>
+              <TouchableOpacity style={[s.adminBtn,{backgroundColor:retro.blue}]} onPress={() => adminAction('heal')}><Text style={s.adminBtnTxt}>Soigner</Text></TouchableOpacity>
             </View>
             <Text style={s.adminSection}>Entraînement</Text>
             <View style={s.adminRow}>
-              <TouchableOpacity style={[s.adminBtn,{backgroundColor:'#EF4444'}]} onPress={() => adminAction('resettraining')}><Text style={s.adminBtnTxt}>Reset points (→ 0)</Text></TouchableOpacity>
+              <TouchableOpacity style={[s.adminBtn,{backgroundColor:retro.red}]} onPress={() => adminAction('resettraining')}><Text style={s.adminBtnTxt}>Reset points (→ 0)</Text></TouchableOpacity>
             </View>
             <TouchableOpacity style={s.adminClose} onPress={() => setShowAdmin(false)}>
               <Text style={s.adminCloseTxt}>Fermer</Text>
@@ -732,39 +745,81 @@ const s = StyleSheet.create({
 
   // ── Hero ──────────────────────────────────────────────────
   hero: { height: HERO_H, overflow: 'hidden' },
-  heroImg: { flex: 1 },
-  heroScreen: { backgroundColor: retro.paper2, borderBottomWidth: 4, borderBottomColor: retro.line },
-  heroPixelGrid: {
-    position: 'absolute',
-    left: 18,
-    right: 18,
-    top: 96,
-    bottom: 44,
-    borderWidth: 1,
-    borderColor: 'rgba(32,40,61,0.16)',
+
+  // Dark LCD screen bezel — the main hero background
+  heroBezel: {
+    flex: 1,
+    backgroundColor: retro.night,
+    overflow: 'hidden',
   },
+
+  // Subtle LCD ground line
   heroGround: {
     position: 'absolute',
-    left: 64,
-    right: 64,
-    bottom: 52,
-    height: 12,
-    backgroundColor: 'rgba(32,40,61,0.18)',
-    borderTopWidth: 3,
-    borderTopColor: 'rgba(32,40,61,0.35)',
+    left: 48,
+    right: 48,
+    bottom: 48,
+    height: 4,
+    backgroundColor: retro.screen,
+    opacity: 0.35,
+    borderRadius: 2,
   },
-  heroVignette: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 40, backgroundColor: retro.paper, opacity: 0.8 },
-  heroHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 12, gap: 8, zIndex: 1 },
-  heroTitle: {
-    fontSize: 28, fontWeight: '900', color: retro.white, fontFamily: 'monospace',
-    textShadowColor: retro.line, textShadowOffset: { width: 2, height: 2 }, textShadowRadius: 0,
-  },
-  heroIconBtn: { width: 38, height: 38, borderRadius: 4, backgroundColor: retro.paper2, borderWidth: 2, borderColor: retro.line, alignItems: 'center', justifyContent: 'center' },
-  heroIconTxt: { fontSize: 18 },
 
-  chipsRow: { flexDirection: 'row', gap: 6, paddingHorizontal: 16, paddingTop: 8 },
-  chip: { backgroundColor: retro.paper2, borderRadius: 0, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 2, borderColor: retro.line },
-  chipTxt: { fontSize: 12, fontWeight: '900', color: retro.ink, fontFamily: 'monospace' },
+  // Bottom fade so hero blends into paper content
+  heroVignette: {
+    position: 'absolute',
+    bottom: 0, left: 0, right: 0,
+    height: 52,
+    backgroundColor: retro.paper,
+    opacity: 0.9,
+  },
+
+  heroHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+    gap: 8,
+    zIndex: 2,
+  },
+  heroTitle: {
+    fontSize: 26,
+    fontWeight: '900',
+    color: retro.screenSoft,
+    fontFamily: 'monospace',
+    letterSpacing: 1,
+    textShadowColor: retro.screenDark,
+    textShadowOffset: { width: 2, height: 2 },
+    textShadowRadius: 0,
+  },
+
+  // Gold coin counter
+  coinChip: {
+    backgroundColor: retro.gold,
+    borderRadius: 3,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderWidth: 2,
+    borderColor: retro.goldDark,
+  },
+  coinTxt: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: retro.ink,
+    fontFamily: 'monospace',
+  },
+
+  heroIconBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 4,
+    backgroundColor: retro.ink2,
+    borderWidth: 2,
+    borderColor: retro.ink3,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroIconTxt: { fontSize: 16 },
 
   speech: {
     position: 'absolute', left: 16, right: 100,
@@ -776,70 +831,139 @@ const s = StyleSheet.create({
   speechQ: { fontSize: 15, color: retro.muted, lineHeight: 20 },
   speechTxt: { flex: 1, fontSize: 13, color: retro.ink, fontWeight: '800', lineHeight: 18, fontFamily: 'monospace' },
 
-  heroBadges: { position: 'absolute', right: 12, gap: 6, alignItems: 'flex-end', zIndex: 2 },
-  lvBadge: { backgroundColor: retro.ink, borderRadius: 0, paddingHorizontal: 12, paddingVertical: 5, borderWidth: 2, borderColor: retro.paper },
-  lvTxt: { color: retro.screenSoft, fontWeight: '900', fontSize: 13, fontFamily: 'monospace' },
-  maxBadge: { backgroundColor: retro.gold, borderRadius: 0, paddingHorizontal: 12, paddingVertical: 5, borderWidth: 2, borderColor: retro.line },
-  maxTxt: { color: retro.ink, fontWeight: '900', fontSize: 11, fontFamily: 'monospace' },
+  heroBadges: { position: 'absolute', right: 12, gap: 5, alignItems: 'flex-end', zIndex: 2 },
+  lvBadge: {
+    backgroundColor: retro.screenDeep,
+    borderRadius: 2,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderWidth: 2,
+    borderColor: retro.screen,
+  },
+  lvTxt: { color: retro.screenSoft, fontWeight: '900', fontSize: 12, fontFamily: 'monospace' },
+
+  // Evolution stage badges
+  evoBadge: {
+    borderRadius: 2,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderWidth: 2,
+  },
+  evoTxt: {
+    color: retro.white,
+    fontWeight: '900',
+    fontSize: 11,
+    fontFamily: 'monospace',
+  },
 
   heroCreature: { flex: 1, width: '100%', alignItems: 'center', justifyContent: 'center' },
 
-  invSideBtn: {
-    position: 'absolute', bottom: 52, left: 12,
-    backgroundColor: retro.paper2, borderRadius: 4, paddingVertical: 8, paddingHorizontal: 10,
-    alignItems: 'center', width: 58,
-    borderWidth: 2, borderColor: retro.line,
+  sickBadge: {
+    position: 'absolute', bottom: 68, left: 16,
+    backgroundColor: retro.red, borderRadius: 0, paddingHorizontal: 10, paddingVertical: 4,
+    borderWidth: 2, borderColor: retro.redDark,
   },
-  invSideBtnEmoji: { fontSize: 22 },
-  invSideBtnLbl: { fontSize: 10, color: retro.ink, fontWeight: '900', marginTop: 3, fontFamily: 'monospace' },
-
-  sickBadge: { position: 'absolute', bottom: 76, left: 16, backgroundColor: retro.red, borderRadius: 0, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 2, borderColor: retro.line },
   sickTxt: { fontSize: 12, fontWeight: '900', color: retro.white, fontFamily: 'monospace' },
 
-  arrow: {
-    position: 'absolute', top: 0, bottom: 0, width: 60, alignItems: 'center', justifyContent: 'center',
+  // Positioned container for bag + skin nav
+  heroBottomLeft: {
+    position: 'absolute',
+    bottom: 50,
+    left: 12,
+    gap: 6,
+    alignItems: 'flex-start',
   },
-  arrowL: { left: 4 },
-  arrowR: { right: 4 },
-  arrowCircle: {
-    width: 44, height: 44, borderRadius: 22,
-    backgroundColor: retro.paper2, borderWidth: 2, borderColor: retro.line,
-    alignItems: 'center', justifyContent: 'center',
+
+  invSideBtn: {
+    backgroundColor: retro.ink2,
+    borderRadius: 4,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    alignItems: 'center',
+    width: 54,
+    borderWidth: 2,
+    borderColor: retro.ink3,
   },
-  arrowTxt: { fontSize: 22, color: retro.ink, fontWeight: '900', marginTop: -1 },
+  invSideBtnEmoji: { fontSize: 20 },
+  invSideBtnLbl: { fontSize: 9, color: retro.screenSoft, fontWeight: '900', marginTop: 2, fontFamily: 'monospace' },
+
+  // Skin navigation arrows
+  skinNav: { flexDirection: 'row', gap: 4 },
+  skinArrow: {
+    width: 30,
+    height: 30,
+    backgroundColor: retro.ink2,
+    borderWidth: 2,
+    borderColor: retro.ink3,
+    borderRadius: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  skinArrowTxt: {
+    fontSize: 16,
+    color: retro.paper,
+    fontWeight: '900',
+    lineHeight: 20,
+  },
+
+  // Creature nameplate — colored accent bar below the screen
+  nameplate: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderBottomWidth: 3,
+    borderColor: retro.line,
+  },
+  nameplateCreature: {
+    fontSize: 17,
+    fontWeight: '900',
+    color: retro.white,
+    fontFamily: 'monospace',
+    letterSpacing: 0.5,
+    textShadowColor: 'rgba(0,0,0,0.3)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 0,
+  },
+  nameplateRight: { alignItems: 'flex-end' },
+  nameplateForm: {
+    fontSize: 11,
+    fontWeight: '900',
+    color: retro.white,
+    fontFamily: 'monospace',
+    opacity: 0.88,
+  },
 
   // ── Scroll content ────────────────────────────────────────
   scroll: { flex: 1 },
   scrollContent: { paddingTop: 10, paddingBottom: 24, gap: 10 },
 
-  section: { marginHorizontal: 12, backgroundColor: retro.white, borderRadius: 6, padding: 14, borderWidth: 3, borderColor: retro.line, ...retroShadow },
-  sectionLbl: { fontSize: 11, fontWeight: '900', letterSpacing: 1.5, color: retro.red, textTransform: 'uppercase', marginBottom: 10, fontFamily: 'monospace' },
+  section: {
+    marginHorizontal: 12,
+    backgroundColor: retro.white,
+    borderRadius: 6,
+    padding: 14,
+    borderWidth: 3,
+    borderColor: retro.line,
+    ...retroShadow,
+  },
 
   // Stats
-  statRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
+  statRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 4 },
   statIcon: { fontSize: 14, width: 22, textAlign: 'center' },
-  statName: { fontSize: 13, fontWeight: '900', color: retro.ink, width: 68, fontFamily: 'monospace' },
-  statTrack: { flex: 1, height: 9, backgroundColor: retro.paper2, borderRadius: 0, overflow: 'hidden', borderWidth: 2, borderColor: retro.line },
-  statFill: { height: '100%', borderRadius: 0 },
-  statVal: { fontSize: 11, color: retro.muted, width: 48, textAlign: 'right', fontFamily: 'monospace', fontWeight: '800' },
+  statName: { fontSize: 12, fontWeight: '900', color: retro.ink, width: 60, fontFamily: 'monospace' },
+  statVal: { fontSize: 11, color: retro.muted, width: 44, textAlign: 'right', fontFamily: 'monospace', fontWeight: '800' },
   formeRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, marginTop: 2, paddingHorizontal: 2 },
   formeLbl: { fontSize: 13, fontWeight: '900', color: retro.ink, fontFamily: 'monospace' },
-  formeVal:  { fontSize: 13, fontWeight: '700' },
+  formeVal: { fontSize: 13, fontWeight: '700' },
 
   buffRow: { marginTop: 4, backgroundColor: retro.paper2, borderRadius: 3, paddingHorizontal: 10, paddingVertical: 5, borderWidth: 2, borderColor: retro.goldDark },
   buffTxt: { fontSize: 11, fontWeight: '800', color: retro.goldDark, fontFamily: 'monospace' },
 
   // Actions
   actionsRow: { flexDirection: 'row', gap: 8 },
-  actionBtn: {
-    flex: 1, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: retro.white, borderRadius: 4, paddingVertical: 13, gap: 5,
-    borderWidth: 2, borderColor: retro.line,
-    shadowColor: retro.line, shadowOffset: { width: 3, height: 3 }, shadowOpacity: 1, shadowRadius: 0, elevation: 3,
-  },
-  actionDisabled: { opacity: 0.35 },
-  actionIcon: { fontSize: 24 },
-  actionLbl: { fontSize: 11, fontWeight: '900', color: retro.ink, fontFamily: 'monospace' },
+  actionLbl: { fontSize: 10, fontWeight: '900', color: retro.white, fontFamily: 'monospace', textAlign: 'center', marginTop: 4 },
 
   // Combat / Aventure
   modeRow: { flexDirection: 'row', gap: 10, marginHorizontal: 12 },
@@ -849,16 +973,16 @@ const s = StyleSheet.create({
     borderWidth: 3, borderColor: retro.line, ...retroShadow,
   },
   adventureBtn: {
-    flex: 1, backgroundColor: retro.mint, borderRadius: 4, padding: 14,
+    flex: 1, backgroundColor: retro.mintDark, borderRadius: 4, padding: 14,
     flexDirection: 'row', alignItems: 'center', gap: 10,
     borderWidth: 3, borderColor: retro.line, ...retroShadow,
   },
-  modeIcon: { fontSize: 28 },
+  modeIcon: { fontSize: 26 },
   modeTitle: { fontSize: 13, fontWeight: '900', color: retro.white, letterSpacing: 0.5, fontFamily: 'monospace' },
   modeSub: { fontSize: 11, color: retro.paper, marginTop: 2, lineHeight: 15, fontWeight: '700' },
 
   // Inventory preview
-  invHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+  invHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
   viewAll: { fontSize: 12, color: retro.red, fontWeight: '900', fontFamily: 'monospace' },
   invItem: { width: 64, alignItems: 'center', backgroundColor: retro.paper2, borderRadius: 4, paddingVertical: 10, gap: 4, borderWidth: 2, borderColor: retro.line },
   invIcon: { fontSize: 28 },
