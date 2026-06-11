@@ -28,6 +28,7 @@ import { DEFAULT_LOADOUTS, EvoStage, getEvoStage, SPELL_CATALOG } from '../utils
 import AdventureScreen from './AdventureScreen'
 import { retro, retroShadow, typeTheme } from '../styles/retro'
 import { PixelButton, SectionTitle } from '../components/ui'
+import CrossingGame from '../components/CrossingGame'
 
 const SPRITES_E1: Record<CreatureType, ImageSourcePropType> = {
   ignis: require('../../assets/sprites/ignis_e1_clean.png'),
@@ -149,6 +150,7 @@ const DIAL_COLORS: { key: keyof Omit<SocialProfile, 'rules'>; color: string }[] 
 function relationTags(relation: SocialRelation): string[] {
   const tags: string[] = []
   if (relation.friendshipLevel >= 4) tags.push('Vieil ami')
+  else if (relation.friendshipLevel >= 3) tags.push('Fidèle')
   else if (relation.friendshipLevel >= 2) tags.push('Ami')
   if (relation.filouReputation >= 3) tags.push('Filou')
   if (relation.rivalryWins + relation.rivalryLosses >= 3) tags.push('Rival')
@@ -402,12 +404,15 @@ interface EncounterData {
   relation: SocialRelation
 }
 
-function EncounterModal({ encounter, onFight, onDismiss }: {
+function EncounterModal({ encounter, onFight, onDismiss, playerType }: {
   encounter: EncounterData | null
   onFight: () => void
   onDismiss: () => void
+  playerType: CreatureType
 }) {
-  const [phase, setPhase] = useState<'search' | 'reveal'>('search')
+  const [phase, setPhase]       = useState<'search' | 'reveal'>('search')
+  const [showGame, setShowGame] = useState(false)
+  const [gameResult, setGameResult] = useState<'win' | 'draw' | 'loss' | null>(null)
   const spriteScale = useRef(new Animated.Value(0)).current
   const cardSlide   = useRef(new Animated.Value(0)).current
   const searchPulse = useRef(new Animated.Value(0)).current
@@ -415,6 +420,8 @@ function EncounterModal({ encounter, onFight, onDismiss }: {
   useEffect(() => {
     if (!encounter) return
     setPhase('search')
+    setShowGame(false)
+    setGameResult(null)
     spriteScale.setValue(0)
     cardSlide.setValue(0)
     const pulseAnim = Animated.loop(
@@ -505,10 +512,50 @@ function EncounterModal({ encounter, onFight, onDismiss }: {
                   <PixelButton title="COMBATTRE" icon="⚔️" color={retro.red} big onPress={onFight} style={{ alignSelf: 'stretch' }} />
                   <TouchableOpacity onPress={onDismiss} style={st.encGhostBtn}><Text style={st.encGhostTxt}>Plus tard</Text></TouchableOpacity>
                 </>
+              ) : event.type === 'friendship' && relation.friendshipLevel >= 3 ? (
+                gameResult ? (
+                  <>
+                    <View style={[st.gameResultBanner, {
+                      backgroundColor:
+                        gameResult === 'win'  ? retro.mint + '30' :
+                        gameResult === 'loss' ? retro.red  + '30' : retro.gold + '30',
+                      borderColor:
+                        gameResult === 'win'  ? retro.mint :
+                        gameResult === 'loss' ? retro.red  : retro.gold,
+                    }]}>
+                      <Text style={[st.gameResultTxt, {
+                        color:
+                          gameResult === 'win'  ? retro.mint :
+                          gameResult === 'loss' ? retro.red  : retro.gold,
+                      }]}>
+                        {gameResult === 'win'
+                          ? '🏆 Duel gagné ! Amitié renforcée'
+                          : gameResult === 'loss'
+                          ? '💀 Duel perdu... jusqu\'à la prochaine !'
+                          : '🤝 Match nul, belle partie !'}
+                      </Text>
+                    </View>
+                    <PixelButton title="CONTINUER" color={retro.gold} textColor={retro.ink} big onPress={onDismiss} style={{ alignSelf: 'stretch' }} />
+                  </>
+                ) : (
+                  <>
+                    <PixelButton title="🎮 DUEL AMICAL" color={retro.mint} textColor={retro.ink} big onPress={() => setShowGame(true)} style={{ alignSelf: 'stretch' }} />
+                    <TouchableOpacity onPress={onDismiss} style={st.encGhostBtn}><Text style={st.encGhostTxt}>Passer</Text></TouchableOpacity>
+                  </>
+                )
               ) : (
                 <PixelButton title="CONTINUER" color={retro.gold} textColor={retro.ink} big onPress={onDismiss} style={{ alignSelf: 'stretch' }} />
               )}
             </View>
+
+            {/* Crossing mini-game overlay */}
+            <CrossingGame
+              visible={showGame}
+              playerType={playerType}
+              opponentType={opponent.creatureType}
+              opponentName={`@${opponent.username}`}
+              onClose={(result) => { setShowGame(false); setGameResult(result) }}
+            />
           </View>
         )}
       </View>
@@ -931,6 +978,7 @@ export default function CrossingsScreen({ player, onCombatEnd }: Props) {
         encounter={encounter}
         onFight={() => encounter && startSocialCombat(encounter.event)}
         onDismiss={() => setEncounter(null)}
+        playerType={player.type}
       />
 
       {/* Personality sheet */}
@@ -1235,6 +1283,12 @@ const st = StyleSheet.create({
   encActions: { alignSelf: 'stretch', gap: 10, marginTop: 4 },
   encGhostBtn: { alignItems: 'center', paddingVertical: 8 },
   encGhostTxt: { color: retro.faded, fontSize: 13, fontWeight: '800', fontFamily: 'monospace' },
+
+  gameResultBanner: {
+    borderWidth: 1, borderRadius: 4, paddingVertical: 10, paddingHorizontal: 14,
+    alignItems: 'center',
+  },
+  gameResultTxt: { fontSize: 13, fontWeight: '900', fontFamily: 'monospace', textAlign: 'center' },
 
   // ── Sheets ───────────────────────────────────────────────
   sheetOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
