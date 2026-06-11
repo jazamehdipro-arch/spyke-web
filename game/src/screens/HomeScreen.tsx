@@ -17,11 +17,11 @@ import CreatureDisplay, { CreaturePose } from '../components/CreatureDisplay'
 import EventModal from '../components/EventModal'
 import MiniGame from '../components/MiniGame'
 import ParticleEffect from '../components/ParticleEffect'
-import { Creature, GameEvent, InventoryItem, JournalEntry, Quest, TrainingStats } from '../types'
+import { Creature, Crossing, GameEvent, InventoryItem, JournalEntry, Quest, TrainingStats } from '../types'
 import { DAILY_CARE_XP_CAP, FORME_LABELS, addCareXP, addXP, applyActiveCareTick, applyOfflineCareDecay, getFormeLevel, getMood, xpForLevel } from '../utils/creature'
 import { generateRandomEvent, getRewardItem, shouldTriggerEvent } from '../utils/events'
 import { getCreatureSpeech, getReactionMessage } from '../utils/speech'
-import { addItemToInventory, addJournalEntry, saveCreature, saveEvents, saveInventory, saveJournal, saveQuests } from '../utils/storage'
+import { addItemToInventory, addJournalEntry, loadCrossings, saveCreature, saveEvents, saveInventory, saveJournal, saveQuests } from '../utils/storage'
 import { updateQuestsAfterAction } from '../utils/quests'
 import { retro, retroShadow, typeTheme } from '../styles/retro'
 import { PixelBar, PixelButton, SectionTitle } from '../components/ui'
@@ -30,10 +30,10 @@ const { height: SCREEN_H } = Dimensions.get('window')
 const HERO_H = Math.round(SCREEN_H * 0.44)
 
 const TRAINING_CONFIG: Record<keyof TrainingStats, { label: string; emoji: string; desc: string; costEnergy: number; costHunger: number }> = {
-  strength:  { label: 'Force',     emoji: '💪', desc: '+0.8% dégâts',       costEnergy: 18, costHunger: 0  },
-  reflexes:  { label: 'Réflexes',  emoji: '🔰', desc: '-0.7% dégâts reçus', costEnergy: 18, costHunger: 0  },
-  endurance: { label: 'Endurance', emoji: '🛡️', desc: '+énergie & +PV max', costEnergy: 18, costHunger: 0  },
-  defense:   { label: 'Défense',   emoji: '🎯', desc: '+0.65% esquive',      costEnergy: 18, costHunger: 0  },
+  strength:  { label: 'Force',     emoji: '💪', desc: '+0.8% dégâts',       costEnergy: 18, costHunger: 8  },
+  reflexes:  { label: 'Réflexes',  emoji: '🔰', desc: '-0.7% dégâts reçus', costEnergy: 18, costHunger: 8  },
+  endurance: { label: 'Endurance', emoji: '🛡️', desc: '+énergie & +PV max', costEnergy: 18, costHunger: 8  },
+  defense:   { label: 'Défense',   emoji: '🎯', desc: '+0.65% esquive',      costEnergy: 18, costHunger: 8  },
 }
 
 const MAX_TRAINING_POINTS = 40
@@ -106,12 +106,23 @@ export default function HomeScreen({
   const [showActivityPicker, setShowActivityPicker] = useState(false)
   const [showTraining, setShowTraining] = useState(false)
   const [pendingActivity, setPendingActivity] = useState<keyof typeof PLAY_ACTIVITIES | null>(null)
+  const [boredomCount, setBoredomCount] = useState(0)
+  const [todayCrossings, setTodayCrossings] = useState(0)
   const evolveScale = useRef(new Animated.Value(0)).current
   const speechTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const activeCareTick = useRef(Date.now())
   const boredomRef = useRef<{ key: string | null; count: number }>({ key: null, count: 0 })
   const titleTapCount = useRef(0)
   const titleTapTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const streakXPBonus = (streak ?? 0) > 0 ? 1.1 : 1.0
+
+  useEffect(() => {
+    loadCrossings().then(list => {
+      const today = new Date().toISOString().slice(0, 10)
+      setTodayCrossings((list ?? []).filter((c: Crossing) => c.crossedAt.startsWith(today)).length)
+    })
+  }, [])
 
   const handleTitleTap = () => {
     titleTapCount.current += 1
@@ -179,6 +190,7 @@ export default function HomeScreen({
   const handleFeedWith = async (item: InventoryItem) => {
     setShowFoodPicker(false)
     boredomRef.current = { key: null, count: 0 }
+    setBoredomCount(0)
     triggerPose('eat')
     let isSick = creature.stats.isSick
     if (item.effect.combatBuff?.sickChance && Math.random() < item.effect.combatBuff.sickChance) isSick = true
@@ -198,7 +210,7 @@ export default function HomeScreen({
         isSick,
       },
     }
-    updated = { ...addCareXP(updated, 5), mood: getMood(updated.stats) }
+    updated = { ...addCareXP(updated, Math.round(5 * streakXPBonus)), mood: getMood(updated.stats) }
     const newInv = inventory.map((i) => i.id === item.id ? { ...i, quantity: i.quantity - 1 } : i).filter((i) => i.quantity > 0)
     let nq = updateQuestsAfterAction(quests, 'feed')
     nq = updateQuestsAfterAction(nq, 'level', updated.stats.level)
@@ -212,6 +224,7 @@ export default function HomeScreen({
 
   const handleTrain = async (type: keyof TrainingStats) => {
     boredomRef.current = { key: null, count: 0 }
+    setBoredomCount(0)
     const cfg = TRAINING_CONFIG[type]
     const tr = creature.training ?? { strength: 0, reflexes: 0, endurance: 0, defense: 0 }
     const current = tr[type]
@@ -234,7 +247,7 @@ export default function HomeScreen({
         hunger: Math.max(0, creature.stats.hunger - cfg.costHunger),
       },
     }
-    updated = { ...addXP(updated, 5), mood: getMood(updated.stats) }
+    updated = { ...addXP(updated, Math.round(5 * streakXPBonus)), mood: getMood(updated.stats) }
     const nj = addJournalEntry(journal, `${creature.name} s'est entraîné : ${cfg.label} Lv ${current + 1} !`, cfg.emoji)
     showSpeech(`${cfg.emoji} ${cfg.label} Lv ${current + 1} !`)
     triggerParticles([cfg.emoji, '⭐', '💪'])
@@ -270,6 +283,7 @@ export default function HomeScreen({
     } else {
       boredomRef.current = { key: boredomKey, count: 1 }
     }
+    setBoredomCount(boredomRef.current.count)
     const boredomMult = Math.pow(0.8, Math.max(0, boredomRef.current.count - 1))
     const baseHappinessGain = Math.min(40, act ? act.happinessGain + score : score * 2 + 10)
     const happinessGain = Math.max(1, Math.round(baseHappinessGain * boredomMult))
@@ -287,7 +301,7 @@ export default function HomeScreen({
         hunger:    Math.max(0, creature.stats.hunger  - (act?.costHunger ?? 0)),
       },
     }
-    updated = { ...addCareXP(updated, 5), mood: getMood(updated.stats) }
+    updated = { ...addCareXP(updated, Math.round(5 * streakXPBonus)), mood: getMood(updated.stats) }
     let nq = updateQuestsAfterAction(quests, 'play')
     nq = updateQuestsAfterAction(nq, 'level', updated.stats.level)
     const actLabel = act ? `${act.emoji} ${act.label}` : '🎮 Jeu'
@@ -303,6 +317,7 @@ export default function HomeScreen({
 
   const handleSleep = async () => {
     boredomRef.current = { key: null, count: 0 }
+    setBoredomCount(0)
     if (creature.stats.energy >= 95) { showSpeech('Je suis en pleine forme ! ⚡'); return }
     triggerPose('sleep', 3500)
     const sleepRecovery = 60
@@ -310,7 +325,7 @@ export default function HomeScreen({
       ...creature, lastPlayed: new Date().toISOString(), totalSlept: creature.totalSlept + 1,
       stats: { ...creature.stats, energy: Math.min(100, creature.stats.energy + sleepRecovery), hunger: Math.max(10, creature.stats.hunger - 3) },
     }
-    updated = { ...addCareXP(updated, 5), mood: getMood(updated.stats) }
+    updated = { ...addCareXP(updated, Math.round(5 * streakXPBonus)), mood: getMood(updated.stats) }
     let nq = updateQuestsAfterAction(quests, 'sleep')
     let nj = addJournalEntry(journal, `${creature.name} a fait une bonne sieste.`, '💤')
     showSpeech(getReactionMessage('sleep'))
@@ -386,6 +401,9 @@ export default function HomeScreen({
   const totalTrainingPts = Object.values(training).reduce((a, b) => a + b, 0)
   const foodItems = inventory.filter((i) => (i.effect.hunger ?? 0) > 0)
   const previewInv = inventory.slice(0, 5)
+  const activeQuest = quests
+    .filter(q => !q.completed && !q.claimed)
+    .sort((a, b) => (b.progress / b.target) - (a.progress / a.target))[0] ?? null
 
   const statusBarH = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 24) : 54
   const theme = typeTheme[creature.type]
@@ -410,6 +428,11 @@ export default function HomeScreen({
               <Text style={s.heroTitle}>Croisio</Text>
             </TouchableOpacity>
             <View style={{ flex: 1 }} />
+            {(streak ?? 0) > 0 && (
+              <View style={s.streakChip}>
+                <Text style={s.streakTxt}>🔥 {streak}j</Text>
+              </View>
+            )}
             <View style={s.coinChip}>
               <Text style={s.coinTxt}>💰 {coins ?? 0}</Text>
             </View>
@@ -538,6 +561,12 @@ export default function HomeScreen({
               <Text style={s.buffTxt}>⚔️ +{Math.round((creature.activeCombatBuff.damageMult - 1) * 100)}% dégâts actif</Text>
             </View>
           )}
+          {todayCrossings > 0 && (
+            <TouchableOpacity style={s.crossingRow} onPress={onOpenCrossings} activeOpacity={0.8}>
+              <Text style={s.crossingTxt}>🌐 {todayCrossings} croisement{todayCrossings > 1 ? 's' : ''} aujourd'hui</Text>
+              <Text style={s.crossingArrow}>›</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* ACTIONS */}
@@ -556,6 +585,11 @@ export default function HomeScreen({
               </PixelButton>
             ))}
           </View>
+          {boredomCount >= 3 && (
+            <View style={s.boredomWarn}>
+              <Text style={s.boredomTxt}>🥱 {creature.name} s'ennuie — varie les activités !</Text>
+            </View>
+          )}
         </View>
 
         {/* COMBAT + AVENTURE */}
@@ -575,6 +609,23 @@ export default function HomeScreen({
             </View>
           </TouchableOpacity>
         </View>
+
+        {/* QUÊTE ACTIVE */}
+        {activeQuest && (
+          <View style={[s.section, s.questSection]}>
+            <View style={s.questHeader}>
+              <Text style={s.questEmoji}>{activeQuest.emoji}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={s.questTitle}>{activeQuest.title}</Text>
+                <Text style={s.questDesc}>{activeQuest.description}</Text>
+              </View>
+              <Text style={s.questProg}>{activeQuest.progress}/{activeQuest.target}</Text>
+            </View>
+            <View style={s.questTrack}>
+              <View style={[s.questFill, { width: `${Math.min(100, (activeQuest.progress / activeQuest.target) * 100)}%` as any }]} />
+            </View>
+          </View>
+        )}
 
         {/* INVENTAIRE */}
         <View style={s.section}>
@@ -1040,6 +1091,61 @@ const s = StyleSheet.create({
   adminBtnTxt: { color: retro.white, fontWeight: '900', fontSize: 12, fontFamily: 'monospace' },
   adminClose: { marginTop: 20, backgroundColor: retro.ink, borderRadius: 4, padding: 12, alignItems: 'center' },
   adminCloseTxt: { color: retro.white, fontWeight: '900', fontSize: 14, fontFamily: 'monospace' },
+
+  // Streak chip
+  streakChip: {
+    backgroundColor: retro.red,
+    borderRadius: 3,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderWidth: 2,
+    borderColor: retro.redDark,
+  },
+  streakTxt: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: retro.white,
+    fontFamily: 'monospace',
+  },
+
+  // Crossings today row
+  crossingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 8,
+    backgroundColor: retro.paper2,
+    borderRadius: 3,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderWidth: 2,
+    borderColor: retro.line,
+  },
+  crossingTxt: { fontSize: 12, fontWeight: '800', color: retro.ink, fontFamily: 'monospace' },
+  crossingArrow: { fontSize: 16, color: retro.muted, fontWeight: '900' },
+
+  // Boredom warning
+  boredomWarn: {
+    marginTop: 10,
+    backgroundColor: retro.paper2,
+    borderRadius: 3,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderWidth: 2,
+    borderColor: retro.gold,
+    borderStyle: 'dashed',
+  },
+  boredomTxt: { fontSize: 12, fontWeight: '800', color: retro.goldDark, fontFamily: 'monospace', textAlign: 'center' },
+
+  // Quest chip
+  questSection: { borderColor: retro.purple },
+  questHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
+  questEmoji: { fontSize: 22, width: 30, textAlign: 'center' },
+  questTitle: { fontSize: 13, fontWeight: '900', color: retro.ink, fontFamily: 'monospace' },
+  questDesc: { fontSize: 11, color: retro.muted, marginTop: 1 },
+  questProg: { fontSize: 12, fontWeight: '900', color: retro.purple, fontFamily: 'monospace' },
+  questTrack: { height: 8, backgroundColor: retro.paper, borderRadius: 0, overflow: 'hidden', borderWidth: 2, borderColor: retro.line },
+  questFill: { height: '100%', backgroundColor: retro.purple },
 
   // Evolve
   evolveOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.88)', justifyContent: 'center', alignItems: 'center' },
