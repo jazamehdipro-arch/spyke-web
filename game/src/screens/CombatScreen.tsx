@@ -635,6 +635,67 @@ function chooseHardE1NemoAction(
   return { kind: 'charge' }
 }
 
+function chooseHardE1SylvaAction(
+  botState: Combatant,
+  playerState: Combatant,
+  can: (id: SpellId) => boolean,
+  defendLocked: boolean,
+): CombatAction {
+  const volute = getStatus(botState, 'dodge_up')
+  const voluteActive = !!volute
+  const voluteStable = (volute?.turnsLeft ?? 0) >= 2
+  const enemyBlurred = getStatus(playerState, 'fog')?.data === 'accuracy_down'
+  const smokeActive = hasStatus(botState, 'smoke')
+  const embuscadeHigh = voluteActive || enemyBlurred
+  const embuscadeDamage = embuscadeHigh ? 25 : 14
+
+  if (can('embuscade') && playerState.hp <= embuscadeDamage) return { kind: 'spell', spellId: 'embuscade' }
+  if (can('coup_voile') && playerState.hp <= 7) return { kind: 'spell', spellId: 'coup_voile' }
+
+  if (!voluteStable && can('volute')) {
+    const voluteChance = playerState.energy >= 1 ? 0.8 : 0.4
+    if (Math.random() < voluteChance) return { kind: 'spell', spellId: 'volute' }
+  }
+
+  const voluteOnCooldown = (botState.cooldowns.volute ?? 0) > 0
+  if (!voluteActive && voluteOnCooldown && playerState.energy >= 3 && !defendLocked && Math.random() < 0.4) {
+    return { kind: 'defend' }
+  }
+
+  if (botState.energy <= 0) return { kind: 'charge' }
+  const attackChance = botState.energy === 1 ? 0.6 : botState.energy === 2 ? 0.8 : botState.energy === 3 ? 0.9 : 1
+  if (Math.random() >= attackChance) return { kind: 'charge' }
+
+  const canSmoke = can('brouillard_total') && !smokeActive
+  let coupWeight = enemyBlurred ? 20 : 50
+  let embWeight = enemyBlurred ? 65 : 40
+  let smokeWeight = enemyBlurred ? 15 : 10
+
+  if (voluteActive) {
+    coupWeight = Math.max(0, coupWeight - 15)
+    embWeight += 15
+  }
+
+  if (!canSmoke) {
+    embWeight += Math.round(smokeWeight * 0.65)
+    coupWeight += smokeWeight - Math.round(smokeWeight * 0.65)
+    smokeWeight = 0
+  }
+
+  const total = coupWeight + embWeight + smokeWeight
+  const roll = Math.random() * total
+  let picked: SpellId = 'coup_voile'
+  if (roll < embWeight) picked = 'embuscade'
+  else if (roll < embWeight + coupWeight) picked = 'coup_voile'
+  else picked = 'brouillard_total'
+
+  if (picked === 'brouillard_total' && canSmoke) return { kind: 'spell', spellId: 'brouillard_total' }
+  if (picked === 'embuscade' && can('embuscade')) return { kind: 'spell', spellId: 'embuscade' }
+  if (can('coup_voile')) return { kind: 'spell', spellId: 'coup_voile' }
+  if (can('embuscade')) return { kind: 'spell', spellId: 'embuscade' }
+  return { kind: 'charge' }
+}
+
 function botChooseAction(
   type: CreatureType,
   botState: Combatant,
@@ -669,6 +730,9 @@ function botChooseAction(
   if (difficulty === 'hard') {
     if (type === 'nemo' && passiveLevel === 1) {
       return chooseHardE1NemoAction(botState, playerState, can, defendLocked)
+    }
+    if (type === 'sylva' && passiveLevel === 1) {
+      return chooseHardE1SylvaAction(botState, playerState, can, defendLocked)
     }
 
     const botDebuffed = botState.statuses.some(s =>
