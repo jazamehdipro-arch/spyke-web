@@ -27,22 +27,34 @@ import { retro, retroShadow, retroShadowLg, typeTheme } from '../styles/retro'
 // ─── Sprites ─────────────────────────────────────────────────────────────────
 
 const SPRITES_E1: Record<CreatureType, ImageSourcePropType> = {
-  ignis: require('../../assets/sprites/ignis_e1_clean.png'),
-  nemo:  require('../../assets/sprites/nemo_e1_clean.png'),
-  sylva: require('../../assets/sprites/sylva_e1_clean.png'),
-  zapp:  require('../../assets/sprites/zapp_e1_clean.png'),
+  ignis:   require('../../assets/sprites/ignis_e1_clean.png'),
+  nemo:    require('../../assets/sprites/nemo_e1_clean.png'),
+  sylva:   require('../../assets/sprites/sylva_e1_clean.png'),
+  zapp:    require('../../assets/sprites/zapp_e1_clean.png'),
+  ombra:   require('../../assets/sprites/sylva_e1_clean.png'),
+  magma:   require('../../assets/sprites/ignis_e1_clean.png'),
+  abyssal: require('../../assets/sprites/nemo_e1_clean.png'),
+  sable:   require('../../assets/sprites/zapp_e1_clean.png'),
 }
 const SPRITES_E2: Record<CreatureType, ImageSourcePropType> = {
-  ignis: require('../../assets/sprites/ignis_e2_f1.png'),
-  nemo:  require('../../assets/sprites/nemo_e2_f1.png'),
-  sylva: require('../../assets/sprites/sylva_e2_f1.png'),
-  zapp:  require('../../assets/sprites/zapp_e2_f1.png'),
+  ignis:   require('../../assets/sprites/ignis_e2_f1.png'),
+  nemo:    require('../../assets/sprites/nemo_e2_f1.png'),
+  sylva:   require('../../assets/sprites/sylva_e2_f1.png'),
+  zapp:    require('../../assets/sprites/zapp_e2_f1.png'),
+  ombra:   require('../../assets/sprites/sylva_e2_f1.png'),
+  magma:   require('../../assets/sprites/ignis_e2_f1.png'),
+  abyssal: require('../../assets/sprites/nemo_e2_f1.png'),
+  sable:   require('../../assets/sprites/zapp_e2_f1.png'),
 }
 const SPRITES_E3: Record<CreatureType, ImageSourcePropType> = {
-  ignis: require('../../assets/sprites/ignis_e3_f1.png'),
-  nemo:  require('../../assets/sprites/nemo_e3_f1.png'),
-  sylva: require('../../assets/sprites/sylva_e3_f1.png'),
-  zapp:  require('../../assets/sprites/zapp_e3_f1.png'),
+  ignis:   require('../../assets/sprites/ignis_e3_f1.png'),
+  nemo:    require('../../assets/sprites/nemo_e3_f1.png'),
+  sylva:   require('../../assets/sprites/sylva_e3_f1.png'),
+  zapp:    require('../../assets/sprites/zapp_e3_f1.png'),
+  ombra:   require('../../assets/sprites/sylva_e3_f1.png'),
+  magma:   require('../../assets/sprites/ignis_e3_f1.png'),
+  abyssal: require('../../assets/sprites/nemo_e3_f1.png'),
+  sable:   require('../../assets/sprites/zapp_e3_f1.png'),
 }
 
 function getOpponentSprite(type: CreatureType, level: number): ImageSourcePropType {
@@ -111,10 +123,14 @@ const NODE_POSITIONS = [
 const START_POS = { fx: 0.50, y: 740 }
 
 const TYPE_EMOJI: Record<CreatureType, string> = {
-  ignis: '🔥',
-  nemo: '💧',
-  sylva: '🌿',
-  zapp: '⚡',
+  ignis:   '🔥',
+  nemo:    '💧',
+  sylva:   '🌿',
+  zapp:    '⚡',
+  ombra:   '🌑',
+  magma:   '🌋',
+  abyssal: '🌀',
+  sable:   '🏜️',
 }
 
 // ─── League Data ──────────────────────────────────────────────────────────────
@@ -131,12 +147,12 @@ const LEAGUES: League[] = [
     bossBuildingEmoji: '🌳',
     bonusCoins: 40,
     stops: [
-      { username: 'Druide Errant',       monster: { name: 'BRAMBLORC',  title: 'Sanglier des Ronces',           emoji: '🐗', type: 'sylva' }, level: 3  },
-      { username: 'Gardien Mousseux',    monster: { name: 'SPINETHORN', title: 'Hérisson Géant Vénéneux',       emoji: '🦔', type: 'sylva' }, level: 5  },
-      { username: 'Chasseur des Bois',   monster: { name: 'MOSSCRAWL',  title: 'Lézard des Sous-Bois',          emoji: '🦎', type: 'ignis' }, level: 7  },
-      { username: 'Esprit de la Forêt',  monster: { name: 'FERALHOWL',  title: 'Loup des Ombres Vertes',        emoji: '🐺', type: 'sylva' }, level: 9  },
-      { username: 'Vieux Druide Kael',   monster: { name: 'ROOTWRAITH', title: 'Colosse des Racines Anciennes', emoji: '🦕', type: 'sylva' }, level: 11 },
-      { username: 'Le Gardien Suprême',  monster: { name: 'SYLVARAK',   title: 'Titan Forestier Ancestral',     emoji: '🌳', type: 'sylva', isBoss: true }, level: 15 },
+      { username: 'Druide Errant',       monster: { name: 'BRAMBLORC',  title: 'Sanglier des Ronces',           emoji: '🐗', type: 'ombra' }, level: 3  },
+      { username: 'Gardien Mousseux',    monster: { name: 'SPINETHORN', title: 'Hérisson Géant Vénéneux',       emoji: '🦔', type: 'ombra' }, level: 5  },
+      { username: 'Chasseur des Bois',   monster: { name: 'MOSSCRAWL',  title: 'Lézard des Sous-Bois',          emoji: '🦎', type: 'ombra' }, level: 7  },
+      { username: 'Esprit de la Forêt',  monster: { name: 'FERALHOWL',  title: 'Loup des Ombres Vertes',        emoji: '🐺', type: 'ombra' }, level: 9  },
+      { username: 'Vieux Druide Kael',   monster: { name: 'ROOTWRAITH', title: 'Colosse des Racines Anciennes', emoji: '🦕', type: 'ombra' }, level: 11 },
+      { username: 'Le Gardien Suprême',  monster: { name: 'SYLVARAK',   title: 'Titan Forestier Ancestral',     emoji: '🌳', type: 'ombra', isBoss: true }, level: 15 },
     ],
     decorations: [
       { emoji: '🌲', fx: 0.06, y: 70,  size: 28 },
@@ -164,12 +180,12 @@ const LEAGUES: League[] = [
     bossBuildingEmoji: '🏯',
     bonusCoins: 65,
     stops: [
-      { username: 'Forgeron Aldric',        monster: { name: 'CINDERAX',   title: 'Gecko des Cendres',           emoji: '🦎', type: 'ignis' }, level: 8  },
-      { username: 'Pyromage Kiran',         monster: { name: 'LAVACRAK',   title: 'Crabe de Lave Incandescent',  emoji: '🦀', type: 'ignis' }, level: 10 },
-      { username: 'Cendreux Orion',         monster: { name: 'SCALDBEAST', title: 'Crocodile Volcanique',        emoji: '🐊', type: 'ignis' }, level: 12 },
-      { username: 'Flamme Sera',            monster: { name: 'EMBERWING',  title: 'Raptor du Cratère Ardent',    emoji: '🦅', type: 'ignis' }, level: 15 },
-      { username: 'Maître du Feu',          monster: { name: 'MAGMAHIDE',  title: 'Rhinocéros de Magma',         emoji: '🦏', type: 'ignis' }, level: 17 },
-      { username: 'Le Seigneur des Cendres',monster: { name: 'IGNARAK',    title: 'Démon Volcanique Originel',   emoji: '🌋', type: 'ignis', isBoss: true }, level: 22 },
+      { username: 'Forgeron Aldric',        monster: { name: 'CINDERAX',   title: 'Gecko des Cendres',           emoji: '🦎', type: 'magma' }, level: 8  },
+      { username: 'Pyromage Kiran',         monster: { name: 'LAVACRAK',   title: 'Crabe de Lave Incandescent',  emoji: '🦀', type: 'magma' }, level: 10 },
+      { username: 'Cendreux Orion',         monster: { name: 'SCALDBEAST', title: 'Crocodile Volcanique',        emoji: '🐊', type: 'magma' }, level: 12 },
+      { username: 'Flamme Sera',            monster: { name: 'EMBERWING',  title: 'Raptor du Cratère Ardent',    emoji: '🦅', type: 'magma' }, level: 15 },
+      { username: 'Maître du Feu',          monster: { name: 'MAGMAHIDE',  title: 'Rhinocéros de Magma',         emoji: '🦏', type: 'magma' }, level: 17 },
+      { username: 'Le Seigneur des Cendres',monster: { name: 'IGNARAK',    title: 'Démon Volcanique Originel',   emoji: '🌋', type: 'magma', isBoss: true }, level: 22 },
     ],
     decorations: [
       { emoji: '🔥', fx: 0.08, y: 75,  size: 26 },
@@ -197,12 +213,12 @@ const LEAGUES: League[] = [
     bossBuildingEmoji: '🏛️',
     bonusCoins: 90,
     stops: [
-      { username: 'Pêcheur Nael',   monster: { name: 'TIDEGRIP',   title: 'Tentacule des Marées Sombres', emoji: '🦑', type: 'nemo' }, level: 12 },
-      { username: 'Sirène Lyra',    monster: { name: 'DEEPSLITH',  title: 'Serpent des Abysses Froids',   emoji: '🐍', type: 'nemo' }, level: 14 },
-      { username: 'Abyssal Nirel',  monster: { name: 'VORTEXJAW',  title: 'Requin Tourbillon',             emoji: '🦈', type: 'nemo' }, level: 16 },
-      { username: 'Marin Tobias',   monster: { name: 'CORALSHELL', title: 'Gardien de Corail Cristal',    emoji: '🐠', type: 'nemo' }, level: 19 },
-      { username: 'Prêtre des Eaux',monster: { name: 'ABYSSHORN',  title: 'Béhémoth des Grands Fonds',   emoji: '🐳', type: 'nemo' }, level: 21 },
-      { username: 'Le Dieu Abyssal',monster: { name: 'MAELSTRIX',  title: 'Le Grand Kraken Éternel',     emoji: '🐙', type: 'nemo', isBoss: true }, level: 26 },
+      { username: 'Pêcheur Nael',   monster: { name: 'TIDEGRIP',   title: 'Tentacule des Marées Sombres', emoji: '🦑', type: 'abyssal' }, level: 12 },
+      { username: 'Sirène Lyra',    monster: { name: 'DEEPSLITH',  title: 'Serpent des Abysses Froids',   emoji: '🐍', type: 'abyssal' }, level: 14 },
+      { username: 'Abyssal Nirel',  monster: { name: 'VORTEXJAW',  title: 'Requin Tourbillon',             emoji: '🦈', type: 'abyssal' }, level: 16 },
+      { username: 'Marin Tobias',   monster: { name: 'CORALSHELL', title: 'Gardien de Corail Cristal',    emoji: '🐠', type: 'abyssal' }, level: 19 },
+      { username: 'Prêtre des Eaux',monster: { name: 'ABYSSHORN',  title: 'Béhémoth des Grands Fonds',   emoji: '🐳', type: 'abyssal' }, level: 21 },
+      { username: 'Le Dieu Abyssal',monster: { name: 'MAELSTRIX',  title: 'Le Grand Kraken Éternel',     emoji: '🐙', type: 'abyssal', isBoss: true }, level: 26 },
     ],
     decorations: [
       { emoji: '💎', fx: 0.07, y: 75,  size: 22 },
@@ -230,12 +246,12 @@ const LEAGUES: League[] = [
     bossBuildingEmoji: '🕌',
     bonusCoins: 120,
     stops: [
-      { username: 'Voyageur Farouk',     monster: { name: 'DUSTFANG',   title: 'Vipère des Dunes Écarlates', emoji: '🐍', type: 'zapp' }, level: 17 },
-      { username: 'Danseur des Sables',  monster: { name: 'EMBERSTIK',  title: 'Scorpion de Feu Doré',       emoji: '🦂', type: 'zapp' }, level: 19 },
-      { username: 'Illusionniste Ashar', monster: { name: 'MIRAGEKUN',  title: 'Renard-Fantôme des Mirages', emoji: '🦊', type: 'zapp' }, level: 21 },
-      { username: 'Gardien des Ruines',  monster: { name: 'DUNELOOM',   title: 'Golem de Pierre Antique',    emoji: '🗿', type: 'zapp' }, level: 24 },
-      { username: 'Seigneur Caravane',   monster: { name: 'IRONHUMP',   title: 'Chameau de Guerre Blindé',   emoji: '🐪', type: 'zapp' }, level: 26 },
-      { username: "L'Immortel",          monster: { name: 'PHARAKOS',   title: 'Pharaon Éternel des Sables', emoji: '🏺', type: 'zapp', isBoss: true }, level: 30 },
+      { username: 'Voyageur Farouk',     monster: { name: 'DUSTFANG',   title: 'Vipère des Dunes Écarlates', emoji: '🐍', type: 'sable' }, level: 17 },
+      { username: 'Danseur des Sables',  monster: { name: 'EMBERSTIK',  title: 'Scorpion de Feu Doré',       emoji: '🦂', type: 'sable' }, level: 19 },
+      { username: 'Illusionniste Ashar', monster: { name: 'MIRAGEKUN',  title: 'Renard-Fantôme des Mirages', emoji: '🦊', type: 'sable' }, level: 21 },
+      { username: 'Gardien des Ruines',  monster: { name: 'DUNELOOM',   title: 'Golem de Pierre Antique',    emoji: '🗿', type: 'sable' }, level: 24 },
+      { username: 'Seigneur Caravane',   monster: { name: 'IRONHUMP',   title: 'Chameau de Guerre Blindé',   emoji: '🐪', type: 'sable' }, level: 26 },
+      { username: "L'Immortel",          monster: { name: 'PHARAKOS',   title: 'Pharaon Éternel des Sables', emoji: '🏺', type: 'sable', isBoss: true }, level: 30 },
     ],
     decorations: [
       { emoji: '🏺', fx: 0.06, y: 72,  size: 26 },
@@ -263,12 +279,12 @@ const LEAGUES: League[] = [
     bossBuildingEmoji: '🏰',
     bonusCoins: 200,
     stops: [
-      { username: 'Sage Aelin',            monster: { name: 'VOIDSTRIKE', title: 'Fantôme du Vide',              emoji: '⚡', type: 'zapp'  }, level: 22 },
-      { username: 'Oracle Verdant',        monster: { name: 'TIDECALLER', title: 'Invocateur des Tempêtes',       emoji: '🌊', type: 'nemo'  }, level: 25 },
-      { username: 'Ancien Pyrex',          monster: { name: 'ASHBLOOM',   title: 'Phénix des Cendres Éternelles', emoji: '🔥', type: 'ignis' }, level: 27 },
-      { username: 'Maître Zéphyr',         monster: { name: 'WILDBLIGHT', title: 'Fléau Ancestral de la Nature',  emoji: '🌿', type: 'sylva' }, level: 29 },
-      { username: 'Gardien Suprême',       monster: { name: 'STELLARAX',  title: 'Éclat Cosmique Ultime',         emoji: '💥', type: 'zapp'  }, level: 32 },
-      { username: "L'Ancien des Anciens",  monster: { name: 'CHRONALIS',  title: 'Gardien Éternel du Temps',      emoji: '✨', type: 'ignis', isBoss: true }, level: 38 },
+      { username: 'Sage Aelin',            monster: { name: 'VOIDSTRIKE', title: 'Fantôme du Vide',              emoji: '⚡', type: 'ombra'   }, level: 22 },
+      { username: 'Oracle Verdant',        monster: { name: 'TIDECALLER', title: 'Invocateur des Tempêtes',       emoji: '🌊', type: 'abyssal' }, level: 25 },
+      { username: 'Ancien Pyrex',          monster: { name: 'ASHBLOOM',   title: 'Phénix des Cendres Éternelles', emoji: '🔥', type: 'magma'   }, level: 27 },
+      { username: 'Maître Zéphyr',         monster: { name: 'WILDBLIGHT', title: 'Fléau Ancestral de la Nature',  emoji: '🌿', type: 'sable'   }, level: 29 },
+      { username: 'Gardien Suprême',       monster: { name: 'STELLARAX',  title: 'Éclat Cosmique Ultime',         emoji: '💥', type: 'magma'   }, level: 32 },
+      { username: "L'Ancien des Anciens",  monster: { name: 'CHRONALIS',  title: 'Gardien Éternel du Temps',      emoji: '✨', type: 'abyssal', isBoss: true }, level: 38 },
     ],
     decorations: [
       { emoji: '✨', fx: 0.07, y: 72,  size: 24 },

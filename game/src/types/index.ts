@@ -1,5 +1,5 @@
 export type CreatureMood = 'happy' | 'neutral' | 'sad' | 'excited'
-export type CreatureType = 'ignis' | 'nemo' | 'sylva' | 'zapp'
+export type CreatureType = 'ignis' | 'nemo' | 'sylva' | 'zapp' | 'ombra' | 'magma' | 'abyssal' | 'sable'
 export type ItemRarity = 'common' | 'rare' | 'epic'
 export type PersonalityTrait = 'gourmand' | 'joueur' | 'timide' | 'courageux' | 'paresseux' | 'chanceux'
 export type WeatherType = 'sunny' | 'cloudy' | 'rainy' | 'stormy' | 'foggy' | 'clear'
@@ -28,6 +28,10 @@ export type SpellId =
   | 'vague' | 'siphon' | 'regeneration' | 'barriere' | 'malediction' | 'raz_de_maree' | 'maree_curative' | 'abysse'
   | 'coup_voile' | 'ecran_fumee' | 'volute' | 'dissipation' | 'embuscade' | 'brouillard_total' | 'laceration_voilee' | 'embuscade_parfaite'
   | 'decharge' | 'arc_paralysant' | 'boost' | 'esquive_vive' | 'rafale' | 'surcharge' | 'tempete' | 'fulguration'
+  | 'griffe_d_ombre' | 'venin_sylvestre' | 'bond_furtif' | 'embuscade_sauvage' | 'hurlement_bete' | 'forme_fantome'
+  | 'frappe_terrestre' | 'eruption' | 'carapace_magma' | 'fracas_sismique' | 'fusion_volcanique' | 'magma_supreme'
+  | 'tentacule' | 'succion_vitale' | 'encre_noire' | 'vortex_abyssal' | 'malediction_profonde' | 'dissolution'
+  | 'frappe_des_sables' | 'tourbillon_sableux' | 'eclair_ancien' | 'mirage_sable' | 'malefice_antique' | 'tempete_de_sable'
 
 export type StatusType =
   | 'burn'        // dégâts par tour

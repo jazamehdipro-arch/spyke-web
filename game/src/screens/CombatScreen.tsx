@@ -45,6 +45,19 @@ const SPRITES: Record<string, ImageSourcePropType> = {
   nemo_e3:  require('../../assets/sprites/nemo_e3_f1.png'),
   sylva_e3: require('../../assets/sprites/sylva_e3_f1.png'),
   zapp_e3:  require('../../assets/sprites/zapp_e3_f1.png'),
+  // Adventure-exclusive types reuse existing sprites as fallback
+  ombra_action: require('../../assets/sprites/sylva_e1_clean.png'),
+  ombra_e2:     require('../../assets/sprites/sylva_e2_f1.png'),
+  ombra_e3:     require('../../assets/sprites/sylva_e3_f1.png'),
+  magma_action: require('../../assets/sprites/ignis_e1_clean.png'),
+  magma_e2:     require('../../assets/sprites/ignis_e2_f1.png'),
+  magma_e3:     require('../../assets/sprites/ignis_e3_f1.png'),
+  abyssal_action: require('../../assets/sprites/nemo_e1_clean.png'),
+  abyssal_e2:     require('../../assets/sprites/nemo_e2_f1.png'),
+  abyssal_e3:     require('../../assets/sprites/nemo_e3_f1.png'),
+  sable_action: require('../../assets/sprites/zapp_e1_clean.png'),
+  sable_e2:     require('../../assets/sprites/zapp_e2_f1.png'),
+  sable_e3:     require('../../assets/sprites/zapp_e3_f1.png'),
 }
 
 function spriteKey(type: CreatureType, level: number) {
@@ -60,18 +73,26 @@ const CREATURE_PROFILES: Record<CreatureType, {
   startEnergy: number
   dodgeBase: number
 }> = {
-  ignis: { hpMult: 0.85, baseDamageMult: 1.16, startEnergy: 0, dodgeBase: 0.0  },
-  nemo:  { hpMult: 1.15, baseDamageMult: 0.77, startEnergy: 0, dodgeBase: 0.0  },
-  sylva: { hpMult: 1.0,  baseDamageMult: 0.93, startEnergy: 0, dodgeBase: 0.17 },
-  zapp:  { hpMult: 0.9,  baseDamageMult: 1.0,  startEnergy: 0, dodgeBase: 0.0  },
+  ignis:   { hpMult: 0.85, baseDamageMult: 1.16, startEnergy: 0, dodgeBase: 0.0  },
+  nemo:    { hpMult: 1.15, baseDamageMult: 0.77, startEnergy: 0, dodgeBase: 0.0  },
+  sylva:   { hpMult: 1.0,  baseDamageMult: 0.93, startEnergy: 0, dodgeBase: 0.17 },
+  zapp:    { hpMult: 0.9,  baseDamageMult: 1.0,  startEnergy: 0, dodgeBase: 0.0  },
+  ombra:   { hpMult: 1.0,  baseDamageMult: 0.98, startEnergy: 0, dodgeBase: 0.20 },
+  magma:   { hpMult: 1.15, baseDamageMult: 1.12, startEnergy: 0, dodgeBase: 0.0  },
+  abyssal: { hpMult: 1.25, baseDamageMult: 0.82, startEnergy: 0, dodgeBase: 0.0  },
+  sable:   { hpMult: 0.92, baseDamageMult: 1.05, startEnergy: 0, dodgeBase: 0.05 },
 }
 
 // ─── counter triangle ────────────────────────────────────
 const COUNTER_TABLE: Record<CreatureType, CreatureType> = {
-  ignis: 'nemo',
-  nemo:  'sylva',
-  sylva: 'zapp',
-  zapp:  'ignis',
+  ignis:   'nemo',
+  nemo:    'sylva',
+  sylva:   'zapp',
+  zapp:    'ignis',
+  ombra:   'sable',
+  sable:   'abyssal',
+  abyssal: 'magma',
+  magma:   'ombra',
 }
 
 // ─── types ──────────────────────────────────────────────
@@ -171,10 +192,14 @@ const OPPONENT_MAX_ENERGY = 5
 const TIMER_SECONDS = 10
 const BASE_HP = 68
 const E1_BASE_HP: Record<CreatureType, number> = {
-  ignis: 63,
-  nemo: 75,
-  sylva: 68,
-  zapp: 63,
+  ignis:   63,
+  nemo:    75,
+  sylva:   68,
+  zapp:    63,
+  ombra:   70,
+  magma:   80,
+  abyssal: 85,
+  sable:   64,
 }
 
 function calcHP(level: number, hpMult = 1.0, creatureType?: CreatureType) {
@@ -243,6 +268,19 @@ function targetMostExpensiveSpell(target: Combatant, loadout: SpellLoadout): str
     }
   }
   return best
+}
+
+function targetLeastExpensiveSpell(target: Combatant, loadout: SpellLoadout): string {
+  let worst: SpellId = loadout[0]
+  let worstCost = Infinity
+  for (const spellId of loadout) {
+    const spell = SPELL_CATALOG[spellId]
+    if (spell.energyCost < worstCost && !(target.cooldowns[spellId] && (target.cooldowns[spellId] ?? 0) > 0)) {
+      worstCost = spell.energyCost
+      worst = spellId
+    }
+  }
+  return worst
 }
 
 function resolveSpell(
@@ -553,6 +591,208 @@ function resolveSpell(
       }
     }
 
+    // ── ombra ──
+    case 'griffe_d_ombre': {
+      return {
+        ...empty,
+        targetHpDelta: -10,
+        casterStatusesToAdd: [{ type: 'dodge_up', turnsLeft: 1, value: 15 }],
+        log: '🌑 Griffe d\'ombre ! -10 HP + esquive +15%',
+      }
+    }
+    case 'venin_sylvestre': {
+      return {
+        ...empty,
+        targetHpDelta: -5,
+        targetStatusesToAdd: [{ type: 'burn', turnsLeft: 3, value: 3 }],
+        log: '🌿🐍 Venin sylvestre ! -5 HP + brûlure 3 tours (3/tour)',
+      }
+    }
+    case 'bond_furtif': {
+      return {
+        ...empty,
+        targetHpDelta: -14,
+        casterStatusesToAdd: [{ type: 'smoke', turnsLeft: 1 }],
+        log: '🦊 Bond furtif ! -14 HP + entre dans l\'ombre',
+      }
+    }
+    case 'embuscade_sauvage': {
+      const inShadow = hasStatus(caster, 'smoke')
+      const dmg = inShadow ? 24 : 8
+      return {
+        ...empty,
+        targetHpDelta: -dmg,
+        casterStatusesToRemove: inShadow ? ['smoke'] : [],
+        log: inShadow
+          ? `🗡️🌑 Embuscade sauvage ! -${dmg} HP depuis l'ombre !`
+          : `🗡️ Embuscade sauvage ! -${dmg} HP`,
+      }
+    }
+    case 'hurlement_bete': {
+      return {
+        ...empty,
+        targetStatusesToAdd: [{ type: 'provoked', turnsLeft: 2 }],
+        casterStatusesToAdd: [{ type: 'dodge_up', turnsLeft: 2, value: 15 }],
+        log: '🐺 Hurlement bête ! Ennemi provoqué 2 tours + esquive +15%',
+      }
+    }
+    case 'forme_fantome': {
+      return {
+        ...empty,
+        casterStatusesToAdd: [
+          { type: 'dodge_ready', turnsLeft: 1 },
+          { type: 'barrier', turnsLeft: 2, value: 30 },
+        ],
+        log: '👻 Forme fantôme ! Prochain coup esquivé + -30% dégâts 2 tours',
+      }
+    }
+
+    // ── magma ──
+    case 'frappe_terrestre': {
+      return {
+        ...empty,
+        targetHpDelta: -11,
+        log: '🪨 Frappe terrestre ! -11 HP',
+      }
+    }
+    case 'eruption': {
+      return {
+        ...empty,
+        targetHpDelta: -16,
+        targetStatusesToAdd: [{ type: 'provoked', turnsLeft: 1 }],
+        log: '🌋 Éruption ! -16 HP + ennemi provoqué !',
+      }
+    }
+    case 'carapace_magma': {
+      return {
+        ...empty,
+        casterStatusesToAdd: [{ type: 'barrier', turnsLeft: 2, value: 40 }],
+        log: '🛡️🔥 Carapace magma ! -40% dégâts reçus 2 tours',
+      }
+    }
+    case 'fracas_sismique': {
+      return {
+        ...empty,
+        targetHpDelta: -20,
+        targetStatusesToAdd: [{ type: 'exhausted', turnsLeft: 1, value: 1 }],
+        log: '💥🪨 Fracas sismique ! -20 HP + ennemi épuisé !',
+      }
+    }
+    case 'fusion_volcanique': {
+      return {
+        ...empty,
+        casterStatusesToAdd: [{ type: 'damage_boost', turnsLeft: 99, value: 60 }],
+        log: '🌋🔥 Fusion volcanique ! Prochain dégât +60%',
+      }
+    }
+    case 'magma_supreme': {
+      return {
+        ...empty,
+        targetHpDelta: -28,
+        log: '☄️ Magma suprême ! -28 HP',
+      }
+    }
+
+    // ── abyssal ──
+    case 'tentacule': {
+      const paralyzed = Math.random() < 0.3
+      return {
+        ...empty,
+        targetHpDelta: -8,
+        targetStatusesToAdd: paralyzed ? [{ type: 'paralyzed', turnsLeft: 1 }] : [],
+        log: `🐙 Tentacule ! -8 HP${paralyzed ? ' · Ennemi paralysé !' : ''}`,
+      }
+    }
+    case 'succion_vitale': {
+      return {
+        ...empty,
+        targetHpDelta: -12,
+        casterHpDelta: 6,
+        log: '🌊💚 Succion vitale ! -12 HP + soin +6 PV',
+      }
+    }
+    case 'encre_noire': {
+      return {
+        ...empty,
+        targetStatusesToAdd: [{ type: 'fog', turnsLeft: 2, value: 20, data: 'accuracy_down' }],
+        log: '🦑 Encre noire ! Brouillage ennemi : 20% miss 2 tours',
+      }
+    }
+    case 'vortex_abyssal': {
+      return {
+        ...empty,
+        targetHpDelta: -18,
+        log: '🌀🌊 Vortex abyssal ! -18 HP',
+      }
+    }
+    case 'malediction_profonde': {
+      if (!targetLoadout) return { ...empty, log: '🔮🌊 Malédiction profonde !' }
+      const cursedId = targetMostExpensiveSpell(target, targetLoadout)
+      return {
+        ...empty,
+        targetStatusesToAdd: [{ type: 'cursed', turnsLeft: 2, data: cursedId }],
+        log: `🔮🌊 Malédiction profonde ! ${cursedId} bloqué 2 tours`,
+      }
+    }
+    case 'dissolution': {
+      return {
+        ...empty,
+        targetHpDelta: -22,
+        targetStatusesToAdd: [{ type: 'exhausted', turnsLeft: 2, value: 2 }],
+        log: '🌑🌊 Dissolution ! -22 HP + épuisement 2 tours',
+      }
+    }
+
+    // ── sable ──
+    case 'frappe_des_sables': {
+      return {
+        ...empty,
+        targetHpDelta: -9,
+        targetStatusesToAdd: [{ type: 'exhausted', turnsLeft: 1, value: 1 }],
+        log: '🏜️ Frappe des sables ! -9 HP + ennemi épuisé',
+      }
+    }
+    case 'tourbillon_sableux': {
+      return {
+        ...empty,
+        targetHpDelta: -12,
+        targetStatusesToAdd: [{ type: 'burn', turnsLeft: 2, value: 8 }],
+        log: '🌪️🏜️ Tourbillon sableux ! -12 HP + brûlure 2 tours (8/tour)',
+      }
+    }
+    case 'eclair_ancien': {
+      const paralyzed = Math.random() < 0.25
+      return {
+        ...empty,
+        targetHpDelta: -15,
+        targetStatusesToAdd: paralyzed ? [{ type: 'paralyzed', turnsLeft: 1 }] : [],
+        log: `⚡🏺 Éclair ancien ! -15 HP${paralyzed ? ' · Ennemi paralysé !' : ''}`,
+      }
+    }
+    case 'mirage_sable': {
+      return {
+        ...empty,
+        casterStatusesToAdd: [{ type: 'dodge_up', turnsLeft: 2, value: 30 }],
+        log: '🌅 Mirage des sables ! +30% esquive 2 tours',
+      }
+    }
+    case 'malefice_antique': {
+      if (!targetLoadout) return { ...empty, log: '🪄 Maléfice antique !' }
+      const cursedId = targetLeastExpensiveSpell(target, targetLoadout)
+      return {
+        ...empty,
+        targetStatusesToAdd: [{ type: 'cursed', turnsLeft: 2, data: cursedId }],
+        log: `🪄 Maléfice antique ! ${cursedId} bloqué 2 tours`,
+      }
+    }
+    case 'tempete_de_sable': {
+      return {
+        ...empty,
+        targetHpDelta: -24,
+        log: '🌪️⚡ Tempête de sable ! 3×8 = -24 HP',
+      }
+    }
+
     default:
       return { ...empty, log: `Sort inconnu: ${spellId}` }
   }
@@ -593,6 +833,34 @@ function estimateSpellPressure(spellId: SpellId, caster: Combatant, passiveLevel
     case 'surcharge': return passiveLevel === 1 ? 22 : 16
     case 'tempete': return 24
     case 'fulguration': return 12
+    // ombra
+    case 'griffe_d_ombre': return 10
+    case 'venin_sylvestre': return 14
+    case 'bond_furtif': return 14
+    case 'embuscade_sauvage': return hasStatus(caster, 'smoke') ? 24 : 8
+    case 'hurlement_bete': return 8
+    case 'forme_fantome': return 0
+    // magma
+    case 'frappe_terrestre': return 11
+    case 'eruption': return 18
+    case 'carapace_magma': return 0
+    case 'fracas_sismique': return 22
+    case 'fusion_volcanique': return 0
+    case 'magma_supreme': return 28
+    // abyssal
+    case 'tentacule': return 10
+    case 'succion_vitale': return 18
+    case 'encre_noire': return 0
+    case 'vortex_abyssal': return 18
+    case 'malediction_profonde': return 12
+    case 'dissolution': return 28
+    // sable
+    case 'frappe_des_sables': return 11
+    case 'tourbillon_sableux': return 20
+    case 'eclair_ancien': return 16
+    case 'mirage_sable': return 0
+    case 'malefice_antique': return 8
+    case 'tempete_de_sable': return 24
     default: return 0
   }
 }
@@ -916,7 +1184,8 @@ function botChooseAction(
     // D. Kill shot — player at low HP: prioritise finishing spells
     if (playerLow) {
       for (const id of ['brasier', 'tempete', 'abysse', 'raz_de_maree', 'surcharge', 'explosion',
-                        'embuscade_parfaite', 'fournaise', 'immolation', 'decharge'] as SpellId[]) {
+                        'embuscade_parfaite', 'fournaise', 'immolation', 'decharge',
+                        'magma_supreme', 'dissolution', 'tempete_de_sable', 'embuscade_sauvage'] as SpellId[]) {
         if (can(id)) return { kind: 'spell', spellId: id }
       }
     }
@@ -1014,6 +1283,79 @@ function botChooseAction(
         if (can('surcharge')) return { kind: 'spell', spellId: 'surcharge' }
         break
       }
+
+      case 'ombra': {
+        // Core: bond_furtif → embuscade_sauvage (3× damage from shadow)
+        if (!hasStatus(botState, 'smoke') && can('bond_furtif')) return { kind: 'spell', spellId: 'bond_furtif' }
+        if (hasStatus(botState, 'smoke') && can('embuscade_sauvage')) return { kind: 'spell', spellId: 'embuscade_sauvage' }
+        // Defensive: forme_fantome when player is about to burst
+        if (!hasStatus(botState, 'barrier') && !hasStatus(botState, 'dodge_ready') && playerState.energy >= 3 && can('forme_fantome')) {
+          return { kind: 'spell', spellId: 'forme_fantome' }
+        }
+        // Hurlement: provoke + dodge when player is mid-range HP
+        if (!hasStatus(playerState, 'provoked') && can('hurlement_bete')) return { kind: 'spell', spellId: 'hurlement_bete' }
+        // DoT: venin_sylvestre stacks burn
+        if (!hasStatus(playerState, 'burn') && can('venin_sylvestre')) return { kind: 'spell', spellId: 'venin_sylvestre' }
+        // Filler: griffe_d_ombre
+        if (can('griffe_d_ombre')) return { kind: 'spell', spellId: 'griffe_d_ombre' }
+        break
+      }
+
+      case 'magma': {
+        // Core: fusion_volcanique → magma_supreme for a huge burst
+        if (!hasStatus(botState, 'damage_boost') && can('fusion_volcanique') && botState.energy >= 2 && inLoadout('magma_supreme')) {
+          return { kind: 'spell', spellId: 'fusion_volcanique' }
+        }
+        if (hasStatus(botState, 'damage_boost') && can('magma_supreme')) return { kind: 'spell', spellId: 'magma_supreme' }
+        // Carapace: reactive defense
+        if (!hasStatus(botState, 'barrier') && playerState.energy >= 3 && can('carapace_magma')) {
+          return { kind: 'spell', spellId: 'carapace_magma' }
+        }
+        // Fracas: best damage + exhaustion combo
+        if (can('fracas_sismique')) return { kind: 'spell', spellId: 'fracas_sismique' }
+        // Eruption: provokes + deals damage
+        if (can('eruption')) return { kind: 'spell', spellId: 'eruption' }
+        // Filler: frappe_terrestre
+        if (can('frappe_terrestre')) return { kind: 'spell', spellId: 'frappe_terrestre' }
+        break
+      }
+
+      case 'abyssal': {
+        // Malediction profonde: lock enemy's best spell
+        if (!hasStatus(playerState, 'cursed') && can('malediction_profonde')) return { kind: 'spell', spellId: 'malediction_profonde' }
+        // Dissolution: big damage + exhaustion when ready
+        if (botState.energy >= 4 && can('dissolution')) return { kind: 'spell', spellId: 'dissolution' }
+        // Succion: sustain + damage
+        if (botState.hp < 60 && can('succion_vitale')) return { kind: 'spell', spellId: 'succion_vitale' }
+        // Encre noire: accuracy denial
+        if (!hasStatus(playerState, 'fog') && can('encre_noire')) return { kind: 'spell', spellId: 'encre_noire' }
+        // Vortex: consistent damage
+        if (can('vortex_abyssal')) return { kind: 'spell', spellId: 'vortex_abyssal' }
+        // Succion filler
+        if (can('succion_vitale')) return { kind: 'spell', spellId: 'succion_vitale' }
+        // Tentacule: stun chance
+        if (can('tentacule')) return { kind: 'spell', spellId: 'tentacule' }
+        break
+      }
+
+      case 'sable': {
+        // Core: tempete_de_sable as finisher
+        if (botState.energy >= 4 && can('tempete_de_sable')) return { kind: 'spell', spellId: 'tempete_de_sable' }
+        if (inLoadout('tempete_de_sable') && botState.energy < 4 && botState.hp > 30 && playerState.hp > 30) return { kind: 'charge' }
+        // Malefice: lock enemy's cheapest spam spell
+        if (!hasStatus(playerState, 'cursed') && can('malefice_antique')) return { kind: 'spell', spellId: 'malefice_antique' }
+        // Mirage: dodge before enemy burst
+        if (!hasStatus(botState, 'dodge_up') && playerState.energy >= 3 && can('mirage_sable')) {
+          return { kind: 'spell', spellId: 'mirage_sable' }
+        }
+        // Tourbillon: burn combo
+        if (can('tourbillon_sableux')) return { kind: 'spell', spellId: 'tourbillon_sableux' }
+        // Eclair: damage + stun
+        if (can('eclair_ancien')) return { kind: 'spell', spellId: 'eclair_ancien' }
+        // Filler
+        if (can('frappe_des_sables')) return { kind: 'spell', spellId: 'frappe_des_sables' }
+        break
+      }
     }
 
     // F. Fallback: highest-cost usable spell
@@ -1027,7 +1369,8 @@ function botChooseAction(
   // ── MEDIUM: type-aware, reactive ─────────────────────────
   // Heal when low
   if (botState.hp < 20) {
-    for (const id of ['regeneration', 'maree_curative', 'barriere', 'carapace_chauffee', 'siphon'] as SpellId[]) {
+    for (const id of ['regeneration', 'maree_curative', 'barriere', 'carapace_chauffee', 'siphon',
+                      'carapace_magma', 'succion_vitale', 'forme_fantome'] as SpellId[]) {
       if (can(id)) return { kind: 'spell', spellId: id }
     }
   }
@@ -1080,6 +1423,48 @@ function botChooseAction(
       if (!hasStatus(botState, 'damage_boost') && can('boost') && botState.energy >= 2) return { kind: 'spell', spellId: 'boost' }
       if (can('arc_paralysant')) return { kind: 'spell', spellId: 'arc_paralysant' }
       if (can('rafale'))         return { kind: 'spell', spellId: 'rafale' }
+      break
+    }
+    case 'ombra': {
+      if (!hasStatus(botState, 'smoke') && can('bond_furtif')) return { kind: 'spell', spellId: 'bond_furtif' }
+      if (hasStatus(botState, 'smoke') && can('embuscade_sauvage')) return { kind: 'spell', spellId: 'embuscade_sauvage' }
+      if (botState.energy >= 2) {
+        if (can('hurlement_bete')) return { kind: 'spell', spellId: 'hurlement_bete' }
+        if (can('venin_sylvestre')) return { kind: 'spell', spellId: 'venin_sylvestre' }
+      }
+      if (can('griffe_d_ombre')) return { kind: 'spell', spellId: 'griffe_d_ombre' }
+      break
+    }
+    case 'magma': {
+      if (botState.energy >= 3) {
+        if (can('fracas_sismique')) return { kind: 'spell', spellId: 'fracas_sismique' }
+        if (can('eruption'))        return { kind: 'spell', spellId: 'eruption' }
+        if (can('magma_supreme'))   return { kind: 'spell', spellId: 'magma_supreme' }
+      }
+      if (!hasStatus(botState, 'damage_boost') && can('fusion_volcanique') && botState.energy >= 2) {
+        return { kind: 'spell', spellId: 'fusion_volcanique' }
+      }
+      if (can('frappe_terrestre')) return { kind: 'spell', spellId: 'frappe_terrestre' }
+      break
+    }
+    case 'abyssal': {
+      if (botState.hp < 50 && can('succion_vitale')) return { kind: 'spell', spellId: 'succion_vitale' }
+      if (botState.energy >= 3) {
+        if (can('dissolution'))         return { kind: 'spell', spellId: 'dissolution' }
+        if (can('vortex_abyssal'))       return { kind: 'spell', spellId: 'vortex_abyssal' }
+        if (can('malediction_profonde')) return { kind: 'spell', spellId: 'malediction_profonde' }
+      }
+      if (can('succion_vitale')) return { kind: 'spell', spellId: 'succion_vitale' }
+      if (can('tentacule'))      return { kind: 'spell', spellId: 'tentacule' }
+      break
+    }
+    case 'sable': {
+      if (botState.energy >= 3) {
+        if (can('tempete_de_sable'))   return { kind: 'spell', spellId: 'tempete_de_sable' }
+        if (can('tourbillon_sableux')) return { kind: 'spell', spellId: 'tourbillon_sableux' }
+        if (can('eclair_ancien'))      return { kind: 'spell', spellId: 'eclair_ancien' }
+      }
+      if (can('frappe_des_sables'))  return { kind: 'spell', spellId: 'frappe_des_sables' }
       break
     }
   }
@@ -1188,10 +1573,14 @@ function DebuffPanel({ mods, playerType, opponentType }: { mods: CombatModifiers
   }
 
   switch (playerType) {
-    case 'ignis': buffs.push({ emoji: '🔥', text: 'Sorts ignis disponibles' }); break
-    case 'nemo':  buffs.push({ emoji: '💧', text: 'Sorts nemo disponibles' }); break
-    case 'sylva': buffs.push({ emoji: '💨', text: 'Sorts sylva disponibles' }); break
-    case 'zapp':  buffs.push({ emoji: '⚡', text: 'Sorts zapp disponibles' }); break
+    case 'ignis':   buffs.push({ emoji: '🔥', text: 'Sorts ignis disponibles' });   break
+    case 'nemo':    buffs.push({ emoji: '💧', text: 'Sorts nemo disponibles' });    break
+    case 'sylva':   buffs.push({ emoji: '💨', text: 'Sorts sylva disponibles' });   break
+    case 'zapp':    buffs.push({ emoji: '⚡', text: 'Sorts zapp disponibles' });    break
+    case 'ombra':   buffs.push({ emoji: '🌑', text: 'Sorts ombra disponibles' });   break
+    case 'magma':   buffs.push({ emoji: '🌋', text: 'Sorts magma disponibles' });   break
+    case 'abyssal': buffs.push({ emoji: '🌀', text: 'Sorts abyssal disponibles' }); break
+    case 'sable':   buffs.push({ emoji: '🏜️', text: 'Sorts sable disponibles' });   break
   }
 
   if (debuffs.length === 0 && buffs.length === 0) return null

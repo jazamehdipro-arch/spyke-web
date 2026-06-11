@@ -13,10 +13,14 @@ import {
 import { CreatureType, TrainingStats } from '../types'
 
 const CREATURE_IDLE: Record<CreatureType, ImageSourcePropType> = {
-  ignis: require('../../assets/sprites/ignis_e1_clean.png'),
-  nemo:  require('../../assets/sprites/nemo_e1_clean.png'),
-  sylva: require('../../assets/sprites/sylva_e1_clean.png'),
-  zapp:  require('../../assets/sprites/zapp_e1_clean.png'),
+  ignis:   require('../../assets/sprites/ignis_e1_clean.png'),
+  nemo:    require('../../assets/sprites/nemo_e1_clean.png'),
+  sylva:   require('../../assets/sprites/sylva_e1_clean.png'),
+  zapp:    require('../../assets/sprites/zapp_e1_clean.png'),
+  ombra:   require('../../assets/sprites/sylva_e1_clean.png'),
+  magma:   require('../../assets/sprites/ignis_e1_clean.png'),
+  abyssal: require('../../assets/sprites/nemo_e1_clean.png'),
+  sable:   require('../../assets/sprites/zapp_e1_clean.png'),
 }
 
 const { width: W, height: H } = Dimensions.get('window')

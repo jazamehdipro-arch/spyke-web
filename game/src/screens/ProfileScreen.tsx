@@ -13,22 +13,34 @@ import { CREATURE_LABELS, getMood, getMoodEmoji } from '../utils/creature'
 import { retro, retroShadow, typeTheme } from '../styles/retro'
 
 const SPRITES_BASE: Record<CreatureType, ImageSourcePropType> = {
-  ignis: require('../../assets/sprites/ignis_e1_clean.png'),
-  nemo:  require('../../assets/sprites/nemo_e1_clean.png'),
-  sylva: require('../../assets/sprites/sylva_e1_clean.png'),
-  zapp:  require('../../assets/sprites/zapp_e1_clean.png'),
+  ignis:   require('../../assets/sprites/ignis_e1_clean.png'),
+  nemo:    require('../../assets/sprites/nemo_e1_clean.png'),
+  sylva:   require('../../assets/sprites/sylva_e1_clean.png'),
+  zapp:    require('../../assets/sprites/zapp_e1_clean.png'),
+  ombra:   require('../../assets/sprites/sylva_e1_clean.png'),
+  magma:   require('../../assets/sprites/ignis_e1_clean.png'),
+  abyssal: require('../../assets/sprites/nemo_e1_clean.png'),
+  sable:   require('../../assets/sprites/zapp_e1_clean.png'),
 }
 const SPRITES_E2: Record<CreatureType, ImageSourcePropType> = {
-  ignis: require('../../assets/sprites/ignis_e2_f1.png'),
-  nemo:  require('../../assets/sprites/nemo_e2_f1.png'),
-  sylva: require('../../assets/sprites/sylva_e2_f1.png'),
-  zapp:  require('../../assets/sprites/zapp_e2_f1.png'),
+  ignis:   require('../../assets/sprites/ignis_e2_f1.png'),
+  nemo:    require('../../assets/sprites/nemo_e2_f1.png'),
+  sylva:   require('../../assets/sprites/sylva_e2_f1.png'),
+  zapp:    require('../../assets/sprites/zapp_e2_f1.png'),
+  ombra:   require('../../assets/sprites/sylva_e2_f1.png'),
+  magma:   require('../../assets/sprites/ignis_e2_f1.png'),
+  abyssal: require('../../assets/sprites/nemo_e2_f1.png'),
+  sable:   require('../../assets/sprites/zapp_e2_f1.png'),
 }
 const SPRITES_E3: Record<CreatureType, ImageSourcePropType> = {
-  ignis: require('../../assets/sprites/ignis_e3_f1.png'),
-  nemo:  require('../../assets/sprites/nemo_e3_f1.png'),
-  sylva: require('../../assets/sprites/sylva_e3_f1.png'),
-  zapp:  require('../../assets/sprites/zapp_e3_f1.png'),
+  ignis:   require('../../assets/sprites/ignis_e3_f1.png'),
+  nemo:    require('../../assets/sprites/nemo_e3_f1.png'),
+  sylva:   require('../../assets/sprites/sylva_e3_f1.png'),
+  zapp:    require('../../assets/sprites/zapp_e3_f1.png'),
+  ombra:   require('../../assets/sprites/sylva_e3_f1.png'),
+  magma:   require('../../assets/sprites/ignis_e3_f1.png'),
+  abyssal: require('../../assets/sprites/nemo_e3_f1.png'),
+  sable:   require('../../assets/sprites/zapp_e3_f1.png'),
 }
 
 function getEvoSprite(type: CreatureType, level: number): ImageSourcePropType {

@@ -7,10 +7,14 @@ import { CreatureType, SocialEventType } from '../types'
 import { retro, typeTheme } from '../styles/retro'
 
 const SPRITES: Record<CreatureType, any> = {
-  ignis: require('../../assets/sprites/ignis_e1_clean.png'),
-  nemo:  require('../../assets/sprites/nemo_e1_clean.png'),
-  sylva: require('../../assets/sprites/sylva_e1_clean.png'),
-  zapp:  require('../../assets/sprites/zapp_e1_clean.png'),
+  ignis:   require('../../assets/sprites/ignis_e1_clean.png'),
+  nemo:    require('../../assets/sprites/nemo_e1_clean.png'),
+  sylva:   require('../../assets/sprites/sylva_e1_clean.png'),
+  zapp:    require('../../assets/sprites/zapp_e1_clean.png'),
+  ombra:   require('../../assets/sprites/sylva_e1_clean.png'),
+  magma:   require('../../assets/sprites/ignis_e1_clean.png'),
+  abyssal: require('../../assets/sprites/nemo_e1_clean.png'),
+  sable:   require('../../assets/sprites/zapp_e1_clean.png'),
 }
 
 export type GameResult = 'win' | 'draw' | 'loss'

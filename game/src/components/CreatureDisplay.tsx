@@ -142,10 +142,14 @@ function getStageKey(level: number): string {
 
 // Particle colors per type
 const PARTICLE_COLORS: Record<CreatureType, string[]> = {
-  ignis: ['#FF6600', '#FF9900', '#FF3300', '#FFCC00'],
-  nemo:  ['#00BBDD', '#00DDFF', '#0099BB', '#88EEFF'],
-  sylva: ['#8BC34A', '#CDDC39', '#66BB6A', '#A5D6A7'],
-  zapp:  ['#FFD700', '#FFEE00', '#FFB300', '#FFFFFF'],
+  ignis:   ['#FF6600', '#FF9900', '#FF3300', '#FFCC00'],
+  nemo:    ['#00BBDD', '#00DDFF', '#0099BB', '#88EEFF'],
+  sylva:   ['#8BC34A', '#CDDC39', '#66BB6A', '#A5D6A7'],
+  zapp:    ['#FFD700', '#FFEE00', '#FFB300', '#FFFFFF'],
+  ombra:   ['#9B84C4', '#7B5EA7', '#5A4B7A', '#C8B8E8'],
+  magma:   ['#D4673A', '#B5451B', '#FF8844', '#FF4400'],
+  abyssal: ['#3A7AAA', '#1A4466', '#55AACC', '#88CCEE'],
+  sable:   ['#E8C060', '#C89B3C', '#FFD97A', '#D4A848'],
 }
 
 function FloatingParticles({ color, type }: { color: string; type: CreatureType }) {

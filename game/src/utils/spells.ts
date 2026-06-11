@@ -117,6 +117,82 @@ export const SPELL_CATALOG: Record<SpellId, Spell> = {
   fulguration:       { id: 'fulguration',        name: 'Fulguration',         emoji: '⚡🎯', energyCost: 2, cooldown: 3,
     description: '~16 dégâts — priorité + 20% paralysie',
     scaledDesc: (m) => `${Math.round(7*m)} dégâts — priorité + 20% paralysie` },
+
+  // ── Bête des ombres (ombra) ─────────────────────────────
+  griffe_d_ombre:    { id: 'griffe_d_ombre',    name: 'Griffe d\'ombre',     emoji: '🌑',   energyCost: 1, cooldown: 0,
+    description: '10 dégâts + esquive +15% 1 tour' },
+
+  venin_sylvestre:   { id: 'venin_sylvestre',   name: 'Venin sylvestre',     emoji: '🌿🐍', energyCost: 2, cooldown: 0,
+    description: '5 dégâts + brûlure 3 tours (3/tour)' },
+
+  bond_furtif:       { id: 'bond_furtif',       name: 'Bond furtif',         emoji: '🦊',   energyCost: 2, cooldown: 0,
+    description: '14 dégâts + entre dans l\'ombre' },
+
+  embuscade_sauvage: { id: 'embuscade_sauvage', name: 'Embuscade sauvage',   emoji: '🗡️🌑', energyCost: 3, cooldown: 0,
+    description: '24 dégâts depuis l\'ombre, sinon 8' },
+
+  hurlement_bete:    { id: 'hurlement_bete',    name: 'Hurlement bête',      emoji: '🐺',   energyCost: 2, cooldown: 2,
+    description: 'Ennemi provoqué 2 tours + soi +15% esquive' },
+
+  forme_fantome:     { id: 'forme_fantome',     name: 'Forme fantôme',       emoji: '👻',   energyCost: 0, cooldown: 3,
+    description: 'Prochain coup esquivé + -30% dégâts reçus 2 tours' },
+
+  // ── Titan volcanique (magma) ────────────────────────────
+  frappe_terrestre:  { id: 'frappe_terrestre',  name: 'Frappe terrestre',    emoji: '🪨',   energyCost: 1, cooldown: 0,
+    description: '11 dégâts directs' },
+
+  eruption:          { id: 'eruption',          name: 'Éruption',            emoji: '🌋',   energyCost: 3, cooldown: 0,
+    description: '16 dégâts + ennemi provoqué 1 tour' },
+
+  carapace_magma:    { id: 'carapace_magma',    name: 'Carapace magma',      emoji: '🛡️🔥', energyCost: 0, cooldown: 2,
+    description: '-40% dégâts reçus 2 tours' },
+
+  fracas_sismique:   { id: 'fracas_sismique',   name: 'Fracas sismique',     emoji: '💥🪨', energyCost: 3, cooldown: 0,
+    description: '20 dégâts + ennemi épuisé 1 tour' },
+
+  fusion_volcanique: { id: 'fusion_volcanique', name: 'Fusion volcanique',   emoji: '🌋🔥', energyCost: 2, cooldown: 2,
+    description: 'Prochain dégât +60%' },
+
+  magma_supreme:     { id: 'magma_supreme',     name: 'Magma suprême',       emoji: '☄️',   energyCost: 4, cooldown: 3,
+    description: '28 dégâts purs' },
+
+  // ── Kraken abyssal (abyssal) ────────────────────────────
+  tentacule:         { id: 'tentacule',         name: 'Tentacule',           emoji: '🐙',   energyCost: 1, cooldown: 0,
+    description: '8 dégâts + 30% paralysie' },
+
+  succion_vitale:    { id: 'succion_vitale',    name: 'Succion vitale',      emoji: '🌊💚', energyCost: 2, cooldown: 0,
+    description: '12 dégâts + soin +6 PV' },
+
+  encre_noire:       { id: 'encre_noire',       name: 'Encre noire',         emoji: '🦑',   energyCost: 1, cooldown: 3,
+    description: 'Brouillage ennemi : 20% miss 2 tours' },
+
+  vortex_abyssal:    { id: 'vortex_abyssal',    name: 'Vortex abyssal',      emoji: '🌀🌊', energyCost: 3, cooldown: 0,
+    description: '18 dégâts directs' },
+
+  malediction_profonde: { id: 'malediction_profonde', name: 'Malédiction profonde', emoji: '🔮🌊', energyCost: 3, cooldown: 2,
+    description: 'Bloque le sort le + coûteux ennemi 2 tours' },
+
+  dissolution:       { id: 'dissolution',       name: 'Dissolution',         emoji: '🌑🌊', energyCost: 4, cooldown: 3,
+    description: '22 dégâts + ennemi épuisé 2 tours' },
+
+  // ── Chasseur des sables (sable) ─────────────────────────
+  frappe_des_sables: { id: 'frappe_des_sables', name: 'Frappe des sables',   emoji: '🏜️',   energyCost: 1, cooldown: 0,
+    description: '9 dégâts + ennemi épuisé 1 tour' },
+
+  tourbillon_sableux:{ id: 'tourbillon_sableux',name: 'Tourbillon sableux',  emoji: '🌪️🏜️', energyCost: 2, cooldown: 0,
+    description: '12 dégâts + brûlure 2 tours (8/tour)' },
+
+  eclair_ancien:     { id: 'eclair_ancien',     name: 'Éclair ancien',       emoji: '⚡🏺', energyCost: 2, cooldown: 0,
+    description: '15 dégâts + 25% paralysie' },
+
+  mirage_sable:      { id: 'mirage_sable',      name: 'Mirage des sables',   emoji: '🌅',   energyCost: 0, cooldown: 2,
+    description: '+30% esquive 2 tours' },
+
+  malefice_antique:  { id: 'malefice_antique',  name: 'Maléfice antique',    emoji: '🪄',   energyCost: 3, cooldown: 2,
+    description: 'Bloque le sort le - coûteux ennemi 2 tours' },
+
+  tempete_de_sable:  { id: 'tempete_de_sable',  name: 'Tempête de sable',    emoji: '🌪️⚡', energyCost: 4, cooldown: 2,
+    description: '3×8 = 24 dégâts' },
 }
 
 export type EvoStage = 'e1' | 'e2' | 'e3'
@@ -154,6 +230,26 @@ export const DEFAULT_LOADOUTS: Record<CreatureType, Record<EvoStage, SpellLoadou
     e2:   ['decharge', 'arc_paralysant', 'tempete', 'surcharge'],
     e3:   ['decharge', 'fulguration',    'tempete',  'surcharge'],
   },
+  ombra: {
+    e1:   ['griffe_d_ombre', 'venin_sylvestre',  'hurlement_bete',  'bond_furtif'],
+    e2:   ['griffe_d_ombre', 'venin_sylvestre',  'bond_furtif',     'embuscade_sauvage'],
+    e3:   ['bond_furtif',    'embuscade_sauvage', 'hurlement_bete', 'forme_fantome'],
+  },
+  magma: {
+    e1:   ['frappe_terrestre', 'eruption',         'carapace_magma',   'fusion_volcanique'],
+    e2:   ['frappe_terrestre', 'eruption',         'fracas_sismique',  'fusion_volcanique'],
+    e3:   ['eruption',         'carapace_magma',   'fracas_sismique',  'magma_supreme'],
+  },
+  abyssal: {
+    e1:   ['tentacule', 'succion_vitale',  'encre_noire',          'vortex_abyssal'],
+    e2:   ['tentacule', 'succion_vitale',  'vortex_abyssal',       'malediction_profonde'],
+    e3:   ['succion_vitale', 'vortex_abyssal', 'malediction_profonde', 'dissolution'],
+  },
+  sable: {
+    e1:   ['frappe_des_sables', 'tourbillon_sableux', 'mirage_sable',    'eclair_ancien'],
+    e2:   ['frappe_des_sables', 'tourbillon_sableux', 'eclair_ancien',   'malefice_antique'],
+    e3:   ['tourbillon_sableux', 'eclair_ancien',     'malefice_antique','tempete_de_sable'],
+  },
 }
 
 export function getLoadout(type: CreatureType, level: number, override?: SpellLoadout): SpellLoadout {
@@ -181,5 +277,25 @@ export const ALL_SPELLS_BY_TYPE: Record<CreatureType, Record<EvoStage, SpellId[]
     e1:   ['decharge', 'arc_paralysant', 'boost', 'surcharge'],
     e2:   ['decharge', 'arc_paralysant', 'boost', 'rafale', 'surcharge', 'tempete'],
     e3:   ['decharge', 'arc_paralysant', 'boost', 'rafale', 'surcharge', 'tempete', 'fulguration'],
+  },
+  ombra: {
+    e1:   ['griffe_d_ombre', 'venin_sylvestre', 'hurlement_bete', 'bond_furtif'],
+    e2:   ['griffe_d_ombre', 'venin_sylvestre', 'bond_furtif', 'embuscade_sauvage', 'hurlement_bete'],
+    e3:   ['griffe_d_ombre', 'venin_sylvestre', 'bond_furtif', 'embuscade_sauvage', 'hurlement_bete', 'forme_fantome'],
+  },
+  magma: {
+    e1:   ['frappe_terrestre', 'eruption', 'carapace_magma', 'fusion_volcanique'],
+    e2:   ['frappe_terrestre', 'eruption', 'carapace_magma', 'fracas_sismique', 'fusion_volcanique'],
+    e3:   ['frappe_terrestre', 'eruption', 'carapace_magma', 'fracas_sismique', 'fusion_volcanique', 'magma_supreme'],
+  },
+  abyssal: {
+    e1:   ['tentacule', 'succion_vitale', 'encre_noire', 'vortex_abyssal'],
+    e2:   ['tentacule', 'succion_vitale', 'encre_noire', 'vortex_abyssal', 'malediction_profonde'],
+    e3:   ['tentacule', 'succion_vitale', 'encre_noire', 'vortex_abyssal', 'malediction_profonde', 'dissolution'],
+  },
+  sable: {
+    e1:   ['frappe_des_sables', 'tourbillon_sableux', 'eclair_ancien', 'mirage_sable'],
+    e2:   ['frappe_des_sables', 'tourbillon_sableux', 'eclair_ancien', 'mirage_sable', 'malefice_antique'],
+    e3:   ['frappe_des_sables', 'tourbillon_sableux', 'eclair_ancien', 'mirage_sable', 'malefice_antique', 'tempete_de_sable'],
   },
 }

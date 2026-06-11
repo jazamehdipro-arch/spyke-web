@@ -33,22 +33,34 @@ import { PixelButton, SectionTitle } from '../components/ui'
 import CrossingGame from '../components/CrossingGame'
 
 const SPRITES_E1: Record<CreatureType, ImageSourcePropType> = {
-  ignis: require('../../assets/sprites/ignis_e1_clean.png'),
-  nemo:  require('../../assets/sprites/nemo_e1_clean.png'),
-  sylva: require('../../assets/sprites/sylva_e1_clean.png'),
-  zapp:  require('../../assets/sprites/zapp_e1_clean.png'),
+  ignis:   require('../../assets/sprites/ignis_e1_clean.png'),
+  nemo:    require('../../assets/sprites/nemo_e1_clean.png'),
+  sylva:   require('../../assets/sprites/sylva_e1_clean.png'),
+  zapp:    require('../../assets/sprites/zapp_e1_clean.png'),
+  ombra:   require('../../assets/sprites/sylva_e1_clean.png'),
+  magma:   require('../../assets/sprites/ignis_e1_clean.png'),
+  abyssal: require('../../assets/sprites/nemo_e1_clean.png'),
+  sable:   require('../../assets/sprites/zapp_e1_clean.png'),
 }
 const SPRITES_E2: Record<CreatureType, ImageSourcePropType> = {
-  ignis: require('../../assets/sprites/ignis_e2_f1.png'),
-  nemo:  require('../../assets/sprites/nemo_e2_f1.png'),
-  sylva: require('../../assets/sprites/sylva_e2_f1.png'),
-  zapp:  require('../../assets/sprites/zapp_e2_f1.png'),
+  ignis:   require('../../assets/sprites/ignis_e2_f1.png'),
+  nemo:    require('../../assets/sprites/nemo_e2_f1.png'),
+  sylva:   require('../../assets/sprites/sylva_e2_f1.png'),
+  zapp:    require('../../assets/sprites/zapp_e2_f1.png'),
+  ombra:   require('../../assets/sprites/sylva_e2_f1.png'),
+  magma:   require('../../assets/sprites/ignis_e2_f1.png'),
+  abyssal: require('../../assets/sprites/nemo_e2_f1.png'),
+  sable:   require('../../assets/sprites/zapp_e2_f1.png'),
 }
 const SPRITES_E3: Record<CreatureType, ImageSourcePropType> = {
-  ignis: require('../../assets/sprites/ignis_e3_f1.png'),
-  nemo:  require('../../assets/sprites/nemo_e3_f1.png'),
-  sylva: require('../../assets/sprites/sylva_e3_f1.png'),
-  zapp:  require('../../assets/sprites/zapp_e3_f1.png'),
+  ignis:   require('../../assets/sprites/ignis_e3_f1.png'),
+  nemo:    require('../../assets/sprites/nemo_e3_f1.png'),
+  sylva:   require('../../assets/sprites/sylva_e3_f1.png'),
+  zapp:    require('../../assets/sprites/zapp_e3_f1.png'),
+  ombra:   require('../../assets/sprites/sylva_e3_f1.png'),
+  magma:   require('../../assets/sprites/ignis_e3_f1.png'),
+  abyssal: require('../../assets/sprites/nemo_e3_f1.png'),
+  sable:   require('../../assets/sprites/zapp_e3_f1.png'),
 }
 
 function getOpponentSprite(type: CreatureType, level: number): ImageSourcePropType {
@@ -67,17 +79,25 @@ const BOT_OPPONENTS: CombatOpponent[] = [
 ]
 
 const BOT_CREATURE_NAMES: Record<CreatureType, Record<EvoStage, string[]>> = {
-  ignis: { e1: ['Cinder', 'Ember', 'Pyra'],     e2: ['Blaze', 'Scorch', 'Inferno'],   e3: ['Vulcan', 'Magmus', 'Ignarok']   },
-  nemo:  { e1: ['Ripple', 'Deeps', 'Coral'],    e2: ['Surge', 'Tidal', 'Torrent'],    e3: ['Abyss', 'Mareal', 'Levian']     },
-  sylva: { e1: ['Mossy', 'Fern', 'Wisp'],       e2: ['Bramble', 'Grove', 'Shade'],    e3: ['Sylvane', 'Verdant', 'Nebula']  },
-  zapp:  { e1: ['Bolt', 'Spark', 'Zara'],       e2: ['Flash', 'Static', 'Volt'],      e3: ['Thunder', 'Tempête', 'Stormix'] },
+  ignis:   { e1: ['Cinder', 'Ember', 'Pyra'],     e2: ['Blaze', 'Scorch', 'Inferno'],   e3: ['Vulcan', 'Magmus', 'Ignarok']   },
+  nemo:    { e1: ['Ripple', 'Deeps', 'Coral'],    e2: ['Surge', 'Tidal', 'Torrent'],    e3: ['Abyss', 'Mareal', 'Levian']     },
+  sylva:   { e1: ['Mossy', 'Fern', 'Wisp'],       e2: ['Bramble', 'Grove', 'Shade'],    e3: ['Sylvane', 'Verdant', 'Nebula']  },
+  zapp:    { e1: ['Bolt', 'Spark', 'Zara'],       e2: ['Flash', 'Static', 'Volt'],      e3: ['Thunder', 'Tempête', 'Stormix'] },
+  ombra:   { e1: ['Nox', 'Shade', 'Umbra'],       e2: ['Phantom', 'Gloom', 'Wraith'],   e3: ['Ombra', 'Darkwing', 'Specter']  },
+  magma:   { e1: ['Pyrok', 'Cinder', 'Lava'],     e2: ['Scorch', 'Vulk', 'Blaze'],      e3: ['Magmus', 'Ignrak', 'Titan']     },
+  abyssal: { e1: ['Void', 'Murk', 'Kraek'],       e2: ['Abyss', 'Depth', 'Kraken'],     e3: ['Maelstrom', 'Leviath', 'Obsid'] },
+  sable:   { e1: ['Dune', 'Sirocco', 'Dust'],     e2: ['Mirage', 'Khepri', 'Sand'],     e3: ['Pharok', 'Deserta', 'Sphinx']   },
 }
 
 const BOT_USERNAMES: Record<CreatureType, string[]> = {
-  ignis: ['FlameBattler', 'AshSeeker', 'PyraFan', 'HeatHunter'],
-  nemo:  ['TidalWatcher', 'DeepDiver', 'CoralKeeper', 'WaveRider'],
-  sylva: ['ForestRunner', 'MistWalker', 'LeafDancer', 'VineStalker'],
-  zapp:  ['StormCatcher', 'VoltSeeker', 'BoltChaser', 'ZapMaster'],
+  ignis:   ['FlameBattler', 'AshSeeker', 'PyraFan', 'HeatHunter'],
+  nemo:    ['TidalWatcher', 'DeepDiver', 'CoralKeeper', 'WaveRider'],
+  sylva:   ['ForestRunner', 'MistWalker', 'LeafDancer', 'VineStalker'],
+  zapp:    ['StormCatcher', 'VoltSeeker', 'BoltChaser', 'ZapMaster'],
+  ombra:   ['ShadowBlade', 'NightStalker', 'DarkHunter', 'PhantomEdge'],
+  magma:   ['LavaCrusher', 'VulcanFist', 'MagmaCore', 'CinderBeast'],
+  abyssal: ['DeepVoid', 'AbyssKeeper', 'KrakenSage', 'VoidWatcher'],
+  sable:   ['DuneLord', 'SandStrider', 'MirageKing', 'DesertPhantom'],
 }
 
 const DEFAULT_SOCIAL_PROFILE: SocialProfile = {

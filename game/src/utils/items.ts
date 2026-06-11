@@ -1,10 +1,14 @@
 import { CreatureType, InventoryItem } from '../types'
 
 export const SKINS_BY_TYPE: Record<CreatureType, string[]> = {
-  ignis: ['red', 'blue', 'green', 'gold', 'purple', 'grey'],
-  nemo:  ['purple', 'ice', 'green', 'fire', 'dark', 'pink'],
-  sylva: ['orange', 'blue', 'green', 'purple', 'gold', 'grey'],
-  zapp:  ['orange', 'blue', 'green', 'red', 'white', 'purple'],
+  ignis:   ['red', 'blue', 'green', 'gold', 'purple', 'grey'],
+  nemo:    ['purple', 'ice', 'green', 'fire', 'dark', 'pink'],
+  sylva:   ['orange', 'blue', 'green', 'purple', 'gold', 'grey'],
+  zapp:    ['orange', 'blue', 'green', 'red', 'white', 'purple'],
+  ombra:   ['violet', 'night', 'crimson', 'jade', 'silver', 'gold'],
+  magma:   ['ember', 'obsidian', 'gold', 'crimson', 'ash', 'lava'],
+  abyssal: ['deep', 'coral', 'void', 'crystal', 'midnight', 'teal'],
+  sable:   ['sand', 'bronze', 'ivory', 'obsidian', 'amber', 'jade'],
 }
 
 export const ITEM_CATALOG: Record<string, Omit<InventoryItem, 'quantity'>> = {

@@ -45,10 +45,14 @@ export const retro = {
 
 // Per-creature theme — main (saturated), soft (panel tint), dark (pressed/border)
 export const typeTheme: Record<CreatureType, { main: string; soft: string; dark: string; glow: string }> = {
-  ignis: { main: '#C94F3D', soft: '#F6DCC9', dark: '#8E3326', glow: '#E8855F' },
-  nemo:  { main: '#3B6EA8', soft: '#D6E3EF', dark: '#27496F', glow: '#6FA3D4' },
-  sylva: { main: '#5E9A68', soft: '#DCEAD0', dark: '#3E6B46', glow: '#8FC48A' },
-  zapp:  { main: '#D9A441', soft: '#F7E9C3', dark: '#9C7222', glow: '#EFC76A' },
+  ignis:   { main: '#C94F3D', soft: '#F6DCC9', dark: '#8E3326', glow: '#E8855F' },
+  nemo:    { main: '#3B6EA8', soft: '#D6E3EF', dark: '#27496F', glow: '#6FA3D4' },
+  sylva:   { main: '#5E9A68', soft: '#DCEAD0', dark: '#3E6B46', glow: '#8FC48A' },
+  zapp:    { main: '#D9A441', soft: '#F7E9C3', dark: '#9C7222', glow: '#EFC76A' },
+  ombra:   { main: '#5A4B7A', soft: '#E0D8F0', dark: '#3A3050', glow: '#9B84C4' },
+  magma:   { main: '#B5451B', soft: '#F5DDCC', dark: '#7A2C0E', glow: '#D4673A' },
+  abyssal: { main: '#1A4466', soft: '#C5DCF0', dark: '#0F2A42', glow: '#3A7AAA' },
+  sable:   { main: '#C89B3C', soft: '#F7E8C0', dark: '#8A6A1E', glow: '#E8C060' },
 }
 
 // ── Hard pixel shadows ───────────────────────────────────────

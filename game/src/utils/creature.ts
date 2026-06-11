@@ -2,24 +2,36 @@ import { Creature, CreatureMood, CreatureStats, CreatureType, FormeLevel, Person
 import { hasTrait } from './traits'
 
 export const CREATURE_COLORS: Record<CreatureType, string> = {
-  ignis: '#C41E0F',
-  nemo:  '#1A3A6B',
-  sylva: '#2D6A2D',
-  zapp:  '#C47A00',
+  ignis:   '#C41E0F',
+  nemo:    '#1A3A6B',
+  sylva:   '#2D6A2D',
+  zapp:    '#C47A00',
+  ombra:   '#5A4B7A',
+  magma:   '#B5451B',
+  abyssal: '#1A4466',
+  sable:   '#C89B3C',
 }
 
 export const CREATURE_NAMES: Record<CreatureType, string[]> = {
-  ignis: ['Ignïs', 'Pyra', 'Ember', 'Flax'],
-  nemo:  ['Némo', 'Crest', 'Deeps', 'Mare'],
-  sylva: ['Sylva', 'Fern', 'Mossy', 'Grove'],
-  zapp:  ['Zapp', 'Volt', 'Flash', 'Bolt'],
+  ignis:   ['Ignïs', 'Pyra', 'Ember', 'Flax'],
+  nemo:    ['Némo', 'Crest', 'Deeps', 'Mare'],
+  sylva:   ['Sylva', 'Fern', 'Mossy', 'Grove'],
+  zapp:    ['Zapp', 'Volt', 'Flash', 'Bolt'],
+  ombra:   ['Ombra', 'Nox', 'Shade', 'Umbra'],
+  magma:   ['Magma', 'Pyrok', 'Cinder', 'Vulk'],
+  abyssal: ['Abyssal', 'Void', 'Kraek', 'Murk'],
+  sable:   ['Sable', 'Dune', 'Khepri', 'Sirocco'],
 }
 
 export const CREATURE_LABELS: Record<CreatureType, { name: string; description: string }> = {
-  ignis: { name: 'Ignïs',  description: 'Ardent et courageux' },
-  nemo:  { name: 'Némo',   description: 'Calme et mystérieux' },
-  sylva: { name: 'Sylva',  description: 'Sage et endurant' },
-  zapp:  { name: 'Zapp',   description: 'Rapide et espiègle' },
+  ignis:   { name: 'Ignïs',   description: 'Ardent et courageux' },
+  nemo:    { name: 'Némo',    description: 'Calme et mystérieux' },
+  sylva:   { name: 'Sylva',   description: 'Sage et endurant' },
+  zapp:    { name: 'Zapp',    description: 'Rapide et espiègle' },
+  ombra:   { name: 'Ombra',   description: 'Furtif et dangereux' },
+  magma:   { name: 'Magma',   description: 'Puissant et destructeur' },
+  abyssal: { name: 'Abyssal', description: 'Profond et insaisissable' },
+  sable:   { name: 'Sable',   description: 'Rusé et imprévisible' },
 }
 
 export function getMood(stats: CreatureStats): CreatureMood {
