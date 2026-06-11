@@ -16,7 +16,7 @@ const SPRITES: Record<CreatureType, any> = {
 export type GameResult = 'win' | 'draw' | 'loss'
 
 // ── Which game for which interaction ────────────────────────
-type GameKind = 'timing' | 'mole' | 'memory' | 'sequence'
+type GameKind = 'timing' | 'mole' | 'memory' | 'sequence' | 'romance'
 
 const EVENT_GAME: Record<SocialEventType, GameKind> = {
   friendship: 'timing',
@@ -27,6 +27,7 @@ const EVENT_GAME: Record<SocialEventType, GameKind> = {
   gift:       'memory',
   skin:       'memory',
   mentor:     'sequence',
+  romance:    'romance',
 }
 
 const THEMES: Record<SocialEventType, { emoji: string; title: string; desc: string; target: string }> = {
@@ -38,6 +39,7 @@ const THEMES: Record<SocialEventType, { emoji: string; title: string; desc: stri
   gift:       { emoji: '🎁', title: 'CADEAUX CACHÉS !',   desc: 'Mémorise où sont les 2 cadeaux, puis retrouve-les', target: '🎁' },
   skin:       { emoji: '✨', title: 'ÉTOILES CACHÉES !',  desc: 'Mémorise où sont les 2 étoiles, puis retrouve-les', target: '✨' },
   mentor:     { emoji: '📘', title: 'LA LEÇON !',         desc: 'Regarde la séquence de flèches, puis répète-la',   target: '📘' },
+  romance:    { emoji: '💕', title: 'COUP DE FOUDRE !',   desc: 'Tape à chaque battement du cœur — restez en syncro !', target: '💕' },
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -364,6 +366,122 @@ function SequenceGame({ onDone }: { onDone: (r: GameResult) => void }) {
 }
 
 // ─────────────────────────────────────────────────────────────
+// ROMANCE — tape en rythme avec les battements du cœur
+// ─────────────────────────────────────────────────────────────
+const BEAT_MS   = 900  // intervalle entre battements
+const BEAT_WIN  = 220  // fenêtre OK de chaque côté du battement
+const BEATS_TOT = 7
+
+function RomanceGame({ onDone }: { onDone: (r: GameResult) => void }) {
+  const [hits, setHits]     = useState(0)
+  const [beat, setBeat]     = useState(0)   // numéro du battement en cours (1-indexed)
+  const [fb, setFb]         = useState<'hit' | 'miss' | 'early' | null>(null)
+  const heartScale = useRef(new Animated.Value(1)).current
+  const hitsRef    = useRef(0)
+  const beatRef    = useRef(0)
+  const beatTimeRef = useRef(0)
+  const tapped     = useRef(false)
+  const timers     = useRef<ReturnType<typeof setTimeout>[]>([])
+
+  const later = (fn: () => void, ms: number) => {
+    const t = setTimeout(fn, ms)
+    timers.current.push(t)
+    return t
+  }
+
+  const pulseBeat = useCallback(() => {
+    beatRef.current += 1
+    setBeat(beatRef.current)
+    beatTimeRef.current = Date.now()
+    tapped.current = false
+
+    // Heart pulse animation
+    Animated.sequence([
+      Animated.timing(heartScale, { toValue: 1.45, duration: 120, useNativeDriver: true }),
+      Animated.spring(heartScale,  { toValue: 1,    useNativeDriver: true, bounciness: 8 }),
+    ]).start()
+
+    // Auto-miss if not tapped within window after beat
+    later(() => {
+      if (!tapped.current && beatRef.current > 0) {
+        hitsRef.current = Math.max(0, hitsRef.current) // no change, but show miss
+        setFb('miss')
+        later(() => setFb(null), 300)
+      }
+      if (beatRef.current >= BEATS_TOT) {
+        later(() => {
+          const h = hitsRef.current
+          onDone(h >= 5 ? 'win' : h >= 3 ? 'draw' : 'loss')
+        }, 500)
+      } else {
+        later(pulseBeat, BEAT_MS - BEAT_WIN - 50)
+      }
+    }, BEAT_WIN)
+  }, [onDone])
+
+  useEffect(() => {
+    later(pulseBeat, 1200)
+    return () => timers.current.forEach(clearTimeout)
+  }, [])
+
+  const tap = () => {
+    if (tapped.current) return
+    const dt = Math.abs(Date.now() - beatTimeRef.current)
+    if (beatRef.current === 0) { setFb('early'); later(() => setFb(null), 300); return }
+    tapped.current = true
+    if (dt <= BEAT_WIN) {
+      hitsRef.current += 1
+      setHits(hitsRef.current)
+      setFb('hit')
+    } else {
+      setFb('early')
+    }
+    later(() => setFb(null), 300)
+  }
+
+  const progress = beat / BEATS_TOT
+
+  return (
+    <TouchableOpacity style={s.gameArea} activeOpacity={1} onPress={tap}>
+      <View style={s.hud}>
+        <Text style={s.hudTxt}>Battement {Math.min(beat, BEATS_TOT)}/{BEATS_TOT}</Text>
+        <Text style={s.hudTxt}>💕 {hits}</Text>
+      </View>
+
+      {/* Progress bar */}
+      <View style={s.romanceBar}>
+        <View style={[s.romanceBarFill, { width: `${Math.round(progress * 100)}%` as any }]} />
+      </View>
+
+      <View style={s.romanceCenter}>
+        {/* Two creatures flanking the heart */}
+        <View style={s.romanceSide}>
+          <Text style={s.romanceSideIcon}>🐾</Text>
+        </View>
+
+        <View style={s.romanceHeartWrap}>
+          <Animated.Text style={[s.romanceHeart, { transform: [{ scale: heartScale }] }]}>
+            💕
+          </Animated.Text>
+          <Text style={[s.romanceFb,
+            fb === 'hit'   ? s.romanceFbGood :
+            fb === 'miss'  ? s.romanceFbBad  : s.romanceFbEarly,
+          ]}>
+            {fb === 'hit' ? '♥' : fb === 'miss' ? '✗' : fb === 'early' ? '!' : ''}
+          </Text>
+        </View>
+
+        <View style={s.romanceSide}>
+          <Text style={s.romanceSideIcon}>🐾</Text>
+        </View>
+      </View>
+
+      <Text style={s.bottomHint}>Tape en rythme avec les battements du cœur !</Text>
+    </TouchableOpacity>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────
 // MAIN
 // ─────────────────────────────────────────────────────────────
 interface Props {
@@ -419,6 +537,7 @@ export default function CrossingGame({ visible, eventType, playerType, opponentT
         kind === 'timing'   ? <TimingGame   target={theme.target} onDone={done} /> :
         kind === 'mole'     ? <MoleGame     target={theme.target} onDone={done} /> :
         kind === 'memory'   ? <MemoryGame   target={theme.target} onDone={done} /> :
+        kind === 'romance'  ? <RomanceGame  onDone={done} /> :
                               <SequenceGame onDone={done} />
       )}
     </View>
@@ -525,4 +644,17 @@ const s = StyleSheet.create({
   },
   seqBtnOff: { opacity: 0.35, borderColor: retro.ink3 },
   seqBtnTxt: { fontSize: 34 },
+
+  // Romance
+  romanceBar:     { height: 8, backgroundColor: retro.ink2, marginHorizontal: 24, borderRadius: 2, overflow: 'hidden', marginBottom: 8 },
+  romanceBarFill: { height: '100%', backgroundColor: '#E86090', borderRadius: 2 },
+  romanceCenter:  { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', paddingHorizontal: 20 },
+  romanceSide:    { alignItems: 'center', justifyContent: 'center' },
+  romanceSideIcon:{ fontSize: 42 },
+  romanceHeartWrap:{ alignItems: 'center', justifyContent: 'center', width: 160 },
+  romanceHeart:   { fontSize: 100 },
+  romanceFb:      { position: 'absolute', bottom: -24, fontSize: 28, fontWeight: '900' },
+  romanceFbGood:  { color: '#FF6FA8' },
+  romanceFbBad:   { color: retro.red },
+  romanceFbEarly: { color: retro.gold },
 })

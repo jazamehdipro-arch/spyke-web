@@ -140,6 +140,7 @@ export type SocialEventType =
   | 'mentor'
   | 'skin'
   | 'traveler'
+  | 'romance'
 
 export interface SocialRelation {
   id: string

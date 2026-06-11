@@ -125,6 +125,7 @@ const EVENT_COLORS: Record<SocialEventType, string> = {
   mentor: retro.gold,
   skin: retro.blue,
   traveler: retro.ink,
+  romance: retro.red,
 }
 
 const EVENT_EMOJI: Record<SocialEventType, string> = {
@@ -136,6 +137,7 @@ const EVENT_EMOJI: Record<SocialEventType, string> = {
   mentor: '🎓',
   skin: '🎨',
   traveler: '🧭',
+  romance: '💕',
 }
 
 // Personality dial value → filled dots count (0, 1, 2)
@@ -167,6 +169,7 @@ function eventToInteraction(type: SocialEventType): Crossing['interactionType'] 
   if (type === 'mood') return 'mood'
   if (type === 'skin') return 'skin'
   if (type === 'gift') return 'gift'
+  if (type === 'romance') return 'friendly'
   return 'friendly'
 }
 
@@ -226,6 +229,10 @@ function chooseSocialEvent(profile: SocialProfile, relation: SocialRelation, pla
     mentor: profile.rules.helpWeaker && Math.abs(levelGap) >= 5 ? 5 : 1,
     skin: 1 + curiosity * 5,
     traveler: 1 + curiosity * 3,
+    // Romance: rare, requires some friendship, blocked by high rivalry/theft
+    romance: relation.friendshipLevel >= 1 && !isRival && !isThief
+      ? 3 + sociability * 2 + relation.friendshipLevel * 3
+      : 0,
   }
 
   if (profile.rules.neverStealFriends && isFriend) weights.theft = 0
@@ -276,6 +283,10 @@ function buildSocialEvent(type: SocialEventType, relation: SocialRelation, oppon
       return { ...base, emoji: '🎨', title: 'Inspiration de skin',
         message: `${opponent.creatureName} donne une idée de style à ton monstre.`,
         rewardCoins: 3 }
+    case 'romance':
+      return { ...base, emoji: '💕', title: 'Coup de foudre',
+        message: `${opponent.creatureName} et ton monstre se regardent avec une étincelle dans les yeux. Le cœur s'emballe…`,
+        rewardCoins: 6 }
     default:
       return { ...base, emoji: '🤝', title: 'Amitié fidèle',
         message: `${opponent.creatureName} reconnaît ton monstre. Les retrouvailles deviennent plus chaleureuses.`,
