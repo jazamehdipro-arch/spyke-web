@@ -598,6 +598,76 @@ function estimateSpellPressure(spellId: SpellId, caster: Combatant, passiveLevel
 }
 
 // ─── bot AI ─────────────────────────────────────────────
+function chooseHardE1IgnisAction(
+  botState: Combatant,
+  playerState: Combatant,
+  can: (id: SpellId) => boolean,
+  defendLocked: boolean,
+): CombatAction {
+  const maxHp = E1_BASE_HP.ignis
+  const underHalf = botState.hp <= maxHp / 2
+  const explosionDamage = botState.embers >= 2 ? 30 : 20
+  const immolationSelfDamage = 5
+  const playerDodging = hasStatus(playerState, 'dodge_up') || hasStatus(playerState, 'dodge_ready')
+
+  if (can('explosion') && playerState.hp <= explosionDamage) return { kind: 'spell', spellId: 'explosion' }
+  if (can('immolation') && playerState.hp <= 20) {
+    const selfKo = botState.hp <= immolationSelfDamage
+    if (!selfKo || playerState.energy <= 0) return { kind: 'spell', spellId: 'immolation' }
+  }
+  if (can('frappe_ardente') && playerState.hp <= 8) return { kind: 'spell', spellId: 'frappe_ardente' }
+
+  if (botState.embers >= 2 && can('explosion')) return { kind: 'spell', spellId: 'explosion' }
+
+  if (can('carapace_chauffee')) {
+    const carapaceChanceByEnergy = [0, 0.25, 0.4, 0.5, 0.6, 0.6]
+    const baseChance = carapaceChanceByEnergy[Math.min(5, Math.max(0, playerState.energy))] ?? 0
+    const chance = Math.min(0.9, baseChance + (underHalf ? 0.15 : 0))
+    if (Math.random() < chance) return { kind: 'spell', spellId: 'carapace_chauffee' }
+  } else if (underHalf && playerState.energy >= 3 && !defendLocked && Math.random() < 0.4) {
+    return { kind: 'defend' }
+  }
+
+  if (botState.embers >= 2 && botState.energy < 4) {
+    const safeToImmolate = can('immolation') && !underHalf
+    if (safeToImmolate && Math.random() >= 0.8) return { kind: 'spell', spellId: 'immolation' }
+    return { kind: 'charge' }
+  }
+
+  const attackChance =
+    botState.energy <= 0 ? 0 :
+    botState.energy === 1 ? 0.55 :
+    botState.energy === 2 ? 0.7 :
+    botState.energy === 3 ? 0.75 :
+    0.95
+  if (Math.random() >= attackChance) return { kind: 'charge' }
+
+  let frappeWeight = underHalf ? 70 : 45
+  let immolationWeight = underHalf ? 10 : 45
+  let explosionWeight = underHalf ? 20 : 10
+
+  if (botState.hp <= 12) {
+    frappeWeight += immolationWeight
+    immolationWeight = 0
+  } else if (playerDodging) {
+    frappeWeight = 70
+    immolationWeight = 15
+    explosionWeight = 15
+  }
+
+  const total = frappeWeight + immolationWeight + explosionWeight
+  const roll = Math.random() * total
+  let picked: SpellId = 'frappe_ardente'
+  if (roll < frappeWeight) picked = 'frappe_ardente'
+  else if (roll < frappeWeight + immolationWeight) picked = 'immolation'
+  else picked = 'explosion'
+
+  if (picked === 'frappe_ardente' && can('frappe_ardente')) return { kind: 'spell', spellId: 'frappe_ardente' }
+  if (picked === 'immolation' && can('immolation')) return { kind: 'spell', spellId: 'immolation' }
+  if (picked === 'explosion' && can('explosion')) return { kind: 'spell', spellId: 'explosion' }
+  return { kind: 'charge' }
+}
+
 function chooseHardE1NemoAction(
   botState: Combatant,
   playerState: Combatant,
@@ -728,6 +798,9 @@ function botChooseAction(
 
   // ── HARD: type-specific combos + reading opponent state ───
   if (difficulty === 'hard') {
+    if (type === 'ignis' && passiveLevel === 1) {
+      return chooseHardE1IgnisAction(botState, playerState, can, defendLocked)
+    }
     if (type === 'nemo' && passiveLevel === 1) {
       return chooseHardE1NemoAction(botState, playerState, can, defendLocked)
     }
