@@ -31,30 +31,30 @@ const SPRITES_E1: Record<CreatureType, ImageSourcePropType> = {
   nemo:    require('../../assets/sprites/nemo_e1_clean.png'),
   sylva:   require('../../assets/sprites/sylva_e1_clean.png'),
   zapp:    require('../../assets/sprites/zapp_e1_clean.png'),
-  ombra:   require('../../assets/sprites/sylva_e1_clean.png'),
-  magma:   require('../../assets/sprites/ignis_e1_clean.png'),
-  abyssal: require('../../assets/sprites/nemo_e1_clean.png'),
-  sable:   require('../../assets/sprites/zapp_e1_clean.png'),
+  ombra:   require('../../assets/sprites/ombra_e1_clean.png'),
+  magma:   require('../../assets/sprites/magma_e1_clean.png'),
+  abyssal: require('../../assets/sprites/abyssal_e1_clean.png'),
+  sable:   require('../../assets/sprites/sable_e1_clean.png'),
 }
 const SPRITES_E2: Record<CreatureType, ImageSourcePropType> = {
   ignis:   require('../../assets/sprites/ignis_e2_f1.png'),
   nemo:    require('../../assets/sprites/nemo_e2_f1.png'),
   sylva:   require('../../assets/sprites/sylva_e2_f1.png'),
   zapp:    require('../../assets/sprites/zapp_e2_f1.png'),
-  ombra:   require('../../assets/sprites/sylva_e2_f1.png'),
-  magma:   require('../../assets/sprites/ignis_e2_f1.png'),
-  abyssal: require('../../assets/sprites/nemo_e2_f1.png'),
-  sable:   require('../../assets/sprites/zapp_e2_f1.png'),
+  ombra:   require('../../assets/sprites/ombra_e2_f1.png'),
+  magma:   require('../../assets/sprites/magma_e2_f1.png'),
+  abyssal: require('../../assets/sprites/abyssal_e2_f1.png'),
+  sable:   require('../../assets/sprites/sable_e2_f1.png'),
 }
 const SPRITES_E3: Record<CreatureType, ImageSourcePropType> = {
   ignis:   require('../../assets/sprites/ignis_e3_f1.png'),
   nemo:    require('../../assets/sprites/nemo_e3_f1.png'),
   sylva:   require('../../assets/sprites/sylva_e3_f1.png'),
   zapp:    require('../../assets/sprites/zapp_e3_f1.png'),
-  ombra:   require('../../assets/sprites/sylva_e3_f1.png'),
-  magma:   require('../../assets/sprites/ignis_e3_f1.png'),
-  abyssal: require('../../assets/sprites/nemo_e3_f1.png'),
-  sable:   require('../../assets/sprites/zapp_e3_f1.png'),
+  ombra:   require('../../assets/sprites/ombra_e3_f1.png'),
+  magma:   require('../../assets/sprites/magma_e3_f1.png'),
+  abyssal: require('../../assets/sprites/abyssal_e3_f1.png'),
+  sable:   require('../../assets/sprites/sable_e3_f1.png'),
 }
 
 function getOpponentSprite(type: CreatureType, level: number): ImageSourcePropType {
