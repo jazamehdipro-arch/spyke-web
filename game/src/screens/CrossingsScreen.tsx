@@ -153,7 +153,11 @@ const DIAL_COLORS: { key: keyof Omit<SocialProfile, 'rules'>; color: string }[] 
 
 function relationTags(relation: SocialRelation): string[] {
   const tags: string[] = []
-  if (relation.friendshipLevel >= 4) tags.push('Vieil ami')
+  // Romantic progression overrides friendship label
+  if (relation.romanticLevel >= 3)      tags.push('Grand amour')
+  else if (relation.romanticLevel >= 2) tags.push('Amoureux')
+  else if (relation.romanticLevel >= 1) tags.push('Coup de cœur')
+  else if (relation.friendshipLevel >= 4) tags.push('Vieil ami')
   else if (relation.friendshipLevel >= 3) tags.push('Fidèle')
   else if (relation.friendshipLevel >= 2) tags.push('Ami')
   if (relation.filouReputation >= 3) tags.push('Filou')
@@ -231,7 +235,7 @@ function chooseSocialEvent(profile: SocialProfile, relation: SocialRelation, pla
     traveler: 1 + curiosity * 3,
     // Romance: rare, requires some friendship, blocked by high rivalry/theft
     romance: relation.friendshipLevel >= 1 && !isRival && !isThief
-      ? 3 + sociability * 2 + relation.friendshipLevel * 3
+      ? 3 + sociability * 2 + relation.friendshipLevel * 3 + relation.romanticLevel * 5
       : 0,
   }
 
@@ -417,10 +421,11 @@ interface EncounterData {
   relation: SocialRelation
 }
 
-function EncounterModal({ encounter, onFight, onDismiss, playerType }: {
+function EncounterModal({ encounter, onFight, onDismiss, onGameEnd, playerType }: {
   encounter: EncounterData | null
   onFight: () => void
   onDismiss: () => void
+  onGameEnd: (result: 'win' | 'draw' | 'loss', eventType: SocialEventType) => void
   playerType: CreatureType
 }) {
   const [phase, setPhase]       = useState<'search' | 'reveal'>('search')
@@ -566,7 +571,10 @@ function EncounterModal({ encounter, onFight, onDismiss, playerType }: {
               opponentName={`@${opponent.username}`}
               onClose={(result) => {
                 setShowGame(false)
-                if (result !== 'skip') setGameResult(result)
+                if (result !== 'skip') {
+                  setGameResult(result)
+                  onGameEnd(result, event.type)
+                }
               }}
             />
           </View>
@@ -693,16 +701,21 @@ function RelationCard({ relation }: { relation: SocialRelation }) {
   const theme = typeTheme[relation.creatureType]
   const sprite = getOpponentSprite(relation.creatureType, relation.level)
   const tag = relation.tags[0] ?? `Lien ${relation.friendshipLevel}`
+  const isRomantic = relation.romanticLevel > 0
   return (
-    <View style={[st.relCard, { borderColor: theme.dark }]}>
-      <View style={[st.relSpriteBox, { backgroundColor: theme.soft }]}>
+    <View style={[st.relCard, { borderColor: isRomantic ? '#E86090' : theme.dark }]}>
+      <View style={[st.relSpriteBox, { backgroundColor: isRomantic ? '#F7D6E4' : theme.soft }]}>
         <Image source={sprite} style={st.relSprite} resizeMode="contain" />
+        {isRomantic && <Text style={st.relRomanceBadge}>💕</Text>}
       </View>
       <Text style={st.relName} numberOfLines={1}>{relation.creatureName}</Text>
-      <View style={[st.relTagChip, { backgroundColor: theme.main }]}>
+      <View style={[st.relTagChip, { backgroundColor: isRomantic ? '#E86090' : theme.main }]}>
         <Text style={st.relTagTxt}>{tag}</Text>
       </View>
-      <Text style={st.relHearts}>{'♥'.repeat(Math.min(5, relation.friendshipLevel))}{'♡'.repeat(Math.max(0, 5 - relation.friendshipLevel))}</Text>
+      {isRomantic
+        ? <Text style={st.relHearts}>{'💕'.repeat(relation.romanticLevel)}{'🤍'.repeat(Math.max(0, 3 - relation.romanticLevel))}</Text>
+        : <Text style={st.relHearts}>{'♥'.repeat(Math.min(5, relation.friendshipLevel))}{'♡'.repeat(Math.max(0, 5 - relation.friendshipLevel))}</Text>
+      }
       <Text style={st.relCount}>{relation.crossings}×</Text>
     </View>
   )
@@ -826,7 +839,7 @@ export default function CrossingsScreen({ player, onCombatEnd }: Props) {
     const baseRelation: SocialRelation = existing ?? {
       id: relationId, username: opponent.username, creatureName: opponent.creatureName,
       creatureType: opponent.creatureType, level: opponent.level,
-      crossings: 0, friendshipLevel: 0, filouReputation: 0,
+      crossings: 0, friendshipLevel: 0, romanticLevel: 0, filouReputation: 0,
       rivalryWins: 0, rivalryLosses: 0, mentorCount: 0, tags: [], lastCrossedAt: now,
     }
     const eventType = chooseSocialEvent(socialProfile, baseRelation, player, opponent)
@@ -834,6 +847,7 @@ export default function CrossingsScreen({ player, onCombatEnd }: Props) {
       ...baseRelation, creatureName: opponent.creatureName, creatureType: opponent.creatureType,
       level: opponent.level, crossings: baseRelation.crossings + 1,
       friendshipLevel: Math.min(5, baseRelation.friendshipLevel + (eventType === 'theft' ? 0 : 1)),
+      romanticLevel: baseRelation.romanticLevel,
       filouReputation: Math.max(0, baseRelation.filouReputation + (eventType === 'theft' ? 1 : socialProfile.mischief === 'low' ? -1 : 0)),
       rivalryLosses: baseRelation.rivalryLosses + (eventType === 'duel' ? 1 : 0),
       mentorCount: baseRelation.mentorCount + (eventType === 'mentor' ? 1 : 0),
@@ -902,6 +916,24 @@ export default function CrossingsScreen({ player, onCombatEnd }: Props) {
     setCombat(null)
     setDebugOverride(undefined)
     onCombatEnd(won, xpGained)
+  }
+
+  const handleGameEnd = async (result: 'win' | 'draw' | 'loss', eventType: SocialEventType) => {
+    if (!encounter) return
+    const rel = encounter.relation
+    const updated: SocialRelation = { ...rel }
+
+    if (eventType === 'romance' && result === 'win') {
+      updated.romanticLevel = Math.min(3, rel.romanticLevel + 1)
+    } else if (result === 'win') {
+      updated.friendshipLevel = Math.min(5, rel.friendshipLevel + 1)
+    }
+
+    updated.tags = relationTags(updated)
+    const nextRelations = [updated, ...relations.filter(r => r.id !== rel.id)].slice(0, 80)
+    setRelations(nextRelations)
+    setEncounter(prev => prev ? { ...prev, relation: updated } : null)
+    await saveSocialRelations(nextRelations)
   }
 
   if (combat) {
@@ -1009,6 +1041,7 @@ export default function CrossingsScreen({ player, onCombatEnd }: Props) {
         encounter={encounter}
         onFight={() => encounter && startSocialCombat(encounter.event)}
         onDismiss={() => setEncounter(null)}
+        onGameEnd={handleGameEnd}
         playerType={player.type}
       />
 
@@ -1231,6 +1264,7 @@ const st = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   relSprite: { width: 48, height: 48 },
+  relRomanceBadge: { position: 'absolute', top: -6, right: -6, fontSize: 14 },
   relName: { fontSize: 11, fontWeight: '900', color: retro.ink, fontFamily: 'monospace' },
   relTagChip: { borderRadius: 2, paddingHorizontal: 6, paddingVertical: 2, borderWidth: 1.5, borderColor: retro.line },
   relTagTxt: { fontSize: 8, fontWeight: '900', color: retro.white, fontFamily: 'monospace', textTransform: 'uppercase' },

@@ -150,6 +150,7 @@ export interface SocialRelation {
   level: number
   crossings: number
   friendshipLevel: number
+  romanticLevel: number
   filouReputation: number
   rivalryWins: number
   rivalryLosses: number
