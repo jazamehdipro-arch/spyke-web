@@ -12,13 +12,15 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native'
-import { Creature, Crossing, CreatureType, SocialDial, SocialEvent, SocialEventType, SocialProfile, SocialRelation, SpellId, SpellLoadout } from '../types'
+import { Creature, Crossing, CreatureType, InventoryItem, SocialDial, SocialEvent, SocialEventType, SocialProfile, SocialRelation, SpellId, SpellLoadout } from '../types'
 import {
   loadCrossings,
+  loadInventory,
   loadSocialEvents,
   loadSocialProfile,
   loadSocialRelations,
   saveCrossings,
+  saveInventory,
   saveSocialEvents,
   saveSocialProfile,
   saveSocialRelations,
@@ -762,17 +764,21 @@ export default function CrossingsScreen({ player, onCombatEnd }: Props) {
     playerType: CreatureType; playerLevel: number
     playerLoadout: SpellLoadout; playerEnergy: number
   } | undefined>(undefined)
+  const [inventory, setInventory]   = useState<InventoryItem[]>([])
+  const [stolenItem, setStolenItem] = useState<{ emoji: string; name: string } | null>(null)
+  const combatIsTheftRef = useRef(false)
 
   // Hidden tap counter on title for dev access
   const devTapCount = useRef(0)
   const devTapTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
-    Promise.all([loadCrossings(), loadSocialRelations(), loadSocialEvents(), loadSocialProfile()])
-      .then(([crossData, relationData, eventData, profileData]) => {
+    Promise.all([loadCrossings(), loadSocialRelations(), loadSocialEvents(), loadSocialProfile(), loadInventory()])
+      .then(([crossData, relationData, eventData, profileData, invData]) => {
         setCrossings(crossData ?? [])
         setRelations(relationData ?? [])
         setEvents(eventData ?? [])
+        setInventory(invData ?? [])
         setSocialProfile(profileData
           ? { ...DEFAULT_SOCIAL_PROFILE, ...profileData, rules: { ...DEFAULT_SOCIAL_PROFILE.rules, ...profileData.rules } }
           : DEFAULT_SOCIAL_PROFILE)
@@ -850,6 +856,7 @@ export default function CrossingsScreen({ player, onCombatEnd }: Props) {
 
   const startSocialCombat = (event: SocialEvent) => {
     if (!event.opponent) return
+    combatIsTheftRef.current = event.type === 'theft'
     setEncounter(null)
     setDebugOverride(undefined)
     setCombat(event.opponent)
@@ -867,7 +874,20 @@ export default function CrossingsScreen({ player, onCombatEnd }: Props) {
     })
   }
 
-  const handleCombatEnd = (won: boolean, xpGained: number) => {
+  const handleCombatEnd = async (won: boolean, xpGained: number) => {
+    if (combatIsTheftRef.current && !won) {
+      const stealable = inventory.filter(i => i.quantity > 0)
+      if (stealable.length > 0) {
+        const victim = stealable[Math.floor(Math.random() * stealable.length)]
+        const newInv = inventory
+          .map(i => i.id === victim.id ? { ...i, quantity: i.quantity - 1 } : i)
+          .filter(i => i.quantity > 0)
+        setInventory(newInv)
+        await saveInventory(newInv)
+        setStolenItem({ emoji: victim.emoji, name: victim.name })
+      }
+    }
+    combatIsTheftRef.current = false
     setCombat(null)
     setDebugOverride(undefined)
     onCombatEnd(won, xpGained)
@@ -980,6 +1000,21 @@ export default function CrossingsScreen({ player, onCombatEnd }: Props) {
         onDismiss={() => setEncounter(null)}
         playerType={player.type}
       />
+
+      {/* Stolen item notification */}
+      <Modal visible={stolenItem !== null} transparent animationType="fade">
+        <View style={st.stolenOverlay}>
+          <View style={st.stolenCard}>
+            <Text style={st.stolenTitle}>💰 VOL RÉUSSI !</Text>
+            <Text style={st.stolenEmoji}>{stolenItem?.emoji}</Text>
+            <Text style={st.stolenName}>1× {stolenItem?.name}</Text>
+            <Text style={st.stolenSub}>a été dérobé de ton inventaire</Text>
+            <TouchableOpacity style={st.stolenBtn} onPress={() => setStolenItem(null)}>
+              <Text style={st.stolenBtnTxt}>CONTINUER</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       {/* Personality sheet */}
       <Modal visible={showPersonality} transparent animationType="slide">
@@ -1291,6 +1326,18 @@ const st = StyleSheet.create({
   gameResultTxt: { fontSize: 13, fontWeight: '900', fontFamily: 'monospace', textAlign: 'center' },
 
   // ── Sheets ───────────────────────────────────────────────
+  stolenOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', alignItems: 'center', justifyContent: 'center' },
+  stolenCard: {
+    backgroundColor: retro.ink, borderWidth: 3, borderColor: retro.gold,
+    borderRadius: 4, padding: 28, alignItems: 'center', gap: 10, width: 280,
+  },
+  stolenTitle: { fontSize: 16, fontWeight: '900', color: retro.gold, fontFamily: 'monospace', letterSpacing: 2 },
+  stolenEmoji: { fontSize: 56 },
+  stolenName:  { fontSize: 18, fontWeight: '900', color: retro.red, fontFamily: 'monospace' },
+  stolenSub:   { fontSize: 12, color: retro.faded, fontFamily: 'monospace', textAlign: 'center' },
+  stolenBtn:   { backgroundColor: retro.gold, paddingHorizontal: 32, paddingVertical: 12, borderRadius: 4, marginTop: 6 },
+  stolenBtnTxt:{ fontSize: 14, fontWeight: '900', color: retro.ink, fontFamily: 'monospace', letterSpacing: 2 },
+
   sheetOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
   sheetCard: {
     backgroundColor: retro.white, borderTopLeftRadius: 6, borderTopRightRadius: 6,
