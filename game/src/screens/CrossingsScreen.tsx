@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import {
   Animated,
   Easing,
@@ -13,6 +13,7 @@ import {
   View,
 } from 'react-native'
 import { Creature, Crossing, CreatureType, InventoryItem, SocialDial, SocialEvent, SocialEventType, SocialProfile, SocialRelation, SpellId, SpellLoadout } from '../types'
+import { proximityService, ProximityPlayer, ProximityStatus } from '../services/proximity'
 import {
   loadCrossings,
   loadInventory,
@@ -797,12 +798,63 @@ function CrossingCard({ item, onChallenge }: { item: Crossing; onChallenge: () =
   )
 }
 
+// ── GPS status bar ─────────────────────────────────────────
+function GpsStatusBar({
+  status,
+  coords,
+}: {
+  status: ProximityStatus
+  coords: { lat: number; lng: number } | null
+}) {
+  const pulse = useRef(new Animated.Value(1)).current
+
+  useEffect(() => {
+    if (status !== 'scanning') { pulse.setValue(1); return }
+    const anim = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 1.18, duration: 900, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 1,    duration: 900, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+      ])
+    )
+    anim.start()
+    return () => anim.stop()
+  }, [status])
+
+  const meta: { emoji: string; label: string; color: string } = (() => {
+    switch (status) {
+      case 'scanning':     return { emoji: '📡', label: 'Radar actif — croisements réels activés', color: retro.mint }
+      case 'requesting':   return { emoji: '📍', label: 'Demande de localisation…', color: retro.gold }
+      case 'no_permission': return { emoji: '🚫', label: 'Accès GPS refusé — croisements réels désactivés', color: retro.red }
+      case 'error':        return { emoji: '⚠️', label: 'Erreur GPS — vérifier la connexion', color: retro.gold }
+      default:             return { emoji: '📍', label: 'GPS en attente', color: retro.faded }
+    }
+  })()
+
+  return (
+    <View style={[st.gpsBar, { borderColor: meta.color + '55' }]}>
+      <Animated.View style={[
+        st.gpsDot,
+        { backgroundColor: meta.color, transform: [{ scale: status === 'scanning' ? pulse : 1 }] },
+      ]} />
+      <Text style={[st.gpsLabel, { color: meta.color }]}>
+        {meta.emoji}  {meta.label}
+      </Text>
+      {coords && status === 'scanning' && (
+        <Text style={st.gpsCoords}>
+          {coords.lat.toFixed(4)}, {coords.lng.toFixed(4)}
+        </Text>
+      )}
+    </View>
+  )
+}
+
 interface Props {
   player: Creature
+  username: string
   onCombatEnd: (won: boolean, xpGained: number, coinsGained?: number) => void
 }
 
-export default function CrossingsScreen({ player, onCombatEnd }: Props) {
+export default function CrossingsScreen({ player, username, onCombatEnd }: Props) {
   const [crossings, setCrossings] = useState<Crossing[]>([])
   const [relations, setRelations] = useState<SocialRelation[]>([])
   const [events, setEvents] = useState<SocialEvent[]>([])
@@ -822,6 +874,18 @@ export default function CrossingsScreen({ player, onCombatEnd }: Props) {
   const [stolenItem, setStolenItem] = useState<{ emoji: string; name: string } | null>(null)
   const combatIsTheftRef = useRef(false)
 
+  // ── Proximity / real-crossing state ─────────────────────────────────────────
+  const [gpsStatus, setGpsStatus] = useState<ProximityStatus>('idle')
+  const [gpsCoords, setGpsCoords] = useState<{ lat: number; lng: number } | null>(null)
+  const socialProfileRef = useRef(socialProfile)
+  const relationsRef = useRef(relations)
+  const eventsRef = useRef(events)
+  const crossingsRef = useRef(crossings)
+  useEffect(() => { socialProfileRef.current = socialProfile }, [socialProfile])
+  useEffect(() => { relationsRef.current = relations }, [relations])
+  useEffect(() => { eventsRef.current = events }, [events])
+  useEffect(() => { crossingsRef.current = crossings }, [crossings])
+
   // Hidden tap counter on title for dev access
   const devTapCount = useRef(0)
   const devTapTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -839,6 +903,84 @@ export default function CrossingsScreen({ player, onCombatEnd }: Props) {
         setLoading(false)
       })
   }, [])
+
+  // ── Start GPS proximity scanning ─────────────────────────────────────────────
+  const handleRealCrossing = useCallback(async (nearby: ProximityPlayer) => {
+    const currentProfile  = socialProfileRef.current
+    const currentRelations = relationsRef.current
+    const currentEvents   = eventsRef.current
+    const currentCrossings = crossingsRef.current
+
+    const opponent: CombatOpponent = {
+      username:     nearby.username,
+      creatureName: nearby.creatureName,
+      creatureType: nearby.creatureType,
+      level:        nearby.level,
+      loadout:      DEFAULT_LOADOUTS[nearby.creatureType][getEvoStage(nearby.level)],
+    }
+
+    const relationId = nearby.userId
+    const now        = new Date().toISOString()
+    const existing   = currentRelations.find((r) => r.id === relationId)
+    const baseRelation: SocialRelation = existing ?? {
+      id: relationId, username: nearby.username, creatureName: nearby.creatureName,
+      creatureType: nearby.creatureType, level: nearby.level,
+      crossings: 0, friendshipLevel: 0, romanticLevel: 0, filouReputation: 0,
+      rivalryWins: 0, rivalryLosses: 0, mentorCount: 0, tags: [], lastCrossedAt: now,
+    }
+
+    const eventType = chooseSocialEvent(currentProfile, baseRelation, player, opponent)
+    const nextRelation: SocialRelation = {
+      ...baseRelation, creatureName: nearby.creatureName, creatureType: nearby.creatureType,
+      level: nearby.level, crossings: baseRelation.crossings + 1,
+      friendshipLevel: Math.min(5, baseRelation.friendshipLevel + (eventType === 'theft' ? 0 : 1)),
+      romanticLevel: baseRelation.romanticLevel,
+      filouReputation: Math.max(0, baseRelation.filouReputation + (eventType === 'theft' ? 1 : currentProfile.mischief === 'low' ? -1 : 0)),
+      rivalryLosses: baseRelation.rivalryLosses + (eventType === 'duel' ? 1 : 0),
+      mentorCount: baseRelation.mentorCount + (eventType === 'mentor' ? 1 : 0),
+      lastCrossedAt: now, tags: [],
+    }
+    nextRelation.tags = relationTags(nextRelation)
+
+    const socialEvent = buildSocialEvent(eventType, nextRelation, opponent)
+    const crossing: Crossing = {
+      id: socialEvent.id, playerId: relationId, username: nearby.username,
+      creatureName: nearby.creatureName, creatureType: nearby.creatureType, level: nearby.level,
+      crossedAt: now, latitude: gpsCoords?.lat ?? 0, longitude: gpsCoords?.lng ?? 0,
+      interactionType: eventToInteraction(eventType),
+      socialEventId: socialEvent.id, xpGained: socialEvent.rewardCoins ?? 0,
+    }
+
+    const nextRelations = [nextRelation, ...currentRelations.filter((r) => r.id !== relationId)].slice(0, 80)
+    const nextEvents    = [socialEvent, ...currentEvents].slice(0, 60)
+    const nextCrossings = [crossing, ...currentCrossings].slice(0, 50)
+
+    setRelations(nextRelations)
+    setEvents(nextEvents)
+    setCrossings(nextCrossings)
+    setEncounter({ event: socialEvent, opponent, relation: nextRelation })
+    await Promise.all([saveSocialRelations(nextRelations), saveSocialEvents(nextEvents), saveCrossings(nextCrossings)])
+  }, [player, gpsCoords])
+
+  useEffect(() => {
+    if (loading) return
+    const me: ProximityPlayer = {
+      userId:       username,
+      username,
+      creatureName: player.name,
+      creatureType: player.type,
+      level:        player.stats.level,
+      latitude:     0,
+      longitude:    0,
+    }
+    proximityService.start(
+      me,
+      handleRealCrossing,
+      setGpsStatus,
+      (lat, lng) => setGpsCoords({ lat, lng }),
+    )
+    return () => { void proximityService.stop() }
+  }, [loading])  // eslint-disable-line react-hooks/exhaustive-deps
 
   const updateSocialDial = async (key: keyof Omit<SocialProfile, 'rules'>, value: SocialDial) => {
     const next = { ...socialProfile, [key]: value }
@@ -1041,6 +1183,9 @@ export default function CrossingsScreen({ player, onCombatEnd }: Props) {
             )}
           </>
         )}
+
+        {/* ── GPS proximity status ──────────────────────── */}
+        <GpsStatusBar status={gpsStatus} coords={gpsCoords} />
 
         {/* ── Simulate crossing — small dev button ──────── */}
         <TouchableOpacity style={st.simBtn} onPress={handleSocialCrossing}>
@@ -1274,11 +1419,34 @@ const st = StyleSheet.create({
   },
   emptyHint: { fontSize: 11, color: retro.ink2, textAlign: 'center', lineHeight: 17 },
 
+  // ── GPS status bar ───────────────────────────────────────
+  gpsBar: {
+    marginHorizontal: 20,
+    marginTop: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderWidth: 2,
+    borderRadius: 4,
+    backgroundColor: retro.paper2,
+    flexDirection: 'column',
+    gap: 4,
+  },
+  gpsDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    position: 'absolute',
+    right: 14,
+    top: 14,
+  },
+  gpsLabel: { fontSize: 11, fontWeight: '800', fontFamily: 'monospace' },
+  gpsCoords: { fontSize: 9, color: retro.faded, fontFamily: 'monospace' },
+
   // ── Simulate button (dev) ────────────────────────────────
   simBtn: {
     marginHorizontal: 20,
-    marginTop: 16,
-    paddingVertical: 9,
+    marginTop: 10,
+    paddingVertical: 8,
     borderWidth: 2,
     borderColor: retro.paper3,
     borderRadius: 4,

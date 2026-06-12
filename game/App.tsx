@@ -413,6 +413,7 @@ export default function App() {
         {activeTab === 'crossings' && (
           <CrossingsScreen
             player={state.creature}
+            username={state.username}
             onCombatEnd={async (won, xpGained, coinsGained) => {
               const xpReward = applyXPReward(state.creature, xpGained)
               let updated = xpReward.creature
