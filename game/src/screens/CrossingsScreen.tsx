@@ -14,6 +14,7 @@ import {
 } from 'react-native'
 import { Creature, Crossing, CreatureType, InventoryItem, SocialDial, SocialEvent, SocialEventType, SocialProfile, SocialRelation, SpellId, SpellLoadout } from '../types'
 import { proximityService, ProximityPlayer, ProximityStatus } from '../services/proximity'
+import { searchForMatch, LEVEL_RANGE, SEARCH_TIMEOUT_MS, MatchPlayer } from '../services/matchmaking'
 import {
   loadCrossings,
   loadInventory,
@@ -798,6 +799,199 @@ function CrossingCard({ item, onChallenge }: { item: Crossing; onChallenge: () =
   )
 }
 
+// ── Matchmaking modal ──────────────────────────────────────
+function MatchmakingModal({
+  visible,
+  playerLevel,
+  playerType,
+  onMatchFound,
+  onCancel,
+}: {
+  visible:       boolean
+  playerLevel:   number
+  playerType:    CreatureType
+  onMatchFound:  (opponent: CombatOpponent) => void
+  onCancel:      () => void
+}) {
+  const [phase, setPhase]           = useState<'searching' | 'found'>('searching')
+  const [elapsed, setElapsed]       = useState(0)
+  const [foundOpponent, setFoundOpponent] = useState<CombatOpponent | null>(null)
+  const [isBot, setIsBot]           = useState(false)
+  const cancelRef                   = useRef<(() => void) | null>(null)
+  const pulse                       = useRef(new Animated.Value(1)).current
+  const revealScale                 = useRef(new Animated.Value(0)).current
+
+  useEffect(() => {
+    if (!visible) return
+    setPhase('searching')
+    setElapsed(0)
+    setFoundOpponent(null)
+    setIsBot(false)
+    revealScale.setValue(0)
+
+    // Pulse animation
+    const pulseAnim = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 1.22, duration: 700, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 1,    duration: 700, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+      ])
+    )
+    pulseAnim.start()
+
+    // Elapsed timer
+    const tick = setInterval(() => setElapsed((e) => e + 1), 1000)
+
+    // Matchmaking
+    cancelRef.current = null
+
+    return () => {
+      pulseAnim.stop()
+      clearInterval(tick)
+      cancelRef.current?.()
+    }
+  }, [visible])
+
+  // Start search once we know the modal is visible and props are stable
+  useEffect(() => {
+    if (!visible) return
+    const me: MatchPlayer = {
+      userId:       `search:${Math.random().toString(36).slice(2)}`,
+      username:     'me',
+      creatureName: 'Player',
+      creatureType: playerType,
+      level:        playerLevel,
+    }
+    cancelRef.current = searchForMatch(
+      me,
+      (result) => {
+        const opp: CombatOpponent = {
+          username:     result.opponent.username,
+          creatureName: result.opponent.creatureName,
+          creatureType: result.opponent.creatureType,
+          level:        result.opponent.level,
+          loadout:      DEFAULT_LOADOUTS[result.opponent.creatureType][getEvoStage(result.opponent.level)],
+        }
+        setFoundOpponent(opp)
+        setIsBot(result.type === 'bot')
+        setPhase('found')
+        Animated.spring(revealScale, { toValue: 1, bounciness: 14, useNativeDriver: true }).start()
+        setTimeout(() => onMatchFound(opp), 2_400)
+      },
+      () => { /* status callback handled by phase state */ },
+    )
+    return () => { cancelRef.current?.() }
+  }, [visible, playerLevel, playerType])
+
+  const handleCancel = () => {
+    cancelRef.current?.()
+    onCancel()
+  }
+
+  if (!visible) return null
+
+  const progress = Math.min(1, elapsed / (SEARCH_TIMEOUT_MS / 1000))
+  const ringColor = phase === 'found' ? retro.mint : retro.gold
+
+  return (
+    <Modal visible transparent animationType="fade">
+      <View style={mm.overlay}>
+        <View style={mm.card}>
+          {/* Title */}
+          <Text style={mm.kicker}>
+            {phase === 'searching' ? '🔍 MATCHMAKING' : '⚔️ ADVERSAIRE TROUVÉ'}
+          </Text>
+
+          {phase === 'searching' ? (
+            <>
+              {/* Pulsing radar */}
+              <View style={mm.radarWrap}>
+                <Animated.View style={[mm.radarRing, mm.radarRing3, { transform: [{ scale: pulse }], opacity: pulse.interpolate({ inputRange: [1, 1.22], outputRange: [0.15, 0.05] }) }]} />
+                <Animated.View style={[mm.radarRing, mm.radarRing2, { transform: [{ scale: pulse }], opacity: pulse.interpolate({ inputRange: [1, 1.22], outputRange: [0.25, 0.1] }) }]} />
+                <Animated.View style={[mm.radarRing, mm.radarRing1, { transform: [{ scale: pulse }] }]} />
+                <View style={mm.radarCore}>
+                  <Text style={mm.radarEmoji}>🎮</Text>
+                </View>
+              </View>
+
+              <Text style={mm.searchTxt}>Recherche d'un adversaire…</Text>
+              <Text style={mm.rangeTxt}>Niv. {Math.max(1, playerLevel - LEVEL_RANGE)}–{playerLevel + LEVEL_RANGE}</Text>
+
+              {/* Progress bar */}
+              <View style={mm.progressWrap}>
+                <View style={[mm.progressBar, { width: `${Math.round(progress * 100)}%` as any, backgroundColor: retro.gold }]} />
+              </View>
+              <Text style={mm.timerTxt}>{elapsed}s</Text>
+
+              <TouchableOpacity style={mm.cancelBtn} onPress={handleCancel}>
+                <Text style={mm.cancelTxt}>ANNULER</Text>
+              </TouchableOpacity>
+            </>
+          ) : foundOpponent ? (
+            <>
+              {/* Found — opponent reveal */}
+              <Animated.View style={[mm.foundWrap, { transform: [{ scale: revealScale }] }]}>
+                <View style={[mm.foundSpriteBox, { backgroundColor: typeTheme[foundOpponent.creatureType].soft }]}>
+                  <Image
+                    source={getOpponentSprite(foundOpponent.creatureType, foundOpponent.level)}
+                    style={mm.foundSprite}
+                    resizeMode="contain"
+                  />
+                </View>
+                <Text style={mm.foundName}>{foundOpponent.creatureName}</Text>
+                <Text style={mm.foundUser}>@{foundOpponent.username}</Text>
+                <View style={[mm.foundChip, { backgroundColor: typeTheme[foundOpponent.creatureType].main }]}>
+                  <Text style={mm.foundChipTxt}>Niv.{foundOpponent.level}</Text>
+                </View>
+                {isBot && (
+                  <View style={mm.botBadge}>
+                    <Text style={mm.botBadgeTxt}>🤖 BOT</Text>
+                  </View>
+                )}
+              </Animated.View>
+              <Text style={mm.countdownTxt}>Combat dans 3 secondes…</Text>
+            </>
+          ) : null}
+        </View>
+      </View>
+    </Modal>
+  )
+}
+
+const mm = StyleSheet.create({
+  overlay:      { flex: 1, backgroundColor: 'rgba(0,0,0,0.82)', alignItems: 'center', justifyContent: 'center' },
+  card:         { backgroundColor: retro.paper, borderWidth: 3, borderColor: retro.ink, borderRadius: 6, padding: 28, alignItems: 'center', width: 300, gap: 16 },
+  kicker:       { fontSize: 13, fontWeight: '900', color: retro.ink, fontFamily: 'monospace', letterSpacing: 1.5 },
+
+  radarWrap:    { alignItems: 'center', justifyContent: 'center', width: 120, height: 120 },
+  radarRing:    { position: 'absolute', borderRadius: 200, borderWidth: 2, borderColor: retro.gold },
+  radarRing1:   { width: 60,  height: 60  },
+  radarRing2:   { width: 90,  height: 90  },
+  radarRing3:   { width: 120, height: 120 },
+  radarCore:    { width: 48, height: 48, borderRadius: 24, backgroundColor: retro.gold + '22', borderWidth: 3, borderColor: retro.gold, alignItems: 'center', justifyContent: 'center' },
+  radarEmoji:   { fontSize: 22 },
+
+  searchTxt:    { fontSize: 14, fontWeight: '800', color: retro.ink, fontFamily: 'monospace', textAlign: 'center' },
+  rangeTxt:     { fontSize: 11, color: retro.muted, fontFamily: 'monospace' },
+
+  progressWrap: { width: '100%', height: 6, backgroundColor: retro.paper3, borderRadius: 3, overflow: 'hidden' },
+  progressBar:  { height: 6, borderRadius: 3 },
+  timerTxt:     { fontSize: 10, color: retro.faded, fontFamily: 'monospace' },
+
+  cancelBtn:    { paddingHorizontal: 20, paddingVertical: 8, borderWidth: 2, borderColor: retro.red, borderRadius: 3 },
+  cancelTxt:    { fontSize: 11, fontWeight: '900', color: retro.red, fontFamily: 'monospace' },
+
+  foundWrap:    { alignItems: 'center', gap: 8 },
+  foundSpriteBox: { width: 100, height: 100, borderRadius: 6, borderWidth: 3, borderColor: retro.line, alignItems: 'center', justifyContent: 'center' },
+  foundSprite:  { width: 86, height: 86 },
+  foundName:    { fontSize: 20, fontWeight: '900', color: retro.ink, fontFamily: 'monospace' },
+  foundUser:    { fontSize: 12, color: retro.muted, fontFamily: 'monospace' },
+  foundChip:    { borderRadius: 2, paddingHorizontal: 10, paddingVertical: 3 },
+  foundChipTxt: { fontSize: 11, fontWeight: '900', color: retro.white, fontFamily: 'monospace' },
+  botBadge:     { borderRadius: 2, paddingHorizontal: 8, paddingVertical: 3, borderWidth: 2, borderColor: retro.paper3 },
+  botBadgeTxt:  { fontSize: 10, color: retro.faded, fontFamily: 'monospace' },
+  countdownTxt: { fontSize: 12, color: retro.muted, fontFamily: 'monospace', textAlign: 'center' },
+})
+
 // ── GPS status bar ─────────────────────────────────────────
 function GpsStatusBar({
   status,
@@ -861,8 +1055,9 @@ export default function CrossingsScreen({ player, username, onCombatEnd }: Props
   const [socialProfile, setSocialProfile] = useState<SocialProfile>(DEFAULT_SOCIAL_PROFILE)
   const [loading, setLoading]     = useState(true)
   const [combat, setCombat]       = useState<CombatOpponent | null>(null)
-  const [showCrossings, setShowCrossings] = useState(false)
-  const [showAdventure, setShowAdventure] = useState(false)
+  const [showCrossings, setShowCrossings]     = useState(false)
+  const [showMatchmaking, setShowMatchmaking] = useState(false)
+  const [showAdventure, setShowAdventure]     = useState(false)
   const [showPersonality, setShowPersonality] = useState(false)
   const [encounter, setEncounter] = useState<EncounterData | null>(null)
   const [debugSetup, setDebugSetup] = useState(false)
@@ -1208,13 +1403,22 @@ export default function CrossingsScreen({ player, username, onCombatEnd }: Props
             <Text style={st.modeTitle}>COMBAT IA</Text>
             <Text style={st.modeSub}>Niv {minLv}–{maxLv}</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[st.modeCard, { backgroundColor: retro.red }]} onPress={() => setShowCrossings(true)} activeOpacity={0.85}>
+          <TouchableOpacity style={[st.modeCard, { backgroundColor: retro.red }]} onPress={() => setShowMatchmaking(true)} activeOpacity={0.85}>
             <Text style={st.modeEmoji}>👥</Text>
             <Text style={st.modeTitle}>MULTI</Text>
-            <Text style={st.modeSub}>{crossings.length > 0 ? `${crossings.length} croisement${crossings.length !== 1 ? 's' : ''}` : 'Bots dispo'}</Text>
+            <Text style={st.modeSub}>Matchmaking ±{LEVEL_RANGE}</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Matchmaking */}
+      <MatchmakingModal
+        visible={showMatchmaking}
+        playerLevel={player.stats.level}
+        playerType={player.type}
+        onMatchFound={(opp) => { setShowMatchmaking(false); startCombat(opp) }}
+        onCancel={() => setShowMatchmaking(false)}
+      />
 
       {/* Encounter cinematic */}
       <EncounterModal
