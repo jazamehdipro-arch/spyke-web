@@ -29,7 +29,6 @@ import {
 } from '../utils/storage'
 import CombatScreen, { CombatOpponent } from './CombatScreen'
 import { DEFAULT_LOADOUTS, EvoStage, getEvoStage, SPELL_CATALOG } from '../utils/spells'
-import AdventureScreen from './AdventureScreen'
 import { retro, retroShadow, typeTheme } from '../styles/retro'
 import { PixelButton, SectionTitle } from '../components/ui'
 import CrossingGame from '../components/CrossingGame'
@@ -1055,9 +1054,7 @@ export default function CrossingsScreen({ player, username, onCombatEnd }: Props
   const [socialProfile, setSocialProfile] = useState<SocialProfile>(DEFAULT_SOCIAL_PROFILE)
   const [loading, setLoading]     = useState(true)
   const [combat, setCombat]       = useState<CombatOpponent | null>(null)
-  const [showCrossings, setShowCrossings]     = useState(false)
-  const [showMatchmaking, setShowMatchmaking] = useState(false)
-  const [showAdventure, setShowAdventure]     = useState(false)
+  const [showCrossings, setShowCrossings] = useState(false)
   const [showPersonality, setShowPersonality] = useState(false)
   const [encounter, setEncounter] = useState<EncounterData | null>(null)
   const [debugSetup, setDebugSetup] = useState(false)
@@ -1195,8 +1192,6 @@ export default function CrossingsScreen({ player, username, onCombatEnd }: Props
     setCombat(opponent)
   }
 
-  const handleQuickAI = () => startCombat(generateAIOpponent(player.stats.level))
-
   // Simulate a crossing — for dev/testing only
   const handleSocialCrossing = async () => {
     const opponent = generateAIOpponent(player.stats.level)
@@ -1307,15 +1302,9 @@ export default function CrossingsScreen({ player, username, onCombatEnd }: Props
     return <CombatScreen player={player} opponent={combat} onFinish={handleCombatEnd} debugOverride={debugOverride} />
   }
 
-  if (showAdventure) {
-    return <AdventureScreen player={player} onCombatEnd={(won, xp, coins) => { onCombatEnd(won, xp, coins) }} onClose={() => setShowAdventure(false)} />
-  }
-
   if (loading) return null
 
   const playerLevel = player.stats.level
-  const minLv = Math.max(1, playerLevel - 2)
-  const maxLv = playerLevel + 5
   const archetype = deriveSocialArchetype(socialProfile)
   const hasCrossings = crossings.length > 0 || relations.length > 0 || events.length > 0
 
@@ -1387,38 +1376,7 @@ export default function CrossingsScreen({ player, username, onCombatEnd }: Props
           <Text style={st.simBtnTxt}>⚡ Simuler un croisement</Text>
         </TouchableOpacity>
 
-        {/* ── Combat modes ──────────────────────────────── */}
-        <SectionTitle title="MODES COMBAT" color={retro.red} style={st.sectionTitle} />
-        <TouchableOpacity style={[st.modeCardWide, { backgroundColor: retro.blue }]} onPress={() => setShowAdventure(true)} activeOpacity={0.85}>
-          <Text style={st.modeEmoji}>🗺️</Text>
-          <View style={{ flex: 1 }}>
-            <Text style={st.modeTitle}>AVENTURE</Text>
-            <Text style={st.modeSub}>6 routes · PNJ · Récompenses</Text>
-          </View>
-          <Text style={st.modeArrow}>›</Text>
-        </TouchableOpacity>
-        <View style={st.modeRow}>
-          <TouchableOpacity style={[st.modeCard, { backgroundColor: retro.ink }]} onPress={handleQuickAI} activeOpacity={0.85}>
-            <Text style={st.modeEmoji}>🤖</Text>
-            <Text style={st.modeTitle}>COMBAT IA</Text>
-            <Text style={st.modeSub}>Niv {minLv}–{maxLv}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[st.modeCard, { backgroundColor: retro.red }]} onPress={() => setShowMatchmaking(true)} activeOpacity={0.85}>
-            <Text style={st.modeEmoji}>👥</Text>
-            <Text style={st.modeTitle}>MULTI</Text>
-            <Text style={st.modeSub}>Matchmaking ±{LEVEL_RANGE}</Text>
-          </TouchableOpacity>
-        </View>
       </ScrollView>
-
-      {/* Matchmaking */}
-      <MatchmakingModal
-        visible={showMatchmaking}
-        playerLevel={player.stats.level}
-        playerType={player.type}
-        onMatchFound={(opp) => { setShowMatchmaking(false); startCombat(opp) }}
-        onCancel={() => setShowMatchmaking(false)}
-      />
 
       {/* Encounter cinematic */}
       <EncounterModal

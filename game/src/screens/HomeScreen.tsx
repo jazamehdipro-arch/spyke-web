@@ -27,7 +27,7 @@ import { retro, retroShadow, typeTheme } from '../styles/retro'
 import { PixelBar, PixelButton, SectionTitle } from '../components/ui'
 
 const { height: SCREEN_H } = Dimensions.get('window')
-const HERO_H = Math.round(SCREEN_H * 0.44)
+const HERO_H = Math.round(SCREEN_H * 0.38)
 
 const TRAINING_CONFIG: Record<keyof TrainingStats, { label: string; emoji: string; desc: string; costEnergy: number; costHunger: number }> = {
   strength:  { label: 'Force',     emoji: '💪', desc: '+0.8% dégâts',       costEnergy: 18, costHunger: 8  },
@@ -80,12 +80,13 @@ interface Props {
   ) => void
   onSkinChange: (skin: string | null) => void
   onOpenInventory: () => void
+  onOpenBoutique: () => void
   onOpenCrossings: () => void
 }
 
 export default function HomeScreen({
   creature, inventory, events, quests, journal,
-  streak, coins, onUpdate, onSkinChange, onOpenInventory, onOpenCrossings,
+  streak, coins, onUpdate, onSkinChange, onOpenInventory, onOpenBoutique, onOpenCrossings,
 }: Props) {
   const applyXPReward = (base: Creature, amount: number, care = false): { creature: Creature; coins: number } => {
     const result = care ? addCareXPWithConversion(base, amount) : addXPWithConversion(base, amount)
@@ -499,12 +500,18 @@ export default function HomeScreen({
             </View>
           )}
 
-          {/* Sac + skin nav — bottom left */}
+          {/* Sac + Boutique + skin nav — bottom left */}
           <View style={s.heroBottomLeft}>
-            <TouchableOpacity style={s.invSideBtn} onPress={onOpenInventory} activeOpacity={0.8}>
-              <Text style={s.invSideBtnEmoji}>🎒</Text>
-              <Text style={s.invSideBtnLbl}>Sac</Text>
-            </TouchableOpacity>
+            <View style={s.heroBottomBtns}>
+              <TouchableOpacity style={s.invSideBtn} onPress={onOpenInventory} activeOpacity={0.8}>
+                <Text style={s.invSideBtnEmoji}>🎒</Text>
+                <Text style={s.invSideBtnLbl}>Sac</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={s.invSideBtn} onPress={onOpenBoutique} activeOpacity={0.8}>
+                <Text style={s.invSideBtnEmoji}>🛍️</Text>
+                <Text style={s.invSideBtnLbl}>Boutique</Text>
+              </TouchableOpacity>
+            </View>
             {allSkins.length > 1 && (
               <View style={s.skinNav}>
                 <TouchableOpacity style={s.skinArrow} onPress={handleSkinLeft} activeOpacity={0.7}>
@@ -976,6 +983,7 @@ const s = StyleSheet.create({
     alignItems: 'flex-start',
   },
 
+  heroBottomBtns: { flexDirection: 'row', gap: 6 },
   invSideBtn: {
     backgroundColor: retro.ink2,
     borderRadius: 4,

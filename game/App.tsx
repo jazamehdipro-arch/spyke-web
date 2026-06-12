@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import CombatHubScreen from './src/screens/CombatHubScreen'
 import CrossingsScreen from './src/screens/CrossingsScreen'
 import HomeScreen from './src/screens/HomeScreen'
 import InventoryScreen from './src/screens/InventoryScreen'
@@ -34,7 +35,7 @@ import {
   saveStreak,
 } from './src/utils/storage'
 
-type Tab = 'home' | 'inventory' | 'boutique' | 'quests' | 'crossings' | 'profile'
+type Tab = 'home' | 'inventory' | 'boutique' | 'combat' | 'quests' | 'crossings' | 'profile'
 
 interface GameState {
   creature: Creature
@@ -357,10 +358,10 @@ export default function App() {
 
   const tabs: { key: Tab; icon: string; label: string; badge?: number }[] = [
     { key: 'home',      icon: '🏠', label: 'Accueil' },
-    { key: 'boutique',  icon: '🛍️', label: 'Boutique' },
+    { key: 'combat',    icon: '⚔️', label: 'Combat'  },
     { key: 'quests',    icon: '📋', label: 'Quêtes', badge: questBadge },
     { key: 'crossings', icon: '🤝', label: 'Croises' },
-    { key: 'profile',   icon: '👤', label: 'Profil' },
+    { key: 'profile',   icon: '👤', label: 'Profil'  },
   ]
 
   return (
@@ -379,6 +380,7 @@ export default function App() {
             onUpdate={handleUpdate}
             onSkinChange={handleSkinChange}
             onOpenInventory={() => setActiveTab('inventory')}
+            onOpenBoutique={() => setActiveTab('boutique')}
             onOpenCrossings={() => setActiveTab('crossings')}
           />
         )}
@@ -400,6 +402,41 @@ export default function App() {
             onUseItem={handleUseItem}
             onBuyItem={handleBuyItem}
             mode="shop"
+          />
+        )}
+        {activeTab === 'combat' && (
+          <CombatHubScreen
+            player={state.creature}
+            username={state.username}
+            onCombatEnd={async (won, xpGained, coinsGained) => {
+              const xpReward = applyXPReward(state.creature, xpGained)
+              let updated = xpReward.creature
+              updated = {
+                ...updated,
+                lastPlayed: new Date().toISOString(),
+                stats: {
+                  ...updated.stats,
+                  energy: Math.max(0, updated.stats.energy - 18),
+                  happiness: Math.min(100, updated.stats.happiness + (won ? 10 : 0)),
+                },
+              }
+              updated = { ...updated, mood: getMood(updated.stats) }
+              await saveCreature(updated)
+              let newInventory = state.inventory
+              const coinsEarned = coinsGained !== undefined
+                ? coinsGained
+                : won ? 15 + Math.floor(Math.random() * 11) : 3 + Math.floor(Math.random() * 4)
+              const newCoins = state.coins + coinsEarned + xpReward.coins
+              if (won && coinsGained === undefined) {
+                newInventory = addItemToInventory(state.inventory, { ...ITEM_CATALOG.croquettes, quantity: 2 })
+                if (Math.random() < 0.25) {
+                  newInventory = addItemToInventory(newInventory, { ...ITEM_CATALOG.steak, quantity: 1 })
+                }
+                await saveInventory(newInventory)
+              }
+              await savePlayer({ id: state.username, username: state.username, coins: newCoins })
+              handleUpdate(updated, newInventory, undefined, undefined, undefined, undefined, newCoins)
+            }}
           />
         )}
         {activeTab === 'quests' && (
