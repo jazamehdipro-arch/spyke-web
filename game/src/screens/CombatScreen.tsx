@@ -229,6 +229,10 @@ function isE2SignatureSpell(spellId: SpellId): boolean {
     || spellId === 'danse_des_ombres'
 }
 
+function getStartingEmbers(type: CreatureType, passiveLevel: 1 | 2 | 3): number {
+  return type === 'ignis' && passiveLevel >= 3 ? 1 : 0
+}
+
 function e1SpellDescription(spellId: SpellId, level: number): string | null {
   const s = (base: number) => scaleE1Value(base, 1, level)
   switch (spellId) {
@@ -1884,14 +1888,14 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
     energy: startEnergy,
     cooldowns: {},
     statuses: [],
-    embers: 0,
+    embers: getStartingEmbers(playerType, pPassiveLevel),
   })
   const [oState, setOState]     = useState<Combatant>({
     hp: 0, // set when difficulty is selected
     energy: opponentProfile.startEnergy,
     cooldowns: {},
     statuses: [],
-    embers: 0,
+    embers: getStartingEmbers(opponent.creatureType, oPassiveLevel),
   })
   const [playerDefendLocked, setPlayerDefendLocked] = useState(false)
 
@@ -1903,14 +1907,14 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
       energy: Math.max(0, Math.min(playerMods.maxEnergy, startEnergy + rules.playerEnergyBonus)),
       cooldowns: {},
       statuses: [],
-      embers: 0,
+      embers: getStartingEmbers(playerType, pPassiveLevel),
     }))
     setOState({
       hp: calcHP(opponent.level, rules.hpMult, opponent.creatureType),
       energy: Math.max(0, Math.min(OPPONENT_MAX_ENERGY, opponentProfile.startEnergy + rules.opponentEnergyBonus)),
       cooldowns: {},
       statuses: [],
-      embers: 0,
+      embers: getStartingEmbers(opponent.creatureType, oPassiveLevel),
     })
     setDifficulty(d)
     setLog(d === 'easy'
@@ -1918,7 +1922,7 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
       : d === 'hard'
         ? 'Mode difficile: l IA joue son kit et punit les tours mal prepares.'
         : 'Mode moyen: combat standard.')
-  }, [opponent.level, opponent.creatureType, opponentProfile.startEnergy, playerMaxHP, playerMods.maxEnergy, startEnergy])
+  }, [opponent.level, opponent.creatureType, opponentProfile.startEnergy, oPassiveLevel, playerMaxHP, playerMods.maxEnergy, playerType, pPassiveLevel, startEnergy])
 
   const pStateRef = useRef(pState)
   const oStateRef = useRef(oState)
@@ -2029,6 +2033,15 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
 
     const logParts: string[] = []
 
+    if (playerType === 'nemo' && pPassiveLevel >= 3 && newP.hp > 0 && newP.hp < playerMaxHP) {
+      newP = { ...newP, hp: Math.min(playerMaxHP, newP.hp + 2) }
+      logParts.push('Maree vivante : +2 PV')
+    }
+    if (opponent.creatureType === 'nemo' && oPassiveLevel >= 3 && newO.hp > 0 && newO.hp < opponentMaxHP) {
+      newO = { ...newO, hp: Math.min(opponentMaxHP, newO.hp + 2) }
+      logParts.push('Maree vivante ennemie : +2 PV')
+    }
+
     if (hasStatus(curP, 'paralyzed')) logParts.push('⚡ Paralysé ! Ta défense est forcée.')
     if (hasStatus(curO, 'paralyzed')) logParts.push('⚡ Ennemi paralysé ! Sa défense est forcée.')
 
@@ -2090,12 +2103,17 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
           const dodgeUp = getStatus(newO, 'dodge_up')
           const dodgeChance =
             (opponent.creatureType === 'sylva' ? CREATURE_PROFILES.sylva.dodgeBase : 0) +
+            (opponent.creatureType === 'sylva' && oPassiveLevel >= 3 ? 0.10 : 0) +
             ((dodgeUp?.value ?? 0) / 100) +
             (hasStatus(newO, 'dodge_ready') ? 1.0 : 0)
           if (Math.random() < dodgeChance) {
             finalDmg = 0
             logParts.push('Ennemi esquive ! 💨')
             newO = removeStatus(newO, 'dodge_ready')
+            if (opponent.creatureType === 'sylva' && oPassiveLevel >= 3) {
+              newO = { ...newO, energy: Math.min(OPPONENT_MAX_ENERGY, newO.energy + 1) }
+              logParts.push('Insaisissable ennemi : +1 energie')
+            }
             const shadowDance = getStatus(newO, 'shadow_dance')
             if (shadowDance) {
               const reflected = shadowDance.value ?? 14
@@ -2135,6 +2153,10 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
         newO = { ...newO, energy: Math.max(0, Math.min(OPPONENT_MAX_ENERGY, newO.energy + result.targetEnergyDelta)) }
         for (const st of result.targetStatusesToAdd) newO = addStatus(newO, st)
         for (const t of result.targetStatusesToRemove) newO = removeStatus(newO, t)
+        if (playerType === 'zapp' && pPassiveLevel >= 3 && result.targetStatusesToAdd.some(st => st.type === 'paralyzed' || st.type === 'exhausted')) {
+          newP = { ...newP, energy: Math.min(playerMods.maxEnergy, newP.energy + 1) }
+          logParts.push('Conducteur : +1 energie')
+        }
 
         // embuscade log is deferred to after we know if opponent missed
         if (pAction.spellId !== 'embuscade' && pAction.spellId !== 'embuscade_parfaite') logParts.push('>' + result.log)
@@ -2204,6 +2226,7 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
           const playerDodgeUp = getStatus(newP, 'dodge_up')
           const playerDodge =
             playerMods.dodgeChance +
+            (playerType === 'sylva' && pPassiveLevel >= 3 ? 0.10 : 0) +
             ((playerDodgeUp?.value ?? 0) / 100) +
             (hasStatus(newP, 'dodge_ready') ? 1.0 : 0)
           if (Math.random() < playerDodge) {
@@ -2217,9 +2240,9 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
               logParts.push(`Danse des ombres renvoie ${reflected} PV a l'ennemi !`)
             }
             // Sylva passif : chaque esquive recharge +1 énergie
-            if (playerType === 'sylva') {
+            if (playerType === 'sylva' && pPassiveLevel >= 3) {
               newP = { ...newP, energy: Math.min(playerMods.maxEnergy, newP.energy + 1) }
-              logParts.push('🌀 Sylva +1⚡ (esquive)')
+              logParts.push('Insaisissable : +1 energie')
             }
           } else {
             if (oPassiveLevel !== 1 && !opponentDirectScaling) {
@@ -2280,6 +2303,10 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
         newP = { ...newP, energy: Math.max(0, Math.min(playerMods.maxEnergy, newP.energy + result.targetEnergyDelta)) }
         for (const st of result.targetStatusesToAdd) newP = addStatus(newP, st)
         for (const t of result.targetStatusesToRemove) newP = removeStatus(newP, t)
+        if (opponent.creatureType === 'zapp' && oPassiveLevel >= 3 && result.targetStatusesToAdd.some(st => st.type === 'paralyzed' || st.type === 'exhausted')) {
+          newO = { ...newO, energy: Math.min(OPPONENT_MAX_ENERGY, newO.energy + 1) }
+          logParts.push('Conducteur ennemi : +1 energie')
+        }
 
         logParts.push('<' + result.log)
       }

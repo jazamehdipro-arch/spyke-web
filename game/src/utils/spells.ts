@@ -229,22 +229,22 @@ export const DEFAULT_LOADOUTS: Record<CreatureType, Record<EvoStage, SpellLoadou
   ignis: {
     e1:   ['frappe_ardente', 'immolation',  'carapace_chauffee', 'explosion'],
     e2:   ['frappe_ardente', 'immolation',  'carapace_chauffee', 'supernova'],
-    e3:   ['frappe_ardente', 'fournaise',   'carapace_chauffee', 'immolation'],
+    e3:   ['frappe_ardente', 'immolation',  'carapace_chauffee', 'supernova'],
   },
   nemo: {
     e1:   ['raz_de_maree', 'siphon', 'regeneration',   'malediction'],
     e2:   ['raz_de_maree', 'siphon', 'malediction', 'maree_regeneratrice'],
-    e3:   ['raz_de_maree', 'abysse', 'regeneration',   'malediction'],
+    e3:   ['raz_de_maree', 'siphon', 'malediction', 'maree_regeneratrice'],
   },
   sylva: {
     e1:   ['coup_voile', 'embuscade',           'volute', 'brouillard_total'],
     e2:   ['coup_voile', 'embuscade',           'volute', 'danse_des_ombres'],
-    e3:   ['coup_voile', 'embuscade_parfaite',  'volute', 'brouillard_total'],
+    e3:   ['coup_voile', 'embuscade',           'volute', 'danse_des_ombres'],
   },
   zapp: {
     e1:   ['decharge', 'arc_paralysant', 'boost',   'surcharge'],
     e2:   ['decharge', 'arc_paralysant', 'surcharge', 'foudroiement'],
-    e3:   ['decharge', 'fulguration',    'tempete',  'surcharge'],
+    e3:   ['decharge', 'arc_paralysant', 'surcharge', 'foudroiement'],
   },
   ombra: {
     e1:   ['griffe_d_ombre', 'venin_sylvestre',  'hurlement_bete',  'bond_furtif'],
@@ -277,22 +277,22 @@ export const ALL_SPELLS_BY_TYPE: Record<CreatureType, Record<EvoStage, SpellId[]
   ignis: {
     e1:   ['frappe_ardente', 'immolation', 'carapace_chauffee', 'explosion'],
     e2:   ['frappe_ardente', 'immolation', 'carapace_chauffee', 'supernova'],
-    e3:   ['frappe_ardente', 'immolation', 'carapace_chauffee', 'explosion', 'brasier', 'fournaise'],
+    e3:   ['frappe_ardente', 'immolation', 'carapace_chauffee', 'supernova'],
   },
   nemo: {
     e1:   ['raz_de_maree', 'siphon', 'regeneration', 'malediction'],
     e2:   ['raz_de_maree', 'siphon', 'malediction', 'maree_regeneratrice'],
-    e3:   ['raz_de_maree', 'siphon', 'regeneration', 'malediction', 'maree_curative', 'abysse'],
+    e3:   ['raz_de_maree', 'siphon', 'malediction', 'maree_regeneratrice'],
   },
   sylva: {
     e1:   ['coup_voile', 'embuscade', 'volute', 'brouillard_total'],
     e2:   ['coup_voile', 'embuscade', 'volute', 'danse_des_ombres'],
-    e3:   ['coup_voile', 'embuscade', 'volute', 'brouillard_total', 'laceration_voilee', 'embuscade_parfaite'],
+    e3:   ['coup_voile', 'embuscade', 'volute', 'danse_des_ombres'],
   },
   zapp: {
     e1:   ['decharge', 'arc_paralysant', 'boost', 'surcharge'],
     e2:   ['decharge', 'arc_paralysant', 'surcharge', 'foudroiement'],
-    e3:   ['decharge', 'arc_paralysant', 'boost', 'rafale', 'surcharge', 'tempete', 'fulguration'],
+    e3:   ['decharge', 'arc_paralysant', 'surcharge', 'foudroiement'],
   },
   ombra: {
     e1:   ['griffe_d_ombre', 'venin_sylvestre', 'hurlement_bete', 'bond_furtif'],
