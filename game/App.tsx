@@ -8,6 +8,7 @@ import JournalScreen from './src/screens/JournalScreen'
 import OnboardingScreen from './src/screens/OnboardingScreen'
 import ProfileScreen from './src/screens/ProfileScreen'
 import QuestsScreen from './src/screens/QuestsScreen'
+import TutorialScreen from './src/screens/TutorialScreen'
 import { Creature, Crossing, CreatureType, DailyQuest, GameEvent, InventoryItem, JournalEntry, Quest } from './src/types'
 import { addXP, addXPWithConversion, applyOfflineCareDecay, createNewCreature, getMood } from './src/utils/creature'
 import { ITEM_CATALOG, drawMysteryBox, getStarterInventory } from './src/utils/items'
@@ -26,6 +27,7 @@ import {
   loadPlayer,
   loadQuests,
   loadStreak,
+  loadTutorialDone,
   saveCreature,
   saveDailyQuests,
   saveInventory,
@@ -33,6 +35,7 @@ import {
   savePlayer,
   saveQuests,
   saveStreak,
+  saveTutorialDone,
 } from './src/utils/storage'
 
 type Tab = 'home' | 'inventory' | 'boutique' | 'combat' | 'quests' | 'crossings' | 'profile'
@@ -61,6 +64,7 @@ function applyXPReward(creature: Creature, amount: number): { creature: Creature
 export default function App() {
   const [ready, setReady] = useState(false)
   const [state, setState] = useState<GameState | null>(null)
+  const [tutorialCompleted, setTutorialCompleted] = useState<boolean | null>(null)
   const [activeTab, setActiveTab] = useState<Tab>('home')
   const [questBadge, setQuestBadge] = useState(0)
 
@@ -78,6 +82,7 @@ export default function App() {
         savedJournal,
         savedDailyQuests,
         savedStreakData,
+        savedTutorialDone,
       ] = await Promise.all([
         loadCreature(),
         loadPlayer(),
@@ -88,6 +93,7 @@ export default function App() {
         loadJournal(),
         loadDailyQuests(),
         loadStreak(),
+        loadTutorialDone(),
       ])
 
       if (savedCreature && savedPlayer) {
@@ -137,6 +143,8 @@ export default function App() {
           coins,
           streak,
         })
+        // Existing users who never saw tutorial flag default to done
+        setTutorialCompleted(savedTutorialDone ?? true)
       }
       setReady(true)
     }
@@ -180,8 +188,9 @@ export default function App() {
     []
   )
 
-  const handleOnboarding = useCallback(async (username: string, type: CreatureType) => {
-    const creature = createNewCreature(type)
+  const handleOnboarding = useCallback(async (username: string, type: CreatureType, creatureName: string) => {
+    const baseCreature = createNewCreature(type)
+    const creature = { ...baseCreature, name: creatureName }
     const inv = getStarterInventory()
     const j = addJournalEntry([], `${creature.name} est né ! Bienvenue dans le monde !`, '🎉')
     const today = new Date().toISOString().slice(0, 10)
@@ -195,6 +204,7 @@ export default function App() {
       saveQuests(QUEST_DEFINITIONS),
       saveDailyQuests(dailyQuests),
       saveStreak(1, today),
+      saveTutorialDone(false),
     ])
 
     setState({
@@ -209,6 +219,7 @@ export default function App() {
       coins: 0,
       streak: 1,
     })
+    setTutorialCompleted(false)
   }, [])
 
   const handleUseItem = useCallback(async (item: InventoryItem) => {
@@ -355,6 +366,18 @@ export default function App() {
 
   if (!ready) return null
   if (!state) return <OnboardingScreen onComplete={handleOnboarding} />
+  if (state && tutorialCompleted === false) {
+    return (
+      <TutorialScreen
+        creature={state.creature}
+        username={state.username}
+        onComplete={async () => {
+          await saveTutorialDone(true)
+          setTutorialCompleted(true)
+        }}
+      />
+    )
+  }
 
   const tabs: { key: Tab; icon: string; label: string; badge?: number }[] = [
     { key: 'home',      icon: '🏠', label: 'Accueil' },

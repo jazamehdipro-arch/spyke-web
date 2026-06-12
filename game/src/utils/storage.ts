@@ -100,6 +100,9 @@ export const saveStreak = (streak: number, lastLoginDate: string) =>
   set(KEYS.STREAK, { streak, lastLoginDate } satisfies StreakData)
 export const loadStreak = () => get<StreakData>(KEYS.STREAK)
 
+export const saveTutorialDone = (done: boolean) => set('croisio:tutorial_done', done)
+export const loadTutorialDone = () => get<boolean>('croisio:tutorial_done')
+
 export function addItemToInventory(
   inventory: InventoryItem[],
   newItem: InventoryItem

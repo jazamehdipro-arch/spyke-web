@@ -1800,6 +1800,7 @@ interface Props {
   opponent: CombatOpponent
   onFinish: (won: boolean, xpGained: number) => void
   isAdventure?: boolean
+  tutorialMode?: boolean
   debugOverride?: {
     playerType: CreatureType
     playerLevel: number
@@ -1857,7 +1858,7 @@ const DIFFICULTY_RULES: Record<Difficulty, {
 }
 
 // ─── main component ─────────────────────────────────────
-export default function CombatScreen({ player, opponent, onFinish, isAdventure, debugOverride }: Props) {
+export default function CombatScreen({ player, opponent, onFinish, isAdventure, tutorialMode, debugOverride }: Props) {
   const playerMods = useRef<CombatModifiers>(computeModifiers(player, opponent.creatureType)).current
 
   const playerType = debugOverride?.playerType ?? player.type
@@ -2514,6 +2515,11 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
 
   // ── Difficulty picker (shown before combat starts) ──────
   if (difficulty === null) {
+    // Tutorial mode: skip difficulty picker, jump straight to easy
+    if (tutorialMode) {
+      setDifficulty('easy')
+      return null
+    }
     const DIFF_OPTIONS: { key: Difficulty; label: string; sub: string; color: string; emoji: string }[] = [
       { key: 'easy',   label: 'Facile',    sub: '+1 énergie au départ · timer long · IA qui hésite · XP réduite', color: '#22C55E', emoji: '😊' },
       { key: 'medium', label: 'Moyen',     sub: 'Règles normales · IA réactive · XP standard',                    color: '#F59E0B', emoji: '⚔️' },
