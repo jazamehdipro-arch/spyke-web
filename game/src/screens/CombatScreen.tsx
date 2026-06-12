@@ -202,9 +202,35 @@ const E1_BASE_HP: Record<CreatureType, number> = {
 }
 
 function calcHP(level: number, hpMult = 1.0, creatureType?: CreatureType) {
-  if (creatureType && level < 10) return Math.round(E1_BASE_HP[creatureType] * hpMult)
+  if (creatureType && level < 10) return Math.round(E1_BASE_HP[creatureType] * e1LevelMult(level) * hpMult)
   const typeMult = creatureType ? CREATURE_PROFILES[creatureType].hpMult : 1.0
   return Math.round((BASE_HP + (level - 1) * 2) * hpMult * typeMult)
+}
+
+function e1LevelMult(level: number): number {
+  return 1 + 0.03 * (Math.max(1, Math.min(10, level)) - 1)
+}
+
+function scaleE1Value(base: number, passiveLevel: 1 | 2 | 3, level: number): number {
+  return passiveLevel === 1 ? Math.round(base * e1LevelMult(level)) : Math.round(base)
+}
+
+function e1SpellDescription(spellId: SpellId, level: number): string | null {
+  const s = (base: number) => scaleE1Value(base, 1, level)
+  switch (spellId) {
+    case 'frappe_ardente': return `${s(8)} dégâts + 1 braise (max 3)`
+    case 'immolation': return `-5 PV sur soi → ${s(20)} dégâts garantis`
+    case 'explosion': return `${s(20)} dégâts, ${s(30)} dégâts dès 2 braises`
+    case 'siphon': return `${s(10)} dégâts + vol de vie (+${s(2)} PV)`
+    case 'regeneration': return `+${s(8)} PV, +${s(12)} PV sous 33% PV`
+    case 'raz_de_maree': return `${s(20)} dégâts`
+    case 'coup_voile': return `${s(7)} dégâts + -15% précision ennemie 2 tours`
+    case 'embuscade': return `${s(14)} dégâts, ${s(25)} si Volute active ou ennemi raté`
+    case 'decharge': return `${s(10)} dégâts — priorité`
+    case 'arc_paralysant': return `${s(15)} dégâts + 30% paralysie 1 tour`
+    case 'surcharge': return `${s(22)} dégâts — surfatigue prochain tour`
+    default: return null
+  }
 }
 
 // ─── status helpers ──────────────────────────────────────
@@ -289,6 +315,8 @@ function resolveSpell(
   _casterType: CreatureType,
   _targetType: CreatureType,
   passiveLevel: 1 | 2 | 3,
+  casterLevel: number,
+  casterMaxHp: number,
   opponentMissedThisTurn: boolean,
   targetLoadout?: SpellLoadout,
 ): SpellResolveResult {
@@ -311,7 +339,7 @@ function resolveSpell(
       const newEmbers = Math.min(3, caster.embers + 1)
       // Passive E1: 2 braises boost Explosion; later stages keep the 3-braise rule.
       const braiseBonus = caster.embers === 3
-      const base = passiveLevel === 1 ? 8 : 7
+      const base = passiveLevel === 1 ? scaleE1Value(8, passiveLevel, casterLevel) : 7
       const raw = braiseBonus ? Math.round(base * 1.5) : base
       return {
         ...empty,
@@ -323,7 +351,7 @@ function resolveSpell(
     case 'explosion': {
       const embers = caster.embers
       const braiseBonus = passiveLevel === 1 ? embers >= 2 : embers >= 3
-      const base = passiveLevel === 1 ? 20 : 9.9
+      const base = passiveLevel === 1 ? scaleE1Value(20, passiveLevel, casterLevel) : 9.9
       const raw = braiseBonus ? Math.round(base * 1.5) : base
       const dmg = Math.round(raw)
       return {
@@ -352,7 +380,7 @@ function resolveSpell(
     case 'immolation': {
       // Guaranteed — dodge/barrier skipped in commitAction for this spell
       const braiseBonus = caster.embers === 3
-      const base = passiveLevel === 1 ? 20 : 11
+      const base = passiveLevel === 1 ? scaleE1Value(20, passiveLevel, casterLevel) : 11
       const raw = braiseBonus ? Math.round(base * 1.5) : base
       return {
         ...empty,
@@ -395,9 +423,9 @@ function resolveSpell(
     }
     case 'siphon': {
       // Life steal: always heal +4, +2 bonus if low HP (sustain passive)
-      const lowHp = caster.hp < 25
-      const heal = passiveLevel === 1 ? 2 : (lowHp ? 6 : 4)
-      const dmg = passiveLevel === 1 ? 10 : 6
+      const lowHp = passiveLevel === 1 ? caster.hp < casterMaxHp * 0.33 : caster.hp < 25
+      const heal = passiveLevel === 1 ? scaleE1Value(2, passiveLevel, casterLevel) : (lowHp ? 6 : 4)
+      const dmg = passiveLevel === 1 ? scaleE1Value(10, passiveLevel, casterLevel) : 6
       return {
         ...empty,
         casterHpDelta: heal,
@@ -406,8 +434,10 @@ function resolveSpell(
       }
     }
     case 'regeneration': {
-      const lowHp = caster.hp < 25
-      const heal = passiveLevel === 1 ? (lowHp ? 12 : 8) : (lowHp ? 18 : 14)
+      const lowHp = passiveLevel === 1 ? caster.hp < casterMaxHp * 0.33 : caster.hp < 25
+      const heal = passiveLevel === 1
+        ? scaleE1Value(lowHp ? 12 : 8, passiveLevel, casterLevel)
+        : (lowHp ? 18 : 14)
       return {
         ...empty,
         casterHpDelta: heal,
@@ -434,8 +464,8 @@ function resolveSpell(
     case 'raz_de_maree': {
       return {
         ...empty,
-        targetHpDelta: passiveLevel === 1 ? -20 : -16,
-        log: `🌊💥 Raz-de-marée ! -${passiveLevel === 1 ? 20 : 16} HP`,
+        targetHpDelta: -(passiveLevel === 1 ? scaleE1Value(20, passiveLevel, casterLevel) : 16),
+        log: `🌊💥 Raz-de-marée ! -${passiveLevel === 1 ? scaleE1Value(20, passiveLevel, casterLevel) : 16} HP`,
       }
     }
     case 'maree_curative': {
@@ -464,9 +494,9 @@ function resolveSpell(
         : (Math.random() < 0.2 ? [{ type: 'fog', turnsLeft: 2 }] : [])
       return {
         ...empty,
-        targetHpDelta: passiveLevel === 1 ? -7 : -Math.round(6.2),
+        targetHpDelta: passiveLevel === 1 ? -scaleE1Value(7, passiveLevel, casterLevel) : -Math.round(6.2),
         targetStatusesToAdd: fogStatus,
-        log: `👊 Coup voilé ! -${passiveLevel === 1 ? 7 : 6} HP${fogStatus.length ? ' + brouillage ennemi !' : ''}`,
+        log: `👊 Coup voilé ! -${passiveLevel === 1 ? scaleE1Value(7, passiveLevel, casterLevel) : 6} HP${fogStatus.length ? ' + brouillage ennemi !' : ''}`,
       }
     }
     case 'laceration_voilee': {
@@ -527,8 +557,8 @@ function resolveSpell(
     case 'decharge': {
       return {
         ...empty,
-        targetHpDelta: passiveLevel === 1 ? -10 : -8,
-        log: `⚡ Décharge ! -${passiveLevel === 1 ? 10 : 8} HP (priorité)`,
+        targetHpDelta: -(passiveLevel === 1 ? scaleE1Value(10, passiveLevel, casterLevel) : 8),
+        log: `⚡ Décharge ! -${passiveLevel === 1 ? scaleE1Value(10, passiveLevel, casterLevel) : 8} HP (priorité)`,
       }
     }
     case 'arc_paralysant': {
@@ -536,9 +566,9 @@ function resolveSpell(
       const paralysisStatus: StatusEffect[] = paralyzed ? [{ type: 'paralyzed', turnsLeft: 2 }] : []
       return {
         ...empty,
-        targetHpDelta: passiveLevel === 1 ? -15 : -5,
+        targetHpDelta: -(passiveLevel === 1 ? scaleE1Value(15, passiveLevel, casterLevel) : 5),
         targetStatusesToAdd: paralysisStatus,
-        log: `🎯 Arc paralysant ! -${passiveLevel === 1 ? 15 : 5} HP${paralyzed ? ' · Ennemi paralysé !' : ' · Rate la paralysie.'}`,
+        log: `🎯 Arc paralysant ! -${passiveLevel === 1 ? scaleE1Value(15, passiveLevel, casterLevel) : 5} HP${paralyzed ? ' · Ennemi paralysé !' : ' · Rate la paralysie.'}`,
       }
     }
     case 'boost': {
@@ -567,9 +597,9 @@ function resolveSpell(
     case 'surcharge': {
       return {
         ...empty,
-        targetHpDelta: passiveLevel === 1 ? -22 : -16,
+        targetHpDelta: -(passiveLevel === 1 ? scaleE1Value(22, passiveLevel, casterLevel) : 16),
         casterStatusesToAdd: [{ type: 'exhausted', turnsLeft: 2, value: 2 }],
-        log: `🔋 Surcharge ! -${passiveLevel === 1 ? 22 : 16} HP + épuisement prochain tour`,
+        log: `🔋 Surcharge ! -${passiveLevel === 1 ? scaleE1Value(22, passiveLevel, casterLevel) : 16} HP + épuisement prochain tour`,
       }
     }
     case 'tempete': {
@@ -1607,6 +1637,8 @@ function SpellCard({
   maxEnergy,
   color,
   displayMult,
+  level,
+  passiveLevel,
   onPress,
 }: {
   spellId: SpellId
@@ -1614,11 +1646,16 @@ function SpellCard({
   maxEnergy: number
   color: string
   displayMult: number
+  level: number
+  passiveLevel: 1 | 2 | 3
   onPress: () => void
 }) {
   const spell = SPELL_CATALOG[spellId]
   const usable = canUseSpell(spellId, state, maxEnergy)
   const cd = state.cooldowns[spellId] ?? 0
+  const description = passiveLevel === 1
+    ? (e1SpellDescription(spellId, level) ?? spell.description)
+    : (spell.scaledDesc ? spell.scaledDesc(displayMult) : spell.description)
 
   return (
     <TouchableOpacity
@@ -1642,7 +1679,7 @@ function SpellCard({
           ]} />
         ))}
       </View>
-      <Text style={s.spellRole} numberOfLines={2}>{spell.scaledDesc ? spell.scaledDesc(displayMult) : spell.description}</Text>
+      <Text style={s.spellRole} numberOfLines={2}>{description}</Text>
     </TouchableOpacity>
   )
 }
@@ -1923,7 +1960,7 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
         const result = resolveSpell(
           pAction.spellId, newP, newO,
           playerType, opponent.creatureType,
-          pPassiveLevel, false,
+          pPassiveLevel, playerLevel, playerMaxHP, false,
           opponentLoadout,
         )
 
@@ -2022,7 +2059,7 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
         const result = resolveSpell(
           oAction.spellId, newO, newP,
           opponent.creatureType, playerType,
-          oPassiveLevel, false,
+          oPassiveLevel, opponent.level, opponentMaxHP, false,
           playerLoadout,
         )
 
@@ -2135,7 +2172,7 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
 
       const rawBase = pPassiveLevel === 1 ? 14 : (isParfaite ? 10.3 : 8.9)
       const rawDmg = pPassiveLevel === 1
-        ? (bonusCondition ? 25 : 14)
+        ? scaleE1Value(bonusCondition ? 25 : 14, pPassiveLevel, playerLevel)
         : (isParfaite ? Math.round(rawBase) : Math.round(bonusCondition ? rawBase * 2 : rawBase))
 
       let embDmg = pPassiveLevel === 1
@@ -2167,7 +2204,7 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
 
       const rawBase = oPassiveLevel === 1 ? 14 : (isParfaite ? 10.3 : 8.9)
       const rawDmg = oPassiveLevel === 1
-        ? (bonusCondition ? 25 : 14)
+        ? scaleE1Value(bonusCondition ? 25 : 14, oPassiveLevel, opponent.level)
         : (isParfaite ? Math.round(rawBase) : Math.round(bonusCondition ? rawBase * 2 : rawBase))
 
       let embDmg = oPassiveLevel === 1
@@ -2553,6 +2590,7 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
           {([0, 1] as const).map(i => (
             <SpellCard key={playerLoadout[i]} spellId={playerLoadout[i]} state={pState}
               maxEnergy={playerMods.maxEnergy} color={pColor} displayMult={playerDisplayMult}
+              level={playerLevel} passiveLevel={pPassiveLevel}
               onPress={() => commitAction({ kind: 'spell', spellId: playerLoadout[i] })} />
           ))}
         </View>
@@ -2560,6 +2598,7 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
           {([2, 3] as const).map(i => (
             <SpellCard key={playerLoadout[i]} spellId={playerLoadout[i]} state={pState}
               maxEnergy={playerMods.maxEnergy} color={pColor} displayMult={playerDisplayMult}
+              level={playerLevel} passiveLevel={pPassiveLevel}
               onPress={() => commitAction({ kind: 'spell', spellId: playerLoadout[i] })} />
           ))}
         </View>
