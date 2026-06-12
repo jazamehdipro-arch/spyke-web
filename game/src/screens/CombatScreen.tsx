@@ -166,7 +166,7 @@ function computeModifiers(creature: Creature, opponentType: CreatureType): Comba
 
   damageMult *= profile.baseDamageMult
   // Level scaling (même courbe que les PV) + boost global pour équilibrer la durée des combats
-  damageMult *= GLOBAL_DMG_BOOST * (1 + 0.03 * (creature.stats.level - 1))
+  damageMult *= GLOBAL_DMG_BOOST * levelMult(creature.stats.level)
 
   const timerBonus = 0
   const timerReduction = happiness < 60 ? 1 : 0
@@ -184,7 +184,7 @@ function computeModifiers(creature: Creature, opponentType: CreatureType): Comba
 
 function computeDisplayMult(type: CreatureType, level: number): number {
   const profile = CREATURE_PROFILES[type]
-  return profile.baseDamageMult * GLOBAL_DMG_BOOST * (1 + 0.03 * (level - 1))
+  return profile.baseDamageMult * GLOBAL_DMG_BOOST * levelMult(level)
 }
 
 const OPPONENT_MAX_ENERGY = 5
@@ -202,17 +202,20 @@ const E1_BASE_HP: Record<CreatureType, number> = {
 }
 
 function calcHP(level: number, hpMult = 1.0, creatureType?: CreatureType) {
-  if (creatureType && level < 10) return Math.round(E1_BASE_HP[creatureType] * e1LevelMult(level) * hpMult)
-  const typeMult = creatureType ? CREATURE_PROFILES[creatureType].hpMult : 1.0
-  return Math.round((BASE_HP + (level - 1) * 2) * hpMult * typeMult)
+  if (creatureType) return Math.round(E1_BASE_HP[creatureType] * levelMult(level) * hpMult)
+  return Math.round(BASE_HP * levelMult(level) * hpMult)
 }
 
-function e1LevelMult(level: number): number {
-  return 1 + 0.03 * (Math.max(1, Math.min(10, level)) - 1)
+function levelMult(level: number): number {
+  return 1 + 0.03 * (Math.max(1, level) - 1)
 }
 
 function scaleE1Value(base: number, passiveLevel: 1 | 2 | 3, level: number): number {
-  return passiveLevel === 1 ? Math.round(base * e1LevelMult(level)) : Math.round(base)
+  return passiveLevel === 1 ? Math.round(base * levelMult(level)) : Math.round(base)
+}
+
+function scaleLevelValue(base: number, level: number): number {
+  return Math.round(base * levelMult(level))
 }
 
 function e1SpellDescription(spellId: SpellId, level: number): string | null {
@@ -424,7 +427,9 @@ function resolveSpell(
     case 'siphon': {
       // Life steal: always heal +4, +2 bonus if low HP (sustain passive)
       const lowHp = passiveLevel === 1 ? caster.hp < casterMaxHp * 0.33 : caster.hp < 25
-      const heal = passiveLevel === 1 ? scaleE1Value(2, passiveLevel, casterLevel) : (lowHp ? 6 : 4)
+      const heal = passiveLevel === 1
+        ? scaleE1Value(2, passiveLevel, casterLevel)
+        : scaleLevelValue(lowHp ? 6 : 4, casterLevel)
       const dmg = passiveLevel === 1 ? scaleE1Value(10, passiveLevel, casterLevel) : 6
       return {
         ...empty,
@@ -437,7 +442,7 @@ function resolveSpell(
       const lowHp = passiveLevel === 1 ? caster.hp < casterMaxHp * 0.33 : caster.hp < 25
       const heal = passiveLevel === 1
         ? scaleE1Value(lowHp ? 12 : 8, passiveLevel, casterLevel)
-        : (lowHp ? 18 : 14)
+        : scaleLevelValue(lowHp ? 18 : 14, casterLevel)
       return {
         ...empty,
         casterHpDelta: heal,
@@ -470,7 +475,7 @@ function resolveSpell(
     }
     case 'maree_curative': {
       const lowHp = caster.hp < 25
-      const heal = lowHp ? 11 : 8
+      const heal = scaleLevelValue(lowHp ? 11 : 8, casterLevel)
       return {
         ...empty,
         casterHpDelta: heal,
@@ -736,7 +741,7 @@ function resolveSpell(
       return {
         ...empty,
         targetHpDelta: -12,
-        casterHpDelta: 6,
+        casterHpDelta: scaleLevelValue(6, casterLevel),
         log: '🌊💚 Succion vitale ! -12 HP + soin +6 PV',
       }
     }
@@ -2112,7 +2117,7 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
                 * opponentCounterBonus
                 * opponentProfile.baseDamageMult
                 * GLOBAL_DMG_BOOST
-                * (1 + 0.03 * (opponent.level - 1))
+                * levelMult(opponent.level)
                 * diffDmgMult
               )
             }
@@ -2214,7 +2219,7 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
             * opponentCounterBonus
             * opponentProfile.baseDamageMult
             * GLOBAL_DMG_BOOST
-            * (1 + 0.03 * (opponent.level - 1))
+            * levelMult(opponent.level)
             * diffDmgMult
           )
 
