@@ -693,22 +693,35 @@ function NoCrossingsState() {
 }
 
 // ── Event history card ─────────────────────────────────────
-function EventCard({ event, onCombat }: { event: SocialEvent; onCombat: () => void }) {
+function EventCard({ event, relation, onCombat }: { event: SocialEvent; relation?: SocialRelation; onCombat: () => void }) {
   const color = EVENT_COLORS[event.type]
+  const username     = relation?.username     ?? event.opponent?.username
+  const creatureName = relation?.creatureName ?? event.opponent?.creatureName
+  const creatureType = relation?.creatureType ?? event.opponent?.creatureType
+  const level        = relation?.level        ?? event.opponent?.level ?? 1
+  const theme  = creatureType ? typeTheme[creatureType] : undefined
+  const sprite = creatureType ? getOpponentSprite(creatureType, level) : undefined
+
   return (
-    <View style={[st.evCard, { borderLeftColor: color }]}>
-      <View style={[st.evSlot, { backgroundColor: color + '22', borderColor: color }]}>
-        <Text style={st.evEmoji}>{EVENT_EMOJI[event.type]}</Text>
-      </View>
+    <View style={[st.evCard, { borderLeftColor: theme?.main ?? color }]}>
+      {sprite && theme ? (
+        <View style={[st.evSlot, { backgroundColor: theme.soft, borderColor: theme.dark }]}>
+          <Image source={sprite} style={st.evSprite} resizeMode="contain" />
+        </View>
+      ) : (
+        <View style={[st.evSlot, { backgroundColor: color + '22', borderColor: color }]}>
+          <Text style={st.evEmoji}>{EVENT_EMOJI[event.type]}</Text>
+        </View>
+      )}
       <View style={st.evBody}>
         <View style={st.evTitleRow}>
-          <Text style={st.evTitle}>{event.title}</Text>
+          <Text style={st.evTitle}>{creatureName ?? event.title}</Text>
           <Text style={st.evTime}>{timeAgo(event.createdAt)}</Text>
         </View>
-        <Text style={st.evMsg} numberOfLines={2}>{event.message}</Text>
+        <Text style={st.evMsg} numberOfLines={1}>{username ? `@${username}` : event.message}</Text>
       </View>
       {event.pendingCombat && (
-        <TouchableOpacity style={[st.evFightBtn, { backgroundColor: color }]} onPress={onCombat}>
+        <TouchableOpacity style={[st.evFightBtn, { backgroundColor: theme?.main ?? color }]} onPress={onCombat}>
           <Text style={st.evFightTxt}>⚔️</Text>
         </TouchableOpacity>
       )}
@@ -765,10 +778,7 @@ function BotCard({ bot, onChallenge }: { bot: CombatOpponent; onChallenge: () =>
 
 function CrossingCard({ item, onChallenge }: { item: Crossing; onChallenge: () => void }) {
   const theme  = typeTheme[item.creatureType]
-  const sprite = SPRITES_E1[item.creatureType]
-  const interactionLabel = {
-    friendly: '🤝', battle: '⚔️', gift: '🎁', theft: '💰', mentor: '🎓', mood: '💫', skin: '🎨',
-  }[item.interactionType] ?? '🤝'
+  const sprite = getOpponentSprite(item.creatureType, item.level ?? 1)
 
   return (
     <View style={st.botCard}>
@@ -778,7 +788,7 @@ function CrossingCard({ item, onChallenge }: { item: Crossing; onChallenge: () =
       <View style={{ flex: 1 }}>
         <Text style={st.botName}>{item.creatureName}</Text>
         <Text style={st.botUser}>@{item.username}</Text>
-        <Text style={st.botMeta}>{interactionLabel} {timeAgo(item.crossedAt)}</Text>
+        <Text style={st.botMeta}>{item.level ? `Niv.${item.level} · ` : ''}{timeAgo(item.crossedAt)}</Text>
       </View>
       <TouchableOpacity style={[st.botFightBtn, { backgroundColor: theme.main, borderColor: theme.dark }]} onPress={onChallenge}>
         <Text style={st.botFightTxt}>⚔️ Défier</Text>
@@ -1016,7 +1026,12 @@ export default function CrossingsScreen({ player, onCombatEnd }: Props) {
                 <SectionTitle title="DERNIERS CROISEMENTS" color={retro.red} style={st.sectionTitle} />
                 <View style={st.evList}>
                   {events.slice(0, 5).map((event) => (
-                    <EventCard key={event.id} event={event} onCombat={() => startSocialCombat(event)} />
+                    <EventCard
+                      key={event.id}
+                      event={event}
+                      relation={relations.find((r) => r.id === event.relationId)}
+                      onCombat={() => startSocialCombat(event)}
+                    />
                   ))}
                   {events.length > 5 && (
                     <Text style={st.evMore}>+{events.length - 5} dans l'historique</Text>
@@ -1304,6 +1319,7 @@ const st = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center', flexShrink: 0,
   },
   evEmoji: { fontSize: 18 },
+  evSprite: { width: 30, height: 30 },
   evBody: { flex: 1, gap: 2 },
   evTitleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   evTitle: { fontSize: 12, fontWeight: '900', color: retro.ink, fontFamily: 'monospace' },
