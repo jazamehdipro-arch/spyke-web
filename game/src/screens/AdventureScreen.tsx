@@ -283,8 +283,8 @@ const LEAGUES: League[] = [
       { username: 'Oracle Verdant',        monster: { name: 'TIDECALLER', title: 'Invocateur des Tempêtes',       emoji: '🌊', type: 'abyssal' }, level: 25 },
       { username: 'Ancien Pyrex',          monster: { name: 'ASHBLOOM',   title: 'Phénix des Cendres Éternelles', emoji: '🔥', type: 'magma'   }, level: 27 },
       { username: 'Maître Zéphyr',         monster: { name: 'WILDBLIGHT', title: 'Fléau Ancestral de la Nature',  emoji: '🌿', type: 'sable'   }, level: 29 },
-      { username: 'Gardien Suprême',       monster: { name: 'STELLARAX',  title: 'Éclat Cosmique Ultime',         emoji: '💥', type: 'magma'   }, level: 32 },
-      { username: "L'Ancien des Anciens",  monster: { name: 'CHRONALIS',  title: 'Gardien Éternel du Temps',      emoji: '✨', type: 'abyssal', isBoss: true }, level: 38 },
+      { username: 'Gardien Suprême',       monster: { name: 'STELLARAX',  title: 'Éclat Cosmique Ultime',         emoji: '💥', type: 'magma'   }, level: 30 },
+      { username: "L'Ancien des Anciens",  monster: { name: 'CHRONALIS',  title: 'Gardien Éternel du Temps',      emoji: '✨', type: 'abyssal', isBoss: true }, level: 30 },
     ],
     decorations: [
       { emoji: '✨', fx: 0.07, y: 72,  size: 24 },

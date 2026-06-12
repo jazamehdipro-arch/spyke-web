@@ -131,9 +131,21 @@ export function applyActiveCareTick(creature: Creature, hours: number): Creature
 }
 
 export const DAILY_CARE_XP_CAP = 30
+export const MAX_CREATURE_LEVEL = 30
+export const MAX_LEVEL_COIN_REWARD = 30
 
 export function xpForLevel(level: number): number {
   return Math.round(30 + 18 * Math.pow(level, 1.15))
+}
+
+function effectiveXP(creature: Creature, amount: number): number {
+  const happinessMult = creature.stats.happiness >= 70 ? 1.2 : creature.stats.happiness < 30 ? 0.7 : 1.0
+  return Math.max(0, Math.round(amount * happinessMult))
+}
+
+export function xpToCoins(xp: number): number {
+  if (xp <= 0) return 0
+  return Math.max(1, Math.floor((xp * MAX_LEVEL_COIN_REWARD) / xpForLevel(MAX_CREATURE_LEVEL - 1)))
 }
 
 export function createNewCreature(type: CreatureType): Creature {
@@ -164,15 +176,27 @@ export function createNewCreature(type: CreatureType): Creature {
 }
 
 export function addXP(creature: Creature, amount: number): Creature {
-  const happinessMult = creature.stats.happiness >= 70 ? 1.2 : creature.stats.happiness < 30 ? 0.7 : 1.0
   let { xp, level, xpToNextLevel } = creature.stats
   const prevLevel = level
-  xp += Math.round(amount * happinessMult)
+  level = Math.min(MAX_CREATURE_LEVEL, level)
+  if (level >= MAX_CREATURE_LEVEL) {
+    return {
+      ...creature,
+      stats: { ...creature.stats, xp: 0, level: MAX_CREATURE_LEVEL, xpToNextLevel: xpForLevel(MAX_CREATURE_LEVEL) },
+    }
+  }
 
-  while (xp >= xpToNextLevel) {
+  xp += effectiveXP(creature, amount)
+
+  while (level < MAX_CREATURE_LEVEL && xp >= xpToNextLevel) {
     xp -= xpToNextLevel
     level++
     xpToNextLevel = xpForLevel(level)
+  }
+  if (level >= MAX_CREATURE_LEVEL) {
+    level = MAX_CREATURE_LEVEL
+    xp = 0
+    xpToNextLevel = xpForLevel(MAX_CREATURE_LEVEL)
   }
 
   const levelsGained = level - prevLevel
@@ -180,6 +204,48 @@ export function addXP(creature: Creature, amount: number): Creature {
     ...creature,
     stats: { ...creature.stats, xp, level, xpToNextLevel },
     pendingTrainingPoints: (creature.pendingTrainingPoints ?? 0) + levelsGained * 2,
+  }
+}
+
+export function addXPWithConversion(creature: Creature, amount: number): { creature: Creature; convertedCoins: number } {
+  let { xp, level, xpToNextLevel } = creature.stats
+  const prevLevel = level
+  let gainedXP = effectiveXP(creature, amount)
+  let convertedCoins = 0
+
+  level = Math.min(MAX_CREATURE_LEVEL, level)
+  if (level >= MAX_CREATURE_LEVEL) {
+    return {
+      creature: {
+        ...creature,
+        stats: { ...creature.stats, xp: 0, level: MAX_CREATURE_LEVEL, xpToNextLevel: xpForLevel(MAX_CREATURE_LEVEL) },
+      },
+      convertedCoins: xpToCoins(gainedXP),
+    }
+  }
+
+  xp += gainedXP
+  while (level < MAX_CREATURE_LEVEL && xp >= xpToNextLevel) {
+    xp -= xpToNextLevel
+    level++
+    xpToNextLevel = xpForLevel(level)
+  }
+
+  if (level >= MAX_CREATURE_LEVEL) {
+    convertedCoins = xpToCoins(xp)
+    level = MAX_CREATURE_LEVEL
+    xp = 0
+    xpToNextLevel = xpForLevel(MAX_CREATURE_LEVEL)
+  }
+
+  const levelsGained = level - prevLevel
+  return {
+    creature: {
+      ...creature,
+      stats: { ...creature.stats, xp, level, xpToNextLevel },
+      pendingTrainingPoints: (creature.pendingTrainingPoints ?? 0) + levelsGained * 2,
+    },
+    convertedCoins,
   }
 }
 
@@ -194,5 +260,22 @@ export function addCareXP(creature: Creature, amount: number): Creature {
     ...addXP(creature, base),
     dailyCareXP: todayBase + base,
     dailyCareXPDate: today,
+  }
+}
+
+export function addCareXPWithConversion(creature: Creature, amount: number): { creature: Creature; convertedCoins: number } {
+  const today = new Date().toISOString().slice(0, 10)
+  const todayBase = creature.dailyCareXPDate === today ? (creature.dailyCareXP ?? 0) : 0
+  const remaining = Math.max(0, DAILY_CARE_XP_CAP - todayBase)
+  if (remaining <= 0) return { creature, convertedCoins: 0 }
+  const base = Math.min(amount, remaining)
+  const result = addXPWithConversion(creature, base)
+  return {
+    creature: {
+      ...result.creature,
+      dailyCareXP: todayBase + base,
+      dailyCareXPDate: today,
+    },
+    convertedCoins: result.convertedCoins,
   }
 }

@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native'
 import { CreatureStats } from '../types'
 import { Panel, PixelBar, SmoothBar } from './ui'
 import { font, retro } from '../styles/retro'
+import { MAX_CREATURE_LEVEL } from '../utils/creature'
 
 interface StatBarProps {
   label: string
@@ -27,6 +28,7 @@ interface Props {
 }
 
 export default function StatsPanel({ stats }: Props) {
+  const isMaxLevel = stats.level >= MAX_CREATURE_LEVEL
   return (
     <Panel label="Vitalité" style={styles.container}>
       <StatBar label="Faim"    value={stats.hunger}    color={retro.red}  icon="🍖" />
@@ -36,13 +38,13 @@ export default function StatsPanel({ stats }: Props) {
       <View style={styles.xpRow}>
         <Text style={styles.xpLabel}>XP</Text>
         <SmoothBar
-          value={stats.xp / stats.xpToNextLevel}
+          value={isMaxLevel ? 1 : stats.xp / stats.xpToNextLevel}
           color={retro.purple}
           height={12}
           style={styles.bar}
         />
         <Text style={styles.xpValue}>
-          {stats.xp}/{stats.xpToNextLevel}
+          {isMaxLevel ? 'MAX' : `${stats.xp}/${stats.xpToNextLevel}`}
         </Text>
       </View>
     </Panel>

@@ -8,7 +8,7 @@ import OnboardingScreen from './src/screens/OnboardingScreen'
 import ProfileScreen from './src/screens/ProfileScreen'
 import QuestsScreen from './src/screens/QuestsScreen'
 import { Creature, Crossing, CreatureType, DailyQuest, GameEvent, InventoryItem, JournalEntry, Quest } from './src/types'
-import { addXP, applyOfflineCareDecay, createNewCreature, getMood } from './src/utils/creature'
+import { addXP, addXPWithConversion, applyOfflineCareDecay, createNewCreature, getMood } from './src/utils/creature'
 import { ITEM_CATALOG, drawMysteryBox, getStarterInventory } from './src/utils/items'
 import { QUEST_DEFINITIONS } from './src/utils/quests'
 import { retro } from './src/styles/retro'
@@ -49,6 +49,14 @@ interface GameState {
   streak: number
 }
 
+function applyXPReward(creature: Creature, amount: number): { creature: Creature; coins: number } {
+  const result = addXPWithConversion(creature, amount)
+  return {
+    creature: { ...result.creature, mood: getMood(result.creature.stats) },
+    coins: result.convertedCoins,
+  }
+}
+
 export default function App() {
   const [ready, setReady] = useState(false)
   const [state, setState] = useState<GameState | null>(null)
@@ -82,7 +90,7 @@ export default function App() {
       ])
 
       if (savedCreature && savedPlayer) {
-        const withMood = applyOfflineCareDecay(savedCreature)
+        const withMood = addXP(applyOfflineCareDecay(savedCreature), 0)
 
         // Resolve daily quests (refresh if stale)
         let dailyQuests: DailyQuest[]
@@ -153,6 +161,9 @@ export default function App() {
     ) => {
       setState((prev) => {
         if (!prev) return prev
+        if (coins !== undefined) {
+          void savePlayer({ id: prev.username, username: prev.username, coins })
+        }
         return {
           ...prev,
           creature,
@@ -213,13 +224,19 @@ export default function App() {
         const rewardDef = ITEM_CATALOG[reward.itemId]
         if (rewardDef) newInventory = addItemToInventory(newInventory, { ...rewardDef, quantity: 1 })
       }
-      let updatedCreature = reward.xp ? addXP(creature, reward.xp) : creature
+      let convertedCoins = 0
+      let updatedCreature = creature
+      if (reward.xp) {
+        const xpReward = applyXPReward(creature, reward.xp)
+        updatedCreature = xpReward.creature
+        convertedCoins = xpReward.coins
+      }
       if (reward.skin) {
         const ownedSkins = [...(updatedCreature.ownedSkins ?? []), reward.skin]
         updatedCreature = { ...updatedCreature, ownedSkins }
       }
       updatedCreature = { ...updatedCreature, mood: getMood(updatedCreature.stats) }
-      const newCoins = coins + reward.coins
+      const newCoins = coins + reward.coins + convertedCoins
       const prize    = reward.itemId ? ITEM_CATALOG[reward.itemId] : null
       let msg: string
       if (reward.skin) {
@@ -248,8 +265,11 @@ export default function App() {
         isSick:    item.effect.healsSickness ? false : creature.stats.isSick,
       },
     }
+    let convertedCoins = 0
     if (item.effect.xp) {
-      updatedCreature = addXP(updatedCreature, item.effect.xp)
+      const xpReward = applyXPReward(updatedCreature, item.effect.xp)
+      updatedCreature = xpReward.creature
+      convertedCoins = xpReward.coins
     }
     updatedCreature = { ...updatedCreature, mood: getMood(updatedCreature.stats) }
 
@@ -259,8 +279,9 @@ export default function App() {
 
     const newJournal = addJournalEntry(journal, `${creature.name} a utilisé ${item.emoji} ${item.name}.`, item.emoji)
 
-    await Promise.all([saveCreature(updatedCreature), saveInventory(newInventory), saveJournal(newJournal)])
-    handleUpdate(updatedCreature, newInventory, state.events, quests, newJournal)
+    const finalCoins = coins + convertedCoins
+    await Promise.all([saveCreature(updatedCreature), saveInventory(newInventory), saveJournal(newJournal), savePlayer({ id: state.username, username: state.username, coins: finalCoins })])
+    handleUpdate(updatedCreature, newInventory, state.events, quests, newJournal, undefined, finalCoins)
   }, [state, handleUpdate])
 
   const handleSkinChange = useCallback(async (skin: string | null) => {
@@ -287,8 +308,8 @@ export default function App() {
     let { creature, inventory, quests, journal } = state
 
     const updatedQuests = quests.map((q) => q.id === quest.id ? { ...q, claimed: true } : q)
-    let updatedCreature = addXP(creature, quest.reward.xp)
-    updatedCreature = { ...updatedCreature, mood: getMood(updatedCreature.stats) }
+    const xpReward = applyXPReward(creature, quest.reward.xp)
+    let updatedCreature = xpReward.creature
 
     let newInventory = inventory
     if (quest.reward.itemId) {
@@ -296,10 +317,11 @@ export default function App() {
       if (item) newInventory = addItemToInventory(inventory, { ...item, quantity: 1 })
     }
 
-    const newJournal = addJournalEntry(journal, `Objectif "${quest.title}" complété ! +${quest.reward.xp} XP`, '🏆')
+    const newCoins = state.coins + xpReward.coins
+    const newJournal = addJournalEntry(journal, `Objectif "${quest.title}" complete ! +${quest.reward.xp} XP${xpReward.coins > 0 ? ` -> ${xpReward.coins} pieces` : ''}`, '🏆')
 
-    await Promise.all([saveCreature(updatedCreature), saveInventory(newInventory), saveQuests(updatedQuests), saveJournal(newJournal)])
-    handleUpdate(updatedCreature, newInventory, state.events, updatedQuests, newJournal)
+    await Promise.all([saveCreature(updatedCreature), saveInventory(newInventory), saveQuests(updatedQuests), saveJournal(newJournal), savePlayer({ id: state.username, username: state.username, coins: newCoins })])
+    handleUpdate(updatedCreature, newInventory, state.events, updatedQuests, newJournal, undefined, newCoins)
   }, [state, handleUpdate])
 
   const handleClaimDailyReward = useCallback(async (quest: DailyQuest) => {
@@ -310,10 +332,10 @@ export default function App() {
       q.id === quest.id ? { ...q, claimed: true } : q
     )
 
-    let updatedCreature = addXP(creature, quest.reward.xp)
-    updatedCreature = { ...updatedCreature, mood: getMood(updatedCreature.stats) }
+    const xpReward = applyXPReward(creature, quest.reward.xp)
+    let updatedCreature = xpReward.creature
 
-    const newCoins = state.coins + quest.reward.coins
+    const newCoins = state.coins + quest.reward.coins + xpReward.coins
     const newJournal = addJournalEntry(
       journal,
       `Quête du jour "${quest.title}" complétée ! +${quest.reward.xp} XP +${quest.reward.coins} pièces`,
@@ -392,7 +414,8 @@ export default function App() {
           <CrossingsScreen
             player={state.creature}
             onCombatEnd={async (won, xpGained, coinsGained) => {
-              let updated = addXP(state.creature, xpGained)
+              const xpReward = applyXPReward(state.creature, xpGained)
+              let updated = xpReward.creature
               updated = {
                 ...updated,
                 lastPlayed: new Date().toISOString(),
@@ -411,7 +434,7 @@ export default function App() {
                 : won
                   ? 15 + Math.floor(Math.random() * 11)
                   : 3 + Math.floor(Math.random() * 4)
-              const newCoins = state.coins + coinsEarned
+              const newCoins = state.coins + coinsEarned + xpReward.coins
               if (won && coinsGained === undefined) {
                 // item drops only for non-adventure combat
                 newInventory = addItemToInventory(state.inventory, { ...ITEM_CATALOG.croquettes, quantity: 2 })

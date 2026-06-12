@@ -18,7 +18,7 @@ import EventModal from '../components/EventModal'
 import MiniGame from '../components/MiniGame'
 import ParticleEffect from '../components/ParticleEffect'
 import { Creature, Crossing, GameEvent, InventoryItem, JournalEntry, Quest, TrainingStats } from '../types'
-import { DAILY_CARE_XP_CAP, FORME_LABELS, addCareXP, addXP, applyActiveCareTick, applyOfflineCareDecay, getFormeLevel, getMood, xpForLevel } from '../utils/creature'
+import { DAILY_CARE_XP_CAP, FORME_LABELS, MAX_CREATURE_LEVEL, addCareXPWithConversion, addXPWithConversion, applyActiveCareTick, applyOfflineCareDecay, getFormeLevel, getMood, xpForLevel } from '../utils/creature'
 import { generateRandomEvent, getRewardItem, shouldTriggerEvent } from '../utils/events'
 import { getCreatureSpeech, getReactionMessage } from '../utils/speech'
 import { addItemToInventory, addJournalEntry, loadCrossings, saveCreature, saveEvents, saveInventory, saveJournal, saveQuests } from '../utils/storage'
@@ -74,7 +74,9 @@ interface Props {
     inventory?: InventoryItem[],
     events?: GameEvent[],
     quests?: Quest[],
-    journal?: JournalEntry[]
+    journal?: JournalEntry[],
+    dailyQuests?: undefined,
+    coins?: number
   ) => void
   onSkinChange: (skin: string | null) => void
   onOpenInventory: () => void
@@ -85,6 +87,14 @@ export default function HomeScreen({
   creature, inventory, events, quests, journal,
   streak, coins, onUpdate, onSkinChange, onOpenInventory, onOpenCrossings,
 }: Props) {
+  const applyXPReward = (base: Creature, amount: number, care = false): { creature: Creature; coins: number } => {
+    const result = care ? addCareXPWithConversion(base, amount) : addXPWithConversion(base, amount)
+    return {
+      creature: { ...result.creature, mood: getMood(result.creature.stats) },
+      coins: result.convertedCoins,
+    }
+  }
+
   const todayCareXP = (() => {
     const today = new Date().toISOString().slice(0, 10)
     return creature.dailyCareXPDate === today ? (creature.dailyCareXP ?? 0) : 0
@@ -210,7 +220,9 @@ export default function HomeScreen({
         isSick,
       },
     }
-    updated = { ...addCareXP(updated, Math.round(5 * streakXPBonus)), mood: getMood(updated.stats) }
+    const xpReward = applyXPReward(updated, Math.round(5 * streakXPBonus), true)
+    updated = xpReward.creature
+    const newCoins = (coins ?? 0) + xpReward.coins
     const newInv = inventory.map((i) => i.id === item.id ? { ...i, quantity: i.quantity - 1 } : i).filter((i) => i.quantity > 0)
     let nq = updateQuestsAfterAction(quests, 'feed')
     nq = updateQuestsAfterAction(nq, 'level', updated.stats.level)
@@ -219,7 +231,7 @@ export default function HomeScreen({
     showSpeech(getReactionMessage('feed'))
     triggerParticles([item.emoji, '❤️', '✨'])
     await Promise.all([saveCreature(updated), saveInventory(newInv), saveEvents(updatedEvents), saveQuests(q2), saveJournal(j2)])
-    onUpdate(updated, newInv, updatedEvents, q2, j2)
+    onUpdate(updated, newInv, updatedEvents, q2, j2, undefined, newCoins)
   }
 
   const handleTrain = async (type: keyof TrainingStats) => {
@@ -247,12 +259,14 @@ export default function HomeScreen({
         hunger: Math.max(0, creature.stats.hunger - cfg.costHunger),
       },
     }
-    updated = { ...addXP(updated, Math.round(5 * streakXPBonus)), mood: getMood(updated.stats) }
+    const xpReward = applyXPReward(updated, Math.round(5 * streakXPBonus))
+    updated = xpReward.creature
+    const newCoins = (coins ?? 0) + xpReward.coins
     const nj = addJournalEntry(journal, `${creature.name} s'est entraîné : ${cfg.label} Lv ${current + 1} !`, cfg.emoji)
     showSpeech(`${cfg.emoji} ${cfg.label} Lv ${current + 1} !`)
     triggerParticles([cfg.emoji, '⭐', '💪'])
     await Promise.all([saveCreature(updated), saveJournal(nj)])
-    onUpdate(updated, inventory, events, quests, nj)
+    onUpdate(updated, inventory, events, quests, nj, undefined, newCoins)
   }
 
   const handlePlay = () => {
@@ -301,7 +315,9 @@ export default function HomeScreen({
         hunger:    Math.max(0, creature.stats.hunger  - (act?.costHunger ?? 0)),
       },
     }
-    updated = { ...addCareXP(updated, Math.round(5 * streakXPBonus)), mood: getMood(updated.stats) }
+    const xpReward = applyXPReward(updated, Math.round(5 * streakXPBonus), true)
+    updated = xpReward.creature
+    const newCoins = (coins ?? 0) + xpReward.coins
     let nq = updateQuestsAfterAction(quests, 'play')
     nq = updateQuestsAfterAction(nq, 'level', updated.stats.level)
     const actLabel = act ? `${act.emoji} ${act.label}` : '🎮 Jeu'
@@ -312,7 +328,7 @@ export default function HomeScreen({
     triggerParticles([act?.emoji ?? '🎮', '⭐', '🎉'])
     setPendingActivity(null)
     await Promise.all([saveCreature(updated), saveEvents(updatedEvents), saveQuests(q2), saveJournal(j2)])
-    onUpdate(updated, inventory, updatedEvents, q2, j2)
+    onUpdate(updated, inventory, updatedEvents, q2, j2, undefined, newCoins)
   }
 
   const handleSleep = async () => {
@@ -325,22 +341,28 @@ export default function HomeScreen({
       ...creature, lastPlayed: new Date().toISOString(), totalSlept: creature.totalSlept + 1,
       stats: { ...creature.stats, energy: Math.min(100, creature.stats.energy + sleepRecovery), hunger: Math.max(10, creature.stats.hunger - 3) },
     }
-    updated = { ...addCareXP(updated, Math.round(5 * streakXPBonus)), mood: getMood(updated.stats) }
+    const xpReward = applyXPReward(updated, Math.round(5 * streakXPBonus), true)
+    updated = xpReward.creature
+    const newCoins = (coins ?? 0) + xpReward.coins
     let nq = updateQuestsAfterAction(quests, 'sleep')
     let nj = addJournalEntry(journal, `${creature.name} a fait une bonne sieste.`, '💤')
     showSpeech(getReactionMessage('sleep'))
     triggerParticles(['💤', '🌙', '⭐'])
     await Promise.all([saveCreature(updated), saveQuests(nq), saveJournal(nj)])
-    onUpdate(updated, inventory, events, nq, nj)
+    onUpdate(updated, inventory, events, nq, nj, undefined, newCoins)
   }
 
   const handleEventClose = async () => {
     if (!pendingEvent) return
     let updatedCreature = creature
     let newInv = inventory
+    let convertedCoins = 0
     if (pendingEvent.type === 'sick')     updatedCreature = { ...creature, stats: { ...creature.stats, isSick: true } }
-    if ((pendingEvent.type === 'dream' || pendingEvent.type === 'training') && pendingEvent.reward?.xp)
-      updatedCreature = { ...addXP(creature, pendingEvent.reward.xp), mood: getMood(creature.stats) }
+    if ((pendingEvent.type === 'dream' || pendingEvent.type === 'training') && pendingEvent.reward?.xp) {
+      const xpReward = applyXPReward(creature, pendingEvent.reward.xp)
+      updatedCreature = xpReward.creature
+      convertedCoins = xpReward.coins
+    }
     if (pendingEvent.reward?.itemId) {
       const item = getRewardItem(pendingEvent.reward.itemId)
       if (item) newInv = addItemToInventory(inventory, item)
@@ -348,7 +370,7 @@ export default function HomeScreen({
     const newEvents = events.map((e) => e.id === pendingEvent.id ? { ...e, resolved: true } : e)
     setPendingEvent(null)
     await Promise.all([saveCreature(updatedCreature), saveInventory(newInv), saveEvents(newEvents)])
-    onUpdate(updatedCreature, newInv, newEvents, quests, journal)
+    onUpdate(updatedCreature, newInv, newEvents, quests, journal, undefined, (coins ?? 0) + convertedCoins)
   }
 
   const onRefresh = useCallback(async () => {
@@ -362,14 +384,15 @@ export default function HomeScreen({
   const adminAction = async (action: string) => {
     let u = { ...creature }
     switch (action) {
-      case 'xp100':      u = addXP(u, 100); break
-      case 'xp500':      u = addXP(u, 500); break
-      case 'xp9999':     u = addXP(u, 9999); break
+      case 'xp100':      u = addXPWithConversion(u, 100).creature; break
+      case 'xp500':      u = addXPWithConversion(u, 500).creature; break
+      case 'xp9999':     u = addXPWithConversion(u, 9999).creature; break
       case 'maxstats':   u = { ...u, stats: { ...u.stats, hunger: 100, happiness: 100, energy: 100 } }; break
       case 'heal':       u = { ...u, stats: { ...u.stats, isSick: false } }; break
       case 'lv1':        u = { ...u, stats: { ...u.stats, level: 1,  xp: 0, xpToNextLevel: xpForLevel(1)  } }; break
       case 'lv10':       u = { ...u, stats: { ...u.stats, level: 10, xp: 0, xpToNextLevel: xpForLevel(10) } }; break
       case 'lv20':       u = { ...u, stats: { ...u.stats, level: 20, xp: 0, xpToNextLevel: xpForLevel(20) } }; break
+      case 'lv30':       u = { ...u, stats: { ...u.stats, level: 30, xp: 0, xpToNextLevel: xpForLevel(30) } }; break
       case 'type_ignis': u = { ...u, type: 'ignis' }; break
       case 'type_nemo':  u = { ...u, type: 'nemo'  }; break
       case 'type_sylva': u = { ...u, type: 'sylva' }; break
@@ -543,8 +566,8 @@ export default function HomeScreen({
           <View style={s.statRow}>
             <Text style={s.statIcon}>  </Text>
             <Text style={[s.statName, { color: retro.purple }]}>XP</Text>
-            <PixelBar value={creature.stats.xp / creature.stats.xpToNextLevel} color={retro.purple} cells={10} height={12} style={{ flex: 1 }} />
-            <Text style={s.statVal}>{Math.round(creature.stats.xp)}/{creature.stats.xpToNextLevel}</Text>
+            <PixelBar value={creature.stats.level >= MAX_CREATURE_LEVEL ? 1 : creature.stats.xp / creature.stats.xpToNextLevel} color={retro.purple} cells={10} height={12} style={{ flex: 1 }} />
+            <Text style={s.statVal}>{creature.stats.level >= MAX_CREATURE_LEVEL ? 'MAX' : `${Math.round(creature.stats.xp)}/${creature.stats.xpToNextLevel}`}</Text>
           </View>
           <View style={s.statRow}>
             <Text style={s.statIcon}>  </Text>
@@ -763,7 +786,7 @@ export default function HomeScreen({
         <View style={s.adminOverlay}>
           <View style={s.adminCard}>
             <Text style={s.adminTitle}>👾 Panel Admin</Text>
-            <Text style={s.adminSub}>Lv {creature.stats.level} · {creature.stats.xp}/{creature.stats.xpToNextLevel} XP</Text>
+            <Text style={s.adminSub}>Lv {creature.stats.level} · {creature.stats.level >= MAX_CREATURE_LEVEL ? 'MAX' : `${creature.stats.xp}/${creature.stats.xpToNextLevel} XP`}</Text>
             <Text style={s.adminSection}>XP</Text>
             <View style={s.adminRow}>
               {([['xp100','+100 XP'],['xp500','+500 XP'],['xp9999','+9999 XP']] as [string,string][]).map(([a,l]) => (
@@ -772,7 +795,7 @@ export default function HomeScreen({
             </View>
             <Text style={s.adminSection}>Niveau</Text>
             <View style={s.adminRow}>
-              {([['lv1','Niv 1'],['lv10','Niv 10'],['lv20','Niv 20']] as [string,string][]).map(([a,l]) => (
+              {([['lv1','Niv 1'],['lv10','Niv 10'],['lv20','Niv 20'],['lv30','Niv 30']] as [string,string][]).map(([a,l]) => (
                 <TouchableOpacity key={a} style={[s.adminBtn,{backgroundColor:retro.purple}]} onPress={() => adminAction(a)}><Text style={s.adminBtnTxt}>{l}</Text></TouchableOpacity>
               ))}
             </View>
