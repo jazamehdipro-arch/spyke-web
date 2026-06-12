@@ -270,7 +270,7 @@ function e2SpellDescription(spellId: SpellId, level: number): string | null {
   const s = (base: number) => scaleFromLevel10(base, level)
   switch (spellId) {
     case 'supernova': return `Necessite 2 braises. ${s(28)} degats +${s(4)}/braise, soigne 40%`
-    case 'foudroiement': return `${s(16)} degats priorite, ${s(32)} si cible paralysee ou epuisee`
+    case 'foudroiement': return `${s(16)} degats priorite, ${s(32)} si cible paralysee`
     case 'maree_regeneratrice': return `2 tours : +${s(7)} PV/tour et -25% degats subis`
     case 'danse_des_ombres': return `2 tours : +40% esquive, renvoie ${s(14)} degats/esquive`
     default: return null
@@ -381,15 +381,12 @@ function resolveSpell(
     // ── ignis ──
     case 'frappe_ardente': {
       const newEmbers = Math.min(3, caster.embers + 1)
-      // Explosion is boosted from 2 braises onward.
-      const braiseBonus = caster.embers === 3
-      const base = scaleLevelValue(8, casterLevel)
-      const raw = braiseBonus ? Math.round(base * 1.5) : base
+      const dmg = scaleLevelValue(8, casterLevel)
       return {
         ...empty,
-        targetHpDelta: -raw,
-        newCasterEmbers: braiseBonus ? 0 : newEmbers,
-        log: `🔥 Frappe ardente ! -${raw} HP. Braises: ${braiseBonus ? 0 : newEmbers}${braiseBonus ? ' (×1.5 braises !)' : ''}`,
+        targetHpDelta: -dmg,
+        newCasterEmbers: newEmbers,
+        log: `Frappe ardente ! -${dmg} HP. Braises: ${newEmbers}`,
       }
     }
     case 'explosion': {
@@ -422,16 +419,12 @@ function resolveSpell(
       }
     }
     case 'immolation': {
-      // Guaranteed — dodge/barrier skipped in commitAction for this spell
-      const braiseBonus = caster.embers === 3
-      const base = scaleLevelValue(20, casterLevel)
-      const raw = braiseBonus ? Math.round(base * 1.5) : base
+      const dmg = scaleLevelValue(20, casterLevel)
       return {
         ...empty,
         casterHpDelta: -5,
-        targetHpDelta: -raw,
-        newCasterEmbers: braiseBonus ? 0 : undefined,
-        log: `🩸 Immolation ! -5 PV sur soi → -${raw} HP ennemi (garanti)${braiseBonus ? ' (×1.5 braises !)' : ''}`,
+        targetHpDelta: -dmg,
+        log: `Immolation ! -5 PV sur soi -> -${dmg} HP ennemi (garanti)`,
       }
     }
     case 'brasier': {
@@ -702,12 +695,12 @@ function resolveSpell(
 
     // ── ombra ──
     case 'foudroiement': {
-      const controlled = hasStatus(target, 'paralyzed') || hasStatus(target, 'exhausted')
-      const dmg = scaleFromLevel10(controlled ? 32 : 16, casterLevel)
+      const paralyzed = hasStatus(target, 'paralyzed')
+      const dmg = scaleFromLevel10(paralyzed ? 32 : 16, casterLevel)
       return {
         ...empty,
         targetHpDelta: -dmg,
-        log: `Foudroiement ! -${dmg} HP (priorite)${controlled ? ' cible paralysee/epuisee !' : ''}`,
+        log: `Foudroiement ! -${dmg} HP (priorite)${paralyzed ? ' cible paralysee !' : ''}`,
       }
     }
     case 'griffe_d_ombre': {
@@ -931,9 +924,9 @@ function canUseSpell(spellId: SpellId, state: Combatant, _maxEnergy: number): bo
 function estimateSpellPressure(spellId: SpellId, caster: Combatant, passiveLevel: 1 | 2 | 3, level: number): number {
   const braise = caster.embers >= 2 ? 1.5 : 1
   switch (spellId) {
-    case 'frappe_ardente': return Math.round(scaleLevelValue(8, level) * braise)
+    case 'frappe_ardente': return scaleLevelValue(8, level)
     case 'explosion': return Math.round(scaleLevelValue(20, level) * braise)
-    case 'immolation': return Math.round(scaleLevelValue(20, level) * braise)
+    case 'immolation': return scaleLevelValue(20, level)
     case 'brasier': return Math.round(15 * braise) + 6
     case 'fournaise': return Math.round(11.3 * braise)
     case 'supernova': return caster.embers >= 2 ? scaleFromLevel10(28, level) + scaleFromLevel10(4, level) * caster.embers : 0
@@ -1395,7 +1388,7 @@ function botChooseAction(
       case 'zapp': {
         // Tempête (4 hits) is the crown spell — save energy for it
         if (botState.energy >= 4 && can('tempete')) return { kind: 'spell', spellId: 'tempete' }
-        if ((hasStatus(playerState, 'paralyzed') || hasStatus(playerState, 'exhausted')) && can('foudroiement')) {
+        if (hasStatus(playerState, 'paralyzed') && can('foudroiement')) {
           return { kind: 'spell', spellId: 'foudroiement' }
         }
         if (inLoadout('tempete') && botState.energy < 4 && botState.hp > 28 && playerState.hp > 28) return { kind: 'charge' }
@@ -2156,7 +2149,7 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
           }
         }
         if (blockedDmg > 0 && oAction.kind === 'spell' && oAction.spellId === 'carapace_chauffee') {
-          const reflected = Math.round(blockedDmg * (oPassiveLevel === 1 ? 0.5 : 0.3))
+          const reflected = Math.round(blockedDmg * 0.5)
           newP = { ...newP, hp: Math.max(0, newP.hp - reflected) }
           logParts.push(`Carapace ennemie renvoie ${reflected} PV !`)
         }
@@ -2165,7 +2158,7 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
         newO = { ...newO, energy: Math.max(0, Math.min(OPPONENT_MAX_ENERGY, newO.energy + result.targetEnergyDelta)) }
         for (const st of result.targetStatusesToAdd) newO = addStatus(newO, st)
         for (const t of result.targetStatusesToRemove) newO = removeStatus(newO, t)
-        if (playerType === 'zapp' && pPassiveLevel >= 3 && result.targetStatusesToAdd.some(st => st.type === 'paralyzed' || st.type === 'exhausted')) {
+        if (playerType === 'zapp' && pPassiveLevel >= 3 && result.targetStatusesToAdd.some(st => st.type === 'paralyzed')) {
           newP = { ...newP, energy: Math.min(playerMods.maxEnergy, newP.energy + 1) }
           logParts.push('Conducteur : +1 energie')
         }
@@ -2281,7 +2274,7 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
               finalDmgToPlayer = Math.round(finalDmgToPlayer * (1 - playerMods.trainingDmgReduction))
             // carapace_chauffee reflect
             if (pAction.kind === 'spell' && pAction.spellId === 'carapace_chauffee') {
-              const reflected = Math.round(finalDmgToPlayer * 0.30)
+              const reflected = Math.round(finalDmgToPlayer * 0.5)
               newO = { ...newO, hp: Math.max(0, newO.hp - reflected) }
               logParts.push(`🛡️🔥 Carapace réfléchit ${reflected} PV à l'ennemi !`)
             }
@@ -2306,7 +2299,7 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
           opponentDmgToPlayer = finalDmgToPlayer
         }
         if (blockedDmgToPlayer > 0 && pAction.kind === 'spell' && pAction.spellId === 'carapace_chauffee') {
-          const reflected = Math.round(blockedDmgToPlayer * (pPassiveLevel === 1 ? 0.5 : 0.3))
+          const reflected = Math.round(blockedDmgToPlayer * 0.5)
           newO = { ...newO, hp: Math.max(0, newO.hp - reflected) }
           logParts.push(`Carapace reflechit ${reflected} PV a l'ennemi !`)
         }
@@ -2315,7 +2308,7 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
         newP = { ...newP, energy: Math.max(0, Math.min(playerMods.maxEnergy, newP.energy + result.targetEnergyDelta)) }
         for (const st of result.targetStatusesToAdd) newP = addStatus(newP, st)
         for (const t of result.targetStatusesToRemove) newP = removeStatus(newP, t)
-        if (opponent.creatureType === 'zapp' && oPassiveLevel >= 3 && result.targetStatusesToAdd.some(st => st.type === 'paralyzed' || st.type === 'exhausted')) {
+        if (opponent.creatureType === 'zapp' && oPassiveLevel >= 3 && result.targetStatusesToAdd.some(st => st.type === 'paralyzed')) {
           newO = { ...newO, energy: Math.min(OPPONENT_MAX_ENERGY, newO.energy + 1) }
           logParts.push('Conducteur ennemi : +1 energie')
         }
