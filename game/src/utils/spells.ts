@@ -28,6 +28,10 @@ export const SPELL_CATALOG: Record<SpellId, Spell> = {
     description: '~30 dégâts + 1 braise garantie',
     scaledDesc: (m) => `${Math.round(11.3*m)} dégâts + 1 braise` },
 
+  supernova:         { id: 'supernova',          name: 'Supernova',           emoji: '☄️',   energyCost: 4, cooldown: 3,
+    description: 'Nécessite 2 braises. 28 dégâts +4/braise, soigne 40%',
+    scaledDesc: () => '28 dégâts +4/braise, soigne 40%' },
+
   // ── Axolotl (nemo) ─────────────────────────────────────
   vague:             { id: 'vague',              name: 'Vague',               emoji: '🌊',   energyCost: 1, cooldown: 0,
     description: '7 dégâts directs',
@@ -53,6 +57,10 @@ export const SPELL_CATALOG: Record<SpellId, Spell> = {
   maree_curative:    { id: 'maree_curative',     name: 'Marée curative',      emoji: '🌊💚', energyCost: 3, cooldown: 3,
     description: '~20 dégâts + soin +8 PV',
     scaledDesc: (m) => `${Math.round(13.3*m)} dégâts + soin +8 PV` },
+
+  maree_regeneratrice:{ id: 'maree_regeneratrice', name: 'Marée régénératrice', emoji: '🌊💚', energyCost: 3, cooldown: 3,
+    description: '2 tours : +7 PV/tour et -25% dégâts subis',
+    scaledDesc: () => '2 tours : +7 PV/tour et -25% dégâts subis' },
 
   abysse:            { id: 'abysse',             name: 'Abysse',              emoji: '🌑🌊', energyCost: 4, cooldown: 3,
     description: '~30 dégâts + -25% dégâts reçus 1 tour',
@@ -87,6 +95,10 @@ export const SPELL_CATALOG: Record<SpellId, Spell> = {
     description: '~22 dégâts — ignore esquive si Volute active',
     scaledDesc: (m) => `${Math.round(10.3*m)} dégâts (ignore esquive si Volute active)` },
 
+  danse_des_ombres:  { id: 'danse_des_ombres',   name: 'Danse des ombres',    emoji: '🌑',   energyCost: 3, cooldown: 3,
+    description: '2 tours : +40% esquive, esquive renvoie 14 dégâts',
+    scaledDesc: () => '2 tours : +40% esquive, renvoie 14 dégâts' },
+
   // ── Faon (zapp) ─────────────────────────────────────────
   decharge:          { id: 'decharge',           name: 'Décharge',            emoji: '⚡',   energyCost: 1, cooldown: 0,
     description: '10 dégâts — priorité',
@@ -117,6 +129,10 @@ export const SPELL_CATALOG: Record<SpellId, Spell> = {
   fulguration:       { id: 'fulguration',        name: 'Fulguration',         emoji: '⚡🎯', energyCost: 2, cooldown: 3,
     description: '~16 dégâts — priorité + 20% paralysie',
     scaledDesc: (m) => `${Math.round(7*m)} dégâts — priorité + 20% paralysie` },
+
+  foudroiement:      { id: 'foudroiement',        name: 'Foudroiement',        emoji: '⚡',   energyCost: 3, cooldown: 0,
+    description: '16 dégâts priorité, 32 si cible paralysée ou épuisée',
+    scaledDesc: () => '16 dégâts priorité, 32 si cible contrôlée' },
 
   // ── Bête des ombres (ombra) ─────────────────────────────
   griffe_d_ombre:    { id: 'griffe_d_ombre',    name: 'Griffe d\'ombre',     emoji: '🌑',   energyCost: 1, cooldown: 0,
@@ -212,22 +228,22 @@ export function getPassiveLevel(level: number): 1 | 2 | 3 {
 export const DEFAULT_LOADOUTS: Record<CreatureType, Record<EvoStage, SpellLoadout>> = {
   ignis: {
     e1:   ['frappe_ardente', 'immolation',  'carapace_chauffee', 'explosion'],
-    e2:   ['frappe_ardente', 'immolation',  'carapace_chauffee', 'brasier'],
+    e2:   ['frappe_ardente', 'immolation',  'carapace_chauffee', 'supernova'],
     e3:   ['frappe_ardente', 'fournaise',   'carapace_chauffee', 'immolation'],
   },
   nemo: {
     e1:   ['raz_de_maree', 'siphon', 'regeneration',   'malediction'],
-    e2:   ['raz_de_maree', 'siphon', 'maree_curative', 'malediction'],
+    e2:   ['raz_de_maree', 'siphon', 'malediction', 'maree_regeneratrice'],
     e3:   ['raz_de_maree', 'abysse', 'regeneration',   'malediction'],
   },
   sylva: {
     e1:   ['coup_voile', 'embuscade',           'volute', 'brouillard_total'],
-    e2:   ['coup_voile', 'laceration_voilee',   'volute', 'brouillard_total'],
+    e2:   ['coup_voile', 'embuscade',           'volute', 'danse_des_ombres'],
     e3:   ['coup_voile', 'embuscade_parfaite',  'volute', 'brouillard_total'],
   },
   zapp: {
     e1:   ['decharge', 'arc_paralysant', 'boost',   'surcharge'],
-    e2:   ['decharge', 'arc_paralysant', 'tempete', 'surcharge'],
+    e2:   ['decharge', 'arc_paralysant', 'surcharge', 'foudroiement'],
     e3:   ['decharge', 'fulguration',    'tempete',  'surcharge'],
   },
   ombra: {
@@ -260,22 +276,22 @@ export function getLoadout(type: CreatureType, level: number, override?: SpellLo
 export const ALL_SPELLS_BY_TYPE: Record<CreatureType, Record<EvoStage, SpellId[]>> = {
   ignis: {
     e1:   ['frappe_ardente', 'immolation', 'carapace_chauffee', 'explosion'],
-    e2:   ['frappe_ardente', 'immolation', 'carapace_chauffee', 'explosion', 'brasier'],
+    e2:   ['frappe_ardente', 'immolation', 'carapace_chauffee', 'supernova'],
     e3:   ['frappe_ardente', 'immolation', 'carapace_chauffee', 'explosion', 'brasier', 'fournaise'],
   },
   nemo: {
     e1:   ['raz_de_maree', 'siphon', 'regeneration', 'malediction'],
-    e2:   ['raz_de_maree', 'siphon', 'regeneration', 'malediction', 'maree_curative'],
+    e2:   ['raz_de_maree', 'siphon', 'malediction', 'maree_regeneratrice'],
     e3:   ['raz_de_maree', 'siphon', 'regeneration', 'malediction', 'maree_curative', 'abysse'],
   },
   sylva: {
     e1:   ['coup_voile', 'embuscade', 'volute', 'brouillard_total'],
-    e2:   ['coup_voile', 'embuscade', 'volute', 'brouillard_total', 'laceration_voilee'],
+    e2:   ['coup_voile', 'embuscade', 'volute', 'danse_des_ombres'],
     e3:   ['coup_voile', 'embuscade', 'volute', 'brouillard_total', 'laceration_voilee', 'embuscade_parfaite'],
   },
   zapp: {
     e1:   ['decharge', 'arc_paralysant', 'boost', 'surcharge'],
-    e2:   ['decharge', 'arc_paralysant', 'boost', 'rafale', 'surcharge', 'tempete'],
+    e2:   ['decharge', 'arc_paralysant', 'surcharge', 'foudroiement'],
     e3:   ['decharge', 'arc_paralysant', 'boost', 'rafale', 'surcharge', 'tempete', 'fulguration'],
   },
   ombra: {

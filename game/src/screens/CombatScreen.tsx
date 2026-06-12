@@ -218,6 +218,17 @@ function scaleLevelValue(base: number, level: number): number {
   return Math.round(base * levelMult(level))
 }
 
+function scaleFromLevel10(base: number, level: number): number {
+  return Math.round(base * (1 + 0.03 * (Math.max(10, level) - 10)))
+}
+
+function isE2SignatureSpell(spellId: SpellId): boolean {
+  return spellId === 'supernova'
+    || spellId === 'foudroiement'
+    || spellId === 'maree_regeneratrice'
+    || spellId === 'danse_des_ombres'
+}
+
 function e1SpellDescription(spellId: SpellId, level: number): string | null {
   const s = (base: number) => scaleE1Value(base, 1, level)
   switch (spellId) {
@@ -232,6 +243,17 @@ function e1SpellDescription(spellId: SpellId, level: number): string | null {
     case 'decharge': return `${s(10)} dégâts — priorité`
     case 'arc_paralysant': return `${s(15)} dégâts + 30% paralysie 1 tour`
     case 'surcharge': return `${s(22)} dégâts — surfatigue prochain tour`
+    default: return null
+  }
+}
+
+function e2SpellDescription(spellId: SpellId, level: number): string | null {
+  const s = (base: number) => scaleFromLevel10(base, level)
+  switch (spellId) {
+    case 'supernova': return `Necessite 2 braises. ${s(28)} degats +${s(4)}/braise, soigne 40%`
+    case 'foudroiement': return `${s(16)} degats priorite, ${s(32)} si cible controlee`
+    case 'maree_regeneratrice': return `2 tours : +${s(7)} PV/tour et -25% degats subis`
+    case 'danse_des_ombres': return `2 tours : +40% esquive, renvoie ${s(14)} degats/esquive`
     default: return null
   }
 }
@@ -417,6 +439,21 @@ function resolveSpell(
     }
 
     // ── nemo ──
+    case 'supernova': {
+      const embers = caster.embers
+      if (embers < 2) {
+        return { ...empty, log: 'Supernova echoue : il faut au moins 2 braises.' }
+      }
+      const dmg = scaleFromLevel10(28, casterLevel) + scaleFromLevel10(4, casterLevel) * embers
+      const heal = Math.round(dmg * 0.4)
+      return {
+        ...empty,
+        casterHpDelta: heal,
+        targetHpDelta: -dmg,
+        newCasterEmbers: 0,
+        log: `Supernova ! -${dmg} HP, +${heal} PV (${embers} braises consumees)`,
+      }
+    }
     case 'vague': {
       return {
         ...empty,
@@ -481,6 +518,17 @@ function resolveSpell(
         casterHpDelta: heal,
         targetHpDelta: -Math.round(13.3),
         log: `🌊💚 Marée curative ! -13 HP ennemi + soin +${heal} PV${lowHp ? ' (sustain !)' : ''}`,
+      }
+    }
+    case 'maree_regeneratrice': {
+      const healPerTurn = scaleFromLevel10(7, casterLevel)
+      return {
+        ...empty,
+        casterStatusesToAdd: [
+          { type: 'regen_tide', turnsLeft: 2, value: healPerTurn },
+          { type: 'barrier', turnsLeft: 2, value: 25, data: 'regen_tide' },
+        ],
+        log: `Maree regeneratrice ! +${healPerTurn} PV/tour et -25% degats subis pendant 2 tours`,
       }
     }
     case 'abysse': {
@@ -559,6 +607,17 @@ function resolveSpell(
     }
 
     // ── zapp ──
+    case 'danse_des_ombres': {
+      const reflected = scaleFromLevel10(14, casterLevel)
+      return {
+        ...empty,
+        casterStatusesToAdd: [
+          { type: 'dodge_up', turnsLeft: 2, value: 40, data: 'shadow_dance' },
+          { type: 'shadow_dance', turnsLeft: 2, value: reflected },
+        ],
+        log: `Danse des ombres ! +40% esquive, chaque esquive renvoie ${reflected} PV pendant 2 tours`,
+      }
+    }
     case 'decharge': {
       return {
         ...empty,
@@ -626,6 +685,15 @@ function resolveSpell(
     }
 
     // ── ombra ──
+    case 'foudroiement': {
+      const controlled = hasStatus(target, 'paralyzed') || hasStatus(target, 'exhausted')
+      const dmg = scaleFromLevel10(controlled ? 32 : 16, casterLevel)
+      return {
+        ...empty,
+        targetHpDelta: -dmg,
+        log: `Foudroiement ! -${dmg} HP (priorite)${controlled ? ' cible controlee !' : ''}`,
+      }
+    }
     case 'griffe_d_ombre': {
       return {
         ...empty,
@@ -837,6 +905,7 @@ function canUseSpell(spellId: SpellId, state: Combatant, _maxEnergy: number): bo
   const spell = SPELL_CATALOG[spellId]
   if (state.energy < spell.energyCost) return false
   if ((state.cooldowns[spellId] ?? 0) > 0) return false
+  if (spellId === 'supernova' && state.embers < 2) return false
   // Check cursed
   const cursed = getStatus(state, 'cursed')
   if (cursed && cursed.data === spellId) return false
@@ -851,15 +920,18 @@ function estimateSpellPressure(spellId: SpellId, caster: Combatant, passiveLevel
     case 'immolation': return Math.round(11 * braise)
     case 'brasier': return Math.round(15 * braise) + 6
     case 'fournaise': return Math.round(11.3 * braise)
+    case 'supernova': return caster.embers >= 2 ? 28 + 4 * caster.embers : 0
     case 'vague': return 7
     case 'siphon': return 10
     case 'raz_de_maree': return 16
     case 'maree_curative': return 18
+    case 'maree_regeneratrice': return 0
     case 'abysse': return 20
     case 'coup_voile': return 6
     case 'laceration_voilee': return 10
     case 'embuscade': return hasStatus(caster, 'dodge_up') ? 18 : 9
     case 'embuscade_parfaite': return hasStatus(caster, 'dodge_up') ? 17 : 10
+    case 'danse_des_ombres': return 0
     case 'decharge': return 9
     case 'arc_paralysant': return 11
     case 'boost': return 0
@@ -867,6 +939,7 @@ function estimateSpellPressure(spellId: SpellId, caster: Combatant, passiveLevel
     case 'surcharge': return passiveLevel === 1 ? 22 : 16
     case 'tempete': return 24
     case 'fulguration': return 12
+    case 'foudroiement': return 16
     // ombra
     case 'griffe_d_ombre': return 10
     case 'venin_sylvestre': return 14
@@ -1197,7 +1270,7 @@ function botChooseAction(
 
     // B. Emergency heal (lower threshold than medium)
     if (botLow) {
-      for (const id of ['maree_curative', 'regeneration', 'siphon', 'abysse', 'barriere', 'carapace_chauffee', 'volute', 'esquive_vive'] as SpellId[]) {
+      for (const id of ['maree_regeneratrice', 'maree_curative', 'regeneration', 'siphon', 'abysse', 'barriere', 'carapace_chauffee', 'danse_des_ombres', 'volute', 'esquive_vive'] as SpellId[]) {
         if (can(id)) return { kind: 'spell', spellId: id }
       }
     }
@@ -1208,7 +1281,7 @@ function botChooseAction(
     }
 
     if (playerReadyToBurst) {
-      for (const id of ['barriere', 'carapace_chauffee', 'esquive_vive', 'volute', 'brouillard_total'] as SpellId[]) {
+      for (const id of ['barriere', 'carapace_chauffee', 'danse_des_ombres', 'esquive_vive', 'volute', 'brouillard_total'] as SpellId[]) {
         if (can(id) && !hasStatus(botState, 'barrier') && !hasStatus(botState, 'dodge_up') && !hasStatus(botState, 'dodge_ready')) {
           return { kind: 'spell', spellId: id }
         }
@@ -1217,7 +1290,7 @@ function botChooseAction(
 
     // D. Kill shot — player at low HP: prioritise finishing spells
     if (playerLow) {
-      for (const id of ['brasier', 'tempete', 'abysse', 'raz_de_maree', 'surcharge', 'explosion',
+      for (const id of ['supernova', 'foudroiement', 'brasier', 'tempete', 'abysse', 'raz_de_maree', 'surcharge', 'explosion',
                         'embuscade_parfaite', 'fournaise', 'immolation', 'decharge',
                         'magma_supreme', 'dissolution', 'tempete_de_sable', 'embuscade_sauvage'] as SpellId[]) {
         if (can(id)) return { kind: 'spell', spellId: id }
@@ -1229,6 +1302,8 @@ function botChooseAction(
       case 'ignis': {
         // Guaranteed damage vs high-dodge player (immolation ignores dodge)
         if (playerDodging && can('immolation')) return { kind: 'spell', spellId: 'immolation' }
+        if (botState.embers >= 2 && can('supernova')) return { kind: 'spell', spellId: 'supernova' }
+        if (inLoadout('supernova') && botState.embers >= 2 && botState.energy < 4) return { kind: 'charge' }
         // Core: stack braises, then spend with explosion/brasier (×1.5 burst)
         if (botState.embers >= (passiveLevel === 1 ? 2 : 3)) {
           if (can('explosion')) return { kind: 'spell', spellId: 'explosion' }
@@ -1253,6 +1328,9 @@ function botChooseAction(
       case 'nemo': {
         // Malediction: lock player's most-expensive spell for 2 turns (cast on every cooldown)
         if (playerReadyToBurst && !hasStatus(playerState, 'cursed') && can('malediction')) return { kind: 'spell', spellId: 'malediction' }
+        if (botState.hp < 45 && !hasStatus(botState, 'regen_tide') && can('maree_regeneratrice')) {
+          return { kind: 'spell', spellId: 'maree_regeneratrice' }
+        }
         // Proactive barrier when player is about to attack hard
         if (!hasStatus(botState, 'barrier') && playerState.energy >= 3 && can('barriere')) {
           return { kind: 'spell', spellId: 'barriere' }
@@ -1274,6 +1352,9 @@ function botChooseAction(
       case 'sylva': {
         // Brouillard when dangerously low (hides own state from player)
         if (botState.hp < 35 && can('brouillard_total')) return { kind: 'spell', spellId: 'brouillard_total' }
+        if (!hasStatus(botState, 'shadow_dance') && playerState.energy >= 2 && can('danse_des_ombres')) {
+          return { kind: 'spell', spellId: 'danse_des_ombres' }
+        }
         // Core: volute → embuscade_parfaite (ignores dodge while volute active)
         if (!hasStatus(botState, 'dodge_up') && can('volute')) return { kind: 'spell', spellId: 'volute' }
         if (hasStatus(botState, 'dodge_up') && can('embuscade_parfaite')) {
@@ -1296,12 +1377,16 @@ function botChooseAction(
       case 'zapp': {
         // Tempête (4 hits) is the crown spell — save energy for it
         if (botState.energy >= 4 && can('tempete')) return { kind: 'spell', spellId: 'tempete' }
+        if ((hasStatus(playerState, 'paralyzed') || hasStatus(playerState, 'exhausted')) && can('foudroiement')) {
+          return { kind: 'spell', spellId: 'foudroiement' }
+        }
         if (inLoadout('tempete') && botState.energy < 4 && botState.hp > 28 && playerState.hp > 28) return { kind: 'charge' }
         if (!hasStatus(botState, 'damage_boost') && can('boost') && playerState.hp > 25) return { kind: 'spell', spellId: 'boost' }
         // Fulguration: priority + 20% paralysis (stronger than décharge when usable)
         if (can('fulguration')) return { kind: 'spell', spellId: 'fulguration' }
         // Arc paralysant: 30% stun chance — strong disruption
         if (can('arc_paralysant')) return { kind: 'spell', spellId: 'arc_paralysant' }
+        if (can('foudroiement')) return { kind: 'spell', spellId: 'foudroiement' }
         // Rafale: multi-hit (good vs barrier)
         if (can('rafale')) return { kind: 'spell', spellId: 'rafale' }
         // Surcharge: huge damage but causes exhaustion — save for kill shots
@@ -1403,7 +1488,7 @@ function botChooseAction(
   // ── MEDIUM: type-aware, reactive ─────────────────────────
   // Heal when low
   if (botState.hp < 20) {
-    for (const id of ['regeneration', 'maree_curative', 'barriere', 'carapace_chauffee', 'siphon',
+    for (const id of ['maree_regeneratrice', 'regeneration', 'maree_curative', 'barriere', 'carapace_chauffee', 'danse_des_ombres', 'siphon',
                       'carapace_magma', 'succion_vitale', 'forme_fantome'] as SpellId[]) {
       if (can(id)) return { kind: 'spell', spellId: id }
     }
@@ -1427,6 +1512,7 @@ function botChooseAction(
     }
     case 'nemo': {
       if (botState.hp < 40 && can('regeneration')) return { kind: 'spell', spellId: 'regeneration' }
+      if (botState.hp < 45 && can('maree_regeneratrice')) return { kind: 'spell', spellId: 'maree_regeneratrice' }
       if (botState.energy >= 3) {
         if (can('raz_de_maree'))   return { kind: 'spell', spellId: 'raz_de_maree' }
         if (can('abysse'))         return { kind: 'spell', spellId: 'abysse' }
@@ -1525,6 +1611,8 @@ const STATUS_ICONS: Record<StatusType, string> = {
   provoked: '😤',
   dodge_ready: '💨⚡',
   damage_boost: '⬆️',
+  regen_tide: 'RT',
+  shadow_dance: 'SD',
 }
 
 // ─── sub-components ─────────────────────────────────────
@@ -1660,7 +1748,7 @@ function SpellCard({
   const cd = state.cooldowns[spellId] ?? 0
   const description = passiveLevel === 1
     ? (e1SpellDescription(spellId, level) ?? spell.description)
-    : (spell.scaledDesc ? spell.scaledDesc(displayMult) : spell.description)
+    : (e2SpellDescription(spellId, level) ?? (spell.scaledDesc ? spell.scaledDesc(displayMult) : spell.description))
 
   return (
     <TouchableOpacity
@@ -1982,21 +2070,23 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
         // Apply target deltas to newO with dodge + barrier checks
         let finalDmg = Math.max(0, -result.targetHpDelta)
         let blockedDmg = 0
-        if (finalDmg > 0) {
+        const playerGuaranteedHit = pAction.spellId === 'immolation'
+        const playerDirectScaling = isE2SignatureSpell(pAction.spellId)
+        if (!playerGuaranteedHit && finalDmg > 0) {
           if (oAction.kind === 'defend' || (oAction.kind === 'spell' && oAction.spellId === 'carapace_chauffee')) {
             blockedDmg = finalDmg
             finalDmg = 0
             logParts.push('Ennemi bloque tous les degats !')
           }
         }
-        if (finalDmg > 0) {
+        if (!playerGuaranteedHit && finalDmg > 0) {
           const accuracyDown = getStatus(newP, 'fog')
           if (accuracyDown?.data === 'accuracy_down' && Math.random() < (accuracyDown.value ?? 15) / 100) {
             finalDmg = 0
             logParts.push('Ton attaque rate dans le brouillage !')
           }
         }
-        if (finalDmg > 0) {
+        if (!playerGuaranteedHit && finalDmg > 0) {
           const dodgeUp = getStatus(newO, 'dodge_up')
           const dodgeChance =
             (opponent.creatureType === 'sylva' ? CREATURE_PROFILES.sylva.dodgeBase : 0) +
@@ -2006,8 +2096,14 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
             finalDmg = 0
             logParts.push('Ennemi esquive ! 💨')
             newO = removeStatus(newO, 'dodge_ready')
+            const shadowDance = getStatus(newO, 'shadow_dance')
+            if (shadowDance) {
+              const reflected = shadowDance.value ?? 14
+              newP = { ...newP, hp: Math.max(0, newP.hp - reflected) }
+              logParts.push(`Danse des ombres ennemie renvoie ${reflected} PV !`)
+            }
           } else {
-            if (pPassiveLevel !== 1) {
+            if (pPassiveLevel !== 1 && !playerDirectScaling) {
               finalDmg = Math.round(finalDmg * playerMods.damageMult * playerMods.counterBonus)
             }
             const boost = getStatus(newP, 'damage_boost')
@@ -2020,6 +2116,13 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
               const b = getStatus(newO, 'barrier')!
               finalDmg = Math.round(finalDmg * (1 - (b.value ?? 50) / 100))
             }
+          }
+        } else if (playerGuaranteedHit && finalDmg > 0) {
+          const boost = getStatus(newP, 'damage_boost')
+          if (boost) {
+            finalDmg = Math.round(finalDmg * (1 + (boost.value ?? 50) / 100))
+            newP = removeStatus(newP, 'damage_boost')
+            logParts.push('Boost consomme : degats +50% !')
           }
         }
         if (blockedDmg > 0 && oAction.kind === 'spell' && oAction.spellId === 'carapace_chauffee') {
@@ -2081,21 +2184,23 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
         // Apply target (player) deltas
         let finalDmgToPlayer = Math.max(0, -result.targetHpDelta)
         let blockedDmgToPlayer = 0
-        if (finalDmgToPlayer > 0) {
+        const opponentGuaranteedHit = oAction.spellId === 'immolation'
+        const opponentDirectScaling = isE2SignatureSpell(oAction.spellId)
+        if (!opponentGuaranteedHit && finalDmgToPlayer > 0) {
           if (pAction.kind === 'defend' || (pAction.kind === 'spell' && pAction.spellId === 'carapace_chauffee')) {
             blockedDmgToPlayer = finalDmgToPlayer
             finalDmgToPlayer = 0
             logParts.push('Tu bloques tous les degats !')
           }
         }
-        if (finalDmgToPlayer > 0) {
+        if (!opponentGuaranteedHit && finalDmgToPlayer > 0) {
           const accuracyDown = getStatus(newO, 'fog')
           if (accuracyDown?.data === 'accuracy_down' && Math.random() < (accuracyDown.value ?? 15) / 100) {
             finalDmgToPlayer = 0
             logParts.push('L attaque ennemie rate dans le brouillage !')
           }
         }
-        if (finalDmgToPlayer > 0) {
+        if (!opponentGuaranteedHit && finalDmgToPlayer > 0) {
           const playerDodgeUp = getStatus(newP, 'dodge_up')
           const playerDodge =
             playerMods.dodgeChance +
@@ -2105,13 +2210,19 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
             finalDmgToPlayer = 0
             logParts.push('Tu esquives ! 💨')
             newP = removeStatus(newP, 'dodge_ready')
+            const shadowDance = getStatus(newP, 'shadow_dance')
+            if (shadowDance) {
+              const reflected = shadowDance.value ?? 14
+              newO = { ...newO, hp: Math.max(0, newO.hp - reflected) }
+              logParts.push(`Danse des ombres renvoie ${reflected} PV a l'ennemi !`)
+            }
             // Sylva passif : chaque esquive recharge +1 énergie
             if (playerType === 'sylva') {
               newP = { ...newP, energy: Math.min(playerMods.maxEnergy, newP.energy + 1) }
               logParts.push('🌀 Sylva +1⚡ (esquive)')
             }
           } else {
-            if (oPassiveLevel !== 1) {
+            if (oPassiveLevel !== 1 && !opponentDirectScaling) {
               finalDmgToPlayer = Math.round(
                 finalDmgToPlayer
                 * opponentCounterBonus
@@ -2148,6 +2259,14 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
               }
               logParts.push('💨 Braises perdues !')
             }
+          }
+          opponentDmgToPlayer = finalDmgToPlayer
+        } else if (opponentGuaranteedHit && finalDmgToPlayer > 0) {
+          const boost = getStatus(newO, 'damage_boost')
+          if (boost) {
+            finalDmgToPlayer = Math.round(finalDmgToPlayer * (1 + (boost.value ?? 50) / 100))
+            newO = removeStatus(newO, 'damage_boost')
+            logParts.push('Boost ennemi consomme : degats +50% !')
           }
           opponentDmgToPlayer = finalDmgToPlayer
         }
@@ -2235,6 +2354,20 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
         : ''
       const spellName = isParfaite ? 'Embuscade parfaite' : 'Embuscade'
       logParts.push(`<${spellName} ennemi ! -${embDmg} HP${condStr}`)
+    }
+
+    // Regen tide
+    const pRegenTide = getStatus(newP, 'regen_tide')
+    if (pRegenTide) {
+      const heal = pRegenTide.value ?? 7
+      newP = { ...newP, hp: Math.min(playerMaxHP, newP.hp + heal) }
+      logParts.push(`Maree regeneratrice : +${heal} PV`)
+    }
+    const oRegenTide = getStatus(newO, 'regen_tide')
+    if (oRegenTide) {
+      const heal = oRegenTide.value ?? 7
+      newO = { ...newO, hp: Math.min(opponentMaxHP, newO.hp + heal) }
+      logParts.push(`Maree regeneratrice ennemie : +${heal} PV`)
     }
 
     // Burn DoT

@@ -24,10 +24,10 @@ export interface CreatureStats {
 }
 
 export type SpellId =
-  | 'frappe_ardente' | 'explosion' | 'carapace_chauffee' | 'provocation' | 'immolation' | 'brasier' | 'fournaise'
-  | 'vague' | 'siphon' | 'regeneration' | 'barriere' | 'malediction' | 'raz_de_maree' | 'maree_curative' | 'abysse'
-  | 'coup_voile' | 'ecran_fumee' | 'volute' | 'dissipation' | 'embuscade' | 'brouillard_total' | 'laceration_voilee' | 'embuscade_parfaite'
-  | 'decharge' | 'arc_paralysant' | 'boost' | 'esquive_vive' | 'rafale' | 'surcharge' | 'tempete' | 'fulguration'
+  | 'frappe_ardente' | 'explosion' | 'carapace_chauffee' | 'provocation' | 'immolation' | 'brasier' | 'fournaise' | 'supernova'
+  | 'vague' | 'siphon' | 'regeneration' | 'barriere' | 'malediction' | 'raz_de_maree' | 'maree_curative' | 'maree_regeneratrice' | 'abysse'
+  | 'coup_voile' | 'ecran_fumee' | 'volute' | 'dissipation' | 'embuscade' | 'brouillard_total' | 'laceration_voilee' | 'embuscade_parfaite' | 'danse_des_ombres'
+  | 'decharge' | 'arc_paralysant' | 'boost' | 'esquive_vive' | 'rafale' | 'surcharge' | 'tempete' | 'fulguration' | 'foudroiement'
   | 'griffe_d_ombre' | 'venin_sylvestre' | 'bond_furtif' | 'embuscade_sauvage' | 'hurlement_bete' | 'forme_fantome'
   | 'frappe_terrestre' | 'eruption' | 'carapace_magma' | 'fracas_sismique' | 'fusion_volcanique' | 'magma_supreme'
   | 'tentacule' | 'succion_vitale' | 'encre_noire' | 'vortex_abyssal' | 'malediction_profonde' | 'dissolution'
@@ -45,6 +45,8 @@ export type StatusType =
   | 'provoked'    // +30% dégâts reçus ce tour
   | 'dodge_ready' // esquive garantie prochain coup
   | 'damage_boost' // prochain degat inflige augmente
+  | 'regen_tide' // soin par tour
+  | 'shadow_dance' // renvoi sur esquive
 
 export interface StatusEffect {
   type: StatusType
