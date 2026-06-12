@@ -210,8 +210,8 @@ function levelMult(level: number): number {
   return 1 + 0.03 * (Math.max(1, level) - 1)
 }
 
-function scaleE1Value(base: number, passiveLevel: 1 | 2 | 3, level: number): number {
-  return passiveLevel === 1 ? Math.round(base * levelMult(level)) : Math.round(base)
+function scaleE1Value(base: number, _passiveLevel: 1 | 2 | 3, level: number): number {
+  return Math.round(base * levelMult(level))
 }
 
 function scaleLevelValue(base: number, level: number): number {
@@ -222,11 +222,26 @@ function scaleFromLevel10(base: number, level: number): number {
   return Math.round(base * (1 + 0.03 * (Math.max(10, level) - 10)))
 }
 
-function isE2SignatureSpell(spellId: SpellId): boolean {
-  return spellId === 'supernova'
-    || spellId === 'foudroiement'
-    || spellId === 'maree_regeneratrice'
-    || spellId === 'danse_des_ombres'
+const DIRECT_LEVEL_SCALED_SPELLS = new Set<SpellId>([
+  'frappe_ardente',
+  'explosion',
+  'immolation',
+  'siphon',
+  'regeneration',
+  'raz_de_maree',
+  'coup_voile',
+  'embuscade',
+  'decharge',
+  'arc_paralysant',
+  'surcharge',
+  'supernova',
+  'foudroiement',
+  'maree_regeneratrice',
+  'danse_des_ombres',
+])
+
+function usesDirectLevelScaling(spellId: SpellId): boolean {
+  return DIRECT_LEVEL_SCALED_SPELLS.has(spellId)
 }
 
 function getStartingEmbers(type: CreatureType, passiveLevel: 1 | 2 | 3): number {
@@ -255,7 +270,7 @@ function e2SpellDescription(spellId: SpellId, level: number): string | null {
   const s = (base: number) => scaleFromLevel10(base, level)
   switch (spellId) {
     case 'supernova': return `Necessite 2 braises. ${s(28)} degats +${s(4)}/braise, soigne 40%`
-    case 'foudroiement': return `${s(16)} degats priorite, ${s(32)} si cible controlee`
+    case 'foudroiement': return `${s(16)} degats priorite, ${s(32)} si cible paralysee ou epuisee`
     case 'maree_regeneratrice': return `2 tours : +${s(7)} PV/tour et -25% degats subis`
     case 'danse_des_ombres': return `2 tours : +40% esquive, renvoie ${s(14)} degats/esquive`
     default: return null
@@ -366,9 +381,9 @@ function resolveSpell(
     // ── ignis ──
     case 'frappe_ardente': {
       const newEmbers = Math.min(3, caster.embers + 1)
-      // Passive E1: 2 braises boost Explosion; later stages keep the 3-braise rule.
+      // Explosion is boosted from 2 braises onward.
       const braiseBonus = caster.embers === 3
-      const base = passiveLevel === 1 ? scaleE1Value(8, passiveLevel, casterLevel) : 7
+      const base = scaleLevelValue(8, casterLevel)
       const raw = braiseBonus ? Math.round(base * 1.5) : base
       return {
         ...empty,
@@ -379,8 +394,8 @@ function resolveSpell(
     }
     case 'explosion': {
       const embers = caster.embers
-      const braiseBonus = passiveLevel === 1 ? embers >= 2 : embers >= 3
-      const base = passiveLevel === 1 ? scaleE1Value(20, passiveLevel, casterLevel) : 9.9
+      const braiseBonus = embers >= 2
+      const base = scaleLevelValue(20, casterLevel)
       const raw = braiseBonus ? Math.round(base * 1.5) : base
       const dmg = Math.round(raw)
       return {
@@ -394,8 +409,8 @@ function resolveSpell(
       const newEmbers = Math.min(3, caster.embers + 1)
       return {
         ...empty,
-        casterStatusesToAdd: [{ type: 'barrier', turnsLeft: 1, value: passiveLevel === 1 ? 100 : 30, data: 'reflect' }],
-        newCasterEmbers: passiveLevel === 1 ? newEmbers : undefined,
+        casterStatusesToAdd: [{ type: 'barrier', turnsLeft: 1, value: 100, data: 'reflect' }],
+        newCasterEmbers: newEmbers,
         log: '🛡️ Carapace chauffée ! +barrière réfléchissante',
       }
     }
@@ -409,14 +424,14 @@ function resolveSpell(
     case 'immolation': {
       // Guaranteed — dodge/barrier skipped in commitAction for this spell
       const braiseBonus = caster.embers === 3
-      const base = passiveLevel === 1 ? scaleE1Value(20, passiveLevel, casterLevel) : 11
+      const base = scaleLevelValue(20, casterLevel)
       const raw = braiseBonus ? Math.round(base * 1.5) : base
       return {
         ...empty,
-        casterHpDelta: passiveLevel === 1 ? -5 : -8,
+        casterHpDelta: -5,
         targetHpDelta: -raw,
         newCasterEmbers: braiseBonus ? 0 : undefined,
-        log: `🩸 Immolation ! -${passiveLevel === 1 ? 5 : 8} PV sur soi → -${raw} HP ennemi (garanti)${braiseBonus ? ' (×1.5 braises !)' : ''}`,
+        log: `🩸 Immolation ! -5 PV sur soi → -${raw} HP ennemi (garanti)${braiseBonus ? ' (×1.5 braises !)' : ''}`,
       }
     }
     case 'brasier': {
@@ -466,28 +481,22 @@ function resolveSpell(
       }
     }
     case 'siphon': {
-      // Life steal: always heal +4, +2 bonus if low HP (sustain passive)
-      const lowHp = passiveLevel === 1 ? caster.hp < casterMaxHp * 0.33 : caster.hp < 25
-      const heal = passiveLevel === 1
-        ? scaleE1Value(2, passiveLevel, casterLevel)
-        : scaleLevelValue(lowHp ? 6 : 4, casterLevel)
-      const dmg = passiveLevel === 1 ? scaleE1Value(10, passiveLevel, casterLevel) : 6
+      const heal = scaleLevelValue(2, casterLevel)
+      const dmg = scaleLevelValue(10, casterLevel)
       return {
         ...empty,
         casterHpDelta: heal,
         targetHpDelta: -dmg,
-        log: `💧 Siphon ! -${dmg} HP + vol de vie (+${heal} PV)${lowHp && passiveLevel !== 1 ? ' (sustain !)' : ''}`,
+        log: `Siphon ! -${dmg} HP + vol de vie (+${heal} PV)`,
       }
     }
     case 'regeneration': {
-      const lowHp = passiveLevel === 1 ? caster.hp < casterMaxHp * 0.33 : caster.hp < 25
-      const heal = passiveLevel === 1
-        ? scaleE1Value(lowHp ? 12 : 8, passiveLevel, casterLevel)
-        : scaleLevelValue(lowHp ? 18 : 14, casterLevel)
+      const lowHp = caster.hp < casterMaxHp * 0.33
+      const heal = scaleLevelValue(lowHp ? 12 : 8, casterLevel)
       return {
         ...empty,
         casterHpDelta: heal,
-        log: `💚 Régénération ! +${heal} PV${lowHp ? ' (sustain !)' : ''}`,
+        log: `Regeneration ! +${heal} PV${lowHp ? ' (bas PV !)' : ''}`,
       }
     }
     case 'barriere': {
@@ -503,15 +512,16 @@ function resolveSpell(
         : 'raz_de_maree'
       return {
         ...empty,
-        targetStatusesToAdd: [{ type: 'cursed', turnsLeft: passiveLevel === 1 ? 1 : 2, data: blocked }],
-        log: `🔮 Malédiction ! Sort ${SPELL_CATALOG[blocked as SpellId]?.name ?? blocked} bloqué ${passiveLevel === 1 ? 1 : 2} tour(s)`,
+        targetStatusesToAdd: [{ type: 'cursed', turnsLeft: 1, data: blocked }],
+        log: `Malediction ! Sort ${SPELL_CATALOG[blocked as SpellId]?.name ?? blocked} bloque 1 tour`,
       }
     }
     case 'raz_de_maree': {
+      const dmg = scaleLevelValue(20, casterLevel)
       return {
         ...empty,
-        targetHpDelta: -(passiveLevel === 1 ? scaleE1Value(20, passiveLevel, casterLevel) : 16),
-        log: `🌊💥 Raz-de-marée ! -${passiveLevel === 1 ? scaleE1Value(20, passiveLevel, casterLevel) : 16} HP`,
+        targetHpDelta: -dmg,
+        log: `Raz-de-maree ! -${dmg} HP`,
       }
     }
     case 'maree_curative': {
@@ -546,14 +556,13 @@ function resolveSpell(
 
     // ── sylva ──
     case 'coup_voile': {
-      const fogStatus: StatusEffect[] = passiveLevel === 1
-        ? [{ type: 'fog', turnsLeft: 2, value: 15, data: 'accuracy_down' }]
-        : (Math.random() < 0.2 ? [{ type: 'fog', turnsLeft: 2 }] : [])
+      const dmg = scaleLevelValue(7, casterLevel)
+      const fogStatus: StatusEffect[] = [{ type: 'fog', turnsLeft: 2, value: 15, data: 'accuracy_down' }]
       return {
         ...empty,
-        targetHpDelta: passiveLevel === 1 ? -scaleE1Value(7, passiveLevel, casterLevel) : -Math.round(6.2),
+        targetHpDelta: -dmg,
         targetStatusesToAdd: fogStatus,
-        log: `👊 Coup voilé ! -${passiveLevel === 1 ? scaleE1Value(7, passiveLevel, casterLevel) : 6} HP${fogStatus.length ? ' + brouillage ennemi !' : ''}`,
+        log: `Coup voile ! -${dmg} HP + brouillage ennemi !`,
       }
     }
     case 'laceration_voilee': {
@@ -579,8 +588,8 @@ function resolveSpell(
     case 'volute': {
       return {
         ...empty,
-        casterStatusesToAdd: [{ type: 'dodge_up', turnsLeft: 3, value: passiveLevel === 1 ? 20 : 15 }],
-        log: `🌀 Volute ! +${passiveLevel === 1 ? 20 : 15}% esquive 3 tours`,
+        casterStatusesToAdd: [{ type: 'dodge_up', turnsLeft: 3, value: 20 }],
+        log: 'Volute ! +20% esquive 3 tours',
       }
     }
     case 'dissipation': {
@@ -623,20 +632,22 @@ function resolveSpell(
       }
     }
     case 'decharge': {
+      const dmg = scaleLevelValue(10, casterLevel)
       return {
         ...empty,
-        targetHpDelta: -(passiveLevel === 1 ? scaleE1Value(10, passiveLevel, casterLevel) : 8),
-        log: `⚡ Décharge ! -${passiveLevel === 1 ? scaleE1Value(10, passiveLevel, casterLevel) : 8} HP (priorité)`,
+        targetHpDelta: -dmg,
+        log: `Decharge ! -${dmg} HP (priorite)`,
       }
     }
     case 'arc_paralysant': {
       const paralyzed = Math.random() < 0.3
       const paralysisStatus: StatusEffect[] = paralyzed ? [{ type: 'paralyzed', turnsLeft: 2 }] : []
+      const dmg = scaleLevelValue(15, casterLevel)
       return {
         ...empty,
-        targetHpDelta: -(passiveLevel === 1 ? scaleE1Value(15, passiveLevel, casterLevel) : 5),
+        targetHpDelta: -dmg,
         targetStatusesToAdd: paralysisStatus,
-        log: `🎯 Arc paralysant ! -${passiveLevel === 1 ? scaleE1Value(15, passiveLevel, casterLevel) : 5} HP${paralyzed ? ' · Ennemi paralysé !' : ' · Rate la paralysie.'}`,
+        log: `Arc paralysant ! -${dmg} HP${paralyzed ? ' - Ennemi paralyse !' : ' - Rate la paralysie.'}`,
       }
     }
     case 'boost': {
@@ -663,11 +674,12 @@ function resolveSpell(
       }
     }
     case 'surcharge': {
+      const dmg = scaleLevelValue(22, casterLevel)
       return {
         ...empty,
-        targetHpDelta: -(passiveLevel === 1 ? scaleE1Value(22, passiveLevel, casterLevel) : 16),
+        targetHpDelta: -dmg,
         casterStatusesToAdd: [{ type: 'exhausted', turnsLeft: 2, value: 2 }],
-        log: `🔋 Surcharge ! -${passiveLevel === 1 ? scaleE1Value(22, passiveLevel, casterLevel) : 16} HP + épuisement prochain tour`,
+        log: `Surcharge ! -${dmg} HP + epuisement prochain tour`,
       }
     }
     case 'tempete': {
@@ -695,7 +707,7 @@ function resolveSpell(
       return {
         ...empty,
         targetHpDelta: -dmg,
-        log: `Foudroiement ! -${dmg} HP (priorite)${controlled ? ' cible controlee !' : ''}`,
+        log: `Foudroiement ! -${dmg} HP (priorite)${controlled ? ' cible paralysee/epuisee !' : ''}`,
       }
     }
     case 'griffe_d_ombre': {
@@ -916,34 +928,34 @@ function canUseSpell(spellId: SpellId, state: Combatant, _maxEnergy: number): bo
   return true
 }
 
-function estimateSpellPressure(spellId: SpellId, caster: Combatant, passiveLevel: 1 | 2 | 3): number {
-  const braise = caster.embers >= (passiveLevel === 1 ? 2 : 3) ? 1.5 : 1
+function estimateSpellPressure(spellId: SpellId, caster: Combatant, passiveLevel: 1 | 2 | 3, level: number): number {
+  const braise = caster.embers >= 2 ? 1.5 : 1
   switch (spellId) {
-    case 'frappe_ardente': return Math.round(7 * braise)
-    case 'explosion': return Math.round(9.9 * braise)
-    case 'immolation': return Math.round(11 * braise)
+    case 'frappe_ardente': return Math.round(scaleLevelValue(8, level) * braise)
+    case 'explosion': return Math.round(scaleLevelValue(20, level) * braise)
+    case 'immolation': return Math.round(scaleLevelValue(20, level) * braise)
     case 'brasier': return Math.round(15 * braise) + 6
     case 'fournaise': return Math.round(11.3 * braise)
-    case 'supernova': return caster.embers >= 2 ? 28 + 4 * caster.embers : 0
+    case 'supernova': return caster.embers >= 2 ? scaleFromLevel10(28, level) + scaleFromLevel10(4, level) * caster.embers : 0
     case 'vague': return 7
-    case 'siphon': return 10
-    case 'raz_de_maree': return 16
+    case 'siphon': return scaleLevelValue(10, level)
+    case 'raz_de_maree': return scaleLevelValue(20, level)
     case 'maree_curative': return 18
     case 'maree_regeneratrice': return 0
     case 'abysse': return 20
-    case 'coup_voile': return 6
+    case 'coup_voile': return scaleLevelValue(7, level)
     case 'laceration_voilee': return 10
-    case 'embuscade': return hasStatus(caster, 'dodge_up') ? 18 : 9
+    case 'embuscade': return scaleLevelValue(hasStatus(caster, 'dodge_up') ? 25 : 14, level)
     case 'embuscade_parfaite': return hasStatus(caster, 'dodge_up') ? 17 : 10
     case 'danse_des_ombres': return 0
-    case 'decharge': return 9
-    case 'arc_paralysant': return 11
+    case 'decharge': return scaleLevelValue(10, level)
+    case 'arc_paralysant': return scaleLevelValue(15, level)
     case 'boost': return 0
     case 'rafale': return passiveLevel >= 3 ? 12 : 8
-    case 'surcharge': return passiveLevel === 1 ? 22 : 16
+    case 'surcharge': return scaleLevelValue(22, level)
     case 'tempete': return 24
     case 'fulguration': return 12
-    case 'foudroiement': return 16
+    case 'foudroiement': return scaleFromLevel10(16, level)
     // ombra
     case 'griffe_d_ombre': return 10
     case 'venin_sylvestre': return 14
@@ -1189,12 +1201,13 @@ function chooseDumbE1Action(
   botState: Combatant,
   loadout: SpellLoadout,
   passiveLevel: 1 | 2 | 3,
+  botLevel: number,
   can: (id: SpellId) => boolean,
 ): CombatAction {
   if (Math.random() >= 0.7) return { kind: 'charge' }
 
   const attacks = ([...loadout] as SpellId[]).filter(id =>
-    can(id) && estimateSpellPressure(id, botState, passiveLevel) > 0
+    can(id) && estimateSpellPressure(id, botState, passiveLevel, botLevel) > 0
   )
   if (attacks.length === 0) return { kind: 'charge' }
   return { kind: 'spell', spellId: attacks[Math.floor(Math.random() * attacks.length)] }
@@ -1206,6 +1219,7 @@ function botChooseAction(
   playerState: Combatant,
   loadout: SpellLoadout,
   passiveLevel: 1 | 2 | 3,
+  botLevel: number,
   difficulty: 'easy' | 'medium' | 'hard' = 'medium',
   defendLocked = false,
 ): CombatAction {
@@ -1219,9 +1233,9 @@ function botChooseAction(
   if (passiveLevel === 1 && (difficulty === 'easy' || difficulty === 'medium')) {
     const errorRate = difficulty === 'easy' ? 0.7 : 0.3
     if (Math.random() < errorRate) {
-      return chooseDumbE1Action(botState, loadout, passiveLevel, can)
+      return chooseDumbE1Action(botState, loadout, passiveLevel, botLevel, can)
     }
-    return botChooseAction(type, botState, playerState, loadout, passiveLevel, 'hard', defendLocked)
+    return botChooseAction(type, botState, playerState, loadout, passiveLevel, botLevel, 'hard', defendLocked)
   }
 
   // ── EASY: random pick, barely functional ─────────────────
@@ -1263,13 +1277,13 @@ function botChooseAction(
     const botLow = botState.hp <= 34
     const usable = ([...loadout] as SpellId[]).filter(id => can(id))
     const strongest = [...usable].sort((a, b) =>
-      estimateSpellPressure(b, botState, passiveLevel) - estimateSpellPressure(a, botState, passiveLevel)
+      estimateSpellPressure(b, botState, passiveLevel, botLevel) - estimateSpellPressure(a, botState, passiveLevel, botLevel)
     )
 
     // A. Clear own debuffs first
     if (botDebuffed && can('dissipation')) return { kind: 'spell', spellId: 'dissipation' }
 
-    const finisher = strongest.find(id => estimateSpellPressure(id, botState, passiveLevel) * 1.65 >= playerState.hp)
+    const finisher = strongest.find(id => estimateSpellPressure(id, botState, passiveLevel, botLevel) * 1.65 >= playerState.hp)
     if (finisher) return { kind: 'spell', spellId: finisher }
 
     // B. Emergency heal (lower threshold than medium)
@@ -1735,7 +1749,6 @@ function SpellCard({
   color,
   displayMult,
   level,
-  passiveLevel,
   onPress,
 }: {
   spellId: SpellId
@@ -1744,15 +1757,14 @@ function SpellCard({
   color: string
   displayMult: number
   level: number
-  passiveLevel: 1 | 2 | 3
   onPress: () => void
 }) {
   const spell = SPELL_CATALOG[spellId]
   const usable = canUseSpell(spellId, state, maxEnergy)
   const cd = state.cooldowns[spellId] ?? 0
-  const description = passiveLevel === 1
-    ? (e1SpellDescription(spellId, level) ?? spell.description)
-    : (e2SpellDescription(spellId, level) ?? (spell.scaledDesc ? spell.scaledDesc(displayMult) : spell.description))
+  const description = e2SpellDescription(spellId, level)
+    ?? e1SpellDescription(spellId, level)
+    ?? (spell.scaledDesc ? spell.scaledDesc(displayMult) : spell.description)
 
   return (
     <TouchableOpacity
@@ -2014,7 +2026,7 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
     } else if (hasStatus(curO, 'paralyzed')) {
       oAction = { kind: 'defend' }
     } else {
-      oAction = botChooseAction(opponent.creatureType, curO, curP, opponentLoadout, oPassiveLevel, difficulty ?? 'medium', opponentDefendLockedRef.current)
+      oAction = botChooseAction(opponent.creatureType, curO, curP, opponentLoadout, oPassiveLevel, opponent.level, difficulty ?? 'medium', opponentDefendLockedRef.current)
     }
     if (oAction.kind === 'defend' && opponentDefendLockedRef.current && !hasStatus(curO, 'paralyzed')) {
       oAction = { kind: 'charge' }
@@ -2084,7 +2096,7 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
         let finalDmg = Math.max(0, -result.targetHpDelta)
         let blockedDmg = 0
         const playerGuaranteedHit = pAction.spellId === 'immolation'
-        const playerDirectScaling = isE2SignatureSpell(pAction.spellId)
+        const playerDirectScaling = usesDirectLevelScaling(pAction.spellId)
         if (!playerGuaranteedHit && finalDmg > 0) {
           if (oAction.kind === 'defend' || (oAction.kind === 'spell' && oAction.spellId === 'carapace_chauffee')) {
             blockedDmg = finalDmg
@@ -2207,7 +2219,7 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
         let finalDmgToPlayer = Math.max(0, -result.targetHpDelta)
         let blockedDmgToPlayer = 0
         const opponentGuaranteedHit = oAction.spellId === 'immolation'
-        const opponentDirectScaling = isE2SignatureSpell(oAction.spellId)
+        const opponentDirectScaling = usesDirectLevelScaling(oAction.spellId)
         if (!opponentGuaranteedHit && finalDmgToPlayer > 0) {
           if (pAction.kind === 'defend' || (pAction.kind === 'spell' && pAction.spellId === 'carapace_chauffee')) {
             blockedDmgToPlayer = finalDmgToPlayer
@@ -2321,12 +2333,12 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
       const hasVoluteActive = hasStatus(newP, 'dodge_up')
       const bonusCondition = opponentMissed || hasVoluteActive
 
-      const rawBase = pPassiveLevel === 1 ? 14 : (isParfaite ? 10.3 : 8.9)
-      const rawDmg = pPassiveLevel === 1
-        ? scaleE1Value(bonusCondition ? 25 : 14, pPassiveLevel, playerLevel)
+      const rawBase = isParfaite ? 10.3 : 8.9
+      const rawDmg = pAction.spellId === 'embuscade'
+        ? scaleLevelValue(bonusCondition ? 25 : 14, playerLevel)
         : (isParfaite ? Math.round(rawBase) : Math.round(bonusCondition ? rawBase * 2 : rawBase))
 
-      let embDmg = pPassiveLevel === 1
+      let embDmg = pAction.spellId === 'embuscade'
         ? rawDmg
         : Math.round(rawDmg * playerMods.damageMult * playerMods.counterBonus)
 
@@ -2353,12 +2365,12 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
       const hasVoluteActive = hasStatus(newO, 'dodge_up')
       const bonusCondition = playerMissed || hasVoluteActive
 
-      const rawBase = oPassiveLevel === 1 ? 14 : (isParfaite ? 10.3 : 8.9)
-      const rawDmg = oPassiveLevel === 1
-        ? scaleE1Value(bonusCondition ? 25 : 14, oPassiveLevel, opponent.level)
+      const rawBase = isParfaite ? 10.3 : 8.9
+      const rawDmg = oAction.spellId === 'embuscade'
+        ? scaleLevelValue(bonusCondition ? 25 : 14, opponent.level)
         : (isParfaite ? Math.round(rawBase) : Math.round(bonusCondition ? rawBase * 2 : rawBase))
 
-      let embDmg = oPassiveLevel === 1
+      let embDmg = oAction.spellId === 'embuscade'
         ? rawDmg
         : Math.round(
             rawDmg
@@ -2755,7 +2767,7 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
           {([0, 1] as const).map(i => (
             <SpellCard key={playerLoadout[i]} spellId={playerLoadout[i]} state={pState}
               maxEnergy={playerMods.maxEnergy} color={pColor} displayMult={playerDisplayMult}
-              level={playerLevel} passiveLevel={pPassiveLevel}
+              level={playerLevel}
               onPress={() => commitAction({ kind: 'spell', spellId: playerLoadout[i] })} />
           ))}
         </View>
@@ -2763,7 +2775,7 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
           {([2, 3] as const).map(i => (
             <SpellCard key={playerLoadout[i]} spellId={playerLoadout[i]} state={pState}
               maxEnergy={playerMods.maxEnergy} color={pColor} displayMult={playerDisplayMult}
-              level={playerLevel} passiveLevel={pPassiveLevel}
+              level={playerLevel}
               onPress={() => commitAction({ kind: 'spell', spellId: playerLoadout[i] })} />
           ))}
         </View>

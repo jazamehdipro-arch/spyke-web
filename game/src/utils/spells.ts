@@ -132,7 +132,7 @@ export const SPELL_CATALOG: Record<SpellId, Spell> = {
 
   foudroiement:      { id: 'foudroiement',        name: 'Foudroiement',        emoji: '⚡',   energyCost: 3, cooldown: 0,
     description: '16 dégâts priorité, 32 si cible paralysée ou épuisée',
-    scaledDesc: () => '16 dégâts priorité, 32 si cible contrôlée' },
+    scaledDesc: () => '16 dégâts priorité, 32 si cible paralysée ou épuisée' },
 
   // ── Bête des ombres (ombra) ─────────────────────────────
   griffe_d_ombre:    { id: 'griffe_d_ombre',    name: 'Griffe d\'ombre',     emoji: '🌑',   energyCost: 1, cooldown: 0,
