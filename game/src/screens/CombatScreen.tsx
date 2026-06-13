@@ -1191,7 +1191,7 @@ function chooseHardE1SylvaAction(
   return { kind: 'charge' }
 }
 
-function chooseDumbE1Action(
+function chooseDumbAction(
   botState: Combatant,
   loadout: SpellLoadout,
   passiveLevel: 1 | 2 | 3,
@@ -1224,26 +1224,12 @@ function botChooseAction(
   // inLoadout(id): spell exists in this creature's build (regardless of cooldown/energy)
   const inLoadout = (id: SpellId): boolean => (loadout as readonly SpellId[]).includes(id)
 
-  if (passiveLevel === 1 && (difficulty === 'easy' || difficulty === 'medium')) {
+  if (difficulty === 'easy' || difficulty === 'medium') {
     const errorRate = difficulty === 'easy' ? 0.7 : 0.3
     if (Math.random() < errorRate) {
-      return chooseDumbE1Action(botState, loadout, passiveLevel, botLevel, can)
+      return chooseDumbAction(botState, loadout, passiveLevel, botLevel, can)
     }
     return botChooseAction(type, botState, playerState, loadout, passiveLevel, botLevel, 'hard', defendLocked)
-  }
-
-  // ── EASY: random pick, barely functional ─────────────────
-  if (difficulty === 'easy') {
-    const avail = loadout.filter(id => canUseSpell(id, botState, maxEnergy))
-    if (avail.length === 0) return { kind: 'charge' }
-    if (Math.random() < DIFFICULTY_RULES.easy.easyHesitation) {
-      return botState.energy < 2 ? { kind: 'charge' } : { kind: 'defend' }
-    }
-    if (botState.hp < 10) {
-      const h = avail.find(id => ['regeneration', 'maree_curative', 'barriere', 'carapace_chauffee'].includes(id))
-      if (h) return { kind: 'spell', spellId: h }
-    }
-    return { kind: 'spell', spellId: avail[Math.floor(Math.random() * avail.length)] }
   }
 
   // ── HARD: type-specific combos + reading opponent state ───
