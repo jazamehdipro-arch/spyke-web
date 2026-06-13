@@ -405,6 +405,10 @@ export default function App() {
             onOpenInventory={() => setActiveTab('inventory')}
             onOpenBoutique={() => setActiveTab('boutique')}
             onOpenCrossings={() => setActiveTab('crossings')}
+            onResetTutorial={async () => {
+              await saveTutorialDone(false)
+              setTutorialCompleted(false)
+            }}
           />
         )}
         {activeTab === 'inventory' && (

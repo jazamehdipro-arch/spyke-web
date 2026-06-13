@@ -82,11 +82,13 @@ interface Props {
   onOpenInventory: () => void
   onOpenBoutique: () => void
   onOpenCrossings: () => void
+  onResetTutorial?: () => void
 }
 
 export default function HomeScreen({
   creature, inventory, events, quests, journal,
   streak, coins, onUpdate, onSkinChange, onOpenInventory, onOpenBoutique, onOpenCrossings,
+  onResetTutorial,
 }: Props) {
   const applyXPReward = (base: Creature, amount: number, care = false): { creature: Creature; coins: number } => {
     const result = care ? addCareXPWithConversion(base, amount) : addXPWithConversion(base, amount)
@@ -820,6 +822,15 @@ export default function HomeScreen({
             <Text style={s.adminSection}>Entraînement</Text>
             <View style={s.adminRow}>
               <TouchableOpacity style={[s.adminBtn,{backgroundColor:retro.red}]} onPress={() => adminAction('resettraining')}><Text style={s.adminBtnTxt}>Reset points (→ 0)</Text></TouchableOpacity>
+            </View>
+            <Text style={s.adminSection}>Tutoriel</Text>
+            <View style={s.adminRow}>
+              <TouchableOpacity
+                style={[s.adminBtn, { backgroundColor: retro.purple }]}
+                onPress={() => { setShowAdmin(false); onResetTutorial?.() }}
+              >
+                <Text style={s.adminBtnTxt}>▶ Rejouer le tuto</Text>
+              </TouchableOpacity>
             </View>
             <TouchableOpacity style={s.adminClose} onPress={() => setShowAdmin(false)}>
               <Text style={s.adminCloseTxt}>Fermer</Text>
