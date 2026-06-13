@@ -1888,6 +1888,12 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
 
   const startEnergy = debugOverride?.playerEnergy ?? playerProfile.startEnergy
 
+  // Tutorial mode: auto-select easy difficulty (must use effect to avoid calling setState during render)
+  useEffect(() => {
+    if (tutorialMode) handleSelectDifficulty('easy')
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tutorialMode])
+
   const [phase, setPhase]       = useState<CombatPhase>('intro')
   const [round, setRound]       = useState(1)
   const [pState, setPState]     = useState<Combatant>({
@@ -1966,6 +1972,10 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
   const tutSpellsRef = useRef<View | null>(null)
   const [tutIntroActive, setTutIntroActive] = useState(false)
   const [tutIntroReady,  setTutIntroReady]  = useState(false)
+  // 0 = free, 1 = must CHARGE, 2 = must DEFEND (bot forced to attack), 3 = use a SPELL (guided)
+  const [tutStep, setTutStep] = useState<0 | 1 | 2 | 3>(0)
+  const tutStepRef = useRef<0 | 1 | 2 | 3>(0)
+  useEffect(() => { tutStepRef.current = tutStep }, [tutStep])
 
   const pColor = CREATURE_COLORS[playerType]
   const oColor = CREATURE_COLORS[opponent.creatureType]
@@ -2000,13 +2010,29 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
   useEffect(() => {
     if (phase !== 'choosing') return
     if (timeLeft > 0) return
-    if (!chose) commitAction(playerDefendLockedRef.current ? { kind: 'charge' } : { kind: 'defend' })
-  }, [timeLeft, phase, chose])
+    if (!chose) {
+      if (tutorialMode && tutStepRef.current === 1) commitAction({ kind: 'charge' })
+      else if (tutorialMode && tutStepRef.current === 2) commitAction({ kind: 'defend' })
+      else commitAction(playerDefendLockedRef.current ? { kind: 'charge' } : { kind: 'defend' })
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timeLeft, phase, chose, tutorialMode])
 
   const commitAction = useCallback((rawAction: CombatAction) => {
     if (chose) return
+
+    // Tutorial: enforce correct action for guided steps
+    const ts = tutStepRef.current
+    if (tutorialMode && ts === 1 && rawAction.kind !== 'charge') return
+    if (tutorialMode && ts === 2 && rawAction.kind !== 'defend') return
+
     setChose(true)
     clearInterval(timerRef.current!)
+
+    // Advance tutorial step
+    if (tutorialMode && ts >= 1) {
+      setTutStep(ts < 3 ? (ts + 1) as 1 | 2 | 3 : 0)
+    }
 
     const curP = pStateRef.current
     const curO = oStateRef.current
@@ -2035,12 +2061,30 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
       oAction = { kind: 'charge' }
     }
 
+    // Tutorial step 2: force bot to use cheapest attacking spell to demonstrate defending
+    let tutForcedSpellId: SpellId | null = null
+    if (tutorialMode && ts === 2) {
+      const cheapSpell = [...opponentLoadout]
+        .sort((a, b) => (SPELL_CATALOG[a]?.energyCost ?? 99) - (SPELL_CATALOG[b]?.energyCost ?? 99))
+        .find(id => (SPELL_CATALOG[id]?.energyCost ?? 0) >= 1) as SpellId | undefined
+      if (cheapSpell) {
+        oAction = { kind: 'spell', spellId: cheapSpell }
+        tutForcedSpellId = cheapSpell
+      }
+    }
+
     setPlayerAction(pAction)
     setOpponentAction(oAction)
     setPhase('resolving')
 
     let newP: Combatant = { ...curP }
     let newO: Combatant = { ...curO }
+
+    // Give bot enough energy to cast the forced tutorial spell
+    if (tutForcedSpellId !== null) {
+      const neededEnergy = SPELL_CATALOG[tutForcedSpellId]?.energyCost ?? 1
+      newO = { ...newO, energy: Math.max(newO.energy, neededEnergy) }
+    }
 
     // Remove paralyzed if forced defend
     if (hasStatus(curP, 'paralyzed')) newP = removeStatus(newP, 'paralyzed')
@@ -2521,8 +2565,9 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
 
   const finishCombatIntro = useCallback(() => {
     setTutIntroActive(false)
+    if (tutorialMode) setTutStep(1)
     startTimer()
-  }, [startTimer])
+  }, [startTimer, tutorialMode])
 
   const combatTutorialSteps: CoachStep[] = [
     {
@@ -2573,11 +2618,8 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
 
   // ── Difficulty picker (shown before combat starts) ──────
   if (difficulty === null) {
-    // Tutorial mode: skip difficulty picker, jump straight to easy
-    if (tutorialMode) {
-      setDifficulty('easy')
-      return null
-    }
+    // Tutorial mode: handled via useEffect above; show nothing while initializing
+    if (tutorialMode) return null
     const DIFF_OPTIONS: { key: Difficulty; label: string; sub: string; color: string; emoji: string }[] = [
       { key: 'easy',   label: 'Facile',    sub: '+1 énergie au départ · timer long · IA qui hésite · XP réduite', color: '#22C55E', emoji: '😊' },
       { key: 'medium', label: 'Moyen',     sub: 'Règles normales · IA réactive · XP standard',                    color: '#F59E0B', emoji: '⚔️' },
@@ -2800,6 +2842,19 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
         )}
       </View>
 
+      {/* Tutorial guided-step banner */}
+      {tutorialMode && tutStep > 0 && phase === 'choosing' && (
+        <View style={s.tutGuide}>
+          <Text style={s.tutGuideTxt}>
+            {tutStep === 1
+              ? '🔋 Appuie sur CHARGER pour gagner de l\'énergie !'
+              : tutStep === 2
+                ? '🛡️ L\'adversaire attaque — appuie sur DÉFENDRE !'
+                : '✨ Tu as de l\'énergie — utilise un SORT pour attaquer !'}
+          </Text>
+        </View>
+      )}
+
       {/* DECK — always rendered to avoid layout shift */}
       <View
         pointerEvents={phase === 'choosing' ? 'auto' : 'none'}
@@ -2807,20 +2862,29 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
       >
         <View ref={tutBaseRef} collapsable={false} style={s.baseActions}>
           <TouchableOpacity
-            style={[s.defendBtn, playerDefendLocked && s.defendBtnLocked]}
-            disabled={playerDefendLocked}
+            style={[s.defendBtn, playerDefendLocked && s.defendBtnLocked, tutorialMode && tutStep === 1 && { opacity: 0.3 }]}
+            disabled={playerDefendLocked || (tutorialMode && tutStep === 1)}
             onPress={() => commitAction({ kind: 'defend' })}
           >
             <Text style={s.baseActionIcon}>🛡️</Text>
             <Text style={s.baseActionLabel}>{playerDefendLocked ? 'RECHARGE' : 'DÉFENDRE'}</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={s.chargeBtn} onPress={() => commitAction({ kind: 'charge' })}>
+          <TouchableOpacity
+            style={[s.chargeBtn, tutorialMode && tutStep === 2 && { opacity: 0.3 }]}
+            disabled={tutorialMode && tutStep === 2}
+            onPress={() => commitAction({ kind: 'charge' })}
+          >
             <Text style={s.baseActionIcon}>🔋</Text>
             <Text style={s.baseActionLabel}>CHARGER</Text>
             <Text style={s.chargeSubText}>{pState.energy}/{playerMods.maxEnergy}</Text>
           </TouchableOpacity>
         </View>
-        <View ref={tutSpellsRef} collapsable={false}>
+        <View
+          ref={tutSpellsRef}
+          collapsable={false}
+          pointerEvents={tutorialMode && tutStep <= 2 ? 'none' : 'auto'}
+          style={tutorialMode && tutStep <= 2 ? { opacity: 0.3 } : undefined}
+        >
           <View style={s.spellRow}>
             {([0, 1] as const).map(i => (
               <SpellCard key={playerLoadout[i]} spellId={playerLoadout[i]} state={pState}
@@ -3116,4 +3180,15 @@ const s = StyleSheet.create({
     borderRadius: 4, marginTop: 16, borderWidth: 3, borderColor: retro.line,
   },
   finishBtnText: { color: retro.ink, fontSize: 17, fontWeight: '900', fontFamily: 'monospace' },
+
+  tutGuide: {
+    backgroundColor: retro.gold,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderTopWidth: 3,
+    borderBottomWidth: 3,
+    borderColor: retro.goldDark,
+    alignItems: 'center',
+  },
+  tutGuideTxt: { color: retro.ink, fontWeight: '900', fontFamily: 'monospace', fontSize: 13, textAlign: 'center' },
 })

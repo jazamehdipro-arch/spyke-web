@@ -103,6 +103,11 @@ export const loadStreak = () => get<StreakData>(KEYS.STREAK)
 export const saveTutorialDone = (done: boolean) => set('croisio:tutorial_done', done)
 export const loadTutorialDone = () => get<boolean>('croisio:tutorial_done')
 
+export async function clearAllGameData(): Promise<void> {
+  const allKeys = [...Object.values(KEYS), 'croisio:tutorial_done']
+  await AsyncStorage.multiRemove(allKeys)
+}
+
 export function addItemToInventory(
   inventory: InventoryItem[],
   newItem: InventoryItem

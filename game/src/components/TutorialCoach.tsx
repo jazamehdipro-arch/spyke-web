@@ -38,7 +38,7 @@ interface Props {
   hideSkip?: boolean
 }
 
-const DIM = 'rgba(14,17,28,0.82)'
+const DIM = 'rgba(14,17,28,0.60)'
 const PAD = 8   // spotlight padding around the target
 
 export default function TutorialCoach({ steps, onDone, onSkip, hideSkip }: Props) {

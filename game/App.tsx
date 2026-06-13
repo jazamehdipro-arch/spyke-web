@@ -9,6 +9,7 @@ import OnboardingScreen from './src/screens/OnboardingScreen'
 import ProfileScreen from './src/screens/ProfileScreen'
 import QuestsScreen from './src/screens/QuestsScreen'
 import CombatScreen from './src/screens/CombatScreen'
+import TutorialCoach, { CoachStep } from './src/components/TutorialCoach'
 import { Creature, Crossing, CreatureType, DailyQuest, GameEvent, InventoryItem, JournalEntry, Quest } from './src/types'
 import { addXP, addXPWithConversion, applyOfflineCareDecay, createNewCreature, getMood } from './src/utils/creature'
 import { ITEM_CATALOG, drawMysteryBox, getStarterInventory } from './src/utils/items'
@@ -27,6 +28,7 @@ import {
   loadPlayer,
   loadQuests,
   loadStreak,
+  clearAllGameData,
   loadTutorialDone,
   saveCreature,
   saveDailyQuests,
@@ -39,6 +41,28 @@ import {
 } from './src/utils/storage'
 
 type Tab = 'home' | 'inventory' | 'boutique' | 'combat' | 'quests' | 'crossings' | 'profile'
+
+const CROSSINGS_TUTORIAL_STEPS: CoachStep[] = [
+  {
+    id: 'x-intro',
+    title: 'Croisements 🤝',
+    text: 'Cet onglet enregistre les dresseurs que tu croises dans la vraie vie. Quand un autre joueur passe près de toi (Bluetooth/GPS), un croisement est créé automatiquement.',
+    placement: 'center',
+  },
+  {
+    id: 'x-how',
+    title: 'Rencontres réelles',
+    text: "Plus tu sors et croises de gens, plus ta liste s'agrandit. Tu peux voir leur créature, leur niveau et les défier en duel depuis cette liste.",
+    placement: 'center',
+  },
+  {
+    id: 'x-combat',
+    title: "C'est parti !",
+    text: "Tu connais maintenant les bases du jeu. On va faire un combat d'entraînement pour apprendre à te battre. Suis le guide !",
+    placement: 'center',
+    ctaLabel: '⚔️ Combat entraînement !',
+  },
+]
 
 interface GameState {
   creature: Creature
@@ -64,8 +88,9 @@ function applyXPReward(creature: Creature, amount: number): { creature: Creature
 export default function App() {
   const [ready, setReady] = useState(false)
   const [state, setState] = useState<GameState | null>(null)
-  // Tutorial flow: null = loading, 'home' = menu coach-marks, 'combat' = tutorial fight, 'done' = normal play
-  const [tutorialPhase, setTutorialPhase] = useState<'home' | 'combat' | 'done' | null>(null)
+  // Tutorial flow: null = loading, 'home' = menu coach-marks, 'crossings' = crossings tab explanation,
+  // 'combat' = tutorial fight, 'done' = normal play
+  const [tutorialPhase, setTutorialPhase] = useState<'home' | 'crossings' | 'combat' | 'done' | null>(null)
   const [activeTab, setActiveTab] = useState<Tab>('home')
   const [questBadge, setQuestBadge] = useState(0)
 
@@ -416,11 +441,15 @@ export default function App() {
             onOpenBoutique={() => setActiveTab('boutique')}
             onOpenCrossings={() => setActiveTab('crossings')}
             tutorialActive={tutorialPhase === 'home'}
-            onTutorialDone={() => setTutorialPhase('combat')}
+            onTutorialDone={() => {
+              setActiveTab('crossings')
+              setTutorialPhase('crossings')
+            }}
             onResetTutorial={async () => {
-              await saveTutorialDone(false)
+              await clearAllGameData()
+              setState(null)
+              setTutorialPhase(null)
               setActiveTab('home')
-              setTutorialPhase('home')
             }}
           />
         )}
@@ -535,10 +564,19 @@ export default function App() {
         )}
       </View>
 
+      {/* Crossings tutorial overlay */}
+      {tutorialPhase === 'crossings' && (
+        <TutorialCoach
+          steps={CROSSINGS_TUTORIAL_STEPS}
+          onDone={() => { setActiveTab('home'); setTutorialPhase('combat') }}
+          onSkip={() => { setActiveTab('home'); setTutorialPhase('combat') }}
+        />
+      )}
+
       <View style={styles.tabBar}>
         {tabs.map((tab) => {
           const active = activeTab === tab.key
-          const locked = tutorialPhase === 'home'
+          const locked = tutorialPhase === 'home' || tutorialPhase === 'crossings'
           return (
             <TouchableOpacity
               key={tab.key}
