@@ -110,7 +110,7 @@ class ProximityService {
     this.locationSub?.remove()
     this.locationSub = null
     if (this.channel) {
-      await supabase.removeChannel(this.channel)
+      await supabase?.removeChannel(this.channel)
       this.channel = null
     }
   }
@@ -118,8 +118,7 @@ class ProximityService {
   private joinChannel(): void {
     if (!this.myPayload || !this.myLocation) return
 
-    // Skip if Supabase is not configured
-    if (!process.env.EXPO_PUBLIC_SUPABASE_URL) {
+    if (!supabase) {
       this.onStatus?.('error')
       return
     }

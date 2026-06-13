@@ -1,3 +1,4 @@
+import { RealtimeChannel } from '@supabase/supabase-js'
 import { supabase } from './supabase'
 import { CreatureType } from '../types'
 
@@ -29,7 +30,7 @@ export function searchForMatch(
   onStatus: StatusCallback,
 ): () => void {
   let settled  = false
-  let channel: ReturnType<typeof supabase.channel> | null = null
+  let channel: RealtimeChannel | null = null
   let timerId:  ReturnType<typeof setTimeout>
 
   const settle = (result: MatchResult) => {
@@ -37,7 +38,7 @@ export function searchForMatch(
     settled = true
     clearTimeout(timerId)
     if (channel) {
-      supabase.removeChannel(channel).catch(() => {/* ignore */})
+      supabase?.removeChannel(channel).catch(() => {/* ignore */})
       channel = null
     }
     onStatus(result.type === 'bot' ? 'timeout' : 'found')
@@ -48,13 +49,13 @@ export function searchForMatch(
     settled = true
     clearTimeout(timerId)
     if (channel) {
-      supabase.removeChannel(channel).catch(() => {/* ignore */})
+      supabase?.removeChannel(channel).catch(() => {/* ignore */})
       channel = null
     }
   }
 
   // If Supabase not configured → quick bot fallback (simulates 2s search)
-  if (!process.env.EXPO_PUBLIC_SUPABASE_URL) {
+  if (!supabase) {
     timerId = setTimeout(() => settle({ type: 'bot', opponent: makeBotPlayer(me.level) }), 2_500)
     return cancel
   }
@@ -74,7 +75,7 @@ export function searchForMatch(
     settle({ type: 'real', opponent: picked })
   }
 
-  channel = supabase.channel('matchmaking:world', {
+  channel = supabase!.channel('matchmaking:world', {
     config: { presence: { key: me.userId } },
   })
 
