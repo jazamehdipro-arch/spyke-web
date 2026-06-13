@@ -442,6 +442,7 @@ export default function App() {
             onOpenCrossings={() => setActiveTab('crossings')}
             tutorialActive={tutorialPhase === 'home'}
             onTutorialDone={() => {
+              void saveTutorialDone(true)  // persist before any navigation so restart won't re-trigger
               setActiveTab('crossings')
               setTutorialPhase('crossings')
             }}
@@ -568,8 +569,16 @@ export default function App() {
       {tutorialPhase === 'crossings' && (
         <TutorialCoach
           steps={CROSSINGS_TUTORIAL_STEPS}
-          onDone={() => { setActiveTab('home'); setTutorialPhase('combat') }}
-          onSkip={() => { setActiveTab('home'); setTutorialPhase('combat') }}
+          onDone={() => {
+            void saveTutorialDone(true)  // save now — so a restart won't re-trigger the tour
+            setActiveTab('home')
+            setTutorialPhase('combat')
+          }}
+          onSkip={() => {
+            void saveTutorialDone(true)
+            setActiveTab('home')
+            setTutorialPhase('combat')
+          }}
         />
       )}
 
