@@ -145,6 +145,17 @@ export default function TutorialCoach({ steps, onDone, onSkip, hideSkip }: Props
         </View>
       </TouchableWithoutFeedback>
 
+      {/* Spotlight brightness — warm glow over the target so it pops against the dim */}
+      {hole && (
+        <View
+          pointerEvents="none"
+          style={[
+            styles.spotlightBright,
+            { left: hole.x, top: hole.y, width: hole.width, height: hole.height },
+          ]}
+        />
+      )}
+
       {/* Glowing spotlight border */}
       {hole && (
         <Animated.View
@@ -202,6 +213,12 @@ export default function TutorialCoach({ steps, onDone, onSkip, hideSkip }: Props
 const styles = StyleSheet.create({
   fill: { ...StyleSheet.absoluteFillObject, zIndex: 1000, elevation: 1000 },
   dim: { position: 'absolute', backgroundColor: DIM },
+
+  spotlightBright: {
+    position: 'absolute',
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,248,190,0.22)',
+  },
 
   spotlight: {
     position: 'absolute',

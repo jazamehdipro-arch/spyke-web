@@ -2882,8 +2882,8 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
         <View
           ref={tutSpellsRef}
           collapsable={false}
-          pointerEvents={tutorialMode && tutStep <= 2 ? 'none' : 'auto'}
-          style={tutorialMode && tutStep <= 2 ? { opacity: 0.3 } : undefined}
+          pointerEvents={tutorialMode && (tutStep === 1 || tutStep === 2) ? 'none' : 'auto'}
+          style={tutorialMode && (tutStep === 1 || tutStep === 2) ? { opacity: 0.3 } : undefined}
         >
           <View style={s.spellRow}>
             {([0, 1] as const).map(i => (
