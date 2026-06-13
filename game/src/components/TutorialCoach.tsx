@@ -38,8 +38,8 @@ interface Props {
   hideSkip?: boolean
 }
 
-const DIM = 'rgba(14,17,28,0.60)'
-const PAD = 8   // spotlight padding around the target
+const DIM = 'rgba(14,17,28,0.55)'
+const PAD = 14  // spotlight padding around the target
 
 export default function TutorialCoach({ steps, onDone, onSkip, hideSkip }: Props) {
   const [index, setIndex] = useState(0)
@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
   spotlightBright: {
     position: 'absolute',
     borderRadius: 10,
-    backgroundColor: 'rgba(255,248,190,0.22)',
+    backgroundColor: 'rgba(255,255,255,0.40)',
   },
 
   spotlight: {
