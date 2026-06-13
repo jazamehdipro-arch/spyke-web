@@ -29,6 +29,7 @@ import {
   getPassiveLevel,
 } from '../utils/spells'
 import { retro, retroShadow } from '../styles/retro'
+import TutorialCoach, { CoachStep } from '../components/TutorialCoach'
 
 // ─── arena backgrounds ───────────────────────────────────
 // ─── sprites ────────────────────────────────────────────
@@ -1958,6 +1959,14 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
   const oDmgOpacity = useRef(new Animated.Value(0)).current
   const oDmgY = useRef(new Animated.Value(0)).current
 
+  // ── Tutorial coach (in-combat) ──
+  const tutEnemyRef  = useRef<View | null>(null)
+  const tutMeRef     = useRef<View | null>(null)
+  const tutBaseRef   = useRef<View | null>(null)
+  const tutSpellsRef = useRef<View | null>(null)
+  const [tutIntroActive, setTutIntroActive] = useState(false)
+  const [tutIntroReady,  setTutIntroReady]  = useState(false)
+
   const pColor = CREATURE_COLORS[playerType]
   const oColor = CREATURE_COLORS[opponent.creatureType]
 
@@ -2499,10 +2508,59 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
   useEffect(() => {
     const t = setTimeout(() => {
       setPhase('choosing')
-      startTimer()
+      if (tutorialMode) {
+        // Freeze the first turn and walk the player through the combat UI
+        setTutIntroActive(true)
+        setTimeout(() => setTutIntroReady(true), 350)
+      } else {
+        startTimer()
+      }
     }, 1600)
     return () => clearTimeout(t)
   }, [])
+
+  const finishCombatIntro = useCallback(() => {
+    setTutIntroActive(false)
+    startTimer()
+  }, [startTimer])
+
+  const combatTutorialSteps: CoachStep[] = [
+    {
+      id: 'c-intro',
+      title: 'Premier combat !',
+      text: "Les combats sont au tour par tour. À chaque tour tu choisis une action avant la fin du chrono. Je t'explique l'écran.",
+      placement: 'center',
+    },
+    {
+      id: 'c-enemy',
+      title: 'Ton adversaire',
+      text: "Surveille sa barre de vie (PV) et son énergie ⚡. Plus il a d'énergie, plus il peut lancer de gros sorts — anticipe !",
+      target: tutEnemyRef,
+      placement: 'below',
+    },
+    {
+      id: 'c-me',
+      title: 'Toi',
+      text: "Voici tes PV et ton énergie ⚡. L'énergie se dépense pour lancer des sorts. À zéro PV, c'est perdu.",
+      target: tutMeRef,
+      placement: 'above',
+    },
+    {
+      id: 'c-base',
+      title: 'Charger & Défendre',
+      text: '🔋 CHARGER regagne de l\'énergie. 🛡️ DÉFENDRE réduit fortement les dégâts du prochain coup. Utilise-les quand tu es à court d\'énergie.',
+      target: tutBaseRef,
+      placement: 'above',
+    },
+    {
+      id: 'c-spells',
+      title: 'Tes sorts',
+      text: "Chaque sort coûte de l'énergie ⚡. Touche-en un pour attaquer. À toi de jouer — bonne chance !",
+      target: tutSpellsRef,
+      placement: 'above',
+      ctaLabel: 'Commencer ! ⚔️',
+    },
+  ]
 
   useEffect(() => {
     if (phase === 'resolving') {
@@ -2615,7 +2673,7 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
               )}
             </View>
           </Animated.View>
-          <View style={s.fighterInfo}>
+          <View ref={tutEnemyRef} collapsable={false} style={s.fighterInfo}>
             <View style={s.nameRow}>
               <Text style={s.fighterName} numberOfLines={1}>{opponent.creatureName}</Text>
               <View style={[s.lvlBadge, { backgroundColor: oColor }]}>
@@ -2673,7 +2731,7 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
 
         {/* PLAYER */}
         <View style={[s.fighterRow, s.fighterRowMe]}>
-          <View style={[s.fighterInfo, s.fighterInfoMe]}>
+          <View ref={tutMeRef} collapsable={false} style={[s.fighterInfo, s.fighterInfoMe]}>
             <View style={[s.nameRow, s.nameRowMe]}>
               <Text style={s.fighterName} numberOfLines={1}>{player.name}</Text>
               <View style={[s.lvlBadge, { backgroundColor: pColor }]}>
@@ -2747,7 +2805,7 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
         pointerEvents={phase === 'choosing' ? 'auto' : 'none'}
         style={[s.deck, phase !== 'choosing' && s.deckDisabled]}
       >
-        <View style={s.baseActions}>
+        <View ref={tutBaseRef} collapsable={false} style={s.baseActions}>
           <TouchableOpacity
             style={[s.defendBtn, playerDefendLocked && s.defendBtnLocked]}
             disabled={playerDefendLocked}
@@ -2762,21 +2820,23 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
             <Text style={s.chargeSubText}>{pState.energy}/{playerMods.maxEnergy}</Text>
           </TouchableOpacity>
         </View>
-        <View style={s.spellRow}>
-          {([0, 1] as const).map(i => (
-            <SpellCard key={playerLoadout[i]} spellId={playerLoadout[i]} state={pState}
-              maxEnergy={playerMods.maxEnergy} color={pColor} displayMult={playerDisplayMult}
-              level={playerLevel}
-              onPress={() => commitAction({ kind: 'spell', spellId: playerLoadout[i] })} />
-          ))}
-        </View>
-        <View style={s.spellRow}>
-          {([2, 3] as const).map(i => (
-            <SpellCard key={playerLoadout[i]} spellId={playerLoadout[i]} state={pState}
-              maxEnergy={playerMods.maxEnergy} color={pColor} displayMult={playerDisplayMult}
-              level={playerLevel}
-              onPress={() => commitAction({ kind: 'spell', spellId: playerLoadout[i] })} />
-          ))}
+        <View ref={tutSpellsRef} collapsable={false}>
+          <View style={s.spellRow}>
+            {([0, 1] as const).map(i => (
+              <SpellCard key={playerLoadout[i]} spellId={playerLoadout[i]} state={pState}
+                maxEnergy={playerMods.maxEnergy} color={pColor} displayMult={playerDisplayMult}
+                level={playerLevel}
+                onPress={() => commitAction({ kind: 'spell', spellId: playerLoadout[i] })} />
+            ))}
+          </View>
+          <View style={s.spellRow}>
+            {([2, 3] as const).map(i => (
+              <SpellCard key={playerLoadout[i]} spellId={playerLoadout[i]} state={pState}
+                maxEnergy={playerMods.maxEnergy} color={pColor} displayMult={playerDisplayMult}
+                level={playerLevel}
+                onPress={() => commitAction({ kind: 'spell', spellId: playerLoadout[i] })} />
+            ))}
+          </View>
         </View>
       </View>
 
@@ -2799,6 +2859,15 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
             <Text style={s.finishBtnText}>Continuer</Text>
           </TouchableOpacity>
         </View>
+      )}
+
+      {/* In-combat tutorial coach */}
+      {tutorialMode && tutIntroActive && tutIntroReady && (
+        <TutorialCoach
+          steps={combatTutorialSteps}
+          onDone={finishCombatIntro}
+          hideSkip
+        />
       )}
 
     </View>

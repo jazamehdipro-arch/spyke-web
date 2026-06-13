@@ -25,6 +25,7 @@ import { addItemToInventory, addJournalEntry, loadCrossings, saveCreature, saveE
 import { updateQuestsAfterAction } from '../utils/quests'
 import { retro, retroShadow, typeTheme } from '../styles/retro'
 import { PixelBar, PixelButton, SectionTitle } from '../components/ui'
+import TutorialCoach, { CoachStep } from '../components/TutorialCoach'
 
 const { height: SCREEN_H } = Dimensions.get('window')
 const HERO_H = Math.round(SCREEN_H * 0.38)
@@ -83,12 +84,14 @@ interface Props {
   onOpenBoutique: () => void
   onOpenCrossings: () => void
   onResetTutorial?: () => void
+  tutorialActive?: boolean
+  onTutorialDone?: () => void
 }
 
 export default function HomeScreen({
   creature, inventory, events, quests, journal,
   streak, coins, onUpdate, onSkinChange, onOpenInventory, onOpenBoutique, onOpenCrossings,
-  onResetTutorial,
+  onResetTutorial, tutorialActive, onTutorialDone,
 }: Props) {
   const applyXPReward = (base: Creature, amount: number, care = false): { creature: Creature; coins: number } => {
     const result = care ? addCareXPWithConversion(base, amount) : addXPWithConversion(base, amount)
@@ -127,6 +130,69 @@ export default function HomeScreen({
   const boredomRef = useRef<{ key: string | null; count: number }>({ key: null, count: 0 })
   const titleTapCount = useRef(0)
   const titleTapTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // ── Tutorial coach targets ──
+  const scrollRef       = useRef<ScrollView | null>(null)
+  const tutCreatureRef  = useRef<View | null>(null)
+  const tutStatsRef     = useRef<View | null>(null)
+  const tutSacRef       = useRef<View | null>(null)
+  const tutBoutiqueRef  = useRef<View | null>(null)
+  const tutActionsRef   = useRef<View | null>(null)
+  const [tutReady, setTutReady] = useState(false)
+
+  // When tutorial starts, scroll to top so the stat bars are measurable
+  useEffect(() => {
+    if (!tutorialActive) { setTutReady(false); return }
+    scrollRef.current?.scrollTo({ y: 0, animated: false })
+    const t = setTimeout(() => setTutReady(true), 400)
+    return () => clearTimeout(t)
+  }, [tutorialActive])
+
+  const tutorialSteps: CoachStep[] = [
+    {
+      id: 'welcome',
+      title: `Voici ${creature.name} !`,
+      text: `Bienvenue ! Je vais te montrer comment t'occuper de ${creature.name} en quelques secondes. Suis les bulles.`,
+      placement: 'center',
+    },
+    {
+      id: 'creature',
+      title: 'Ta créature',
+      text: `C'est ${creature.name}. Touche-le pour le caresser et le rendre heureux. Son humeur change selon tes soins.`,
+      target: tutCreatureRef,
+    },
+    {
+      id: 'stats',
+      title: 'Surveille son état',
+      text: 'Faim, Bonheur et Énergie baissent avec le temps. S\'ils tombent trop bas, ta créature devient malade et plus faible au combat.',
+      target: tutStatsRef,
+    },
+    {
+      id: 'actions',
+      title: 'Occupe-toi de lui',
+      text: 'Nourris, joue, entraîne ou fais dormir ta créature ici. Chaque action lui donne de l\'XP et le fait évoluer.',
+      target: tutActionsRef,
+    },
+    {
+      id: 'sac',
+      title: 'Le Sac',
+      text: 'Ouvre ton sac pour utiliser tes objets : nourriture, soins et boîtes mystères.',
+      target: tutSacRef,
+    },
+    {
+      id: 'boutique',
+      title: 'La Boutique',
+      text: 'Dépense tes pièces 💰 (gagnées en combat et en quêtes) pour acheter de la nourriture et des objets rares.',
+      target: tutBoutiqueRef,
+    },
+    {
+      id: 'tabs',
+      title: 'Combat & Croisements',
+      text: 'En bas : l\'onglet ⚔️ Combat pour affronter joueurs et IA, et 🤝 Croisements pour rencontrer les dresseurs près de toi. On va faire un combat d\'entraînement !',
+      placement: 'center',
+      ctaLabel: '⚔️ Combat test !',
+    },
+  ]
 
   const streakXPBonus = (streak ?? 0) > 0 ? 1.1 : 1.0
 
@@ -491,7 +557,7 @@ export default function HomeScreen({
           </View>
 
           {/* Creature */}
-          <View style={s.heroCreature} pointerEvents="box-none">
+          <View ref={tutCreatureRef} collapsable={false} style={s.heroCreature} pointerEvents="box-none">
             <CreatureDisplay creature={creature} pose={currentPose} onEvolve={handleEvolve} variant="hero" />
           </View>
 
@@ -505,14 +571,18 @@ export default function HomeScreen({
           {/* Sac + Boutique + skin nav — bottom left */}
           <View style={s.heroBottomLeft}>
             <View style={s.heroBottomBtns}>
-              <TouchableOpacity style={s.invSideBtn} onPress={onOpenInventory} activeOpacity={0.8}>
-                <Text style={s.invSideBtnEmoji}>🎒</Text>
-                <Text style={s.invSideBtnLbl}>Sac</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={s.invSideBtn} onPress={onOpenBoutique} activeOpacity={0.8}>
-                <Text style={s.invSideBtnEmoji}>🛍️</Text>
-                <Text style={s.invSideBtnLbl}>Boutique</Text>
-              </TouchableOpacity>
+              <View ref={tutSacRef} collapsable={false}>
+                <TouchableOpacity style={s.invSideBtn} onPress={onOpenInventory} activeOpacity={0.8}>
+                  <Text style={s.invSideBtnEmoji}>🎒</Text>
+                  <Text style={s.invSideBtnLbl}>Sac</Text>
+                </TouchableOpacity>
+              </View>
+              <View ref={tutBoutiqueRef} collapsable={false}>
+                <TouchableOpacity style={s.invSideBtn} onPress={onOpenBoutique} activeOpacity={0.8}>
+                  <Text style={s.invSideBtnEmoji}>🛍️</Text>
+                  <Text style={s.invSideBtnLbl}>Boutique</Text>
+                </TouchableOpacity>
+              </View>
             </View>
             {allSkins.length > 1 && (
               <View style={s.skinNav}>
@@ -542,13 +612,15 @@ export default function HomeScreen({
 
       {/* ── Scrollable content ────────────────────────────────── */}
       <ScrollView
+        ref={scrollRef}
         style={s.scroll}
         contentContainerStyle={s.scrollContent}
+        scrollEnabled={!tutorialActive}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#aaa" />}
         showsVerticalScrollIndicator={false}
       >
         {/* ÉTAT */}
-        <View style={s.section}>
+        <View ref={tutStatsRef} collapsable={false} style={s.section}>
           <SectionTitle title="ÉTAT" color={retro.red} style={{ marginBottom: 12 }} />
           {([
             { label: 'Faim',    icon: '🍖', value: creature.stats.hunger,    max: 100, color: retro.red },
@@ -602,7 +674,7 @@ export default function HomeScreen({
         </View>
 
         {/* ACTIONS */}
-        <View style={s.section}>
+        <View ref={tutActionsRef} collapsable={false} style={s.section}>
           <SectionTitle title="ACTIONS" color={retro.red} style={{ marginBottom: 12 }} />
           <View style={s.actionsRow}>
             {([
@@ -856,6 +928,15 @@ export default function HomeScreen({
           </Animated.View>
         </View>
       </Modal>
+
+      {/* ── Tutorial coach overlay ──────────────────────────── */}
+      {tutorialActive && tutReady && (
+        <TutorialCoach
+          steps={tutorialSteps}
+          onDone={() => onTutorialDone?.()}
+          onSkip={() => onTutorialDone?.()}
+        />
+      )}
     </View>
   )
 }

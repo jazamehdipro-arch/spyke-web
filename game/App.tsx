@@ -8,7 +8,7 @@ import JournalScreen from './src/screens/JournalScreen'
 import OnboardingScreen from './src/screens/OnboardingScreen'
 import ProfileScreen from './src/screens/ProfileScreen'
 import QuestsScreen from './src/screens/QuestsScreen'
-import TutorialScreen from './src/screens/TutorialScreen'
+import CombatScreen from './src/screens/CombatScreen'
 import { Creature, Crossing, CreatureType, DailyQuest, GameEvent, InventoryItem, JournalEntry, Quest } from './src/types'
 import { addXP, addXPWithConversion, applyOfflineCareDecay, createNewCreature, getMood } from './src/utils/creature'
 import { ITEM_CATALOG, drawMysteryBox, getStarterInventory } from './src/utils/items'
@@ -64,7 +64,8 @@ function applyXPReward(creature: Creature, amount: number): { creature: Creature
 export default function App() {
   const [ready, setReady] = useState(false)
   const [state, setState] = useState<GameState | null>(null)
-  const [tutorialCompleted, setTutorialCompleted] = useState<boolean | null>(null)
+  // Tutorial flow: null = loading, 'home' = menu coach-marks, 'combat' = tutorial fight, 'done' = normal play
+  const [tutorialPhase, setTutorialPhase] = useState<'home' | 'combat' | 'done' | null>(null)
   const [activeTab, setActiveTab] = useState<Tab>('home')
   const [questBadge, setQuestBadge] = useState(0)
 
@@ -144,7 +145,7 @@ export default function App() {
           streak,
         })
         // Existing users who never saw tutorial flag default to done
-        setTutorialCompleted(savedTutorialDone ?? true)
+        setTutorialPhase((savedTutorialDone ?? true) ? 'done' : 'home')
       }
       setReady(true)
     }
@@ -207,6 +208,7 @@ export default function App() {
       saveTutorialDone(false),
     ])
 
+    setActiveTab('home')
     setState({
       creature,
       username,
@@ -219,7 +221,7 @@ export default function App() {
       coins: 0,
       streak: 1,
     })
-    setTutorialCompleted(false)
+    setTutorialPhase('home')
   }, [])
 
   const handleUseItem = useCallback(async (item: InventoryItem) => {
@@ -366,14 +368,22 @@ export default function App() {
 
   if (!ready) return null
   if (!state) return <OnboardingScreen onComplete={handleOnboarding} />
-  if (state && tutorialCompleted === false) {
+
+  // Tutorial combat — full-screen training fight with in-combat coach bubbles
+  if (tutorialPhase === 'combat') {
     return (
-      <TutorialScreen
-        creature={state.creature}
-        username={state.username}
-        onComplete={async () => {
+      <CombatScreen
+        player={state.creature}
+        tutorialMode
+        opponent={{
+          username: 'DresseurRival',
+          creatureName: 'Flick',
+          creatureType: 'nemo',
+          level: Math.max(1, state.creature.stats.level),
+        }}
+        onFinish={async () => {
           await saveTutorialDone(true)
-          setTutorialCompleted(true)
+          setTutorialPhase('done')
         }}
       />
     )
@@ -405,9 +415,12 @@ export default function App() {
             onOpenInventory={() => setActiveTab('inventory')}
             onOpenBoutique={() => setActiveTab('boutique')}
             onOpenCrossings={() => setActiveTab('crossings')}
+            tutorialActive={tutorialPhase === 'home'}
+            onTutorialDone={() => setTutorialPhase('combat')}
             onResetTutorial={async () => {
               await saveTutorialDone(false)
-              setTutorialCompleted(false)
+              setActiveTab('home')
+              setTutorialPhase('home')
             }}
           />
         )}
@@ -525,11 +538,12 @@ export default function App() {
       <View style={styles.tabBar}>
         {tabs.map((tab) => {
           const active = activeTab === tab.key
+          const locked = tutorialPhase === 'home'
           return (
             <TouchableOpacity
               key={tab.key}
-              style={styles.tab}
-              onPress={() => setActiveTab(tab.key)}
+              style={[styles.tab, locked && { opacity: 0.4 }]}
+              onPress={() => { if (!locked) setActiveTab(tab.key) }}
               activeOpacity={0.7}
             >
               <View style={[styles.tabKey, active && styles.tabKeyActive]}>
