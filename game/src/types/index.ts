@@ -183,6 +183,18 @@ export interface SocialEvent {
   rewardCoins?: number
 }
 
+export interface PendingCrossing {
+  id: string
+  source: 'gps' | 'push' | 'server'
+  reason: 'combat' | 'background' | 'manual'
+  receivedAt: string
+  status: 'queued' | 'notified' | 'resolved'
+  crossing: Crossing
+  event: SocialEvent
+  relation: SocialRelation
+  opponent: NonNullable<SocialEvent['opponent']>
+}
+
 export interface InventoryItem {
   id: string
   name: string

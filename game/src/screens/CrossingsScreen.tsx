@@ -12,15 +12,20 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native'
-import { Creature, Crossing, CreatureType, InventoryItem, SocialDial, SocialEvent, SocialEventType, SocialProfile, SocialRelation, SpellId, SpellLoadout } from '../types'
+import { Creature, Crossing, CreatureType, InventoryItem, PendingCrossing, SocialDial, SocialEvent, SocialEventType, SocialProfile, SocialRelation, SpellId, SpellLoadout } from '../types'
 import { proximityService, ProximityPlayer, ProximityStatus } from '../services/proximity'
 import { searchForMatch, LEVEL_RANGE, SEARCH_TIMEOUT_MS, MatchPlayer } from '../services/matchmaking'
+import { notifyCrossing, registerCrossingPushToken } from '../services/notifications'
+import { startBackgroundCrossingTracking } from '../services/backgroundLocation'
 import {
+  addPendingCrossing,
   loadCrossings,
   loadInventory,
+  loadPendingCrossings,
   loadSocialEvents,
   loadSocialProfile,
   loadSocialRelations,
+  resolvePendingCrossing,
   saveCrossings,
   saveInventory,
   saveSocialEvents,
@@ -440,6 +445,19 @@ interface EncounterData {
   event: SocialEvent
   opponent: CombatOpponent
   relation: SocialRelation
+}
+
+function pendingToEncounter(pending: PendingCrossing): EncounterData {
+  return {
+    event: pending.event,
+    relation: pending.relation,
+    opponent: {
+      username: pending.opponent.username,
+      creatureName: pending.opponent.creatureName,
+      creatureType: pending.opponent.creatureType,
+      level: pending.opponent.level,
+    },
+  }
 }
 
 function EncounterModal({ encounter, onFight, onDismiss, onGameEnd, playerType }: {
@@ -1062,9 +1080,11 @@ export default function CrossingsScreen({ player, username, onCombatEnd }: Props
     playerType: CreatureType; playerLevel: number
     playerLoadout: SpellLoadout; playerEnergy: number
   } | undefined>(undefined)
+  const [pendingCrossings, setPendingCrossings] = useState<PendingCrossing[]>([])
   const [inventory, setInventory]   = useState<InventoryItem[]>([])
   const [stolenItem, setStolenItem] = useState<{ emoji: string; name: string } | null>(null)
   const combatIsTheftRef = useRef(false)
+  const combatRef = useRef<CombatOpponent | null>(null)
 
   // ── Proximity / real-crossing state ─────────────────────────────────────────
   const [gpsStatus, setGpsStatus] = useState<ProximityStatus>('idle')
@@ -1073,22 +1093,26 @@ export default function CrossingsScreen({ player, username, onCombatEnd }: Props
   const relationsRef = useRef(relations)
   const eventsRef = useRef(events)
   const crossingsRef = useRef(crossings)
+  const pendingCrossingsRef = useRef(pendingCrossings)
   useEffect(() => { socialProfileRef.current = socialProfile }, [socialProfile])
   useEffect(() => { relationsRef.current = relations }, [relations])
   useEffect(() => { eventsRef.current = events }, [events])
   useEffect(() => { crossingsRef.current = crossings }, [crossings])
+  useEffect(() => { pendingCrossingsRef.current = pendingCrossings }, [pendingCrossings])
+  useEffect(() => { combatRef.current = combat }, [combat])
 
   // Hidden tap counter on title for dev access
   const devTapCount = useRef(0)
   const devTapTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
-    Promise.all([loadCrossings(), loadSocialRelations(), loadSocialEvents(), loadSocialProfile(), loadInventory()])
-      .then(([crossData, relationData, eventData, profileData, invData]) => {
+    Promise.all([loadCrossings(), loadSocialRelations(), loadSocialEvents(), loadSocialProfile(), loadInventory(), loadPendingCrossings()])
+      .then(([crossData, relationData, eventData, profileData, invData, pendingData]) => {
         setCrossings(crossData ?? [])
         setRelations(relationData ?? [])
         setEvents(eventData ?? [])
         setInventory(invData ?? [])
+        setPendingCrossings(pendingData ?? [])
         setSocialProfile(profileData
           ? { ...DEFAULT_SOCIAL_PROFILE, ...profileData, rules: { ...DEFAULT_SOCIAL_PROFILE.rules, ...profileData.rules } }
           : DEFAULT_SOCIAL_PROFILE)
@@ -1146,11 +1170,29 @@ export default function CrossingsScreen({ player, username, onCombatEnd }: Props
     const nextRelations = [nextRelation, ...currentRelations.filter((r) => r.id !== relationId)].slice(0, 80)
     const nextEvents    = [socialEvent, ...currentEvents].slice(0, 60)
     const nextCrossings = [crossing, ...currentCrossings].slice(0, 50)
+    const pending: PendingCrossing = {
+      id: socialEvent.id,
+      source: 'gps',
+      reason: combatRef.current ? 'combat' : 'manual',
+      receivedAt: now,
+      status: combatRef.current ? 'queued' : 'notified',
+      crossing,
+      event: socialEvent,
+      relation: nextRelation,
+      opponent: socialEvent.opponent!,
+    }
 
     setRelations(nextRelations)
     setEvents(nextEvents)
     setCrossings(nextCrossings)
-    setEncounter({ event: socialEvent, opponent, relation: nextRelation })
+    if (combatRef.current) {
+      const queued = await addPendingCrossing(pending)
+      setPendingCrossings(queued)
+      await notifyCrossing(socialEvent, true)
+    } else {
+      setEncounter({ event: socialEvent, opponent, relation: nextRelation })
+      await notifyCrossing(socialEvent, false)
+    }
     await Promise.all([saveSocialRelations(nextRelations), saveSocialEvents(nextEvents), saveCrossings(nextCrossings)])
   }, [player, gpsCoords])
 
@@ -1171,7 +1213,11 @@ export default function CrossingsScreen({ player, username, onCombatEnd }: Props
       setGpsStatus,
       (lat, lng) => setGpsCoords({ lat, lng }),
     )
-    return () => { void proximityService.stop() }
+    void registerCrossingPushToken(me.userId)
+    void startBackgroundCrossingTracking(me)
+    return () => {
+      void proximityService.stop()
+    }
   }, [loading])  // eslint-disable-line react-hooks/exhaustive-deps
 
   const updateSocialDial = async (key: keyof Omit<SocialProfile, 'rules'>, value: SocialDial) => {
@@ -1261,6 +1307,14 @@ export default function CrossingsScreen({ player, username, onCombatEnd }: Props
     })
   }
 
+  const promoteNextPendingCrossing = useCallback(async () => {
+    const [next] = pendingCrossingsRef.current
+    if (!next) return
+    const remaining = await resolvePendingCrossing(next.id)
+    setPendingCrossings(remaining)
+    setEncounter(pendingToEncounter({ ...next, status: 'notified' }))
+  }, [])
+
   const handleCombatEnd = async (won: boolean, xpGained: number) => {
     if (combatIsTheftRef.current && !won) {
       const stealable = inventory.filter(i => i.quantity > 0)
@@ -1278,6 +1332,7 @@ export default function CrossingsScreen({ player, username, onCombatEnd }: Props
     setCombat(null)
     setDebugOverride(undefined)
     onCombatEnd(won, xpGained)
+    setTimeout(() => { void promoteNextPendingCrossing() }, 250)
   }
 
   const handleGameEnd = async (result: 'win' | 'draw' | 'loss', eventType: SocialEventType) => {
@@ -1369,6 +1424,18 @@ export default function CrossingsScreen({ player, username, onCombatEnd }: Props
         )}
 
         {/* ── GPS proximity status ──────────────────────── */}
+        {pendingCrossings.length > 0 && (
+          <View style={st.pendingBar}>
+            <Text style={st.pendingTitle}>Croisements en attente</Text>
+            <Text style={st.pendingText}>
+              {pendingCrossings.length} rencontre{pendingCrossings.length > 1 ? 's' : ''} recue pendant un combat.
+            </Text>
+            <TouchableOpacity style={st.pendingBtn} onPress={() => { void promoteNextPendingCrossing() }}>
+              <Text style={st.pendingBtnTxt}>VOIR</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         <GpsStatusBar status={gpsStatus} coords={gpsCoords} />
 
         {/* ── Simulate crossing — small dev button ──────── */}
@@ -1603,6 +1670,30 @@ const st = StyleSheet.create({
   },
   gpsLabel: { fontSize: 11, fontWeight: '800', fontFamily: 'monospace' },
   gpsCoords: { fontSize: 9, color: retro.faded, fontFamily: 'monospace' },
+
+  pendingBar: {
+    marginHorizontal: 20,
+    marginTop: 14,
+    padding: 12,
+    borderWidth: 2,
+    borderColor: retro.gold,
+    borderRadius: 4,
+    backgroundColor: retro.white,
+    gap: 5,
+  },
+  pendingTitle: { fontSize: 12, color: retro.ink, fontWeight: '900', fontFamily: 'monospace' },
+  pendingText: { fontSize: 11, color: retro.muted, fontFamily: 'monospace', lineHeight: 16 },
+  pendingBtn: {
+    alignSelf: 'flex-start',
+    marginTop: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderWidth: 2,
+    borderColor: retro.gold,
+    borderRadius: 3,
+    backgroundColor: retro.gold,
+  },
+  pendingBtnTxt: { fontSize: 10, color: retro.ink, fontWeight: '900', fontFamily: 'monospace' },
 
   // ── Simulate button (dev) ────────────────────────────────
   simBtn: {

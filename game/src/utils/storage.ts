@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import { Creature, Crossing, CreatureType, DailyQuest, GameEvent, InventoryItem, JournalEntry, Player, Quest, SocialAttitude, SocialEvent, SocialProfile, SocialRelation } from '../types'
+import { Creature, Crossing, CreatureType, DailyQuest, GameEvent, InventoryItem, JournalEntry, PendingCrossing, Player, Quest, SocialAttitude, SocialEvent, SocialProfile, SocialRelation } from '../types'
 
 // Migrate old type names (flame→ignis, aqua→nemo, leaf→sylva, spark→zapp)
 const TYPE_MIGRATION: Record<string, CreatureType> = {
@@ -29,6 +29,7 @@ const KEYS = {
   SOCIAL_PROFILE:  'croisio:social_profile',
   SOCIAL_EVENTS:   'croisio:social_events',
   SOCIAL_RELATIONS:'croisio:social_relations',
+  PENDING_CROSSINGS:'croisio:pending_crossings',
 }
 
 async function get<T>(key: string): Promise<T | null> {
@@ -94,6 +95,22 @@ export const saveSocialEvents = (events: SocialEvent[]) => set(KEYS.SOCIAL_EVENT
 export const loadSocialEvents = () => get<SocialEvent[]>(KEYS.SOCIAL_EVENTS)
 export const saveSocialRelations = (relations: SocialRelation[]) => set(KEYS.SOCIAL_RELATIONS, relations.slice(0, 80))
 export const loadSocialRelations = () => get<SocialRelation[]>(KEYS.SOCIAL_RELATIONS)
+export const savePendingCrossings = (items: PendingCrossing[]) => set(KEYS.PENDING_CROSSINGS, items.slice(0, 30))
+export const loadPendingCrossings = () => get<PendingCrossing[]>(KEYS.PENDING_CROSSINGS)
+
+export async function addPendingCrossing(item: PendingCrossing): Promise<PendingCrossing[]> {
+  const existing = (await loadPendingCrossings()) ?? []
+  const updated = [item, ...existing.filter((p) => p.id !== item.id)].slice(0, 30)
+  await savePendingCrossings(updated)
+  return updated
+}
+
+export async function resolvePendingCrossing(id: string): Promise<PendingCrossing[]> {
+  const existing = (await loadPendingCrossings()) ?? []
+  const updated = existing.filter((p) => p.id !== id)
+  await savePendingCrossings(updated)
+  return updated
+}
 
 interface StreakData { streak: number; lastLoginDate: string }
 export const saveStreak = (streak: number, lastLoginDate: string) =>
