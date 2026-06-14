@@ -19,7 +19,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native'
-import { Creature, CreatureType } from '../types'
+import { Creature, CreatureType, SpellLoadout } from '../types'
 import { loadAdventureProgress, saveAdventureProgress } from '../utils/storage'
 import CombatScreen, { CombatOpponent } from './CombatScreen'
 import { retro, retroShadow, retroShadowLg, typeTheme } from '../styles/retro'
@@ -77,6 +77,7 @@ interface LeagueStop {
   username: string
   monster: AdventureMonster
   level: number
+  loadout?: SpellLoadout
 }
 
 interface MapDecoration {
@@ -147,12 +148,31 @@ const LEAGUES: League[] = [
     bossBuildingEmoji: '🌳',
     bonusCoins: 40,
     stops: [
-      { username: 'Druide Errant',       monster: { name: 'BRAMBLORC',  title: 'Sanglier des Ronces',           emoji: '🐗', type: 'ombra' }, level: 3  },
-      { username: 'Gardien Mousseux',    monster: { name: 'SPINETHORN', title: 'Hérisson Géant Vénéneux',       emoji: '🦔', type: 'ombra' }, level: 5  },
-      { username: 'Chasseur des Bois',   monster: { name: 'MOSSCRAWL',  title: 'Lézard des Sous-Bois',          emoji: '🦎', type: 'ombra' }, level: 7  },
-      { username: 'Esprit de la Forêt',  monster: { name: 'FERALHOWL',  title: 'Loup des Ombres Vertes',        emoji: '🐺', type: 'ombra' }, level: 9  },
-      { username: 'Vieux Druide Kael',   monster: { name: 'ROOTWRAITH', title: 'Colosse des Racines Anciennes', emoji: '🦕', type: 'ombra' }, level: 11 },
-      { username: 'Le Gardien Suprême',  monster: { name: 'SYLVARAK',   title: 'Titan Forestier Ancestral',     emoji: '🌳', type: 'ombra', isBoss: true }, level: 15 },
+      {
+        username: 'Rôdeuse Nocturne',
+        monster: { name: 'NOCTARA', title: 'Chatte des Ombres Fumantes', emoji: '🌑', type: 'ombra' },
+        level: 2,
+        loadout: ['griffe_d_ombre', 'ecran_fumee', 'embuscade', 'danse_des_ombres'],
+      },
+      {
+        username: 'Don Félix',
+        monster: { name: 'PATRONE', title: 'Chat Mafieux en Costume', emoji: '🤵', type: 'ignis' },
+        level: 4,
+        loadout: ['provocation', 'frappe_ardente', 'embuscade', 'explosion'],
+      },
+      {
+        username: 'Prêtresse Yuki',
+        monster: { name: 'KITSUYA', title: 'Renarde Divine aux Runes', emoji: '🦊', type: 'nemo' },
+        level: 6,
+        loadout: ['regeneration', 'malediction', 'siphon', 'raz_de_maree'],
+      },
+      {
+        username: 'Maître Shinobi',
+        monster: { name: 'KAGENIN', title: 'Chat Ninja de la Tempête', emoji: '🥷', type: 'zapp' },
+        level: 8,
+        loadout: ['decharge', 'esquive_vive', 'arc_paralysant', 'fulguration'],
+      },
+      { username: 'Le Gardien Suprême',  monster: { name: 'SYLVARAK', title: 'Titan Forestier Ancestral', emoji: '🌳', type: 'ombra', isBoss: true }, level: 12 },
     ],
     decorations: [
       { emoji: '🌲', fx: 0.06, y: 70,  size: 28 },
@@ -1173,6 +1193,7 @@ export default function AdventureScreen({ player, onCombatEnd, onClose }: Props)
         creatureName: stop.monster.name,
         creatureType: stop.monster.type,
         level: stop.level,
+        loadout: stop.loadout,
       }
 
       setSelectedStopIdx(null)
