@@ -1774,14 +1774,14 @@ function SpellCard({
         <Text style={[s.spellCardName, !usable && s.spellCardNameDim]} numberOfLines={2}>{spell.name}</Text>
       </View>
       <View style={s.spellCostRow}>
-        {Array.from({ length: 4 }, (_, i) => (
+        {Array.from({ length: spell.energyCost }, (_, i) => (
           <View key={i} style={[
             s.spellCostBar,
-            i < spell.energyCost && (state.energy > i
-              ? { backgroundColor: color, borderColor: 'transparent' }
-              : s.spellCostBarLow),
+            { backgroundColor: color, borderColor: 'transparent' },
+            !usable && s.spellCostBarDisabled,
           ]} />
         ))}
+        {spell.energyCost === 0 && <Text style={[s.spellFreeCost, !usable && s.spellCardNameDim]}>0</Text>}
       </View>
       <Text style={s.spellRole} numberOfLines={2}>{description}</Text>
     </TouchableOpacity>
@@ -3152,12 +3152,13 @@ const s = StyleSheet.create({
   spellIcoText: { fontSize: 15 },
   spellCardName: { color: retro.ink, fontSize: 10, fontWeight: '900', fontFamily: 'monospace', flex: 1, lineHeight: 14 },
   spellCardNameDim: { color: retro.muted },
-  spellCostRow: { flexDirection: 'row', gap: 3 },
+  spellCostRow: { flexDirection: 'row', gap: 3, minHeight: 9, alignItems: 'center' },
   spellCostBar: {
-    flex: 1, height: 7, borderRadius: 0,
+    width: 18, height: 7, borderRadius: 0,
     backgroundColor: retro.paper2, borderWidth: 1, borderColor: retro.line,
   },
-  spellCostBarLow: { backgroundColor: retro.paper, borderColor: retro.muted },
+  spellCostBarDisabled: { backgroundColor: retro.muted, borderColor: retro.muted },
+  spellFreeCost: { fontSize: 9, color: retro.muted, fontWeight: '900', fontFamily: 'monospace' },
   spellRole: {
     fontSize: 9, color: retro.muted, fontWeight: '800',
     lineHeight: 13,
