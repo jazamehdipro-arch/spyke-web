@@ -122,12 +122,11 @@ const SW = Dimensions.get('window').width
 const MAP_H = 800
 
 const NODE_POSITIONS = [
-  { fx: 0.37, y: 660 }, // stop 0
-  { fx: 0.66, y: 545 }, // stop 1
-  { fx: 0.33, y: 430 }, // stop 2
-  { fx: 0.67, y: 318 }, // stop 3
-  { fx: 0.35, y: 210 }, // stop 4
-  { fx: 0.50, y: 100 }, // boss (idx 5)
+  { fx: 0.37, y: 660 }, // stop 0 – NOCTARA
+  { fx: 0.66, y: 515 }, // stop 1 – PATRONE
+  { fx: 0.33, y: 375 }, // stop 2 – KITSUYA
+  { fx: 0.67, y: 235 }, // stop 3 – KAGENIN
+  { fx: 0.50, y: 100 }, // stop 4 – BOSS
 ]
 
 const START_POS = { fx: 0.50, y: 740 }
@@ -153,6 +152,7 @@ const VERDANTE_BOSS_PHASES: BossPhaseData[] = [
       creatureType: 'ignis',
       level: 12,
       loadout: ['frappe_ardente', 'immolation', 'fournaise', 'supernova'],
+      customSprite: require('../../assets/boss/hori_fire.png'),
     },
     introText: "je m'enfou de ce que tu me dit.",
     introImage: require('../../assets/boss/hori_fire.png'),
@@ -164,6 +164,7 @@ const VERDANTE_BOSS_PHASES: BossPhaseData[] = [
       creatureType: 'nemo',
       level: 12,
       loadout: ['barriere', 'malediction', 'siphon', 'raz_de_maree'],
+      customSprite: require('../../assets/boss/muezza_ice.png'),
     },
     introText: "il n'y a que moi qui peut l'attaquer !",
     introImage: require('../../assets/boss/muezza_ice.png'),
@@ -175,6 +176,7 @@ const VERDANTE_BOSS_PHASES: BossPhaseData[] = [
       creatureType: 'ignis',
       level: 14,
       loadout: ['frappe_ardente', 'barriere', 'supernova', 'malediction'],
+      customSprite: require('../../assets/boss/hori_muezza.png'),
     },
     introText: 'unissons nos forces pour le battre.',
     introImage: require('../../assets/boss/hori_muezza.png'),
@@ -187,6 +189,7 @@ const VERDANTE_BOSS_PHASES: BossPhaseData[] = [
       level: 15,
       loadout: ['gros_coup_de_merguez', 'mange_tacos_3viandes', 'gros_coup_de_merguez', 'mange_tacos_3viandes'],
       customAI: 'human_boss',
+      customSprite: require('../../assets/boss/human_boss.png'),
     },
     introText: 'personne ne touche à ma Hori et à mon Mumu.',
     introImage: require('../../assets/boss/human_boss.png'),
@@ -672,12 +675,12 @@ function LeagueMap({
 
         {/* Map nodes */}
         {NODE_POSITIONS.map((pos, idx) => {
-          const isBoss = idx === 5
+          const isBoss = idx === 4
           const isBeaten = beaten.has(idx)
           const isAvailable = idx === 0
             ? !isBeaten
             : isBoss
-              ? !isBeaten && beaten.size === 5
+              ? !isBeaten && beaten.size === 4
               : !isBeaten && beaten.has(idx - 1)
 
           return (
@@ -811,7 +814,7 @@ function FightModal({
               style={{
                 width: 72,
                 height: 72,
-                backgroundColor: monster.sprite ? '#FFFFFF' : theme.soft,
+                backgroundColor: theme.soft,
                 borderWidth: 3,
                 borderColor: retro.ink,
                 borderRadius: 6,
@@ -822,7 +825,7 @@ function FightModal({
               }}
             >
               {monster.sprite ? (
-                <Image source={monster.sprite} style={{ width: 72, height: 72 }} resizeMode="cover" />
+                <Image source={monster.sprite} style={{ width: 72, height: 72 }} resizeMode="contain" />
               ) : (
                 <Text style={{ fontSize: 40 }}>{monster.emoji}</Text>
               )}
