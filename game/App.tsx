@@ -28,7 +28,7 @@ import {
   loadPlayer,
   loadQuests,
   loadStreak,
-  clearAllGameData,
+  ensureFreshStartReset,
   loadTutorialDone,
   saveCreature,
   saveDailyQuests,
@@ -97,6 +97,7 @@ export default function App() {
   useEffect(() => {
     const init = async () => {
       const today = new Date().toISOString().slice(0, 10)
+      await ensureFreshStartReset()
 
       const [
         savedCreature,
@@ -445,12 +446,6 @@ export default function App() {
               void saveTutorialDone(true)  // persist before any navigation so restart won't re-trigger
               setActiveTab('crossings')
               setTutorialPhase('crossings')
-            }}
-            onResetTutorial={async () => {
-              await clearAllGameData()
-              setState(null)
-              setTutorialPhase(null)
-              setActiveTab('home')
             }}
           />
         )}

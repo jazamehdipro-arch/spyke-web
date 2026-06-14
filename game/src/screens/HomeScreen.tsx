@@ -18,7 +18,7 @@ import EventModal from '../components/EventModal'
 import MiniGame from '../components/MiniGame'
 import ParticleEffect from '../components/ParticleEffect'
 import { Creature, Crossing, GameEvent, InventoryItem, JournalEntry, Quest, TrainingStats } from '../types'
-import { DAILY_CARE_XP_CAP, FORME_LABELS, MAX_CREATURE_LEVEL, addCareXPWithConversion, addXPWithConversion, applyActiveCareTick, applyOfflineCareDecay, getFormeLevel, getMood, xpForLevel } from '../utils/creature'
+import { DAILY_CARE_XP_CAP, FORME_LABELS, MAX_CREATURE_LEVEL, addCareXPWithConversion, addXPWithConversion, applyActiveCareTick, applyOfflineCareDecay, getFormeLevel, getMood } from '../utils/creature'
 import { generateRandomEvent, getRewardItem, shouldTriggerEvent } from '../utils/events'
 import { getCreatureSpeech, getReactionMessage } from '../utils/speech'
 import { addItemToInventory, addJournalEntry, loadCrossings, saveCreature, saveEvents, saveInventory, saveJournal, saveQuests } from '../utils/storage'
@@ -83,7 +83,6 @@ interface Props {
   onOpenInventory: () => void
   onOpenBoutique: () => void
   onOpenCrossings: () => void
-  onResetTutorial?: () => void
   tutorialActive?: boolean
   onTutorialDone?: () => void
 }
@@ -91,7 +90,7 @@ interface Props {
 export default function HomeScreen({
   creature, inventory, events, quests, journal,
   streak, coins, onUpdate, onSkinChange, onOpenInventory, onOpenBoutique, onOpenCrossings,
-  onResetTutorial, tutorialActive, onTutorialDone,
+  tutorialActive, onTutorialDone,
 }: Props) {
   const applyXPReward = (base: Creature, amount: number, care = false): { creature: Creature; coins: number } => {
     const result = care ? addCareXPWithConversion(base, amount) : addXPWithConversion(base, amount)
@@ -118,7 +117,6 @@ export default function HomeScreen({
   const [speechVisible, setSpeechVisible] = useState(false)
   const [showEvolve, setShowEvolve] = useState(false)
   const [evolveStage, setEvolveStage] = useState(2)
-  const [showAdmin, setShowAdmin] = useState(false)
   const [showActivityPicker, setShowActivityPicker] = useState(false)
   const [showTraining, setShowTraining] = useState(false)
   const [pendingActivity, setPendingActivity] = useState<keyof typeof PLAY_ACTIVITIES | null>(null)
@@ -128,8 +126,6 @@ export default function HomeScreen({
   const speechTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const activeCareTick = useRef(Date.now())
   const boredomRef = useRef<{ key: string | null; count: number }>({ key: null, count: 0 })
-  const titleTapCount = useRef(0)
-  const titleTapTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // ── Tutorial coach targets ──
   const scrollRef       = useRef<ScrollView | null>(null)
@@ -202,13 +198,6 @@ export default function HomeScreen({
       setTodayCrossings((list ?? []).filter((c: Crossing) => c.crossedAt.startsWith(today)).length)
     })
   }, [])
-
-  const handleTitleTap = () => {
-    titleTapCount.current += 1
-    if (titleTapTimer.current) clearTimeout(titleTapTimer.current)
-    titleTapTimer.current = setTimeout(() => { titleTapCount.current = 0 }, 2000)
-    if (titleTapCount.current >= 5) { titleTapCount.current = 0; setShowAdmin(true) }
-  }
 
   const showSpeech = useCallback((msg: string) => {
     setSpeechMsg(msg)
@@ -450,31 +439,6 @@ export default function HomeScreen({
     setRefreshing(false)
   }, [creature])
 
-  const adminAction = async (action: string) => {
-    let u = { ...creature }
-    switch (action) {
-      case 'xp100':      u = addXPWithConversion(u, 100).creature; break
-      case 'xp500':      u = addXPWithConversion(u, 500).creature; break
-      case 'xp9999':     u = addXPWithConversion(u, 9999).creature; break
-      case 'maxstats':   u = { ...u, stats: { ...u.stats, hunger: 100, happiness: 100, energy: 100 } }; break
-      case 'heal':       u = { ...u, stats: { ...u.stats, isSick: false } }; break
-      case 'lv1':        u = { ...u, stats: { ...u.stats, level: 1,  xp: 0, xpToNextLevel: xpForLevel(1)  } }; break
-      case 'lv10':       u = { ...u, stats: { ...u.stats, level: 10, xp: 0, xpToNextLevel: xpForLevel(10) } }; break
-      case 'lv20':       u = { ...u, stats: { ...u.stats, level: 20, xp: 0, xpToNextLevel: xpForLevel(20) } }; break
-      case 'lv30':       u = { ...u, stats: { ...u.stats, level: 30, xp: 0, xpToNextLevel: xpForLevel(30) } }; break
-      case 'type_ignis': u = { ...u, type: 'ignis' }; break
-      case 'type_nemo':  u = { ...u, type: 'nemo'  }; break
-      case 'type_sylva': u = { ...u, type: 'sylva' }; break
-      case 'type_zapp':  u = { ...u, type: 'zapp'  }; break
-      case 'resettraining': u = { ...u, training: { strength: 0, reflexes: 0, endurance: 0, defense: 0 } }; break
-    }
-    u = { ...u, mood: getMood(u.stats) }
-    await saveCreature(u)
-    onUpdate(u)
-    triggerParticles(['⚡', '✨', '🔧'])
-    showSpeech('Admin cheat activé ! 👾')
-  }
-
   const handleEvolve = useCallback(() => {
     const stage = creature.stats.level >= 20 ? 3 : 2
     setEvolveStage(stage)
@@ -516,9 +480,7 @@ export default function HomeScreen({
 
           {/* Header bar */}
           <View style={[s.heroHeader, { paddingTop: statusBarH + 10 }]}>
-            <TouchableOpacity onPress={handleTitleTap} activeOpacity={1}>
-              <Text style={s.heroTitle}>Croisio</Text>
-            </TouchableOpacity>
+            <Text style={s.heroTitle}>Croisio</Text>
             <View style={{ flex: 1 }} />
             {(streak ?? 0) > 0 && (
               <View style={s.streakChip}>
@@ -528,9 +490,6 @@ export default function HomeScreen({
             <View style={s.coinChip}>
               <Text style={s.coinTxt}>💰 {coins ?? 0}</Text>
             </View>
-            <TouchableOpacity style={s.heroIconBtn} onPress={() => setShowAdmin(true)}>
-              <Text style={s.heroIconTxt}>⚙️</Text>
-            </TouchableOpacity>
           </View>
 
           {/* Speech bubble */}
@@ -862,55 +821,6 @@ export default function HomeScreen({
         </TouchableOpacity>
       </Modal>
 
-      {/* Admin */}
-      <Modal visible={showAdmin} transparent animationType="slide">
-        <View style={s.adminOverlay}>
-          <View style={s.adminCard}>
-            <Text style={s.adminTitle}>👾 Panel Admin</Text>
-            <Text style={s.adminSub}>Lv {creature.stats.level} · {creature.stats.level >= MAX_CREATURE_LEVEL ? 'MAX' : `${creature.stats.xp}/${creature.stats.xpToNextLevel} XP`}</Text>
-            <Text style={s.adminSection}>XP</Text>
-            <View style={s.adminRow}>
-              {([['xp100','+100 XP'],['xp500','+500 XP'],['xp9999','+9999 XP']] as [string,string][]).map(([a,l]) => (
-                <TouchableOpacity key={a} style={s.adminBtn} onPress={() => adminAction(a)}><Text style={s.adminBtnTxt}>{l}</Text></TouchableOpacity>
-              ))}
-            </View>
-            <Text style={s.adminSection}>Niveau</Text>
-            <View style={s.adminRow}>
-              {([['lv1','Niv 1'],['lv10','Niv 10'],['lv20','Niv 20'],['lv30','Niv 30']] as [string,string][]).map(([a,l]) => (
-                <TouchableOpacity key={a} style={[s.adminBtn,{backgroundColor:retro.purple}]} onPress={() => adminAction(a)}><Text style={s.adminBtnTxt}>{l}</Text></TouchableOpacity>
-              ))}
-            </View>
-            <Text style={s.adminSection}>Type</Text>
-            <View style={s.adminRow}>
-              {([['type_ignis','🔥 Ignis',retro.red],['type_nemo','🌊 Némo',retro.blue],['type_sylva','🌿 Sylva',retro.mint],['type_zapp','⚡ Zapp',retro.gold]] as [string,string,string][]).map(([a,l,c]) => (
-                <TouchableOpacity key={a} style={[s.adminBtn,{backgroundColor:c}]} onPress={() => adminAction(a)}><Text style={s.adminBtnTxt}>{l}</Text></TouchableOpacity>
-              ))}
-            </View>
-            <Text style={s.adminSection}>Stats</Text>
-            <View style={s.adminRow}>
-              <TouchableOpacity style={[s.adminBtn,{backgroundColor:retro.mint}]} onPress={() => adminAction('maxstats')}><Text style={s.adminBtnTxt}>Max tout</Text></TouchableOpacity>
-              <TouchableOpacity style={[s.adminBtn,{backgroundColor:retro.blue}]} onPress={() => adminAction('heal')}><Text style={s.adminBtnTxt}>Soigner</Text></TouchableOpacity>
-            </View>
-            <Text style={s.adminSection}>Entraînement</Text>
-            <View style={s.adminRow}>
-              <TouchableOpacity style={[s.adminBtn,{backgroundColor:retro.red}]} onPress={() => adminAction('resettraining')}><Text style={s.adminBtnTxt}>Reset points (→ 0)</Text></TouchableOpacity>
-            </View>
-            <Text style={s.adminSection}>Tutoriel</Text>
-            <View style={s.adminRow}>
-              <TouchableOpacity
-                style={[s.adminBtn, { backgroundColor: retro.purple }]}
-                onPress={() => { setShowAdmin(false); onResetTutorial?.() }}
-              >
-                <Text style={s.adminBtnTxt}>▶ Rejouer le tuto</Text>
-              </TouchableOpacity>
-            </View>
-            <TouchableOpacity style={s.adminClose} onPress={() => setShowAdmin(false)}>
-              <Text style={s.adminCloseTxt}>Fermer</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
       {/* Evolve */}
       <Modal visible={showEvolve} transparent animationType="fade">
         <View style={s.evolveOverlay}>
@@ -1009,18 +919,6 @@ const s = StyleSheet.create({
     color: retro.ink,
     fontFamily: 'monospace',
   },
-
-  heroIconBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 4,
-    backgroundColor: retro.ink2,
-    borderWidth: 2,
-    borderColor: retro.ink3,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  heroIconTxt: { fontSize: 16 },
 
   speech: {
     position: 'absolute', left: 16, right: 100,
@@ -1202,18 +1100,6 @@ const s = StyleSheet.create({
   sheetRowSub: { fontSize: 11, color: retro.muted, marginTop: 2 },
   trainTrack: { height: 6, backgroundColor: retro.paper, borderRadius: 0, overflow: 'hidden', marginTop: 6, borderWidth: 1, borderColor: retro.line },
   trainFill: { height: '100%', backgroundColor: retro.screenDark, borderRadius: 0 },
-
-  // Admin
-  adminOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'center', padding: 20 },
-  adminCard: { backgroundColor: retro.white, borderRadius: 6, padding: 20, borderWidth: 3, borderColor: retro.line, ...retroShadow },
-  adminTitle: { fontSize: 20, fontWeight: '900', color: retro.ink, textAlign: 'center', marginBottom: 4, fontFamily: 'monospace' },
-  adminSub: { fontSize: 12, color: retro.muted, textAlign: 'center', marginBottom: 16 },
-  adminSection: { fontSize: 11, fontWeight: '900', color: retro.red, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, marginTop: 10, fontFamily: 'monospace' },
-  adminRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
-  adminBtn: { backgroundColor: retro.blue, borderRadius: 4, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 2, borderColor: retro.line },
-  adminBtnTxt: { color: retro.white, fontWeight: '900', fontSize: 12, fontFamily: 'monospace' },
-  adminClose: { marginTop: 20, backgroundColor: retro.ink, borderRadius: 4, padding: 12, alignItems: 'center' },
-  adminCloseTxt: { color: retro.white, fontWeight: '900', fontSize: 14, fontFamily: 'monospace' },
 
   // Streak chip
   streakChip: {

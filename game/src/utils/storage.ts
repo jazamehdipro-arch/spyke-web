@@ -32,6 +32,8 @@ const KEYS = {
   PENDING_CROSSINGS:'croisio:pending_crossings',
 }
 
+const FRESH_START_RESET_KEY = 'croisio:fresh_start_reset_v1'
+
 async function get<T>(key: string): Promise<T | null> {
   const raw = await AsyncStorage.getItem(key)
   return raw ? JSON.parse(raw) : null
@@ -123,6 +125,14 @@ export const loadTutorialDone = () => get<boolean>('croisio:tutorial_done')
 export async function clearAllGameData(): Promise<void> {
   const allKeys = [...Object.values(KEYS), 'croisio:tutorial_done']
   await AsyncStorage.multiRemove(allKeys)
+}
+
+export async function ensureFreshStartReset(): Promise<void> {
+  const alreadyReset = await AsyncStorage.getItem(FRESH_START_RESET_KEY)
+  if (alreadyReset === 'done') return
+
+  await clearAllGameData()
+  await AsyncStorage.setItem(FRESH_START_RESET_KEY, 'done')
 }
 
 export function addItemToInventory(
