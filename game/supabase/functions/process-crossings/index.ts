@@ -41,10 +41,11 @@ Deno.serve(async () => {
       if (distance > RADIUS_METERS) continue
 
       const cooldownSince = new Date(Date.now() - PAIR_COOLDOWN_MINUTES * 60_000).toISOString()
+      const pairKey = [a.user_id, b.user_id].sort().join(':')
       const { data: recent } = await supabase
         .from('crossing_events')
         .select('id')
-        .or(`and(player_a.eq.${a.user_id},player_b.eq.${b.user_id}),and(player_a.eq.${b.user_id},player_b.eq.${a.user_id})`)
+        .eq('pair_key', pairKey)
         .gte('created_at', cooldownSince)
         .limit(1)
 
@@ -55,6 +56,7 @@ Deno.serve(async () => {
         player_b: b.user_id,
         player_a_snapshot: a,
         player_b_snapshot: b,
+        pair_key: pairKey,
         distance_meters: Math.round(distance),
         status: 'pending',
       })

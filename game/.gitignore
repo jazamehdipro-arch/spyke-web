@@ -25,6 +25,10 @@ expo-env.d.ts
 npm-debug.*
 yarn-debug.*
 yarn-error.*
+expo-*.log
+
+# Supabase local state
+supabase/.temp/
 
 # macOS
 .DS_Store
