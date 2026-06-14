@@ -1796,6 +1796,7 @@ export interface CombatOpponent {
   level: number
   loadout?: SpellLoadout
   customAI?: 'human_boss'
+  customSprite?: ReturnType<typeof require>
 }
 
 interface Props {
@@ -1862,7 +1863,9 @@ const DIFFICULTY_RULES: Record<Difficulty, {
 
 // ─── main component ─────────────────────────────────────
 export default function CombatScreen({ player, opponent, onFinish, isAdventure, tutorialMode, debugOverride }: Props) {
-  const playerMods = useRef<CombatModifiers>(computeModifiers(player, opponent.creatureType)).current
+  const _baseMods = computeModifiers(player, opponent.creatureType)
+  if (isAdventure) _baseMods.maxEnergy = 5
+  const playerMods = useRef<CombatModifiers>(_baseMods).current
 
   const playerType = debugOverride?.playerType ?? player.type
   const playerLevel = debugOverride?.playerLevel ?? player.stats.level
@@ -2680,7 +2683,7 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
     : difficultyRules.lossXP
 
   const playerSprite  = SPRITES[spriteKey(playerType, playerLevel)]
-  const opponentSprite = SPRITES[spriteKey(opponent.creatureType, opponent.level)]
+  const opponentSprite = opponent.customSprite ?? SPRITES[spriteKey(opponent.creatureType, opponent.level)]
 
   const opponentFogged = hasStatus(oState, 'fog')
 

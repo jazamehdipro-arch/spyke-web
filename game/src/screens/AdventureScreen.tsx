@@ -806,21 +806,26 @@ function FightModal({
               gap: 14,
             }}
           >
-            {/* Emoji avatar */}
+            {/* Monster avatar: custom sprite image or emoji fallback */}
             <View
               style={{
                 width: 72,
                 height: 72,
-                backgroundColor: theme.soft,
+                backgroundColor: monster.sprite ? '#FFFFFF' : theme.soft,
                 borderWidth: 3,
                 borderColor: retro.ink,
                 borderRadius: 6,
                 alignItems: 'center',
                 justifyContent: 'center',
+                overflow: 'hidden',
                 ...retroShadow,
               }}
             >
-              <Text style={{ fontSize: 40 }}>{monster.emoji}</Text>
+              {monster.sprite ? (
+                <Image source={monster.sprite} style={{ width: 72, height: 72 }} resizeMode="cover" />
+              ) : (
+                <Text style={{ fontSize: 40 }}>{monster.emoji}</Text>
+              )}
             </View>
 
             {/* Monster info */}
@@ -1309,6 +1314,7 @@ export default function AdventureScreen({ player, onCombatEnd, onClose }: Props)
         creatureType: stop.monster.type,
         level: stop.level,
         loadout: stop.loadout,
+        customSprite: stop.monster.sprite,
       }
 
       setActiveCombat({ league: selectedLeague, stopIdx: selectedStopIdx, opponent })
