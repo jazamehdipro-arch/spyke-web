@@ -22,6 +22,7 @@ import {
 import { Creature, CreatureType, SpellLoadout } from '../types'
 import { loadAdventureProgress, saveAdventureProgress } from '../utils/storage'
 import CombatScreen, { CombatOpponent } from './CombatScreen'
+import BossIntro from '../components/BossIntro'
 import { retro, retroShadow, retroShadowLg, typeTheme } from '../styles/retro'
 
 // ─── Sprites ─────────────────────────────────────────────────────────────────
@@ -73,11 +74,18 @@ interface AdventureMonster {
   isBoss?: boolean
 }
 
+interface BossPhaseData {
+  opponent: CombatOpponent
+  introText: string
+  introImage: ReturnType<typeof require>
+}
+
 interface LeagueStop {
   username: string
   monster: AdventureMonster
   level: number
   loadout?: SpellLoadout
+  bossPhases?: BossPhaseData[]
 }
 
 interface MapDecoration {
@@ -134,6 +142,56 @@ const TYPE_EMOJI: Record<CreatureType, string> = {
   sable:   '🏜️',
 }
 
+// ─── Boss Phase Data ──────────────────────────────────────────────────────────
+
+const VERDANTE_BOSS_PHASES: BossPhaseData[] = [
+  {
+    opponent: {
+      username: 'Inconnu',
+      creatureName: '????',
+      creatureType: 'ignis',
+      level: 12,
+      loadout: ['frappe_ardente', 'immolation', 'fournaise', 'supernova'],
+    },
+    introText: "je m'enfou de ce que tu me dit.",
+    introImage: require('../../assets/boss/hori_fire.png'),
+  },
+  {
+    opponent: {
+      username: 'Inconnu',
+      creatureName: '????',
+      creatureType: 'nemo',
+      level: 12,
+      loadout: ['barriere', 'malediction', 'siphon', 'raz_de_maree'],
+    },
+    introText: "il n'y a que moi qui peut l'attaquer !",
+    introImage: require('../../assets/boss/muezza_ice.png'),
+  },
+  {
+    opponent: {
+      username: 'Horiya & Muezza',
+      creatureName: 'Horiya & Muezza',
+      creatureType: 'ignis',
+      level: 14,
+      loadout: ['frappe_ardente', 'barriere', 'supernova', 'malediction'],
+    },
+    introText: 'unissons nos forces pour le battre.',
+    introImage: require('../../assets/boss/hori_muezza.png'),
+  },
+  {
+    opponent: {
+      username: 'Le Gardien',
+      creatureName: 'LE PATRON',
+      creatureType: 'ignis',
+      level: 15,
+      loadout: ['gros_coup_de_merguez', 'mange_tacos_3viandes', 'gros_coup_de_merguez', 'mange_tacos_3viandes'],
+      customAI: 'human_boss',
+    },
+    introText: 'personne ne touche à ma Hori et à mon Mumu.',
+    introImage: require('../../assets/boss/human_boss.png'),
+  },
+]
+
 // ─── League Data ──────────────────────────────────────────────────────────────
 
 const LEAGUES: League[] = [
@@ -172,7 +230,12 @@ const LEAGUES: League[] = [
         level: 8,
         loadout: ['decharge', 'esquive_vive', 'arc_paralysant', 'fulguration'],
       },
-      { username: 'Le Gardien Suprême',  monster: { name: 'SYLVARAK', title: 'Titan Forestier Ancestral', emoji: '🌳', type: 'ombra', isBoss: true }, level: 12 },
+      {
+        username: 'Le Gardien Suprême',
+        monster: { name: 'SYLVARAK', title: 'Titan Forestier Ancestral', emoji: '🌳', type: 'ombra', isBoss: true },
+        level: 12,
+        bossPhases: VERDANTE_BOSS_PHASES,
+      },
     ],
     decorations: [
       { emoji: '🌲', fx: 0.06, y: 70,  size: 28 },
@@ -1124,17 +1187,49 @@ export default function AdventureScreen({ player, onCombatEnd, onClose }: Props)
     league: League
     stopIdx: number
     opponent: CombatOpponent
+    bossPhases?: BossPhaseData[]
+    bossPhaseIdx?: number
+  } | null>(null)
+  const [bossIntro, setBossIntro] = useState<{
+    phase: BossPhaseData
+    onProceed: () => void
   } | null>(null)
 
   useEffect(() => {
     loadAdventureProgress().then((p) => setProgress(p ?? {}))
   }, [])
 
+  const startBossPhase = (
+    league: League,
+    stopIdx: number,
+    phases: BossPhaseData[],
+    phaseIdx: number,
+  ) => {
+    const phase = phases[phaseIdx]
+    setBossIntro({
+      phase,
+      onProceed: () => {
+        setBossIntro(null)
+        setActiveCombat({ league, stopIdx, opponent: phase.opponent, bossPhases: phases, bossPhaseIdx: phaseIdx })
+      },
+    })
+  }
+
   const handleCombatEnd = useCallback(
     async (won: boolean, xpGained: number) => {
       if (!activeCombat) return
-      const { league, stopIdx } = activeCombat
+      const { league, stopIdx, bossPhases, bossPhaseIdx } = activeCombat
       const leagueIdx = LEAGUES.indexOf(league)
+
+      // Boss multi-phase: advance to next phase if won and more phases remain
+      if (won && bossPhases && bossPhaseIdx !== undefined) {
+        const nextIdx = bossPhaseIdx + 1
+        if (nextIdx < bossPhases.length) {
+          setActiveCombat(null)
+          startBossPhase(league, stopIdx, bossPhases, nextIdx)
+          return
+        }
+      }
 
       let coinsGained = 0
       let bonusXP = 0
@@ -1159,6 +1254,17 @@ export default function AdventureScreen({ player, onCombatEnd, onClose }: Props)
     },
     [activeCombat, progress, onCombatEnd]
   )
+
+  // ── Boss intro ─────────────────────────────────────────────────────────────
+  if (bossIntro) {
+    return (
+      <BossIntro
+        text={bossIntro.phase.introText}
+        image={bossIntro.phase.introImage}
+        onProceed={bossIntro.onProceed}
+      />
+    )
+  }
 
   // ── Active combat ──────────────────────────────────────────────────────────
   if (activeCombat) {
@@ -1188,6 +1294,14 @@ export default function AdventureScreen({ player, onCombatEnd, onClose }: Props)
       const stop = selectedLeague.stops[selectedStopIdx]
       if (!stop) return
 
+      setSelectedStopIdx(null)
+
+      // Boss with multi-phase sequence
+      if (stop.bossPhases && stop.bossPhases.length > 0) {
+        startBossPhase(selectedLeague, selectedStopIdx, stop.bossPhases, 0)
+        return
+      }
+
       const opponent: CombatOpponent = {
         username: stop.username,
         creatureName: stop.monster.name,
@@ -1196,7 +1310,6 @@ export default function AdventureScreen({ player, onCombatEnd, onClose }: Props)
         loadout: stop.loadout,
       }
 
-      setSelectedStopIdx(null)
       setActiveCombat({ league: selectedLeague, stopIdx: selectedStopIdx, opponent })
     }
 

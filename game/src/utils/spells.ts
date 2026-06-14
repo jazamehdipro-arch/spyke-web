@@ -209,6 +209,11 @@ export const SPELL_CATALOG: Record<SpellId, Spell> = {
 
   tempete_de_sable:  { id: 'tempete_de_sable',  name: 'Tempête de sable',    emoji: '🌪️⚡', energyCost: 4, cooldown: 2,
     description: '3×8 = 24 dégâts' },
+
+  gros_coup_de_merguez: { id: 'gros_coup_de_merguez', name: 'Gros coup de merguez', emoji: '🌭', energyCost: 3, cooldown: 0,
+    description: 'Frappe dévastatrice. -150 PV.' },
+  mange_tacos_3viandes: { id: 'mange_tacos_3viandes', name: 'Mange tacos 3 viandes', emoji: '🌮', energyCost: 0, cooldown: 0,
+    description: 'Récupère 3 énergie.' },
 }
 
 export type EvoStage = 'e1' | 'e2' | 'e3'

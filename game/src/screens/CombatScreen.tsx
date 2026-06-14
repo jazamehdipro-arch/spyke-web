@@ -905,6 +905,21 @@ function resolveSpell(
       }
     }
 
+    case 'gros_coup_de_merguez': {
+      return {
+        ...empty,
+        targetHpDelta: -150,
+        log: '🌭 GROS COUP DE MERGUEZ ! -150 PV !!!',
+      }
+    }
+    case 'mange_tacos_3viandes': {
+      return {
+        ...empty,
+        casterEnergyDelta: 3,
+        log: '🌮 Mange tacos 3 viandes ! +3 énergie',
+      }
+    }
+
     default:
       return { ...empty, log: `Sort inconnu: ${spellId}` }
   }
@@ -1780,6 +1795,7 @@ export interface CombatOpponent {
   creatureType: CreatureType
   level: number
   loadout?: SpellLoadout
+  customAI?: 'human_boss'
 }
 
 interface Props {
@@ -2041,7 +2057,13 @@ export default function CombatScreen({ player, opponent, onFinish, isAdventure, 
     } else if (hasStatus(curO, 'paralyzed')) {
       oAction = { kind: 'defend' }
     } else {
-      oAction = botChooseAction(opponent.creatureType, curO, curP, opponentLoadout, oPassiveLevel, opponent.level, difficulty ?? 'medium', opponentDefendLockedRef.current)
+      if (opponent.customAI === 'human_boss') {
+        oAction = curO.energy >= 3
+          ? { kind: 'spell', spellId: 'gros_coup_de_merguez' }
+          : { kind: 'spell', spellId: 'mange_tacos_3viandes' }
+      } else {
+        oAction = botChooseAction(opponent.creatureType, curO, curP, opponentLoadout, oPassiveLevel, opponent.level, difficulty ?? 'medium', opponentDefendLockedRef.current)
+      }
     }
     if (oAction.kind === 'defend' && opponentDefendLockedRef.current && !hasStatus(curO, 'paralyzed')) {
       oAction = { kind: 'charge' }

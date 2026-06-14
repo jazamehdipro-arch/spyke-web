@@ -32,6 +32,7 @@ export type SpellId =
   | 'frappe_terrestre' | 'eruption' | 'carapace_magma' | 'fracas_sismique' | 'fusion_volcanique' | 'magma_supreme'
   | 'tentacule' | 'succion_vitale' | 'encre_noire' | 'vortex_abyssal' | 'malediction_profonde' | 'dissolution'
   | 'frappe_des_sables' | 'tourbillon_sableux' | 'eclair_ancien' | 'mirage_sable' | 'malefice_antique' | 'tempete_de_sable'
+  | 'gros_coup_de_merguez' | 'mange_tacos_3viandes'
 
 export type StatusType =
   | 'burn'        // dégâts par tour
