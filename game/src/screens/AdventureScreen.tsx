@@ -72,6 +72,7 @@ interface AdventureMonster {
   emoji: string
   type: CreatureType
   isBoss?: boolean
+  sprite?: ReturnType<typeof require>
 }
 
 interface BossPhaseData {
@@ -208,25 +209,25 @@ const LEAGUES: League[] = [
     stops: [
       {
         username: 'Rôdeuse Nocturne',
-        monster: { name: 'NOCTARA', title: 'Chatte des Ombres Fumantes', emoji: '🌑', type: 'ombra' },
+        monster: { name: 'NOCTARA', title: 'Chatte des Ombres Fumantes', emoji: '🌑', type: 'ombra', sprite: require('../../assets/sprites/noctara.png') },
         level: 2,
         loadout: ['griffe_d_ombre', 'ecran_fumee', 'embuscade', 'danse_des_ombres'],
       },
       {
         username: 'Don Félix',
-        monster: { name: 'PATRONE', title: 'Chat Mafieux en Costume', emoji: '🤵', type: 'ignis' },
+        monster: { name: 'PATRONE', title: 'Chat Mafieux en Costume', emoji: '🤵', type: 'ignis', sprite: require('../../assets/sprites/patrone.png') },
         level: 4,
         loadout: ['provocation', 'frappe_ardente', 'embuscade', 'explosion'],
       },
       {
         username: 'Prêtresse Yuki',
-        monster: { name: 'KITSUYA', title: 'Renarde Divine aux Runes', emoji: '🦊', type: 'nemo' },
+        monster: { name: 'KITSUYA', title: 'Renarde Divine aux Runes', emoji: '🦊', type: 'nemo', sprite: require('../../assets/sprites/kitsuya.png') },
         level: 6,
         loadout: ['regeneration', 'malediction', 'siphon', 'raz_de_maree'],
       },
       {
         username: 'Maître Shinobi',
-        monster: { name: 'KAGENIN', title: 'Chat Ninja de la Tempête', emoji: '🥷', type: 'zapp' },
+        monster: { name: 'KAGENIN', title: 'Chat Ninja de la Tempête', emoji: '🥷', type: 'zapp', sprite: require('../../assets/sprites/kagenin.png') },
         level: 8,
         loadout: ['decharge', 'esquive_vive', 'arc_paralysant', 'fulguration'],
       },
@@ -716,7 +717,7 @@ function FightModal({
 
   const { monster } = stop
   const theme = typeTheme[monster.type]
-  const sprite = getOpponentSprite(monster.type, stop.level)
+  const sprite = monster.sprite ?? getOpponentSprite(monster.type, stop.level)
 
   return (
     <Modal visible transparent animationType="fade">
