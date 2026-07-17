@@ -13,6 +13,8 @@ export default function PageViewTracker() {
   useEffect(() => {
     if (typeof window === 'undefined') return
     if (pathname.startsWith('/admin')) return
+    // Anti-bot: headless/automated browsers (Selenium, Playwright, Puppeteer…) expose navigator.webdriver
+    if (navigator.webdriver) return
 
     ;(async () => {
       const supabase = getSupabase()

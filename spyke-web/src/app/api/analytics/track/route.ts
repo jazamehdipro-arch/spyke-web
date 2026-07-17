@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
+const BOT_UA_PATTERN = /bot|crawl|spider|slurp|scrape|fetch|monitor|headless|lighthouse|pingdom|uptime|curl|wget|python-requests|axios|node-fetch|go-http-client|java\/|okhttp|phantom|selenium|playwright|puppeteer|gptbot|claudebot|anthropic|openai|perplexity|bingpreview|facebookexternalhit|whatsapp|telegrambot|discordbot|slackbot|linkedinbot|twitterbot|pinterest|semrush|ahrefs|mj12|dotbot|petalbot|bytespider|yandex|baidu|duckduck|applebot/i
+
 export async function POST(req: Request) {
   try {
     const { eventName, props } = (await req.json()) as {
@@ -10,6 +12,12 @@ export async function POST(req: Request) {
 
     if (!eventName || typeof eventName !== 'string' || eventName.length > 100) {
       return NextResponse.json({ ok: false, error: 'invalid_event' }, { status: 400 })
+    }
+
+    // Anti-bot: skip known crawlers/automation tools (empty UA is suspicious too)
+    const userAgent = req.headers.get('user-agent') ?? ''
+    if (!userAgent || BOT_UA_PATTERN.test(userAgent)) {
+      return NextResponse.json({ ok: true, skipped: 'bot' })
     }
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -30,7 +38,7 @@ export async function POST(req: Request) {
     await supabaseAdmin.from('analytics_events').insert({
       event_name: eventName,
       path,
-      properties: props ?? {},
+      properties: { ...(props ?? {}), ua: userAgent.slice(0, 300) },
     })
 
     return NextResponse.json({ ok: true })
