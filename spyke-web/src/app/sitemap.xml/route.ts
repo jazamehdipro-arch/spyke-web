@@ -47,6 +47,12 @@ export async function GET() {
     // Blog
     { loc: `${base}/blog`, lastmod: now },
     { loc: `${base}/blog/facturation-electronique-obligatoire-freelance-2026`, lastmod: now },
+    { loc: `${base}/blog/comment-faire-devis-freelance`, lastmod: now },
+    { loc: `${base}/blog/mentions-obligatoires-facture-auto-entrepreneur`, lastmod: now },
+    { loc: `${base}/blog/acompte-devis-freelance`, lastmod: now },
+    { loc: `${base}/blog/contrat-prestation-freelance-clauses-essentielles`, lastmod: now },
+    { loc: `${base}/blog/relancer-client-impaye-freelance`, lastmod: now },
+    { loc: `${base}/blog/calculer-tjm-freelance`, lastmod: now },
 
     // App / auth
     { loc: `${base}/login`, lastmod: now },

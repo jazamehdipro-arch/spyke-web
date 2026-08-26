@@ -1,0 +1,13 @@
+# Canal de divulgation des vulnérabilités — Spyke (https://spykeapp.fr)
+# Format : RFC 9116 — https://www.rfc-editor.org/rfc/rfc9116
+
+Contact: mailto:contact@spykeapp.fr
+Expires: 2027-12-31T23:59:59.000Z
+Preferred-Languages: fr, en
+Canonical: https://spykeapp.fr/.well-known/security.txt
+Policy: https://spykeapp.fr/mentions-legales.html
+
+# Si vous découvrez une faille de sécurité, merci de nous la signaler par email
+# avant toute divulgation publique. Nous nous engageons à accuser réception
+# sous 5 jours ouvrés. Merci de ne pas exécuter de test de charge, de déni de
+# service, ni d'accéder à des données ne vous appartenant pas.

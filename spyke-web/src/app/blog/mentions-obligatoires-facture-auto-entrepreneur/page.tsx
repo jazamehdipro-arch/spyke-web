@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
+  alternates: { canonical: 'https://spykeapp.fr/blog/mentions-obligatoires-facture-auto-entrepreneur' },
   title: 'Facture auto-entrepreneur : les 7 mentions obligatoires en 2026 — Spyke',
   description:
     'Les 7 mentions légales obligatoires sur une facture auto-entrepreneur en 2026. Évitez les erreurs, les amendes et les litiges clients.',

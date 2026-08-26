@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
+  alternates: { canonical: 'https://spykeapp.fr/blog/acompte-devis-freelance' },
   title: 'Acompte sur devis freelance : comment le demander et quel montant — Spyke',
   description:
     "Pourquoi demander un acompte, quel pourcentage choisir (30 %, 50 %…), comment le formuler sur le devis et quoi faire si le client refuse. Guide complet 2026.",

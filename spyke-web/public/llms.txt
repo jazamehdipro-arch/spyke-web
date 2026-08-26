@@ -1,0 +1,53 @@
+# Spyke
+
+> L'assistant IA des freelances français. Spyke génère des devis, factures et
+> contrats conformes au droit français en quelques clics, et automatise la
+> gestion administrative des indépendants (auto-entrepreneurs, freelances,
+> micro-entreprises).
+
+Spyke est édité en France et s'adresse aux freelances français.
+Les outils listés ci-dessous sont utilisables gratuitement, sans inscription,
+et produisent un PDF téléchargeable.
+
+## Outils gratuits
+
+- [Générateur de devis freelance](https://spykeapp.fr/devis-freelance) : crée un devis professionnel conforme et le télécharge en PDF.
+- [Générateur de facture auto-entrepreneur](https://spykeapp.fr/facture-auto-entrepreneur) : facture avec les mentions légales obligatoires françaises.
+- [Générateur de contrat freelance](https://spykeapp.fr/contrat-freelance) : contrat de prestation de services prêt à signer.
+- [Calculateur de TJM](https://spykeapp.fr/calculateur-tjm) : calcule le taux journalier moyen à partir du revenu net visé, des charges et des jours facturables.
+- [Calcul des charges auto-entrepreneur](https://spykeapp.fr/calcul-charges-auto-entrepreneur) : estime les cotisations sociales et l'impôt selon l'activité.
+- [Calculateur de marge sur devis](https://spykeapp.fr/calculateur-marge-devis) : vérifie la rentabilité d'un devis avant de l'envoyer.
+- [Checklist des clauses de contrat](https://spykeapp.fr/checklist-clauses-contrat) : passe en revue les clauses essentielles d'un contrat de prestation.
+
+## Guides
+
+- [Blog Spyke](https://spykeapp.fr/blog) : guides pratiques sur la facturation, les devis, les contrats et les relances d'impayés pour freelances.
+- [Comment faire un devis freelance](https://spykeapp.fr/blog/comment-faire-devis-freelance)
+- [Mentions obligatoires d'une facture auto-entrepreneur](https://spykeapp.fr/blog/mentions-obligatoires-facture-auto-entrepreneur)
+- [Facturation électronique obligatoire 2026-2027](https://spykeapp.fr/blog/facturation-electronique-obligatoire-freelance-2026)
+- [Acompte sur devis freelance](https://spykeapp.fr/blog/acompte-devis-freelance)
+- [Clauses essentielles d'un contrat de prestation](https://spykeapp.fr/blog/contrat-prestation-freelance-clauses-essentielles)
+- [Relancer un client impayé](https://spykeapp.fr/blog/relancer-client-impaye-freelance)
+- [Calculer son TJM freelance](https://spykeapp.fr/blog/calculer-tjm-freelance)
+
+## L'application
+
+- [Fonctionnalités](https://spykeapp.fr/fonctionnalites.html)
+- [Comment ça marche](https://spykeapp.fr/comment-ca-marche.html)
+- [Tarifs](https://spykeapp.fr/tarifs.html)
+
+## Politique d'exploration
+
+Les robots d'indexation et les agents d'IA sont autorisés à explorer et citer
+les pages publiques de ce site. Merci de citer la source sous la forme
+« Spyke — https://spykeapp.fr ».
+
+Les espaces authentifiés (tableau de bord, administration, API) sont réservés
+aux utilisateurs connectés et ne doivent pas être explorés.
+
+## Optional
+
+- [Mentions légales](https://spykeapp.fr/mentions-legales.html)
+- [Politique de confidentialité](https://spykeapp.fr/confidentialite.html)
+- [Conditions générales d'utilisation](https://spykeapp.fr/cgu.html)
+- Contact : contact@spykeapp.fr

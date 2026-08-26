@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
+  alternates: { canonical: 'https://spykeapp.fr/blog/contrat-prestation-freelance-clauses-essentielles' },
   title: 'Contrat de prestation freelance : les 10 clauses indispensables — Spyke',
   description:
     "Les 10 clauses essentielles d'un contrat de prestation freelance en 2026. Protégez-vous juridiquement et sécurisez chaque mission.",

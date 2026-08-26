@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
+  alternates: { canonical: 'https://spykeapp.fr/blog/comment-faire-devis-freelance' },
   title: 'Comment faire un devis freelance professionnel en 2026 (guide complet) — Spyke',
   description:
     "Tout ce qu'il faut pour créer un devis freelance professionnel : mentions obligatoires, modèle PDF gratuit, conseils pratiques et erreurs à éviter.",

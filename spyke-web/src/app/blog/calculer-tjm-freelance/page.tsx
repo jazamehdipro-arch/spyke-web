@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
+  alternates: { canonical: 'https://spykeapp.fr/blog/calculer-tjm-freelance' },
   title: 'Calculer son TJM freelance : la méthode pas à pas (avec simulateur) — Spyke',
   description:
     'Comment calculer son TJM freelance en 2026. Méthode complète avec simulateur intégré : charges, congés, objectif annuel. Trouvez votre tarif journalier idéal.',

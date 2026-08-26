@@ -94,7 +94,24 @@ const posts: BlogPost[] = [
   },
 ]
 
+import type { Metadata } from 'next'
 import { MarketingNav } from '@/components/MarketingNav'
+
+// Le filtre par catégorie passe par ?cat=… : une canonique unique évite que
+// chaque variante soit indexée comme du contenu dupliqué.
+export const metadata: Metadata = {
+  title: 'Blog freelance : devis, factures, contrats et gestion — Spyke',
+  description:
+    "Guides pratiques pour freelances français : rédiger un devis, facturer sans erreur, sécuriser ses contrats et relancer les impayés.",
+  alternates: { canonical: 'https://spykeapp.fr/blog' },
+  openGraph: {
+    type: 'website',
+    url: 'https://spykeapp.fr/blog',
+    title: 'Blog freelance : devis, factures, contrats et gestion — Spyke',
+    description:
+      "Guides pratiques pour freelances français : devis, facturation, contrats et relances.",
+  },
+}
 
 export default async function BlogPage({
   searchParams,

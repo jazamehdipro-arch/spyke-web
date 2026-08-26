@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
+  alternates: { canonical: 'https://spykeapp.fr/blog/relancer-client-impaye-freelance' },
   title: 'Comment relancer un client qui ne paie pas (sans ruiner la relation) — Spyke',
   description:
     "Les meilleures techniques pour relancer un client impayé : timing, ton, modèles d'e-mails et recours juridiques. Récupérez vos paiements freelance.",

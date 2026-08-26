@@ -6,6 +6,7 @@ export const metadata: Metadata = {
   title: "Spyke – L'assistant IA des freelances français",
   description:
     "Créez vos devis, factures et contrats en quelques clics grâce à l'IA. Spyke automatise votre admin freelance pour que vous vous concentriez sur votre métier.",
+  alternates: { canonical: 'https://spykeapp.fr/' },
   openGraph: {
     type: 'website',
     url: 'https://spykeapp.fr/',
