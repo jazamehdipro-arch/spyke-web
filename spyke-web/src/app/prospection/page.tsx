@@ -46,7 +46,10 @@ export default function Prospection() {
       <div className="wrap">
         <div className="empty">
           <b>Chargement impossible</b>
-          <p>{erreur}</p>
+          <p style={{ wordBreak: "break-word" }}>{erreur}</p>
+          <a className="go" href="/prospection/connexion" style={{ marginTop: 14 }}>
+            Se reconnecter
+          </a>
         </div>
       </div>
     );

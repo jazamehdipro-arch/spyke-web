@@ -12,9 +12,20 @@ import type { Profile } from "./types";
  */
 export async function profilCourant(): Promise<Profile | null> {
   const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+
+  // Une session périmée dans le navigateur fait échouer getUser au lieu de
+  // renvoyer « personne ». Sans ce filet, la page reste bloquée sur une erreur
+  // au lieu de renvoyer vers l'écran de connexion. On efface la session morte
+  // et on repart de zéro.
+  let user = null;
+  try {
+    const { data, error } = await supabase.auth.getUser();
+    if (error) throw error;
+    user = data.user;
+  } catch {
+    await supabase.auth.signOut().catch(() => {});
+    return null;
+  }
   if (!user) return null;
 
   const { data } = await supabase
