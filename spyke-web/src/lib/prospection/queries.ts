@@ -16,6 +16,11 @@ export async function chargerLeads(): Promise<Lead[]> {
 /**
  * La fiche suivante de la file. C'est le serveur qui décide, et il la réserve :
  * deux commerciaux connectés en même temps ne reçoivent jamais la même.
+ *
+ * Quand la file est vide, next_lead renvoie une fiche entièrement vide plutôt
+ * que rien — l'API expose le type composite colonne par colonne, et un composite
+ * nul devient une ligne dont tous les champs sont nuls. Sans ce contrôle, l'écran
+ * croit tenir une fiche et casse dès qu'il en lit un champ.
  */
 export async function ficheSuivante(secteur: string | null, sautees: string[]) {
   const { data, error } = await sb().rpc("next_lead", {
@@ -23,7 +28,8 @@ export async function ficheSuivante(secteur: string | null, sautees: string[]) {
     p_skip: sautees,
   });
   if (error) throw error;
-  return (data ?? null) as Lead | null;
+  const fiche = (Array.isArray(data) ? data[0] : data) as Lead | null;
+  return fiche && fiche.id ? fiche : null;
 }
 
 /** « Passer cette fiche » : le bail retombe tout de suite. */
