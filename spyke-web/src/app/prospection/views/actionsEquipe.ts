@@ -93,7 +93,9 @@ export async function ajouterCommercial(
     return {
       ok: false,
       erreur:
-        "La création de comptes est indisponible : la clé de service Supabase n'est pas encore renseignée sur le site.",
+        "Création de comptes indisponible : la variable " +
+        "PROSPECTION_SUPABASE_SERVICE_ROLE_KEY manque sur le projet Vercel " +
+        "spyke-web (celui qui sert spykeapp.fr). Ajoute-la, puis redéploie.",
     };
   }
 
