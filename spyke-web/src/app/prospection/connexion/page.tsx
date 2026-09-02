@@ -24,13 +24,15 @@ export default function Connexion() {
   return (
     <div className="gate">
       <div className="gate-in">
+        {/* Les couleurs vivent dans la feuille de style, pas ici : l'écran
+            d'entrée doit suivre l'identité comme le reste de l'outil. */}
         <div className="brand">
-          <b style={{ fontSize: 21, letterSpacing: ".06em", color: "#fff" }}>SPYKE</b>
-          <i style={{ width: 6, height: 6, borderRadius: "50%", background: "#2F5BEA", display: "block", alignSelf: "center" }} />
-          <span style={{ fontSize: 12, color: "#8FA6D8" }}>Prospection</span>
+          <b>SPYKE</b>
+          <i />
+          <span>Prospection</span>
         </div>
         {premierDemarrage === null ? (
-          <p style={{ color: "#8FA6D8", fontSize: 13.5 }}>Un instant…</p>
+          <p className="hint">Un instant…</p>
         ) : (
           <GateForm premierDemarrage={premierDemarrage} />
         )}

@@ -97,11 +97,14 @@ export const HORIZON = 28;
 export const RATE = { audit: 0.2, projet: 0.15, abo: 0.1 };
 export const ABO_MOIS = 12;
 
+/* Les pastilles du tunnel. Elles vont du gris au vert en passant par le jaune
+   de marque : plus l'affaire avance, plus la couleur s'affirme. Le jaune est
+   réservé à l'audit encaissé — la première fois que l'argent rentre. */
 export const STAGES: [string, string, string][] = [
-  ["rdv", "RDV calé", "#2F5BEA"],
-  ["noshow", "Client absent", "#E8582E"],
-  ["audit", "Audit encaissé", "#C77A0A"],
-  ["projet", "Projet en cours", "#12805C"],
-  ["abo", "Abonnement actif", "#0C1526"],
-  ["perdu", "Perdu", "#8A94A6"],
+  ["rdv", "RDV calé", "#121315"],
+  ["noshow", "Client absent", "#C13A22"],
+  ["audit", "Audit encaissé", "#F9C50D"],
+  ["projet", "Projet en cours", "#0F7250"],
+  ["abo", "Abonnement actif", "#0E6B4B"],
+  ["perdu", "Perdu", "#78756D"],
 ];
