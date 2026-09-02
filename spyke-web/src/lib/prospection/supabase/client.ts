@@ -1,6 +1,7 @@
 "use client";
 
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+import { PROSPECTION_URL, PROSPECTION_KEY } from "./config";
 
 /**
  * Base Supabase de l'outil de prospection — distincte de celle du site.
@@ -17,8 +18,7 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
  * La session vit donc dans le navigateur, sous une clé de stockage propre à ce
  * projet — elle ne croise jamais celle du site.
  */
-export const PROSPECTION_URL = "https://omnrmdibmgttesqvexrt.supabase.co";
-export const PROSPECTION_KEY = "sb_publishable_qpfmtcc2yy6iEuY0sNxVjw_JQ6EQw-d";
+export { PROSPECTION_URL, PROSPECTION_KEY } from "./config";
 
 let client: ReturnType<typeof createSupabaseClient> | null = null;
 

@@ -1,7 +1,7 @@
 "use server";
 
 import { createClient } from "@supabase/supabase-js";
-import { PROSPECTION_URL, PROSPECTION_KEY } from "@/lib/prospection/supabase/client";
+import { PROSPECTION_URL, PROSPECTION_KEY } from "@/lib/prospection/supabase/config";
 import type { Profile } from "@/lib/prospection/types";
 
 type Resultat = { ok: true; message: string } | { ok: false; erreur: string };
@@ -39,12 +39,28 @@ function service() {
   });
 }
 
+/**
+ * Une action serveur qui lève une exception n'affiche rien d'utile : Next
+ * masque le message en production et ne laisse qu'un code. Comme ces deux
+ * actions sont déclenchées depuis un téléphone, sans console, on convertit
+ * toute panne en texte affichable plutôt que de la laisser remonter.
+ */
+async function sansCasser(travail: () => Promise<Resultat>): Promise<Resultat> {
+  try {
+    return await travail();
+  } catch (e) {
+    const m = e instanceof Error ? e.message : String(e);
+    return { ok: false, erreur: "Échec côté serveur : " + m };
+  }
+}
+
 export async function ajouterCommercial(
   jeton: string,
   nom: string,
   email: string,
   mdp: string
 ): Promise<Resultat> {
+  return sansCasser(async () => {
   const admin = await exigerAdmin(jeton);
   if (!admin) return { ok: false, erreur: "Réservé au responsable." };
 
@@ -81,9 +97,11 @@ export async function ajouterCommercial(
     };
   }
   return { ok: true, message: `${nom.trim()} ajouté. Donne-lui son e-mail et son mot de passe.` };
+  });
 }
 
 export async function retirerCommercial(jeton: string, membreId: string): Promise<Resultat> {
+  return sansCasser(async () => {
   const admin = await exigerAdmin(jeton);
   if (!admin) return { ok: false, erreur: "Réservé au responsable." };
   if (membreId === admin.id) {
@@ -119,4 +137,5 @@ export async function retirerCommercial(jeton: string, membreId: string): Promis
   }
   await sb.auth.admin.updateUserById(membreId, { ban_duration: "876000h" });
   return { ok: true, message: "Retiré." + fiches };
+  });
 }
