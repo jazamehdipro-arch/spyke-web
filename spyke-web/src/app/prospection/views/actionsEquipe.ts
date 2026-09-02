@@ -99,7 +99,7 @@ export async function ajouterCommercial(
     };
   }
 
-  const { error } = await sb.auth.admin.createUser({
+  const { data: cree, error } = await sb.auth.admin.createUser({
     email: email.trim(),
     password: mdp,
     email_confirm: true,
@@ -115,6 +115,30 @@ export async function ajouterCommercial(
         : error.message,
     };
   }
+
+  // Le compte ne suffit pas : sans fiche d'équipe, la personne se connecte et
+  // se fait renvoyer aussitôt à l'écran de connexion, sans rien qui explique
+  // pourquoi. La fiche est posée par un déclencheur en base ; on vérifie
+  // qu'elle est bien là, et on la pose nous-mêmes sinon.
+  const id = cree.user?.id;
+  if (id) {
+    const { data: fiche } = await sb
+      .from("profiles").select("id").eq("id", id).maybeSingle();
+    if (!fiche) {
+      const { error: e2 } = await sb
+        .from("profiles")
+        .insert({ id, nom: nom.trim(), role: "commercial" });
+      if (e2) {
+        return {
+          ok: false,
+          erreur:
+            "Le compte existe mais sa fiche d'équipe n'a pas pu être créée : " +
+            e2.message + " Il ne pourra pas entrer tant que ce n'est pas réglé.",
+        };
+      }
+    }
+  }
+
   return { ok: true, message: `${nom.trim()} ajouté. Donne-lui son e-mail et son mot de passe.` };
   });
 }
