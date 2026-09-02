@@ -15,20 +15,37 @@ type Resultat = { ok: true; message: string } | { ok: false; erreur: string };
  * On ne le croit pas sur parole : le jeton est vérifié auprès de Supabase, qui
  * en contrôle la signature, puis le rôle est relu en base.
  */
-async function exigerAdmin(jeton: string): Promise<{ id: string } | null> {
-  if (!jeton) return null;
-  const anon = createClient(PROSPECTION_URL, PROSPECTION_KEY);
-  const { data: { user } } = await anon.auth.getUser(jeton);
-  if (!user) return null;
+type Verdict = { id: string } | { refus: string };
 
-  const { data } = await anon
+async function exigerAdmin(jeton: string): Promise<Verdict> {
+  if (!jeton) return { refus: "Ta session a expiré. Reconnecte-toi." };
+
+  // Deux étapes distinctes, et les deux comptent.
+  //
+  // D'abord la signature du jeton, contrôlée par Supabase : c'est elle qui
+  // interdit de se déclarer responsable en trafiquant une requête.
+  const { data: { user } } = await createClient(PROSPECTION_URL, PROSPECTION_KEY)
+    .auth.getUser(jeton);
+  if (!user) return { refus: "Ta session a expiré. Reconnecte-toi." };
+
+  // Puis le rôle, relu en base — mais en présentant le jeton. Sans lui, la
+  // requête part en anonyme ; comme toutes les policies de profiles sont
+  // réservées aux personnes connectées, elle ne renvoie aucune ligne et le
+  // responsable se voyait répondre « réservé au responsable ».
+  const { data } = await createClient(PROSPECTION_URL, PROSPECTION_KEY, {
+    auth: { autoRefreshToken: false, persistSession: false },
+    global: { headers: { Authorization: `Bearer ${jeton}` } },
+  })
     .from("profiles")
     .select("id, role, actif")
     .eq("id", user.id)
     .maybeSingle();
 
   const p = data as Pick<Profile, "id" | "role" | "actif"> | null;
-  return p && p.role === "admin" && p.actif ? { id: p.id } : null;
+  if (!p) return { refus: "Ton profil n'a pas pu être relu. Reconnecte-toi." };
+  if (!p.actif) return { refus: "Ton accès a été désactivé." };
+  if (p.role !== "admin") return { refus: "Réservé au responsable." };
+  return { id: p.id };
 }
 
 function service() {
@@ -62,7 +79,7 @@ export async function ajouterCommercial(
 ): Promise<Resultat> {
   return sansCasser(async () => {
   const admin = await exigerAdmin(jeton);
-  if (!admin) return { ok: false, erreur: "Réservé au responsable." };
+  if ("refus" in admin) return { ok: false, erreur: admin.refus };
 
   if (!nom.trim() || !email.trim() || !mdp) {
     return { ok: false, erreur: "Il faut un prénom, un e-mail et un mot de passe." };
@@ -103,7 +120,7 @@ export async function ajouterCommercial(
 export async function retirerCommercial(jeton: string, membreId: string): Promise<Resultat> {
   return sansCasser(async () => {
   const admin = await exigerAdmin(jeton);
-  if (!admin) return { ok: false, erreur: "Réservé au responsable." };
+  if ("refus" in admin) return { ok: false, erreur: admin.refus };
   if (membreId === admin.id) {
     return { ok: false, erreur: "Tu ne peux pas te retirer toi-même." };
   }
