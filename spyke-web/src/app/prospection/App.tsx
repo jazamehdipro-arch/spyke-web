@@ -119,23 +119,24 @@ export default function App({
     },
   };
 
-  /* ------------------------------------------------------- compteurs du haut */
+  /* ------------------------------------------------------- compteurs du haut
+   *
+   * Trois nombres, et aucun qui compte une cadence. Les commerciaux sont des
+   * indépendants : ils travaillent quand ils veulent, donc « appels du jour »
+   * et « reste à faire » ne mesuraient rien d'utile — juste un rythme attendu,
+   * affiché à quelqu'un qui n'en a pas. Ne restent que les nombres sur
+   * lesquels on peut agir tout de suite, quel que soit le jour. */
   const compteurs = useMemo(() => {
     const j = today();
-    const appelsDuJour = d.activities.filter(
-      (a) => a.date === j && (moi.role === "admin" || a.author_id === moi.id)
+    const rappels = d.leads.filter(
+      (l) => l.statut === "rappeler" && l.rappel && l.rappel <= j
     ).length;
     const chauds = d.leads.filter((l) => l.statut === "chaud").length;
     const rdv = d.leads.filter((l) => l.statut === "rdv").length;
-    const reste = d.leads.filter(
-      (l) => l.statut !== "rdv" && l.statut !== "refus"
-    ).length;
-    return { appelsDuJour, chauds, rdv, reste };
-  }, [d, moi]);
+    return { rappels, chauds, rdv };
+  }, [d]);
 
-  const rappelsDus = d.leads.filter(
-    (l) => l.statut === "rappeler" && l.rappel && l.rappel <= today()
-  ).length;
+  const rappelsDus = compteurs.rappels;
 
   async function quitter() {
     await createClient().auth.signOut();
@@ -158,8 +159,8 @@ export default function App({
 
         <div className="tally">
           <div>
-            <span className="n">{compteurs.appelsDuJour}</span>
-            <span className="l">Appels du jour</span>
+            <span className="n">{compteurs.rappels}</span>
+            <span className="l">Rappels dus</span>
           </div>
           <div>
             <span className="n hot">{compteurs.chauds}</span>
@@ -169,16 +170,6 @@ export default function App({
             <span className="n won">{compteurs.rdv}</span>
             <span className="l">RDV calés</span>
           </div>
-          <div>
-            <span className="n">{compteurs.reste}</span>
-            <span className="l">Reste à faire</span>
-          </div>
-        </div>
-
-        <div className="bars">
-          {Array.from({ length: 30 }, (_, i) => (
-            <i key={i} className={i < Math.min(compteurs.appelsDuJour, 30) ? "on" : ""} />
-          ))}
         </div>
 
         <div className={"sync" + (enLigne ? "" : " off")}>
