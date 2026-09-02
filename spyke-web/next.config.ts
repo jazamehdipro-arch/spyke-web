@@ -106,38 +106,9 @@ const legacyPageHeaders = [
   },
 ]
 
-/**
- * Outil de prospection, servi sous /prospection.
- *
- * C'est une application séparée (dépôt spyke-prospection, base Supabase
- * distincte) : elle a ses propres tables, ses propres comptes, et un CSS global
- * hérité de son prototype qui écraserait celui du site s'il était importé ici.
- * On la laisse donc chez elle et on renvoie l'URL vers son déploiement.
- *
- * Pour le visiteur c'est bien spykeapp.fr/prospection : le renvoi est fait par
- * le serveur, l'adresse ne change pas dans la barre du navigateur, et les
- * cookies de session restent sur le domaine spykeapp.fr.
- *
- * Côté application de prospection, next.config.ts porte basePath: '/prospection'
- * pour que ses liens et ses fichiers statiques gardent le même préfixe.
- */
-const PROSPECTION_ORIGIN = 'https://spyke-prospection-mehdis-projects-2102cbdc.vercel.app'
-
 const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
-  },
-  async rewrites() {
-    return [
-      {
-        source: '/prospection',
-        destination: `${PROSPECTION_ORIGIN}/prospection`,
-      },
-      {
-        source: '/prospection/:path*',
-        destination: `${PROSPECTION_ORIGIN}/prospection/:path*`,
-      },
-    ]
   },
   eslint: {
     ignoreDuringBuilds: true,
