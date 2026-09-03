@@ -9,6 +9,7 @@ import { eur, jours, median, today } from "@/lib/prospection/format";
 import { lireFiches, secteurDuFichier } from "@/lib/prospection/csv";
 import Equipe from "./Equipe";
 import Rgpd from "./Rgpd";
+import Secteurs from "./Secteurs";
 
 export default function VueReglages({ ctx }: { ctx: Ctx }) {
   const [secteurImport, setSecteurImport] = useState("");
@@ -285,6 +286,8 @@ export default function VueReglages({ ctx }: { ctx: Ctx }) {
       </div>
 
       <Equipe moi={ctx.moi} equipe={ctx.d.equipe} recharger={ctx.recharger} />
+
+      <Secteurs ctx={ctx} />
 
       <Rgpd ctx={ctx} />
 

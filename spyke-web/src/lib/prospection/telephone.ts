@@ -64,11 +64,11 @@ function surveillerIframe() {
     const f = n as HTMLIFrameElement;
     if (!f.src.includes("ringover.com")) return;
     if (f.getAttribute("allow")?.includes("microphone")) return;
+    // Posé à l'insertion, donc avant que l'iframe ne charge : l'attribut sera
+    // lu à temps. On ne force surtout pas un rechargement pour le cas
+    // contraire — le composant établit un dialogue avec sa page dès son
+    // ouverture, et le relancer sous ses pieds le laisse dans le vide.
     f.setAttribute("allow", "microphone; autoplay; clipboard-write");
-    // L'attribut n'est lu qu'au chargement : on relance celui-ci s'il a déjà eu
-    // lieu. Sans ça, l'iframe resterait sans micro jusqu'au prochain F5.
-    const src = f.src;
-    if (src) f.src = src;
   };
 
   const obs = new MutationObserver((mutations) => {

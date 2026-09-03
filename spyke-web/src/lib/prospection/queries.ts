@@ -276,3 +276,21 @@ export async function effacerFiche(leadId: string) {
   const { error } = await sb().rpc("forget_lead", { p_lead_id: leadId });
   if (error) throw error;
 }
+
+/* ------------------------------------------------------------------ secteurs */
+
+/**
+ * Renomme un secteur sur toutes ses fiches.
+ *
+ * Le secteur vient du nom du fichier importé, et un export de tableur s'appelle
+ * volontiers « Feuille de calcul sans titre ». Plutôt que de réimporter tout un
+ * fichier pour une étiquette, on la corrige sur place.
+ */
+export async function renommerSecteur(ancien: string, nouveau: string) {
+  const { error, count } = await sb()
+    .from("leads")
+    .update({ secteur: nouveau }, { count: "exact" })
+    .eq("secteur", ancien);
+  if (error) throw error;
+  return count ?? 0;
+}
