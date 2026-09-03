@@ -42,3 +42,19 @@ export function slotParts(iso: string) {
 
 /** Le mobile se reconnaît au 06/07, comme dans le prototype. */
 export const estMobile = (tel: string) => /^(\+33\s?[67]|0[67])/.test(tel || "");
+
+/**
+ * Le numéro au format international, tel que l'attend un opérateur : +33612345678.
+ *
+ * Même conversion que tel_normalise() en base, au plus près : on ne veut pas
+ * qu'une fiche soit rapprochée d'un appel côté serveur mais composée
+ * différemment côté navigateur.
+ */
+export function enE164(tel: string | null): string | null {
+  const d = (tel ?? "").replace(/\D/g, "");
+  if (!d) return null;
+  if (d.startsWith("00")) return "+" + d.slice(2);
+  if (d.startsWith("0") && d.length === 10) return "+33" + d.slice(1);
+  if (d.startsWith("33")) return "+" + d;
+  return "+" + d;
+}

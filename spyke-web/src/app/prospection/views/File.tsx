@@ -5,7 +5,8 @@ import * as q from "@/lib/prospection/queries";
 import type { Ctx } from "../App";
 import type { Activity, Lead, Statut } from "@/lib/prospection/types";
 import { STATUS } from "@/lib/prospection/types";
-import { estMobile, fmtD, today } from "@/lib/prospection/format";
+import { enE164, estMobile, fmtD, today } from "@/lib/prospection/format";
+import { appeler as appelerDepuisLeSite } from "@/lib/prospection/telephone";
 import { ficheSuivanteLocale } from "@/lib/prospection/horsligne";
 import ChoixCreneau from "./ChoixCreneau";
 
@@ -88,8 +89,16 @@ export default function VueFile({ ctx }: { ctx: Ctx }) {
     if (Object.keys(patch).length) await q.majLead(fiche.id, patch);
   }, [fiche, rappel, contact, notes]);
 
-  async function appeler() {
+  /**
+   * Un clic sur le numéro. Si Ringover est chargé et connecté, l'appel part
+   * d'ici et le lien « tel: » est neutralisé. Sinon on le laisse agir : sur un
+   * téléphone il ouvre le clavier, sur un ordinateur il passe la main au
+   * logiciel installé s'il y en a un. Dans tous les cas, l'appel est noté.
+   */
+  async function appeler(e?: React.MouseEvent) {
     if (!fiche) return;
+    const e164 = enE164(fiche.tel);
+    if (e164 && appelerDepuisLeSite(e164)) e?.preventDefault();
     try {
       await q.noter(fiche.id, "Appel passé", ctx.moi.id);
       setHist(await q.historique(fiche.id));

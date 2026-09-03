@@ -11,6 +11,7 @@ import {
 } from "@/lib/prospection/horsligne";
 import Sheet from "./ui/Sheet";
 import Toast from "./ui/Toast";
+import Telephone from "./ui/Telephone";
 import VueFile from "./views/File";
 import VueListe from "./views/Liste";
 import VueAgenda from "./views/Agenda";
@@ -217,6 +218,8 @@ export default function App({
             <span className="l">RDV calés</span>
           </div>
         </div>
+
+        <Telephone />
 
         <div className={"sync" + (enLigne ? "" : " off")}>
           <i />

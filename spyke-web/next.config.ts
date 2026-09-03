@@ -106,6 +106,55 @@ const legacyPageHeaders = [
   },
 ]
 
+/**
+ * Outil de prospection : appeler depuis la page, sans rien installer.
+ *
+ * Ringover fournit un composant qui embarque sa webapp dans une iframe. Trois
+ * choses que la politique du site interdit par défaut, et qu'on n'ouvre QUE
+ * sous /prospection :
+ *
+ * - charger leur script depuis webcdn.ringover.com ;
+ * - embarquer app.ringover.com dans une iframe ;
+ * - accéder au micro. La politique du site le coupe partout
+ *   (`microphone=()`), ce qui suffirait à rendre tout appel muet.
+ *
+ * Le reste du site — accueil, devis, factures, contrats — garde sa politique
+ * d'origine, micro compris.
+ */
+const RINGOVER_CDN = 'https://webcdn.ringover.com'
+const RINGOVER_APP = 'https://app.ringover.com'
+
+const prospectionHeaders = [
+  ...securityHeaders.filter((h) => h.key !== 'Content-Security-Policy' && h.key !== 'Permissions-Policy'),
+  {
+    key: 'Content-Security-Policy',
+    value: buildCsp({
+      'script-src': [RINGOVER_CDN],
+      'frame-src': [RINGOVER_APP],
+      'connect-src': [RINGOVER_CDN, RINGOVER_APP],
+      'img-src': [RINGOVER_APP],
+    }),
+  },
+  {
+    key: 'Permissions-Policy',
+    value: [
+      `microphone=(self "${RINGOVER_APP}")`,
+      `autoplay=(self "${RINGOVER_APP}")`,
+      'accelerometer=()',
+      'camera=()',
+      'display-capture=()',
+      'encrypted-media=()',
+      'geolocation=()',
+      'gyroscope=()',
+      'magnetometer=()',
+      'midi=()',
+      'payment=()',
+      'usb=()',
+      'xr-spatial-tracking=()',
+    ].join(', '),
+  },
+]
+
 const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
@@ -120,6 +169,8 @@ const nextConfig: NextConfig = {
     return [
       { source: '/:path*', headers: securityHeaders },
       { source: '/spyke-v3_1.html', headers: legacyPageHeaders },
+      { source: '/prospection', headers: prospectionHeaders },
+      { source: '/prospection/:path*', headers: prospectionHeaders },
     ]
   },
 }
