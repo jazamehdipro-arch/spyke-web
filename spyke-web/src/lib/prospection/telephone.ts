@@ -14,6 +14,14 @@
  * compte Ringover — ce qui donne au passage le bon numéro affiché et le bon
  * historique côté opérateur.
  *
+ * Le composant pose lui-même `allow="microphone;autoplay;…"` sur son iframe —
+ * vérifié dans sa source. Rien à corriger de ce côté ; ce qu'il fallait ouvrir,
+ * c'est la politique du site, qui coupait le micro sur toutes les pages.
+ *
+ * Il n'expose aucune fonction pour raccrocher : ses six commandes sont dial,
+ * sendSMS, openCallLog, changePage, reload et presenceSDK. D'où le bouton qui
+ * rouvre son clavier — c'est le seul chemin vers son bouton rouge.
+ *
  * Ce fichier ne suppose jamais que le composant est là. Sur un téléphone, ou si
  * Ringover est indisponible, l'écran retombe sur le lien « tel: » d'origine :
  * le commercial appelle avec son mobile, comme avant. Un outil d'appel qui ne
@@ -62,45 +70,12 @@ export function sAbonner(f: () => void): () => void {
   return () => { abonnes.delete(f); };
 }
 
-/**
- * Le composant crée son iframe lui-même. Une iframe d'une autre origine n'a pas
- * le micro sans l'attribut `allow` — sans lui l'appel part, mais personne ne
- * nous entend. On le pose donc dès son apparition, avant qu'elle ne charge.
- */
-function surveillerIframe() {
-  const equiper = (n: Element) => {
-    if (n.tagName !== "IFRAME") return;
-    const f = n as HTMLIFrameElement;
-    if (!f.src.includes("ringover.com")) return;
-    if (f.getAttribute("allow")?.includes("microphone")) return;
-    // Posé à l'insertion, donc avant que l'iframe ne charge : l'attribut sera
-    // lu à temps. On ne force surtout pas un rechargement pour le cas
-    // contraire — le composant établit un dialogue avec sa page dès son
-    // ouverture, et le relancer sous ses pieds le laisse dans le vide.
-    f.setAttribute("allow", "microphone; autoplay; clipboard-write");
-  };
-
-  const obs = new MutationObserver((mutations) => {
-    for (const m of mutations) {
-      m.addedNodes.forEach((n) => {
-        if (!(n instanceof Element)) return;
-        equiper(n);
-        n.querySelectorAll?.("iframe").forEach(equiper);
-      });
-    }
-  });
-  obs.observe(document.body, { childList: true, subtree: true });
-  document.querySelectorAll("iframe").forEach(equiper);
-  return obs;
-}
-
 /** Charge le composant. Sans effet si déjà chargé ; sans conséquence s'il échoue. */
 export function charger(): Promise<void> {
   if (chargement) return chargement;
   if (typeof window === "undefined") return Promise.resolve();
 
   poser("chargement");
-  surveillerIframe();
 
   chargement = new Promise<void>((resolve) => {
     const s = document.createElement("script");
