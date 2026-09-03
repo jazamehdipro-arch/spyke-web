@@ -257,3 +257,22 @@ export async function rejouer(): Promise<{ rejouees: number; abandonnees: number
   }
   return { rejouees, abandonnees };
 }
+
+/* ------------------------------------------------------------------- RGPD */
+
+/** Tout ce que la base sait d'une personne, pour répondre à une demande d'accès. */
+export async function exporterFiche(leadId: string) {
+  const { data, error } = await sb().rpc("export_lead", { p_lead_id: leadId });
+  if (error) throw error;
+  return data as Record<string, unknown>;
+}
+
+/**
+ * Efface une fiche à la demande de la personne. La base refuse si l'appelant
+ * n'est pas responsable, et garde une empreinte indéchiffrable du numéro pour
+ * ne pas le réimporter au fichier suivant.
+ */
+export async function effacerFiche(leadId: string) {
+  const { error } = await sb().rpc("forget_lead", { p_lead_id: leadId });
+  if (error) throw error;
+}

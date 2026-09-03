@@ -8,6 +8,7 @@ import { commission } from "@/lib/prospection/argent";
 import { eur, jours, median, today } from "@/lib/prospection/format";
 import { lireFiches, secteurDuFichier } from "@/lib/prospection/csv";
 import Equipe from "./Equipe";
+import Rgpd from "./Rgpd";
 
 export default function VueReglages({ ctx }: { ctx: Ctx }) {
   const [secteurImport, setSecteurImport] = useState("");
@@ -284,6 +285,8 @@ export default function VueReglages({ ctx }: { ctx: Ctx }) {
       </div>
 
       <Equipe moi={ctx.moi} equipe={ctx.d.equipe} recharger={ctx.recharger} />
+
+      <Rgpd ctx={ctx} />
 
       <div className="panel">
         <h3>Délais médians du tunnel</h3>
