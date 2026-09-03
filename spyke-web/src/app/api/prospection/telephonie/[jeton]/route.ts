@@ -47,32 +47,83 @@ function memeChaine(a: string, b: string): boolean {
 }
 
 /**
- * Les formes de signature à éprouver. Chacune produit une empreinte comparée à
- * celles reçues ; le nom de celle qui correspond est noté au journal.
+ * Vérifie la signature de Ringover.
+ *
+ * L'en-tête x-ringover-webhook-signature est un JWT en HS512 portant deux
+ * informations : l'adresse appelée, et le message lui-même. C'est meilleur
+ * qu'une simple empreinte du corps — la signature est liée à sa destination et
+ * ne peut donc pas être rejouée vers une autre adresse.
+ *
+ * On se sert ensuite du message CONTENU DANS LE JWT, et non du corps de la
+ * requête : c'est celui-là qui est signé. Les deux devraient être identiques ;
+ * s'ils divergent, c'est le signé qui fait foi.
+ *
+ * Le second en-tête, x-ringover-webhook-signature-v3, est une empreinte
+ * SHA-256 en base64 dont la formule n'est pas publiée. Elle est ignorée : le
+ * JWT suffit, et il se décrit lui-même.
  */
-function empreintes(corpsBrut: string, horodatage: string, cle: string): Record<string, string> {
-  const h = (données: string, sortie: 'hex' | 'base64') =>
-    createHmac('sha256', cle).update(données).digest(sortie)
-  return {
-    'corps.hex': h(corpsBrut, 'hex'),
-    'corps.b64': h(corpsBrut, 'base64'),
-    'horodatage.corps.hex': h(`${horodatage}.${corpsBrut}`, 'hex'),
-    'horodatage.corps.b64': h(`${horodatage}.${corpsBrut}`, 'base64'),
-    'horodatagecorps.hex': h(`${horodatage}${corpsBrut}`, 'hex'),
-    'horodatagecorps.b64': h(`${horodatage}${corpsBrut}`, 'base64'),
-  }
+function b64url(buf: Buffer): string {
+  return buf.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
 }
 
-function formeQuiCorrespond(
-  corpsBrut: string, horodatage: string, cle: string, recues: string[]
-): string | null {
-  const cands = empreintes(corpsBrut, horodatage, cle)
-  for (const [nom, valeur] of Object.entries(cands)) {
-    for (const recue of recues) {
-      if (recue && memeChaine(valeur, recue.trim())) return nom
-    }
+function decodeB64url(s: string): string {
+  const p = s.replace(/-/g, '+').replace(/_/g, '/')
+  return Buffer.from(p + '='.repeat((4 - (p.length % 4)) % 4), 'base64').toString('utf8')
+}
+
+type Verdict =
+  | { ok: true; evenement: Record<string, unknown> }
+  | { ok: false; raison: string }
+
+function verifierSignature(
+  entete: string | undefined,
+  cle: string,
+  jeton: string,
+  hoteAttendu: string
+): Verdict {
+  if (!entete) return { ok: false, raison: 'signature absente' }
+
+  const parts = entete.split('.')
+  if (parts.length !== 3) return { ok: false, raison: 'signature mal formée' }
+  const [h, p, sig] = parts
+
+  let algo: string
+  try {
+    algo = String((JSON.parse(decodeB64url(h)) as { alg?: string }).alg ?? '')
+  } catch {
+    return { ok: false, raison: 'en-tête de signature illisible' }
   }
-  return null
+  if (algo !== 'HS512') return { ok: false, raison: `algorithme inattendu : ${algo}` }
+
+  const attendue = b64url(createHmac('sha512', cle).update(`${h}.${p}`).digest())
+  if (!memeChaine(attendue, sig)) return { ok: false, raison: 'signature invalide' }
+
+  let claims: { url?: string; payload?: Record<string, unknown> }
+  try {
+    claims = JSON.parse(decodeB64url(p)) as typeof claims
+  } catch {
+    return { ok: false, raison: 'charge de signature illisible' }
+  }
+
+  // L'adresse signée doit être celle où la requête est réellement arrivée —
+  // domaine compris. Ne vérifier que le chemin laisserait passer une signature
+  // émise pour un autre site portant le même chemin.
+  try {
+    const u = new URL(String(claims.url ?? ''))
+    if (u.host.toLowerCase() !== hoteAttendu.toLowerCase()) {
+      return { ok: false, raison: 'domaine signé étranger' }
+    }
+    if (u.pathname !== `/api/prospection/telephonie/${jeton}`) {
+      return { ok: false, raison: 'adresse signée étrangère' }
+    }
+  } catch {
+    return { ok: false, raison: 'adresse signée illisible' }
+  }
+
+  if (!claims.payload || typeof claims.payload !== 'object') {
+    return { ok: false, raison: 'message absent de la signature' }
+  }
+  return { ok: true, evenement: claims.payload }
 }
 
 /** Les en-têtes utiles : signatures, horodatage, et de quoi diagnostiquer. */
@@ -139,15 +190,6 @@ export async function POST(
 
   const entetes = entetesRetenus(req.headers)
   const cleSignature = process.env.PROSPECTION_TELEPHONIE_CLE
-  let forme: string | null = null
-  if (cleSignature) {
-    forme = formeQuiCorrespond(
-      brut,
-      entetes['x-ringover-request-signature-v3-timestamp'] ?? '',
-      cleSignature,
-      [entetes['x-ringover-webhook-signature-v3'], entetes['x-ringover-webhook-signature']].filter(Boolean)
-    )
-  }
 
   let corps: Record<string, unknown>
   try {
@@ -163,27 +205,33 @@ export async function POST(
   const journaliser = (note: string) =>
     sb.from('telephonie_journal').insert({
       source: 'ringover',
-      entetes: { ...entetes, _signature: forme ?? 'aucune correspondance', _note: note },
+      entetes: { ...entetes, _note: note },
       corps,
     })
 
-  // Tant que la clé n'est pas configurée, on observe sans écrire dans les
-  // fiches : signer est le seul moyen de savoir qu'un message vient bien du
-  // logiciel de téléphonie et non de quelqu'un qui a trouvé l'adresse.
+  // Sans clé, on observe sans écrire : signer est le seul moyen de savoir qu'un
+  // message vient bien du logiciel de téléphonie et non de quelqu'un qui a
+  // trouvé l'adresse.
   if (!cleSignature) {
     await journaliser('clé de signature absente — aucune écriture')
     return NextResponse.json({ ok: true, ecrit: false })
   }
-  if (!forme) {
-    await journaliser('signature non reconnue — aucune écriture')
+
+  const hote = req.headers.get('host') ?? ''
+  const v = verifierSignature(
+    entetes['x-ringover-webhook-signature'], cleSignature, jeton, hote
+  )
+  if (!v.ok) {
+    await journaliser(`signature refusée : ${v.raison}`)
     return NextResponse.json({ ok: true, ecrit: false })
   }
+  const evt = v.evenement
 
-  if (corps.resource !== 'call' || corps.event !== 'hangup') {
+  if (evt.resource !== 'call' || evt.event !== 'hangup') {
     return NextResponse.json({ ok: true, ecrit: false, raison: 'événement ignoré' })
   }
 
-  const a = (corps.data ?? {}) as Appel
+  const a = (evt.data ?? {}) as Appel
   if (a.direction !== 'outbound') {
     return NextResponse.json({ ok: true, ecrit: false, raison: 'appel entrant' })
   }
