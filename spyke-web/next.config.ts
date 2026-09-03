@@ -121,18 +121,33 @@ const legacyPageHeaders = [
  * Le reste du site — accueil, devis, factures, contrats — garde sa politique
  * d'origine, micro compris.
  */
-const RINGOVER_CDN = 'https://webcdn.ringover.com'
 const RINGOVER_APP = 'https://app.ringover.com'
+/**
+ * Tout le domaine, et non le seul app.ringover.com.
+ *
+ * Leur application rebondit vers d'autres sous-domaines — l'authentification
+ * en premier lieu — et une iframe qui navigue vers une origine absente de
+ * frame-src est bloquée en cours de route. C'est ce qui affichait « Ce contenu
+ * est bloqué » : le blocage venait d'ici, pas de chez eux.
+ *
+ * Le caractère générique reste borné à ringover.com et à /prospection : il
+ * n'ouvre rien d'autre, ni ailleurs sur le site.
+ */
+const RINGOVER = 'https://*.ringover.com'
 
 const prospectionHeaders = [
   ...securityHeaders.filter((h) => h.key !== 'Content-Security-Policy' && h.key !== 'Permissions-Policy'),
   {
     key: 'Content-Security-Policy',
     value: buildCsp({
-      'script-src': [RINGOVER_CDN],
-      'frame-src': [RINGOVER_APP],
-      'connect-src': [RINGOVER_CDN, RINGOVER_APP],
-      'img-src': [RINGOVER_APP],
+      'script-src': [RINGOVER],
+      'frame-src': [RINGOVER],
+      'connect-src': [RINGOVER, 'wss://*.ringover.com'],
+      'img-src': [RINGOVER],
+      'media-src': [RINGOVER, 'mediastream:'],
+      'font-src': [RINGOVER],
+      'style-src': [RINGOVER],
+      'worker-src': [RINGOVER],
     }),
   },
   {
