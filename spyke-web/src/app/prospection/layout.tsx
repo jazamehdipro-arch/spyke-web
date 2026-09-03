@@ -1,5 +1,6 @@
 import { Inter, Space_Grotesk, IBM_Plex_Mono } from "next/font/google";
 import "./prospection.css";
+import EnregistrerSW from "./EnregistrerSW";
 
 /**
  * L'outil de prospection vit sous /prospection, à l'intérieur du site.
@@ -37,6 +38,27 @@ export const metadata = {
   title: "Spyke · Prospection",
   description: "Outil d'appel et de suivi des audits Spyke.",
   robots: { index: false, follow: false },
+  // Le manifeste et les icônes vivent sous /prospection/ : c'est ce chemin qui
+  // plafonne la portée du service worker au seul outil.
+  manifest: "/prospection/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    title: "Prospection",
+    statusBarStyle: "black-translucent" as const,
+  },
+  icons: {
+    icon: [{ url: "/prospection/icone-192.png", sizes: "192x192", type: "image/png" }],
+    apple: [{ url: "/prospection/apple-touch-icon.png", sizes: "180x180" }],
+  },
+};
+
+export const viewport = {
+  themeColor: "#121315",
+  // L'outil s'utilise d'une main, en voiture : on ne veut pas d'un double tap
+  // qui zoome au milieu d'un appel.
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover" as const,
 };
 
 export default function ProspectionLayout({
@@ -46,6 +68,7 @@ export default function ProspectionLayout({
 }) {
   return (
     <div className={`spk ${inter.variable} ${spaceGrotesk.variable} ${plexMono.variable}`}>
+      <EnregistrerSW />
       {children}
     </div>
   );

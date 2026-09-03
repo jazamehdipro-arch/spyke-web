@@ -1,0 +1,17 @@
+{
+  "name": "Spyke Prospection",
+  "short_name": "Prospection",
+  "description": "Outil d'appel et de suivi des audits Spyke.",
+  "lang": "fr",
+  "start_url": "/prospection",
+  "scope": "/prospection/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FDFAF5",
+  "theme_color": "#121315",
+  "icons": [
+    { "src": "/prospection/icone-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/prospection/icone-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/prospection/icone-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

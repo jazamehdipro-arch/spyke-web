@@ -2,8 +2,32 @@
 
 import { createClient } from "./supabase/client";
 import type { Activity, Creneau, Deal, Lead, Profile } from "./types";
+import { enfiler } from "./horsligne";
 
 const sb = () => createClient();
+
+/**
+ * Une panne de réseau ne ressemble pas à un refus de la base. Le premier cas se
+ * rejoue, le second jamais : réessayer une écriture refusée par la RLS ne fera
+ * que la refuser à nouveau, indéfiniment.
+ *
+ * supabase-js n'expose pas cette distinction ; on la déduit. Une erreur venue
+ * de PostgREST porte un `code` (23505, 42501, PGRST116…). Une coupure réseau
+ * n'en porte pas : c'est un TypeError « Failed to fetch » du navigateur.
+ */
+function estPanneReseau(e: unknown): boolean {
+  if (typeof navigator !== "undefined" && !navigator.onLine) return true;
+  const err = e as { code?: string; message?: string; name?: string };
+  if (err?.code) return false;
+  const m = (err?.message ?? "").toLowerCase();
+  return (
+    err?.name === "TypeError" ||
+    m.includes("failed to fetch") ||
+    m.includes("networkerror") ||
+    m.includes("load failed") ||
+    m.includes("network request failed")
+  );
+}
 
 /* ------------------------------------------------------------------ fiches */
 
@@ -38,11 +62,23 @@ export async function relacherFiche(leadId: string) {
   if (error) throw error;
 }
 
+/**
+ * Sans réseau, la modification part en file et la fonction rend la main comme
+ * si elle avait réussi : côté commercial, le résultat d'appel est enregistré,
+ * point. C'est exactement ce qu'on veut — le contraire, c'est une saisie perdue
+ * au bord de la route.
+ */
 export async function majLead(id: string, patch: Partial<Lead>) {
-  const { data, error } = await sb()
-    .from("leads").update(patch).eq("id", id).select().single();
-  if (error) throw error;
-  return data as Lead;
+  try {
+    const { data, error } = await sb()
+      .from("leads").update(patch).eq("id", id).select().single();
+    if (error) throw error;
+    return data as Lead;
+  } catch (e) {
+    if (!estPanneReseau(e)) throw e;
+    await enfiler({ type: "majLead", leadId: id, patch });
+    return null;
+  }
 }
 
 /* -------------------------------------------------------------- historique */
@@ -52,19 +88,25 @@ export async function majLead(id: string, patch: Partial<Lead>) {
  * requête est rejouée, la même action n'est pas écrite deux fois.
  */
 export async function noter(leadId: string, label: string, authorId: string) {
-  const { data, error } = await sb()
-    .from("activities")
-    .insert({
-      id: crypto.randomUUID(),
-      lead_id: leadId,
-      author_id: authorId,
-      author_nom: "",       // le serveur le remplace par le vrai prénom
-      label,
-    })
-    .select()
-    .single();
-  if (error) throw error;
-  return data as Activity;
+  try {
+    const { data, error } = await sb()
+      .from("activities")
+      .insert({
+        id: crypto.randomUUID(),
+        lead_id: leadId,
+        author_id: authorId,
+        author_nom: "",       // le serveur le remplace par le vrai prénom
+        label,
+      })
+      .select()
+      .single();
+    if (error) throw error;
+    return data as Activity;
+  } catch (e) {
+    if (!estPanneReseau(e)) throw e;
+    await enfiler({ type: "noter", leadId, label, authorId });
+    return null;
+  }
 }
 
 export async function historique(leadId: string): Promise<Activity[]> {
@@ -165,4 +207,53 @@ export async function importerLeads(lignes: Partial<Lead>[]) {
     else throw error;
   }
   return { ajoutes, doublons };
+}
+
+/* --------------------------------------------------------- rejeu hors ligne */
+
+/**
+ * Rejoue la file d'écritures accumulée sans réseau, dans l'ordre.
+ *
+ * Deux règles :
+ *
+ * - Une écriture rejouée n'est PAS remise en file en cas d'échec réseau ; on
+ *   s'arrête et on réessaiera au prochain retour de connexion. Sinon la file
+ *   se dupliquerait à chaque tentative.
+ * - Une écriture refusée par la base (RLS, contrainte) est jetée. La rejouer
+ *   éternellement bloquerait tout ce qui la suit. C'est le cas d'une fiche
+ *   reprise par un collègue pendant la coupure : sa décision fait foi.
+ *
+ * Les activités portent un identifiant fabriqué avant l'envoi : un rejeu ne
+ * peut pas écrire deux fois la même ligne d'historique. La base a un test
+ * dédié pour ça.
+ */
+export async function rejouer(): Promise<{ rejouees: number; abandonnees: number }> {
+  const { enAttente, oublier } = await import("./horsligne");
+  let rejouees = 0, abandonnees = 0;
+
+  for (const e of await enAttente()) {
+    try {
+      if (e.type === "majLead") {
+        const { error } = await sb().from("leads").update(e.patch).eq("id", e.leadId);
+        if (error) throw error;
+      } else {
+        const { error } = await sb().from("activities").insert({
+          id: e.id,
+          lead_id: e.leadId,
+          author_id: e.authorId,
+          author_nom: "",
+          label: e.label,
+        });
+        // 23505 = la ligne est déjà passée lors d'un rejeu précédent.
+        if (error && error.code !== "23505") throw error;
+      }
+      await oublier(e.id);
+      rejouees++;
+    } catch (err) {
+      if (estPanneReseau(err)) break;
+      await oublier(e.id);
+      abandonnees++;
+    }
+  }
+  return { rejouees, abandonnees };
 }

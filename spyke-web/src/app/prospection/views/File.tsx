@@ -6,6 +6,7 @@ import type { Ctx } from "../App";
 import type { Activity, Lead, Statut } from "@/lib/prospection/types";
 import { STATUS } from "@/lib/prospection/types";
 import { estMobile, fmtD, today } from "@/lib/prospection/format";
+import { ficheSuivanteLocale } from "@/lib/prospection/horsligne";
 import ChoixCreneau from "./ChoixCreneau";
 
 /** Les six boutons de résultat d'appel, dans l'ordre du prototype. */
@@ -33,19 +34,35 @@ export default function VueFile({ ctx }: { ctx: Ctx }) {
       if (enCours.current) return;
       enCours.current = true;
       try {
-        const l = await q.ficheSuivante(secteur, skip);
+        let l: Lead | null;
+        let hors = false;
+        try {
+          l = await q.ficheSuivante(secteur, skip);
+        } catch {
+          // Pas de réseau : la file est calculée ici, avec exactement l'ordre
+          // de lead_rank() en base. Le commercial continue d'appeler.
+          hors = true;
+          l = ficheSuivanteLocale(ctx.d.leads, secteur, skip, ctx.moi.id, today());
+        }
         setFiche(l);
         setRappel(l?.rappel ?? "");
         setContact(l?.contact ?? "");
         setNotes(l?.notes ?? "");
-        setHist(l ? await q.historique(l.id) : []);
+        if (!l) setHist([]);
+        else if (hors) {
+          setHist(
+            ctx.d.activities.filter((a) => a.lead_id === l!.id).slice(0, 20)
+          );
+        } else {
+          setHist(await q.historique(l.id));
+        }
       } catch {
         setFiche(null);
       } finally {
         enCours.current = false;
       }
     },
-    [secteur]
+    [secteur, ctx.d.leads, ctx.d.activities, ctx.moi.id]
   );
 
   useEffect(() => {
@@ -87,6 +104,14 @@ export default function VueFile({ ctx }: { ctx: Ctx }) {
     await enregistrerChamps();
 
     if (statut === "rdv") {
+      // Caler un rendez-vous sans réseau reviendrait à promettre un horaire
+      // qu'un collègue vient peut-être de prendre : seule la base peut garantir
+      // qu'un créneau réservé est bloqué pour tout le monde. On refuse et on le
+      // dit, plutôt que de faire déplacer quelqu'un pour rien.
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        ctx.toast("Pas de réseau : note « chaud » et cale le RDV en revenant");
+        return;
+      }
       ctx.ouvrirSheet(<ChoixCreneau ctx={ctx} lead={fiche} />);
       return;
     }

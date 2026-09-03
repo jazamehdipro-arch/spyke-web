@@ -6,6 +6,9 @@ import { createClient } from "@/lib/prospection/supabase/client";
 import * as q from "@/lib/prospection/queries";
 import type { Activity, Creneau, Deal, Lead, Profile } from "@/lib/prospection/types";
 import { today } from "@/lib/prospection/format";
+import {
+  sauverInstantane, lireInstantane, combienEnAttente, enAttente as fileEnAttente, appliquerFile,
+} from "@/lib/prospection/horsligne";
 import Sheet from "./ui/Sheet";
 import Toast from "./ui/Toast";
 import VueFile from "./views/File";
@@ -55,6 +58,18 @@ function ecouterReseau(maj: () => void) {
   };
 }
 
+/**
+ * Repose les écritures encore en file par-dessus les données affichées. Sans
+ * cela, hors ligne, une fiche traitée reviendrait telle qu'elle était avant :
+ * l'instantané ne connaît pas ce qui n'est pas encore parti.
+ */
+async function avecFileParDessus(d: Donnees): Promise<Donnees> {
+  const file = await fileEnAttente();
+  if (!file.length) return d;
+  const { leads, activities } = appliquerFile(d.leads, d.activities, file);
+  return { ...d, leads, activities };
+}
+
 export default function App({
   moi,
   initial,
@@ -69,6 +84,7 @@ export default function App({
   const [sheet, setSheet] = useState<React.ReactNode>(null);
   const reseau = useSyncExternalStore(ecouterReseau, () => navigator.onLine, () => true);
   const [baseJoignable, setBaseJoignable] = useState(true);
+  const [enAttente, setEnAttente] = useState(0);
   const enLigne = reseau && baseJoignable;
 
   const toast = useCallback((m: string) => {
@@ -85,12 +101,42 @@ export default function App({
         q.creneaux(),
         moi.role === "admin" ? q.equipe() : Promise.resolve([] as Profile[]),
       ]);
-      setD({ leads, activities, deals, creneaux, equipe });
+      const frais = { leads, activities, deals, creneaux, equipe };
+      // Ce qui vient d'arriver servira d'écran de secours à la prochaine
+      // coupure : mieux vaut des fiches d'il y a dix minutes que rien.
+      void sauverInstantane(frais);
+      setD(await avecFileParDessus(frais));
       setBaseJoignable(true);
     } catch {
       setBaseJoignable(false);
+      const secours = await lireInstantane();
+      if (secours) setD(await avecFileParDessus(secours));
     }
+    setEnAttente(await combienEnAttente());
   }, [moi.role]);
+
+  /* Au retour du réseau, on renvoie d'abord ce qui a été saisi sans lui, puis
+     on recharge — dans cet ordre, sinon le rechargement écraserait à l'écran
+     des modifications pas encore parties. */
+  useEffect(() => {
+    if (!reseau) return;
+    let vivant = true;
+    (async () => {
+      if ((await combienEnAttente()) === 0) return;
+      const { rejouees, abandonnees } = await q.rejouer();
+      if (!vivant) return;
+      if (rejouees) {
+        toast(
+          rejouees + (rejouees > 1 ? " actions envoyées" : " action envoyée") +
+          (abandonnees ? ` · ${abandonnees} refusée${abandonnees > 1 ? "s" : ""} par la base` : "")
+        );
+      }
+      await recharger();
+    })();
+    return () => { vivant = false; };
+    // toast est stable (useCallback sans dépendance), recharger ne change que
+    // si le rôle change.
+  }, [reseau, recharger, toast]);
 
   /* Le responsable voit les statuts avancer en direct, sans recharger. */
   useEffect(() => {
@@ -174,7 +220,13 @@ export default function App({
 
         <div className={"sync" + (enLigne ? "" : " off")}>
           <i />
-          <span>{enLigne ? "Synchronisé" : "Hors ligne · nouvelle tentative en cours"}</span>
+          <span>
+            {enAttente > 0
+              ? `${enAttente} action${enAttente > 1 ? "s" : ""} en attente d'envoi`
+              : enLigne
+                ? "Synchronisé"
+                : "Hors ligne · tout est gardé sur le téléphone"}
+          </span>
         </div>
 
         <div className="tabs" role="tablist">
