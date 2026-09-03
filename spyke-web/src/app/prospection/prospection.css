@@ -81,14 +81,9 @@
 /* ------------------------------------------------------------- bandeau haut */
 
 .spk .top{
-  background:var(--ink);color:var(--on-ink);
+  background:var(--ink);color:var(--on-ink);padding:16px 18px 0;
   position:sticky;top:0;z-index:40;
 }
-/* Le fond noir traverse l'écran, son contenu non : sur un large écran, la
-   marque se retrouvait à un bout et les onglets étalés sur deux mille pixels.
-   Il suit désormais la même colonne que les fiches. */
-.spk .top > *{max-width:740px;margin-left:auto;margin-right:auto}
-.spk .top{padding:16px 16px 0}
 .spk .brand{display:flex;align-items:center;gap:9px}
 .spk .brand b{
   font-family:var(--disp);font-size:19px;font-weight:700;letter-spacing:-.01em;
