@@ -243,36 +243,84 @@ export function estVisible(): boolean {
 }
 
 /**
- * Compose le numéro, par le serveur.
+ * Compose le numéro. Deux voies, essayées dans l'ordre sur un seul clic.
  *
- * Le composant embarqué accepte l'ordre et l'ignore : l'application de
- * l'opérateur n'autorise pas ce domaine à lui en donner. Constaté sur pièce —
- * le même numéro composé à la main dans son clavier sonne, envoyé par commande
- * il ne se passe rien. On demande donc l'appel à leur serveur, où aucune
- * autorisation de domaine n'entre en jeu.
+ * D'abord le composant embarqué, avec le numéro EN CHIFFRES SEULS. C'est le
+ * format que leur API impose ailleurs — « digits only » — et le composant
+ * transmet ce qu'on lui donne sans le corriger : envoyer « +33… » revenait
+ * peut-être à lui parler une langue qu'il ne comprend pas, ce qui expliquerait
+ * qu'il accepte l'ordre sans rien faire.
  *
- * Le clavier reste utile : c'est lui qui sonne et qui porte la voix.
+ * Si rien ne sonne, on demande l'appel à leur serveur avec la clé API. Les deux
+ * voies échouant pour des raisons différentes, les essayer toutes les deux est
+ * le seul moyen d'en avoir une qui marche sans un aller-retour de plus.
  */
-export async function appeler(numeroE164: string, jeton: string): Promise<{ ok: boolean; erreur?: string }> {
+export async function appeler(
+  numeroE164: string,
+  jeton: string
+): Promise<{ ok: boolean; erreur?: string }> {
+  const chiffres = numeroE164.replace(/\D/g, "");
+  probleme = "";
+
+  if (sdk && etat === "pret") {
+    try {
+      const rendu = sdk.dial(chiffres);
+      trace("composant : dial(", chiffres, ") →", rendu);
+      if (rendu !== false) {
+        appel = { numero: chiffres, depuis: Date.now(), confirme: false };
+        prevenir();
+        setTimeout(masquer, 0);
+        // Laissé quatre secondes pour sonner. Passé ce délai, on ne s'obstine
+        // pas : on passe à l'autre voie plutôt que d'attendre en vain.
+        const aSonne = await attendreSonnerie(4000);
+        if (aSonne) return { ok: true };
+        trace("composant : rien n'a sonné, on passe par le serveur");
+      }
+    } catch (e) {
+      trace("composant : dial a échoué", e);
+    }
+  }
+
+  return appelerParLeServeur(chiffres, jeton);
+}
+
+/** Vrai si la sonnerie est annoncée avant l'échéance. */
+function attendreSonnerie(ms: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (appel?.confirme) return resolve(true);
+    const fin = Date.now() + ms;
+    const t = window.setInterval(() => {
+      if (appel?.confirme) { window.clearInterval(t); resolve(true); }
+      else if (Date.now() > fin) { window.clearInterval(t); resolve(false); }
+    }, 150);
+  });
+}
+
+async function appelerParLeServeur(
+  chiffres: string,
+  jeton: string
+): Promise<{ ok: boolean; erreur?: string }> {
   try {
     const rep = await fetch("/api/prospection/appeler", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ jeton, numero: numeroE164 }),
+      body: JSON.stringify({ jeton, numero: chiffres }),
     });
     const r = (await rep.json()) as { ok: boolean; erreur?: string };
-    trace("demande d'appel au serveur", numeroE164, "→", r);
+    trace("serveur : demande d'appel →", r);
     if (!r.ok) {
+      appel = null;
       probleme = r.erreur ?? "L'appel n'est pas parti.";
+      afficher();
       prevenir();
       return r;
     }
-    appel = { numero: numeroE164, depuis: Date.now(), confirme: false };
-    probleme = "";
+    appel = { numero: chiffres, depuis: appel?.depuis ?? Date.now(), confirme: false };
     surveillerLeDepart();
     prevenir();
     return r;
   } catch {
+    appel = null;
     probleme = "Le serveur n'a pas répondu.";
     prevenir();
     return { ok: false, erreur: probleme };
