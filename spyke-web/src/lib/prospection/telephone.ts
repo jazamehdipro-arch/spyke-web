@@ -35,7 +35,7 @@ export type Etat = "absent" | "chargement" | "a-connecter" | "pret" | "indisponi
 
 /** L'appel en cours, pour l'afficher aux couleurs de Spyke plutôt qu'à celles
  *  de l'opérateur. */
-export type Appel = { numero: string; depuis: number } | null;
+export type Appel = { numero: string; depuis: number; confirme: boolean } | null;
 
 type SdkRingover = {
   generate: (options?: Record<string, unknown>) => void;
@@ -49,6 +49,8 @@ type SdkRingover = {
 let sdk: SdkRingover | null = null;
 let etat: Etat = "absent";
 let appel: Appel = null;
+let probleme = "";
+let veille: number | null = null;
 let chargement: Promise<void> | null = null;
 const abonnes = new Set<() => void>();
 
@@ -61,6 +63,26 @@ function poser(e: Etat) {
 }
 
 export function appelEnCours(): Appel { return appel; }
+export function problemeCourant(): string { return probleme; }
+
+/**
+ * Le composant dit « oui » à une demande d'appel sans garantir qu'il l'a
+ * passée. La preuve qu'un appel est réellement parti, c'est la sonnerie qu'il
+ * annonce ensuite. Faute de quoi, au bout de quelques secondes, on cesse de
+ * prétendre : le chronomètre s'efface et son clavier reparaît, pour que la
+ * personne puisse composer à la main plutôt que de fixer un compteur menteur.
+ */
+function surveillerLeDepart() {
+  if (veille) window.clearTimeout(veille);
+  veille = window.setTimeout(() => {
+    veille = null;
+    if (!appel || appel.confirme) return;
+    appel = null;
+    probleme = "L'appel n'est pas parti. Compose depuis le clavier ci-contre.";
+    afficher();
+    prevenir();
+  }, 6000);
+}
 
 export function etatCourant(): Etat {
   return etat;
@@ -96,11 +118,16 @@ export function charger(): Promise<void> {
           // tout le travail de discrétion serait annulé.
           masquer();
           const brut = d as { to_number?: string; data?: { to_number?: string } } | undefined;
-          const n = brut?.to_number ?? brut?.data?.to_number;
-          if (n) appel = { numero: n, depuis: appel?.depuis ?? Date.now() };
+          const n = brut?.to_number ?? brut?.data?.to_number ?? appel?.numero ?? "";
+          // La sonnerie est la preuve que l'appel est bien parti.
+          appel = { numero: n, depuis: appel?.depuis ?? Date.now(), confirme: true };
+          probleme = "";
           prevenir();
         });
-        sdk.on("hangupCall", () => { appel = null; masquer(); prevenir(); });
+        sdk.on("hangupCall", () => {
+          if (veille) { window.clearTimeout(veille); veille = null; }
+          appel = null; probleme = ""; masquer(); prevenir();
+        });
         sdk.generate({ type: "fixed", position: "bottom-right" });
         poser("a-connecter");
         // Masqué dès l'ouverture : sans ça le clavier de l'opérateur s'installe
@@ -144,8 +171,8 @@ export function afficher() {
     c.style.position = "";
     c.style.left = "";
     c.style.top = "";
-    c.style.opacity = "";
     c.style.pointerEvents = "";
+    c.style.opacity = "1";
   }
   lanceurs().forEach((e) => { e.style.display = ""; });
   cache = false;
@@ -153,14 +180,21 @@ export function afficher() {
 }
 
 /**
- * On sort le cadre de l'écran plutôt que de le retirer de l'affichage.
+ * On sort le cadre de l'écran, en le laissant intact par ailleurs.
  *
- * Un `display:none` suspend l'iframe : le navigateur cesse de la rendre, et la
- * communication audio ne peut plus s'établir. C'est ce qui faisait partir le
- * chronomètre sans qu'aucun téléphone ne sonne. Déplacé hors champ, le
- * composant continue de fonctionner — il est simplement invisible.
+ * Deux façons de cacher tuent l'appel, et j'ai fait les deux :
  *
- * L'iframe elle-même n'est jamais touchée, seulement son cadre.
+ * - `display:none` suspend l'iframe. Le navigateur cesse de la rendre et la
+ *   communication audio ne peut pas s'établir.
+ * - Le `hide()` du composant impose `max-height:0` à son cadre. L'iframe est
+ *   écrasée à zéro pixel de haut, ce qui revient au même.
+ *
+ * Dans les deux cas le chronomètre partait sans qu'aucun téléphone ne sonne.
+ * On ne l'appelle donc plus, et on repose explicitement la hauteur au cas où il
+ * l'aurait déjà rabotée.
+ *
+ * Hors champ mais à sa taille normale, le composant fonctionne : il est
+ * simplement invisible. L'iframe, elle, n'est jamais touchée.
  */
 export function masquer() {
   const c = conteneur();
@@ -168,8 +202,13 @@ export function masquer() {
     c.style.position = "fixed";
     c.style.left = "-10000px";
     c.style.top = "0";
-    c.style.opacity = "0";
     c.style.pointerEvents = "none";
+    // Repose ce que hide() aurait pu raboter. Sans hauteur, pas de son.
+    c.style.maxHeight = "620px";
+    c.style.height = "620px";
+    c.style.width = "380px";
+    c.style.opacity = "1";
+    c.style.display = "";
   }
   lanceurs().forEach((e) => { e.style.display = "none"; });
   cache = true;
@@ -189,7 +228,9 @@ export function appeler(numeroE164: string): boolean {
     // dial() rend faux quand son iframe n'est pas prête. L'ignorer affichait un
     // chronomètre alors qu'aucun appel n'était parti.
     if (sdk.dial(numeroE164) === false) return false;
-    appel = { numero: numeroE164, depuis: Date.now() };
+    appel = { numero: numeroE164, depuis: Date.now(), confirme: false };
+    probleme = "";
+    surveillerLeDepart();
     prevenir();
     // dial() rappelle show() lui aussi : on repasse derrière.
     setTimeout(masquer, 0);
@@ -214,7 +255,7 @@ export async function raccrocher(jeton: string): Promise<{ ok: boolean; erreur?:
       body: JSON.stringify({ jeton, numero: appel.numero }),
     });
     const r = (await rep.json()) as { ok: boolean; erreur?: string };
-    if (r.ok) { appel = null; prevenir(); }
+    if (r.ok) { appel = null; probleme = ""; prevenir(); }
     return r;
   } catch {
     return { ok: false, erreur: "Le serveur n'a pas répondu." };

@@ -3,7 +3,7 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import {
   charger, etatCourant, sAbonner, afficher, masquer, estVisible, appelEnCours,
-  raccrocher, type Etat, type Appel,
+  raccrocher, problemeCourant, type Etat, type Appel,
 } from "@/lib/prospection/telephone";
 import { jetonCourant } from "@/lib/prospection/auth";
 
@@ -43,6 +43,7 @@ export default function Telephone() {
 
   const etat = useSyncExternalStore(sAbonner, etatCourant, () => "absent" as Etat);
   const appel = useSyncExternalStore(sAbonner, appelEnCours, () => null as Appel);
+  const probleme = useSyncExternalStore(sAbonner, problemeCourant, () => "");
 
   const [coupe, setCoupe] = useState(false);
   // Si le raccrochage échoue — clé absente, opérateur qui refuse — on ne laisse
@@ -73,11 +74,21 @@ export default function Telephone() {
       <div className="encours">
         <i />
         <b>{duree(appel.depuis)}</b>
-        <span>Appel en cours</span>
+        <span>{appel.confirme ? "Appel en cours" : "Connexion…"}</span>
         <button disabled={coupe} onClick={couper}>
           {coupe ? "…" : "Raccrocher"}
         </button>
         {echec && <em>{echec}</em>}
+      </div>
+    );
+  }
+
+  if (probleme) {
+    return (
+      <div className="encours">
+        <i style={{ background: "var(--hot-lite)", animation: "none" }} />
+        <span>Échec</span>
+        <em style={{ flex: 1 }}>{probleme}</em>
       </div>
     );
   }
