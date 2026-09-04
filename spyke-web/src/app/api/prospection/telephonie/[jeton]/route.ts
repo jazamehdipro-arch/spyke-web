@@ -214,6 +214,7 @@ function duree(secondes: number): string {
 
 type Appel = {
   call_id?: string | number
+  channel_id?: string | number
   direction?: string
   to_number?: string
   duration_in_seconds?: number | string
@@ -301,7 +302,7 @@ export async function POST(
   }
   const evt = v.evenement
 
-  if (evt.resource !== 'call' || evt.event !== 'hangup') {
+  if (evt.resource !== 'call') {
     return NextResponse.json({ ok: true, ecrit: false, raison: 'événement ignoré' })
   }
 
@@ -312,6 +313,30 @@ export async function POST(
 
   const numero = String(a.to_number ?? '').replace(/\D/g, '')
   if (!numero) return NextResponse.json({ ok: true, ecrit: false, raison: 'numéro absent' })
+
+  // Sonnerie et décroché portent l'identifiant du canal : c'est le seul moment
+  // où on l'apprend, et c'est lui qu'il faut pour raccrocher. On le retient
+  // jusqu'au raccroché, indexé par le numéro appelé — le navigateur sait quel
+  // numéro il vient de composer, il n'a pas à connaître l'identité de
+  // l'appelant chez l'opérateur.
+  if (evt.event === 'ringing' || evt.event === 'answered') {
+    if (a.channel_id) {
+      await sb.from('telephonie_appels_actifs').upsert({
+        numero_norm: numero,
+        channel_id: String(a.channel_id),
+        call_id: a.call_id ? String(a.call_id) : null,
+        user_email: a.user?.email ?? null,
+        debut: new Date().toISOString(),
+      }, { onConflict: 'numero_norm' })
+    }
+    return NextResponse.json({ ok: true, ecrit: false, raison: 'appel en cours noté' })
+  }
+
+  if (evt.event !== 'hangup') {
+    return NextResponse.json({ ok: true, ecrit: false, raison: 'événement ignoré' })
+  }
+
+  await sb.from('telephonie_appels_actifs').delete().eq('numero_norm', numero)
 
   const { data: fiche } = await sb
     .from('leads').select('id').eq('tel_norm', numero).maybeSingle()

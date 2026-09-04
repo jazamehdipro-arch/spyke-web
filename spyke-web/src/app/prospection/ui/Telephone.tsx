@@ -3,8 +3,9 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import {
   charger, etatCourant, sAbonner, afficher, masquer, estVisible, appelEnCours,
-  type Etat, type Appel,
+  raccrocher, type Etat, type Appel,
 } from "@/lib/prospection/telephone";
+import { jetonCourant } from "@/lib/prospection/auth";
 
 /**
  * L'état du téléphone, aux couleurs de Spyke.
@@ -13,9 +14,9 @@ import {
  * Spyke, il clique sur un numéro, ça appelle. Il n'a pas à apprendre un second
  * outil ni à savoir qui fournit la ligne.
  *
- * Un bouton rouvre tout de même le clavier pendant un appel : le composant de
- * l'opérateur n'expose pas de fonction « raccrocher », et il faut donc pouvoir
- * atteindre son bouton rouge pour couper court.
+ * Le bouton « Raccrocher » coupe l'appel sans jamais montrer l'opérateur : le
+ * composant ne sait pas le faire, mais l'API serveur si — la demande part donc
+ * du serveur, seul endroit où la clé API a le droit d'exister.
  *
  * Sur téléphone, rien de tout ceci : le mobile appelle déjà avec le lien
  * « tel: », et embarquer une application entière consommerait la 4G d'un
@@ -43,10 +44,16 @@ export default function Telephone() {
   const etat = useSyncExternalStore(sAbonner, etatCourant, () => "absent" as Etat);
   const appel = useSyncExternalStore(sAbonner, appelEnCours, () => null as Appel);
 
+  const [coupe, setCoupe] = useState(false);
+  // Si le raccrochage échoue — clé absente, opérateur qui refuse — on ne laisse
+  // pas la personne sans issue : le clavier réapparaît, avec la raison en
+  // infobulle.
+  const [echec, setEchec] = useState("");
+
   // Le compteur ne tourne que pendant un appel : rien ne s'anime dans le vide.
   const [, tic] = useState(0);
   useEffect(() => {
-    if (!appel) return;
+    if (!appel) { setEchec(""); return; }
     const t = window.setInterval(() => tic((n) => n + 1), 1000);
     return () => window.clearInterval(t);
   }, [appel]);
@@ -57,14 +64,31 @@ export default function Telephone() {
         <i style={{ background: "var(--won-lite)" }} />
         <span>Appel en cours · {duree(appel.depuis)}</span>
         <button
-          onClick={() => (estVisible() ? masquer() : afficher())}
+          disabled={coupe}
+          onClick={async () => {
+            setCoupe(true);
+            const r = await raccrocher((await jetonCourant()) ?? "");
+            setCoupe(false);
+            if (!r.ok) setEchec(r.erreur ?? "Raccrochage impossible.");
+          }}
           style={{
-            marginLeft: 10, fontSize: 10, letterSpacing: ".08em",
-            color: "var(--yellow)", borderBottom: "1px solid var(--yellow)",
+            marginLeft: 12, fontSize: 10, fontWeight: 700, letterSpacing: ".1em",
+            textTransform: "uppercase", color: "#fff", background: "var(--hot-lite)",
+            padding: "3px 10px", borderRadius: 999,
           }}
         >
-          Clavier
+          {coupe ? "…" : "Raccrocher"}
         </button>
+        {echec && (
+          <button
+            onClick={() => (estVisible() ? masquer() : afficher())}
+            style={{ marginLeft: 10, fontSize: 10, color: "var(--yellow)",
+                     borderBottom: "1px solid var(--yellow)" }}
+            title={echec}
+          >
+            Clavier
+          </button>
+        )}
       </div>
     );
   }

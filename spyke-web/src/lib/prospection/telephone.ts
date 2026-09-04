@@ -18,9 +18,10 @@
  * vérifié dans sa source. Rien à corriger de ce côté ; ce qu'il fallait ouvrir,
  * c'est la politique du site, qui coupait le micro sur toutes les pages.
  *
- * Il n'expose aucune fonction pour raccrocher : ses six commandes sont dial,
- * sendSMS, openCallLog, changePage, reload et presenceSDK. D'où le bouton qui
- * rouvre son clavier — c'est le seul chemin vers son bouton rouge.
+ * Le composant ne sait pas raccrocher : ses six commandes sont dial, sendSMS,
+ * openCallLog, changePage, reload et presenceSDK. L'API serveur de l'opérateur,
+ * elle, le sait — le bouton « Raccrocher » de Spyke passe donc par le serveur,
+ * seul endroit où la clé API a le droit d'exister.
  *
  * Ce fichier ne suppose jamais que le composant est là. Sur un téléphone, ou si
  * Ringover est indisponible, l'écran retombe sur le lien « tel: » d'origine :
@@ -90,8 +91,13 @@ export function charger(): Promise<void> {
         sdk.on("login", () => { poser("pret"); masquer(); });
         sdk.on("logout", () => poser("a-connecter"));
         sdk.on("ringingCall", (d) => {
-          const n = (d as { to_number?: string } | undefined)?.to_number;
-          appel = { numero: n ?? "", depuis: Date.now() };
+          // Le composant appelle show() de lui-même à chaque sonnerie — lu dans
+          // sa source. Sans ce remasquage, il réapparaîtrait à chaque appel et
+          // tout le travail de discrétion serait annulé.
+          masquer();
+          const brut = d as { to_number?: string; data?: { to_number?: string } } | undefined;
+          const n = brut?.to_number ?? brut?.data?.to_number;
+          if (n) appel = { numero: n, depuis: appel?.depuis ?? Date.now() };
           prevenir();
         });
         sdk.on("hangupCall", () => { appel = null; masquer(); prevenir(); });
@@ -148,8 +154,32 @@ export function appeler(numeroE164: string): boolean {
     sdk.dial(numeroE164);
     appel = { numero: numeroE164, depuis: Date.now() };
     prevenir();
+    // dial() rappelle show() lui aussi : on repasse derrière.
+    setTimeout(masquer, 0);
     return true;
   } catch {
     return false;
+  }
+}
+
+/**
+ * Raccroche l'appel en cours.
+ *
+ * Le composant ne sait pas le faire ; l'API de l'opérateur, si. Elle exige la
+ * clé API, qui reste sur le serveur : la demande passe donc par Spyke.
+ */
+export async function raccrocher(jeton: string): Promise<{ ok: boolean; erreur?: string }> {
+  if (!appel) return { ok: false, erreur: "Aucun appel en cours." };
+  try {
+    const rep = await fetch("/api/prospection/raccrocher", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ jeton, numero: appel.numero }),
+    });
+    const r = (await rep.json()) as { ok: boolean; erreur?: string };
+    if (r.ok) { appel = null; prevenir(); }
+    return r;
+  } catch {
+    return { ok: false, erreur: "Le serveur n'a pas répondu." };
   }
 }
