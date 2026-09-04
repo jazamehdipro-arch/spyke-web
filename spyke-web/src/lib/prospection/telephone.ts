@@ -63,6 +63,8 @@ let etat: Etat = "absent";
 let appel: Appel = null;
 let probleme = "";
 let veille: number | null = null;
+/* L'origine réelle du cadre, apprise de ses propres messages. Voir composer(). */
+let origineCadre: string | null = null;
 let chargement: Promise<void> | null = null;
 const abonnes = new Set<() => void>();
 
@@ -132,6 +134,10 @@ export function charger(): Promise<void> {
         // ne relaie pas : c'est là qu'on verra un éventuel refus.
         window.addEventListener("message", (ev) => {
           if (typeof ev.origin === "string" && ev.origin.includes("ringover.com")) {
+            if (origineCadre !== ev.origin) {
+              origineCadre = ev.origin;
+              trace("origine réelle du cadre :", ev.origin);
+            }
             trace("message reçu de l'opérateur", ev.data);
           }
         });
@@ -266,6 +272,9 @@ export async function appeler(
     try {
       const rendu = sdk.dial(chiffres);
       trace("composant : dial(", chiffres, ") →", rendu);
+      // Puis le même ordre, à la vraie adresse du cadre. Si celui du composant
+      // a été délivré, le second est simplement redondant.
+      composer(chiffres);
       if (rendu !== false) {
         appel = { numero: chiffres, depuis: Date.now(), confirme: false };
         prevenir();
@@ -282,6 +291,35 @@ export async function appeler(
   }
 
   return appelerParLeServeur(chiffres, jeton);
+}
+
+/**
+ * Envoie l'ordre d'appeler au cadre, à sa vraie adresse.
+ *
+ * Le composant adresse ses ordres à « app.ringover.com », en dur. Or le cadre
+ * n'y reste pas : il part sur un autre sous-domaine — ce qui s'est vu quand
+ * autoriser app.ringover.com dans la politique de sécurité du site n'a pas
+ * suffi et qu'il a fallu ouvrir tout ringover.com. Le navigateur refuse alors
+ * de délivrer un message adressé à une origine qui n'est pas celle du
+ * destinataire : l'ordre part, personne ne le reçoit. Les événements en sens
+ * inverse passent, eux, puisque c'est le cadre qui choisit son adresse.
+ *
+ * On réémet donc l'ordre nous-mêmes, vers l'origine que le cadre a lui-même
+ * employée pour nous écrire. On ne l'invente pas : on ne répond qu'à qui a
+ * déjà parlé.
+ */
+function composer(chiffres: string): boolean {
+  const f = document.querySelector<HTMLIFrameElement>('iframe[id^="ringover-iframe-"]');
+  if (!f?.contentWindow) return false;
+  const cible = origineCadre ?? "https://app.ringover.com";
+  try {
+    f.contentWindow.postMessage({ action: "dial", number: chiffres, from_number: null }, cible);
+    trace("ordre d'appel réémis vers", cible);
+    return true;
+  } catch (e) {
+    trace("réémission impossible", e);
+    return false;
+  }
 }
 
 /** Vrai si la sonnerie est annoncée avant l'échéance. */
