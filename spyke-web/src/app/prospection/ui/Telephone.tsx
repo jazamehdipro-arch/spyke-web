@@ -52,6 +52,16 @@ export default function Telephone() {
 
   // Le compteur ne tourne que pendant un appel : rien ne s'anime dans le vide.
   const [, tic] = useState(0);
+  /* Le raccrochage passe par le serveur : la clé de l'opérateur n'a pas à
+     descendre dans le navigateur. En cas d'échec, la raison s'affiche en clair
+     — un bouton qui ne fait rien sans rien dire est pire que pas de bouton. */
+  const couper = async () => {
+    setCoupe(true);
+    const r = await raccrocher((await jetonCourant()) ?? "");
+    setCoupe(false);
+    setEchec(r.ok ? "" : r.erreur ?? "Raccrochage impossible.");
+  };
+
   useEffect(() => {
     if (!appel) { setEchec(""); return; }
     const t = window.setInterval(() => tic((n) => n + 1), 1000);
@@ -60,35 +70,14 @@ export default function Telephone() {
 
   if (appel) {
     return (
-      <div className="sync" style={{ paddingBottom: 12 }}>
-        <i style={{ background: "var(--won-lite)" }} />
-        <span>Appel en cours · {duree(appel.depuis)}</span>
-        <button
-          disabled={coupe}
-          onClick={async () => {
-            setCoupe(true);
-            const r = await raccrocher((await jetonCourant()) ?? "");
-            setCoupe(false);
-            if (!r.ok) setEchec(r.erreur ?? "Raccrochage impossible.");
-          }}
-          style={{
-            marginLeft: 12, fontSize: 10, fontWeight: 700, letterSpacing: ".1em",
-            textTransform: "uppercase", color: "#fff", background: "var(--hot-lite)",
-            padding: "3px 10px", borderRadius: 999,
-          }}
-        >
+      <div className="encours">
+        <i />
+        <b>{duree(appel.depuis)}</b>
+        <span>Appel en cours</span>
+        <button disabled={coupe} onClick={couper}>
           {coupe ? "…" : "Raccrocher"}
         </button>
-        {echec && (
-          <button
-            onClick={() => (estVisible() ? masquer() : afficher())}
-            style={{ marginLeft: 10, fontSize: 10, color: "var(--yellow)",
-                     borderBottom: "1px solid var(--yellow)" }}
-            title={echec}
-          >
-            Clavier
-          </button>
-        )}
+        {echec && <em>{echec}</em>}
       </div>
     );
   }

@@ -42,7 +42,7 @@ type SdkRingover = {
   destroy?: () => void;
   show?: () => void;
   hide?: () => void;
-  dial: (numero: string, depuis?: string) => void;
+  dial: (numero: string, depuis?: string) => boolean | void;
   on: (evenement: string, rappel: (donnees?: unknown) => void) => void;
 };
 
@@ -126,22 +126,57 @@ export function charger(): Promise<void> {
  * bouton pour les cas où il faut raccrocher soi-même — le composant n'expose
  * pas de fonction pour le faire à sa place.
  */
-function elementsRingover(): HTMLElement[] {
-  return Array.from(document.querySelectorAll<HTMLElement>('[id^="ringover-"]'));
+function conteneur(): HTMLElement | null {
+  return document.querySelector<HTMLElement>('[id^="ringover-iframe-container"]');
 }
 
+/** Le lanceur flottant que le composant pose aussi sur la page. */
+function lanceurs(): HTMLElement[] {
+  return Array.from(document.querySelectorAll<HTMLElement>('[id^="ringover-"]'))
+    .filter((e) => e.tagName !== "IFRAME" && !e.id.startsWith("ringover-iframe-container"));
+}
+
+let cache = false;
+
 export function afficher() {
-  elementsRingover().forEach((e) => { e.style.display = ""; });
+  const c = conteneur();
+  if (c) {
+    c.style.position = "";
+    c.style.left = "";
+    c.style.top = "";
+    c.style.opacity = "";
+    c.style.pointerEvents = "";
+  }
+  lanceurs().forEach((e) => { e.style.display = ""; });
+  cache = false;
   sdk?.show?.();
 }
 
+/**
+ * On sort le cadre de l'écran plutôt que de le retirer de l'affichage.
+ *
+ * Un `display:none` suspend l'iframe : le navigateur cesse de la rendre, et la
+ * communication audio ne peut plus s'établir. C'est ce qui faisait partir le
+ * chronomètre sans qu'aucun téléphone ne sonne. Déplacé hors champ, le
+ * composant continue de fonctionner — il est simplement invisible.
+ *
+ * L'iframe elle-même n'est jamais touchée, seulement son cadre.
+ */
 export function masquer() {
-  sdk?.hide?.();
-  elementsRingover().forEach((e) => { e.style.display = "none"; });
+  const c = conteneur();
+  if (c) {
+    c.style.position = "fixed";
+    c.style.left = "-10000px";
+    c.style.top = "0";
+    c.style.opacity = "0";
+    c.style.pointerEvents = "none";
+  }
+  lanceurs().forEach((e) => { e.style.display = "none"; });
+  cache = true;
 }
 
 export function estVisible(): boolean {
-  return elementsRingover().some((e) => e.style.display !== "none");
+  return !cache;
 }
 
 /**
@@ -151,7 +186,9 @@ export function estVisible(): boolean {
 export function appeler(numeroE164: string): boolean {
   if (!sdk || etat !== "pret") return false;
   try {
-    sdk.dial(numeroE164);
+    // dial() rend faux quand son iframe n'est pas prête. L'ignorer affichait un
+    // chronomètre alors qu'aucun appel n'était parti.
+    if (sdk.dial(numeroE164) === false) return false;
     appel = { numero: numeroE164, depuis: Date.now() };
     prevenir();
     // dial() rappelle show() lui aussi : on repasse derrière.

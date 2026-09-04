@@ -30,6 +30,14 @@ export default function VueFile({ ctx }: { ctx: Ctx }) {
   const [notes, setNotes] = useState("");
   const enCours = useRef(false);
 
+  /* Les fiches et l'historique servent au repli hors ligne, mais ils ne doivent
+     pas entrer dans les dépendances de « servir » : ils changent d'identité à
+     chaque rechargement, ce qui recrée la fonction, relance l'effet de
+     démarrage, et resert la file depuis le début. « Passer cette fiche »
+     redonnait ainsi la fiche qu'on venait d'écarter. */
+  const dernier = useRef(ctx.d);
+  dernier.current = ctx.d;
+
   const servir = useCallback(
     async (skip: string[]) => {
       if (enCours.current) return;
@@ -43,7 +51,7 @@ export default function VueFile({ ctx }: { ctx: Ctx }) {
           // Pas de réseau : la file est calculée ici, avec exactement l'ordre
           // de lead_rank() en base. Le commercial continue d'appeler.
           hors = true;
-          l = ficheSuivanteLocale(ctx.d.leads, secteur, skip, ctx.moi.id, today());
+          l = ficheSuivanteLocale(dernier.current.leads, secteur, skip, ctx.moi.id, today());
         }
         setFiche(l);
         setRappel(l?.rappel ?? "");
@@ -52,7 +60,7 @@ export default function VueFile({ ctx }: { ctx: Ctx }) {
         if (!l) setHist([]);
         else if (hors) {
           setHist(
-            ctx.d.activities.filter((a) => a.lead_id === l!.id).slice(0, 20)
+            dernier.current.activities.filter((a) => a.lead_id === l!.id).slice(0, 20)
           );
         } else {
           setHist(await q.historique(l.id));
@@ -63,7 +71,7 @@ export default function VueFile({ ctx }: { ctx: Ctx }) {
         enCours.current = false;
       }
     },
-    [secteur, ctx.d.leads, ctx.d.activities, ctx.moi.id]
+    [secteur, ctx.moi.id]
   );
 
   useEffect(() => {
