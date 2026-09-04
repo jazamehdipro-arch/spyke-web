@@ -145,14 +145,9 @@ export async function lireInstantane(): Promise<Instantane | null> {
  * voir la file se réordonner au retour de la 4G.
  */
 export function rang(statut: Statut, prio: Prio, rappel: string | null, aujourdhui: string): number {
-  if (statut === "rdv" || statut === "refus") return 99;
   if (statut === "rappeler") return rappel && rappel <= aujourdhui ? 0 : 98;
-  if (statut === "chaud") return 1;
-  if (statut === "no_show") return 2;
-  if (statut === "a_appeler" && prio === "A") return 3;
-  if (statut === "tiede") return 4;
-  if (statut === "injoignable") return 5;
-  return 6;
+  if (statut === "a_appeler") return prio === "A" ? 3 : 6;
+  return 99;
 }
 
 export function ficheSuivanteLocale(
@@ -160,14 +155,18 @@ export function ficheSuivanteLocale(
   secteur: string | null,
   sautees: string[],
   moiId: string,
-  aujourdhui: string
+  aujourdhui: string,
+  mode: "neufs" | "rappels" = "neufs"
 ): Lead | null {
+  const [min, max] = mode === "rappels" ? [0, 0] : [1, 89];
   const candidates = leads.filter(
-    (l) =>
-      rang(l.statut, l.prio, l.rappel, aujourdhui) < 90 &&
+    (l) => {
+      const r = rang(l.statut, l.prio, l.rappel, aujourdhui);
+      return r >= min && r <= max &&
       (secteur === null || l.secteur === secteur) &&
       !sautees.includes(l.id) &&
-      (l.owner_id === null || l.owner_id === moiId)
+      (l.owner_id === null || l.owner_id === moiId);
+    }
   );
   if (!candidates.length) return null;
 

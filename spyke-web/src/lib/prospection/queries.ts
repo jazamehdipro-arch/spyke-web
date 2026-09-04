@@ -46,10 +46,15 @@ export async function chargerLeads(): Promise<Lead[]> {
  * nul devient une ligne dont tous les champs sont nuls. Sans ce contrôle, l'écran
  * croit tenir une fiche et casse dès qu'il en lit un champ.
  */
-export async function ficheSuivante(secteur: string | null, sautees: string[]) {
+export async function ficheSuivante(
+  secteur: string | null,
+  sautees: string[],
+  mode: "neufs" | "rappels" = "neufs"
+) {
   const { data, error } = await sb().rpc("next_lead", {
     p_secteur: secteur,
     p_skip: sautees,
+    p_mode: mode,
   });
   if (error) throw error;
   const fiche = (Array.isArray(data) ? data[0] : data) as Lead | null;

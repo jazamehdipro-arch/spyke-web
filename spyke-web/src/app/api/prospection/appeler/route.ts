@@ -67,20 +67,63 @@ export async function POST(req: Request) {
    *
    * Deux essais, pas plus : au-delà, c'est un vrai problème qu'il faut voir.
    */
-  async function demander(device: string) {
+  const sb = createClient(PROSPECTION_URL, cleService, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  })
+
+  /**
+   * Le numéro d'où part l'appel.
+   *
+   * Leur spécification le dit facultatif — « sans lui, le numéro par défaut de
+   * l'utilisateur est utilisé ». Mais avec la supervision active, ce défaut
+   * n'est apparemment plus résolu, et leur service répond 502 sans rien
+   * expliquer. On le fournit donc explicitement.
+   *
+   * Il n'est pas écrit en dur : on le relit dans les appels déjà passés, tels
+   * que l'opérateur nous les a rapportés. Le jour où le numéro change, le code
+   * suit sans qu'on y touche.
+   */
+  const { data: passe } = await sb
+    .from('telephonie_journal')
+    .select('corps')
+    .order('recu_le', { ascending: false })
+    .limit(40)
+
+  let depuis: number | null = null
+  for (const l of (passe ?? []) as { corps: { data?: { direction?: string; from_number?: string } } }[]) {
+    const d = l.corps?.data
+    if (d?.direction === 'outbound' && d.from_number) {
+      const n = Number(String(d.from_number).replace(/\D/g, ''))
+      if (Number.isFinite(n) && n > 0) { depuis = n; break }
+    }
+  }
+
+  async function demander(device: string, avecDepuis: boolean) {
+    const corps: Record<string, unknown> = {
+      to_number: Number(norm), device, timeout: 45,
+    }
+    if (avecDepuis && depuis) corps.from_number = depuis
     const r = await fetch(`${RINGOVER}/callback`, {
       method: 'POST',
       headers: { Authorization: cleApi!, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ to_number: Number(norm), device, timeout: 45 }),
+      body: JSON.stringify(corps),
     }).catch(() => null)
     return r
   }
 
+  /* Trois tentatives au plus, de la plus souhaitable à la plus permissive :
+     le clavier de la page avec le numéro explicite, puis tous les appareils,
+     puis sans numéro d'origine — au cas où c'est lui que leur service refuse.
+     Un refus d'autorisation n'est jamais retenté : il se reproduirait. */
   let appareil = 'WEB'
-  let rep = await demander(appareil)
+  let rep = await demander(appareil, true)
   if (!rep || (!rep.ok && rep.status !== 401)) {
     appareil = 'ALL'
-    rep = await demander(appareil)
+    rep = await demander(appareil, true)
+  }
+  if (!rep || (!rep.ok && rep.status !== 401)) {
+    appareil = 'ALL (sans numéro d\'origine)'
+    rep = await demander('ALL', false)
   }
 
   if (!rep) return NextResponse.json({ ok: false, erreur: "L'opérateur n'a pas répondu." })
@@ -97,7 +140,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       ok: false,
       erreur:
-        `L'opérateur a refusé (${rep.status}) sur les deux appareils. ` +
+        `L'opérateur a refusé (${rep.status}) sur les trois tentatives. ` +
         `${texte.slice(0, 200)}`,
     })
   }
@@ -106,9 +149,6 @@ export async function POST(req: Request) {
   // sans attendre le message de sonnerie.
   const channel = idBrut(texte, 'channel_id')
   if (channel) {
-    const sb = createClient(PROSPECTION_URL, cleService, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    })
     await sb.from('telephonie_appels_actifs').upsert({
       numero_norm: norm,
       channel_id: channel,

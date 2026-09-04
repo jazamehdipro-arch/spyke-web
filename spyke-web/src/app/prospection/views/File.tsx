@@ -23,6 +23,11 @@ const RESULTATS: [Statut, string, string][] = [
 
 export default function VueFile({ ctx }: { ctx: Ctx }) {
   const [secteur, setSecteur] = useState<string | null>(null);
+  /* Deux files distinctes. « Neufs » est le travail du jour : des fiches jamais
+     appelées. « Rappels » regroupe les échéances atteintes. Une fiche déjà
+     qualifiée ne revient plus s'imposer entre deux appels — on la retrouve dans
+     la Liste quand on la cherche. */
+  const [mode, setMode] = useState<"neufs" | "rappels">("neufs");
   const [fiche, setFiche] = useState<Lead | null | undefined>(undefined);
   const [hist, setHist] = useState<Activity[]>([]);
   const [sautees, setSautees] = useState<string[]>([]);
@@ -47,12 +52,12 @@ export default function VueFile({ ctx }: { ctx: Ctx }) {
         let l: Lead | null;
         let hors = false;
         try {
-          l = await q.ficheSuivante(secteur, skip);
+          l = await q.ficheSuivante(secteur, skip, mode);
         } catch {
           // Pas de réseau : la file est calculée ici, avec exactement l'ordre
           // de lead_rank() en base. Le commercial continue d'appeler.
           hors = true;
-          l = ficheSuivanteLocale(dernier.current.leads, secteur, skip, ctx.moi.id, today());
+          l = ficheSuivanteLocale(dernier.current.leads, secteur, skip, ctx.moi.id, today(), mode);
         }
         setFiche(l);
         setRappel(l?.rappel ?? "");
@@ -72,7 +77,7 @@ export default function VueFile({ ctx }: { ctx: Ctx }) {
         enCours.current = false;
       }
     },
-    [secteur, ctx.moi.id]
+    [secteur, mode, ctx.moi.id]
   );
 
   useEffect(() => {
@@ -86,6 +91,11 @@ export default function VueFile({ ctx }: { ctx: Ctx }) {
   function choisirSecteur(s: string | null) {
     setSautees([]);
     setSecteur(s);
+  }
+
+  function choisirMode(m: "neufs" | "rappels") {
+    setSautees([]);
+    setMode(m);
   }
 
   /* Enregistre ce qui est tapé dans les champs avant de changer de fiche. */
@@ -188,9 +198,16 @@ export default function VueFile({ ctx }: { ctx: Ctx }) {
   );
 
   const secteurs = [...new Set(ctx.d.leads.map((l) => l.secteur))].sort();
+  const neufs = ctx.d.leads.filter((l) => l.statut === "a_appeler").length;
+  /* Le compteur d'un secteur suit la file affichée : sinon il annoncerait des
+     fiches que le bouton ne sert pas. */
   const enFile = (s: string | null) =>
     ctx.d.leads.filter(
-      (l) => (s === null || l.secteur === s) && l.statut !== "rdv" && l.statut !== "refus"
+      (l) =>
+        (s === null || l.secteur === s) &&
+        (mode === "rappels"
+          ? l.statut === "rappeler" && !!l.rappel && l.rappel <= today()
+          : l.statut === "a_appeler")
     ).length;
 
   return (
@@ -207,8 +224,8 @@ export default function VueFile({ ctx }: { ctx: Ctx }) {
                 {dus.length > 3 && ` et ${dus.length - 3} autre${dus.length > 4 ? "s" : ""}`}
               </small>
             </span>
-            <button onClick={() => choisirSecteur(null)}>
-              Voir
+            <button onClick={() => choisirMode("rappels")}>
+              Les traiter
             </button>
           </div>
         )}
@@ -221,6 +238,17 @@ export default function VueFile({ ctx }: { ctx: Ctx }) {
             <button onClick={() => ctx.allerA("agenda")}>Traiter</button>
           </div>
         )}
+      </div>
+
+      <div className="chips">
+        <button className="chip" aria-pressed={mode === "neufs"}
+          onClick={() => choisirMode("neufs")}>
+          À appeler<span className="c">{neufs}</span>
+        </button>
+        <button className="chip" aria-pressed={mode === "rappels"}
+          onClick={() => choisirMode("rappels")}>
+          Rappels<span className="c">{dus.length}</span>
+        </button>
       </div>
 
       <div className="chips">
@@ -253,10 +281,11 @@ export default function VueFile({ ctx }: { ctx: Ctx }) {
           </div>
         ) : (
           <div className="empty">
-            <b>File terminée</b>
+            <b>{mode === "rappels" ? "Aucun rappel dû" : "File terminée"}</b>
             <p>
-              Plus personne à appeler dans ce secteur. Change de secteur ou passe à la liste
-              pour revoir les fiches traitées.
+              {mode === "rappels"
+                ? "Rien à rappeler aujourd'hui dans ce secteur. Reviens demain ou repasse aux fiches à appeler."
+                : "Plus aucune fiche jamais appelée dans ce secteur. Change de secteur, ou passe à la Liste pour revoir celles que tu as déjà traitées."}
             </p>
           </div>
         )
