@@ -98,32 +98,52 @@ function verifierSignature(
   const attendue = b64url(createHmac('sha512', cle).update(`${h}.${p}`).digest())
   if (!memeChaine(attendue, sig)) return { ok: false, raison: 'signature invalide' }
 
-  let claims: { url?: string; payload?: Record<string, unknown> }
+  let claims: {
+    url?: string
+    payload?: Record<string, unknown>
+    resource?: unknown
+    event?: unknown
+  }
   try {
     claims = JSON.parse(decodeB64url(p)) as typeof claims
   } catch {
     return { ok: false, raison: 'charge de signature illisible' }
   }
 
-  // L'adresse signée doit être celle où la requête est réellement arrivée —
-  // domaine compris. Ne vérifier que le chemin laisserait passer une signature
-  // émise pour un autre site portant le même chemin.
-  try {
-    const u = new URL(String(claims.url ?? ''))
-    if (u.host.toLowerCase() !== hoteAttendu.toLowerCase()) {
-      return { ok: false, raison: 'domaine signé étranger' }
-    }
-    if (u.pathname !== `/api/prospection/telephonie/${jeton}`) {
-      return { ok: false, raison: 'adresse signée étrangère' }
-    }
-  } catch {
-    return { ok: false, raison: 'adresse signée illisible' }
-  }
+  // Deux formes de charge coexistent. Celle qui arrive aujourd'hui enveloppe le
+  // message : { url, payload }. Leur documentation en décrit une autre, à plat —
+  // resource, event, timestamp, data, attempt. On accepte les deux : n'en
+  // reconnaître qu'une ferait cesser l'écriture des appels du jour au lendemain,
+  // sans rien casser de visible.
+  const enveloppe = claims.payload && typeof claims.payload === 'object'
+  const evenement = enveloppe
+    ? (claims.payload as Record<string, unknown>)
+    : (claims as unknown as Record<string, unknown>)
 
-  if (!claims.payload || typeof claims.payload !== 'object') {
+  if (!enveloppe && !(claims.resource && claims.event)) {
     return { ok: false, raison: 'message absent de la signature' }
   }
-  return { ok: true, evenement: claims.payload }
+
+  // Quand l'adresse est signée, elle doit être celle où la requête est
+  // réellement arrivée — domaine compris. Ne vérifier que le chemin laisserait
+  // passer une signature émise pour un autre site portant le même chemin. La
+  // forme à plat ne porte pas d'adresse ; il reste alors la signature du corps
+  // et le jeton du chemin.
+  if (claims.url !== undefined) {
+    try {
+      const u = new URL(String(claims.url))
+      if (u.host.toLowerCase() !== hoteAttendu.toLowerCase()) {
+        return { ok: false, raison: 'domaine signé étranger' }
+      }
+      if (u.pathname !== `/api/prospection/telephonie/${jeton}`) {
+        return { ok: false, raison: 'adresse signée étrangère' }
+      }
+    } catch {
+      return { ok: false, raison: 'adresse signée illisible' }
+    }
+  }
+
+  return { ok: true, evenement }
 }
 
 /** Les en-têtes utiles : signatures, horodatage, et de quoi diagnostiquer. */

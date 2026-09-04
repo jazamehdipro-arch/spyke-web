@@ -25,16 +25,20 @@ function verifierSignature(entete, cle, jeton, hoteAttendu = 'www.spykeapp.fr') 
   let claims;
   try { claims = JSON.parse(decodeB64url(p)); }
   catch { return { ok:false, raison:'charge de signature illisible' }; }
-  try {
-    const u = new URL(String(claims.url ?? ''));
-    if (u.host.toLowerCase() !== hoteAttendu.toLowerCase())
-      return { ok:false, raison:'domaine signé étranger' };
-    if (u.pathname !== `/api/prospection/telephonie/${jeton}`)
-      return { ok:false, raison:'adresse signée étrangère' };
-  } catch { return { ok:false, raison:'adresse signée illisible' }; }
-  if (!claims.payload || typeof claims.payload !== 'object')
+  const enveloppe = claims.payload && typeof claims.payload === 'object';
+  const evenement = enveloppe ? claims.payload : claims;
+  if (!enveloppe && !(claims.resource && claims.event))
     return { ok:false, raison:'message absent de la signature' };
-  return { ok:true, evenement: claims.payload };
+  if (claims.url !== undefined) {
+    try {
+      const u = new URL(String(claims.url));
+      if (u.host.toLowerCase() !== hoteAttendu.toLowerCase())
+        return { ok:false, raison:'domaine signé étranger' };
+      if (u.pathname !== `/api/prospection/telephonie/${jeton}`)
+        return { ok:false, raison:'adresse signée étrangère' };
+    } catch { return { ok:false, raison:'adresse signée illisible' }; }
+  }
+  return { ok:true, evenement };
 }
 
 // --- fabrique un JWT comme Ringover ---
@@ -60,6 +64,9 @@ const cas = [
   ['deux parties seulement',         'aaa.bbb', CLE, false],
   ['sous-domaine voisin',            forger({ url:`https://evil.spykeapp.fr.attaquant.fr/api/prospection/telephonie/${JETON}`, payload:evt }), CLE, false],
   ['adresse sans domaine',           forger({ url:`/api/prospection/telephonie/${JETON}`, payload:evt }), CLE, false],
+  ['forme à plat documentée',        forger({ ...evt, timestamp:1, attempt:1 }), CLE, true],
+  ['forme à plat, mauvaise clé',     forger({ ...evt, timestamp:1 }, 'autre-cle'), CLE, false],
+  ['charge vide',                    forger({ timestamp:1 }), CLE, false],
   ['en-tête absent',                 undefined, CLE, false],
 ];
 
