@@ -6,7 +6,8 @@ import type { Ctx } from "../App";
 import type { Activity, Lead, Statut } from "@/lib/prospection/types";
 import { STATUS } from "@/lib/prospection/types";
 import { enE164, estMobile, fmtD, today } from "@/lib/prospection/format";
-import { appeler as appelerDepuisLeSite } from "@/lib/prospection/telephone";
+import { appeler as appelerDepuisLeSite, etatCourant } from "@/lib/prospection/telephone";
+import { jetonCourant } from "@/lib/prospection/auth";
 import { ficheSuivanteLocale } from "@/lib/prospection/horsligne";
 import ChoixCreneau from "./ChoixCreneau";
 
@@ -106,7 +107,14 @@ export default function VueFile({ ctx }: { ctx: Ctx }) {
   async function appeler(e?: React.MouseEvent) {
     if (!fiche) return;
     const e164 = enE164(fiche.tel);
-    if (e164 && appelerDepuisLeSite(e164)) e?.preventDefault();
+    // Quand le clavier de l'opérateur est ouvert et connecté, l'appel part du
+    // serveur et le lien « tel: » est neutralisé. Sinon on le laisse agir : sur
+    // un téléphone il ouvre le clavier, sur un ordinateur il passe la main au
+    // logiciel installé s'il y en a un.
+    if (e164 && etatCourant() === "pret") {
+      e?.preventDefault();
+      void appelerDepuisLeSite(e164, (await jetonCourant()) ?? "");
+    }
     try {
       await q.noter(fiche.id, "Appel passé", ctx.moi.id);
       setHist(await q.historique(fiche.id));

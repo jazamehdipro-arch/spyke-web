@@ -91,7 +91,7 @@ function surveillerLeDepart() {
     if (!appel || appel.confirme) return;
     trace("aucune sonnerie après 6 s — l'appel n'est pas parti");
     appel = null;
-    probleme = "L'appel n'est pas parti. Compose depuis le clavier ci-contre.";
+    probleme = "Rien n'a sonné. Vérifie que le clavier Ringover est ouvert et connecté.";
     afficher();
     prevenir();
   }, 6000);
@@ -243,26 +243,39 @@ export function estVisible(): boolean {
 }
 
 /**
- * Compose le numéro. Rend `false` si le composant n'est pas en état d'appeler —
- * l'écran retombe alors sur le lien « tel: », qui marche partout.
+ * Compose le numéro, par le serveur.
+ *
+ * Le composant embarqué accepte l'ordre et l'ignore : l'application de
+ * l'opérateur n'autorise pas ce domaine à lui en donner. Constaté sur pièce —
+ * le même numéro composé à la main dans son clavier sonne, envoyé par commande
+ * il ne se passe rien. On demande donc l'appel à leur serveur, où aucune
+ * autorisation de domaine n'entre en jeu.
+ *
+ * Le clavier reste utile : c'est lui qui sonne et qui porte la voix.
  */
-export function appeler(numeroE164: string): boolean {
-  if (!sdk || etat !== "pret") return false;
+export async function appeler(numeroE164: string, jeton: string): Promise<{ ok: boolean; erreur?: string }> {
   try {
-    // dial() rend faux quand son iframe n'est pas prête. L'ignorer affichait un
-    // chronomètre alors qu'aucun appel n'était parti.
-    const rendu = sdk.dial(numeroE164);
-    trace("demande d'appel", numeroE164, "→ le composant répond", rendu);
-    if (rendu === false) return false;
+    const rep = await fetch("/api/prospection/appeler", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ jeton, numero: numeroE164 }),
+    });
+    const r = (await rep.json()) as { ok: boolean; erreur?: string };
+    trace("demande d'appel au serveur", numeroE164, "→", r);
+    if (!r.ok) {
+      probleme = r.erreur ?? "L'appel n'est pas parti.";
+      prevenir();
+      return r;
+    }
     appel = { numero: numeroE164, depuis: Date.now(), confirme: false };
     probleme = "";
     surveillerLeDepart();
     prevenir();
-    // dial() rappelle show() lui aussi : on repasse derrière.
-    setTimeout(masquer, 0);
-    return true;
+    return r;
   } catch {
-    return false;
+    probleme = "Le serveur n'a pas répondu.";
+    prevenir();
+    return { ok: false, erreur: probleme };
   }
 }
 
