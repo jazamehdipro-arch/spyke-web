@@ -31,6 +31,18 @@
 
 const CDN = "https://webcdn.ringover.com/resources/SDK/1.1.3/ringover-sdk.js";
 
+/**
+ * Traces. Trois hypothèses fausses sur pourquoi un appel ne partait pas ont
+ * suffi : on écrit désormais ce qui se passe, plutôt que de le déduire.
+ *
+ * Tout est préfixé [spyke-tel] pour se retrouver d'un filtre dans la console,
+ * et les messages venus de l'opérateur sont journalisés bruts — c'est le seul
+ * moyen de voir s'il répond quelque chose quand on lui demande d'appeler.
+ */
+function trace(...args: unknown[]) {
+  if (typeof console !== "undefined") console.log("[spyke-tel]", ...args);
+}
+
 export type Etat = "absent" | "chargement" | "a-connecter" | "pret" | "indisponible";
 
 /** L'appel en cours, pour l'afficher aux couleurs de Spyke plutôt qu'à celles
@@ -77,6 +89,7 @@ function surveillerLeDepart() {
   veille = window.setTimeout(() => {
     veille = null;
     if (!appel || appel.confirme) return;
+    trace("aucune sonnerie après 6 s — l'appel n'est pas parti");
     appel = null;
     probleme = "L'appel n'est pas parti. Compose depuis le clavier ci-contre.";
     afficher();
@@ -109,13 +122,24 @@ export function charger(): Promise<void> {
       if (!Constructeur) { poser("indisponible"); resolve(); return; }
       try {
         sdk = new Constructeur();
-        sdk.on("dialerReady", () => { poser("pret"); masquer(); });
-        sdk.on("login", () => { poser("pret"); masquer(); });
-        sdk.on("logout", () => poser("a-connecter"));
+        sdk.on("dialerReady", (d) => { trace("clavier prêt", d); poser("pret"); masquer(); });
+        sdk.on("login", (d) => { trace("connecté", d); poser("pret"); masquer(); });
+        sdk.on("logout", (d) => { trace("déconnecté", d); poser("a-connecter"); });
+        for (const e of ["answeredCall", "changePage", "smsSent", "smsReceived"]) {
+          sdk.on(e, (d) => trace("événement", e, d));
+        }
+        // Tout ce que l'iframe envoie à la page, y compris ce que le composant
+        // ne relaie pas : c'est là qu'on verra un éventuel refus.
+        window.addEventListener("message", (ev) => {
+          if (typeof ev.origin === "string" && ev.origin.includes("ringover.com")) {
+            trace("message reçu de l'opérateur", ev.data);
+          }
+        });
         sdk.on("ringingCall", (d) => {
           // Le composant appelle show() de lui-même à chaque sonnerie — lu dans
           // sa source. Sans ce remasquage, il réapparaîtrait à chaque appel et
           // tout le travail de discrétion serait annulé.
+          trace("sonnerie", d);
           masquer();
           const brut = d as { to_number?: string; data?: { to_number?: string } } | undefined;
           const n = brut?.to_number ?? brut?.data?.to_number ?? appel?.numero ?? "";
@@ -227,7 +251,9 @@ export function appeler(numeroE164: string): boolean {
   try {
     // dial() rend faux quand son iframe n'est pas prête. L'ignorer affichait un
     // chronomètre alors qu'aucun appel n'était parti.
-    if (sdk.dial(numeroE164) === false) return false;
+    const rendu = sdk.dial(numeroE164);
+    trace("demande d'appel", numeroE164, "→ le composant répond", rendu);
+    if (rendu === false) return false;
     appel = { numero: numeroE164, depuis: Date.now(), confirme: false };
     probleme = "";
     surveillerLeDepart();
