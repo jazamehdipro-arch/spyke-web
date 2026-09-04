@@ -163,6 +163,10 @@ export function ficheSuivanteLocale(
     (l) => {
       const r = rang(l.statut, l.prio, l.rappel, aujourdhui);
       return r >= min && r <= max &&
+      // Même critère qu'en base : un numéro déjà composé sort de « À appeler »,
+      // même si aucun résultat n'a été saisi. Les rappels, eux, sont faits pour
+      // être rappelés.
+      (mode === "rappels" || l.first_call === null) &&
       (secteur === null || l.secteur === secteur) &&
       !sautees.includes(l.id) &&
       (l.owner_id === null || l.owner_id === moiId);
@@ -210,15 +214,30 @@ export function appliquerFile(
     if (e.type === "majLead") {
       const l = parId.get(e.leadId);
       if (l) parId.set(e.leadId, { ...l, ...e.patch });
-    } else if (!activities.some((a) => a.id === e.id)) {
-      ajouts.push({
-        id: e.id,
-        lead_id: e.leadId,
-        author_id: e.authorId,
-        author_nom: "",
-        label: e.label,
-        date: new Date(e.at).toLocaleDateString("sv-SE"),
-      });
+    } else {
+      const jour = new Date(e.at).toLocaleDateString("sv-SE");
+      // Ce que fait stamp_activity() en base, rejoué ici : une activité
+      // « Appel… » date le premier appel. Sans ça, hors ligne, la fiche qu'on
+      // vient d'appeler reviendrait dans « À appeler » au tour suivant.
+      const l = parId.get(e.leadId);
+      if (l) {
+        parId.set(e.leadId, {
+          ...l,
+          first_call: e.label.startsWith("Appel")
+            ? l.first_call && l.first_call < jour ? l.first_call : jour
+            : l.first_call,
+        });
+      }
+      if (!activities.some((a) => a.id === e.id)) {
+        ajouts.push({
+          id: e.id,
+          lead_id: e.leadId,
+          author_id: e.authorId,
+          author_nom: "",
+          label: e.label,
+          date: jour,
+        });
+      }
     }
   }
 

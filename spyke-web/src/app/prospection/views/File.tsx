@@ -198,7 +198,12 @@ export default function VueFile({ ctx }: { ctx: Ctx }) {
   );
 
   const secteurs = [...new Set(ctx.d.leads.map((l) => l.secteur))].sort();
-  const neufs = ctx.d.leads.filter((l) => l.statut === "a_appeler").length;
+  /* « Jamais composée », pas « à appeler » : le statut ne bouge que si le
+     commercial clique un des six boutons de résultat, alors qu'il a bel et bien
+     appelé. first_call est posé dès le clic sur le numéro. */
+  const neufs = ctx.d.leads.filter(
+    (l) => l.statut === "a_appeler" && l.first_call === null
+  ).length;
   /* Le compteur d'un secteur suit la file affichée : sinon il annoncerait des
      fiches que le bouton ne sert pas. */
   const enFile = (s: string | null) =>
@@ -207,7 +212,7 @@ export default function VueFile({ ctx }: { ctx: Ctx }) {
         (s === null || l.secteur === s) &&
         (mode === "rappels"
           ? l.statut === "rappeler" && !!l.rappel && l.rappel <= today()
-          : l.statut === "a_appeler")
+          : l.statut === "a_appeler" && l.first_call === null)
     ).length;
 
   return (
