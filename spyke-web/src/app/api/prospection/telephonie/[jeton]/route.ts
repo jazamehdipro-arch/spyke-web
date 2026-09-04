@@ -146,6 +146,53 @@ function verifierSignature(
   return { ok: true, evenement }
 }
 
+/**
+ * Vérifie la signature V3.
+ *
+ * Leur documentation annonce qu'elle deviendra le mode par défaut. Le jour du
+ * basculement, un code qui ne connaîtrait que le JWT cesserait d'écrire les
+ * appels sans rien casser de visible — l'historique se viderait en silence.
+ * Les deux sont donc reconnues, V3 d'abord quand son en-tête est là.
+ *
+ * Le message signé est la concaténation, sans séparateur, de la méthode HTTP,
+ * de l'adresse du webhook, du corps brut et de l'horodatage.
+ *
+ * L'horodatage est aussi contrôlé : sans lui, une requête authentique captée
+ * une fois pourrait être renvoyée indéfiniment.
+ */
+const FRAICHEUR_MAX = 5 * 60   // secondes
+
+function verifierV3(
+  corpsBrut: string,
+  adresse: string,
+  horodatage: string,
+  signature: string,
+  cle: string
+): Verdict {
+  const t = Number(horodatage)
+  if (!Number.isFinite(t)) return { ok: false, raison: 'horodatage illisible' }
+  if (Math.abs(Date.now() / 1000 - t) > FRAICHEUR_MAX) {
+    return { ok: false, raison: 'message trop ancien' }
+  }
+
+  const aSigner = `POST${adresse}${corpsBrut}${horodatage}`
+  const attendue = createHmac('sha256', cle).update(aSigner).digest('base64')
+  if (!memeChaine(attendue, signature.trim())) {
+    return { ok: false, raison: 'signature V3 invalide' }
+  }
+
+  let evenement: Record<string, unknown>
+  try {
+    evenement = JSON.parse(corpsBrut) as Record<string, unknown>
+  } catch {
+    return { ok: false, raison: 'corps illisible' }
+  }
+  if (!evenement.resource || !evenement.event) {
+    return { ok: false, raison: 'message incomplet' }
+  }
+  return { ok: true, evenement }
+}
+
 /** Les en-têtes utiles : signatures, horodatage, et de quoi diagnostiquer. */
 function entetesRetenus(h: Headers): Record<string, string> {
   const garder = ['content-type', 'user-agent', 'x-forwarded-for']
@@ -238,9 +285,16 @@ export async function POST(
   }
 
   const hote = req.headers.get('host') ?? ''
-  const v = verifierSignature(
-    entetes['x-ringover-webhook-signature'], cleSignature, jeton, hote
-  )
+  const sigV3 = entetes['x-ringover-webhook-signature-v3']
+  const v = sigV3
+    ? verifierV3(
+        brut,
+        `https://${hote}/api/prospection/telephonie/${jeton}`,
+        entetes['x-ringover-request-signature-v3-timestamp'] ?? '',
+        sigV3,
+        cleSignature
+      )
+    : verifierSignature(entetes['x-ringover-webhook-signature'], cleSignature, jeton, hote)
   if (!v.ok) {
     await journaliser(`signature refusée : ${v.raison}`)
     return NextResponse.json({ ok: true, ecrit: false })

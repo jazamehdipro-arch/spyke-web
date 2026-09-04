@@ -81,5 +81,56 @@ for (const [nom, entete, cle, attendu] of cas) {
 const r = verifierSignature(forger({ url:bonneUrl, payload:evt }), CLE, JETON);
 const memeEvt = r.ok && JSON.stringify(r.evenement) === JSON.stringify(evt);
 console.log(`${memeEvt ? 'ok  ' : 'ÉCHEC'}  ${'le message signé est restitué'.padEnd(34)}`);
-console.log(`\n${ok + (memeEvt?1:0)} / ${cas.length + 1} vérifications passées`);
-process.exit(ok === cas.length && memeEvt ? 0 : 1);
+console.log(`\n${ok + (memeEvt?1:0)} / ${cas.length + 1} vérifications V1 passées`);
+const v1Ok = ok === cas.length && memeEvt;
+
+/* ------------------------------------------------------------------ V3 ---
+   Copie exacte de verifierV3(). Le message signé est la concaténation, sans
+   séparateur, de la méthode, de l'adresse, du corps brut et de l'horodatage —
+   d'après l'exemple de leur documentation. */
+const FRAICHEUR_MAX = 5 * 60;
+
+function verifierV3(corpsBrut, adresse, horodatage, signature, cle) {
+  const t = Number(horodatage);
+  if (!Number.isFinite(t)) return { ok:false, raison:'horodatage illisible' };
+  if (Math.abs(Date.now() / 1000 - t) > FRAICHEUR_MAX) return { ok:false, raison:'message trop ancien' };
+  const aSigner = `POST${adresse}${corpsBrut}${horodatage}`;
+  const attendue = createHmac('sha256', cle).update(aSigner).digest('base64');
+  if (!memeChaine(attendue, signature.trim())) return { ok:false, raison:'signature V3 invalide' };
+  let evenement;
+  try { evenement = JSON.parse(corpsBrut); } catch { return { ok:false, raison:'corps illisible' }; }
+  if (!evenement.resource || !evenement.event) return { ok:false, raison:'message incomplet' };
+  return { ok:true, evenement };
+}
+
+console.log('\n--- signature V3 ---');
+const URL_HOOK = `https://www.spykeapp.fr/api/prospection/telephonie/${JETON}`;
+const CORPS = JSON.stringify({ event:'hangup', resource:'call', data:{ call_id:'9', to_number:'33612345678', duration_in_seconds:12, direction:'outbound' } });
+const TS = String(Math.floor(Date.now() / 1000));
+const signer = (corps, adresse, ts, cle = CLE) =>
+  createHmac('sha256', cle).update(`POST${adresse}${corps}${ts}`).digest('base64');
+
+/* D'abord : l'exemple de leur documentation, reproduit tel quel. Il ne vérifie
+   pas une signature mais la construction du message — la seule chose qu'on
+   pouvait se tromper. */
+const exempleAttendu = 'POSThttps://api.example.com/webhooks/call{"event":"ringing","resource":"call","timestamp":1554823493.762305,"data":{...}}1554823493';
+const exempleObtenu = `POST${'https://api.example.com/webhooks/call'}${'{"event":"ringing","resource":"call","timestamp":1554823493.762305,"data":{...}}'}${'1554823493'}`;
+console.log((exempleObtenu === exempleAttendu ? 'ok  ' : 'ÉCHEC') + '  message construit comme dans leur exemple');
+
+const casV3 = [
+  ['message authentique',        CORPS, URL_HOOK, TS, signer(CORPS, URL_HOOK, TS), CLE, true],
+  ['mauvaise clé',               CORPS, URL_HOOK, TS, signer(CORPS, URL_HOOK, TS, 'autre'), CLE, false],
+  ['corps modifié après coup',   CORPS.replace('12', '999'), URL_HOOK, TS, signer(CORPS, URL_HOOK, TS), CLE, false],
+  ['adresse différente',         CORPS, 'https://ailleurs.fr/x', TS, signer(CORPS, URL_HOOK, TS), CLE, false],
+  ['rejeu d\'un vieux message',  CORPS, URL_HOOK, String(Number(TS) - 3600), signer(CORPS, URL_HOOK, String(Number(TS) - 3600)), CLE, false],
+  ['horodatage absurde',         CORPS, URL_HOOK, 'hier', 'x', CLE, false],
+];
+let okV3 = exempleObtenu === exempleAttendu ? 1 : 0;
+for (const [nom, corps, adresse, ts, sig, cle, attendu] of casV3) {
+  const r = verifierV3(corps, adresse, ts, sig, cle);
+  const bon = r.ok === attendu;
+  if (bon) okV3++;
+  console.log(`${bon ? 'ok  ' : 'ÉCHEC'}  ${nom.padEnd(34)} ${r.ok ? 'acceptée' : 'refusée : ' + r.raison}`);
+}
+console.log(`\n${okV3} / ${casV3.length + 1} vérifications V3 passées`);
+process.exit(v1Ok && okV3 === casV3.length + 1 ? 0 : 1);
