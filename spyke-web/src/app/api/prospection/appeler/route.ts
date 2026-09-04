@@ -58,15 +58,30 @@ export async function POST(req: Request) {
   const norm = String(numero ?? '').replace(/\D/g, '')
   if (!norm) return NextResponse.json({ ok: false, erreur: 'Numéro manquant.' })
 
-  const rep = await fetch(`${RINGOVER}/callback`, {
-    method: 'POST',
-    headers: { Authorization: cleApi, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      to_number: Number(norm),
-      device: 'WEB',        // le clavier ouvert dans la page, pas un téléphone
-      timeout: 45,
-    }),
-  }).catch(() => null)
+  /**
+   * On demande d'abord le clavier de la page — c'est ce que veut le commercial :
+   * appeler depuis l'ordinateur, casque aux oreilles. Mais il n'est pas toujours
+   * enregistré comme appareil chez l'opérateur, et sa téléphonie répond alors
+   * 502 sans plus d'explication. On retente donc avec « tous les appareils »,
+   * qui fait sonner ce qui est disponible, clavier compris.
+   *
+   * Deux essais, pas plus : au-delà, c'est un vrai problème qu'il faut voir.
+   */
+  async function demander(device: string) {
+    const r = await fetch(`${RINGOVER}/callback`, {
+      method: 'POST',
+      headers: { Authorization: cleApi!, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ to_number: Number(norm), device, timeout: 45 }),
+    }).catch(() => null)
+    return r
+  }
+
+  let appareil = 'WEB'
+  let rep = await demander(appareil)
+  if (!rep || (!rep.ok && rep.status !== 401)) {
+    appareil = 'ALL'
+    rep = await demander(appareil)
+  }
 
   if (!rep) return NextResponse.json({ ok: false, erreur: "L'opérateur n'a pas répondu." })
 
@@ -81,7 +96,9 @@ export async function POST(req: Request) {
   if (!rep.ok) {
     return NextResponse.json({
       ok: false,
-      erreur: `L'opérateur a refusé (${rep.status}). ${texte.slice(0, 200)}`,
+      erreur:
+        `L'opérateur a refusé (${rep.status}) sur les deux appareils. ` +
+        `${texte.slice(0, 200)}`,
     })
   }
 
@@ -100,5 +117,5 @@ export async function POST(req: Request) {
     }, { onConflict: 'numero_norm' })
   }
 
-  return NextResponse.json({ ok: true })
+  return NextResponse.json({ ok: true, appareil })
 }
