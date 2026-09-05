@@ -198,11 +198,14 @@ let cache = false;
 export function afficher() {
   const c = conteneur();
   if (c) {
-    c.style.position = "";
+    c.style.position = "fixed";
     c.style.left = "";
     c.style.top = "";
+    c.style.right = "64px";
+    c.style.bottom = "0";
     c.style.pointerEvents = "";
     c.style.opacity = "1";
+    c.style.maxHeight = "620px";
   }
   lanceurs().forEach((e) => { e.style.display = ""; });
   cache = false;
@@ -210,34 +213,41 @@ export function afficher() {
 }
 
 /**
- * On sort le cadre de l'écran, en le laissant intact par ailleurs.
+ * On rend le cadre transparent, sans le déplacer ni le redimensionner.
  *
- * Deux façons de cacher tuent l'appel, et j'ai fait les deux :
+ * Quatre façons de cacher tuent l'appel, et je les ai toutes essayées :
  *
- * - `display:none` suspend l'iframe. Le navigateur cesse de la rendre et la
- *   communication audio ne peut pas s'établir.
- * - Le `hide()` du composant impose `max-height:0` à son cadre. L'iframe est
- *   écrasée à zéro pixel de haut, ce qui revient au même.
+ * - `display:none` suspend l'iframe : le navigateur cesse de la rendre.
+ * - Le `hide()` du composant impose `max-height:0` : écrasée à zéro pixel.
+ * - `left:-10000px` la sort du champ de vision du navigateur, qui la traite
+ *   alors comme invisible : Chrome ralentit ses minuteries et lui refuse le
+ *   micro. C'est la dernière en date, et c'est celle qui expliquait que le
+ *   clavier accepte l'ordre — dial() renvoie true, l'ordre est délivré à la
+ *   bonne origine — sans jamais composer.
  *
- * Dans les deux cas le chronomètre partait sans qu'aucun téléphone ne sonne.
- * On ne l'appelle donc plus, et on repose explicitement la hauteur au cas où il
- * l'aurait déjà rabotée.
+ * Le seul masquage qui laisse une iframe pleinement vivante est l'opacité :
+ * elle reste à sa place, à sa taille, dans l'écran, donc le navigateur la rend
+ * et la traite comme visible. Elle est simplement transparente, et ne prend
+ * aucun clic.
  *
- * Hors champ mais à sa taille normale, le composant fonctionne : il est
- * simplement invisible. L'iframe, elle, n'est jamais touchée.
+ * Rappel de ce qu'on sait : quand le clavier était affiché, cliquer sur le
+ * numéro appelait. Tout ce qui a cassé depuis vient de la façon de le cacher.
  */
 export function masquer() {
   const c = conteneur();
   if (c) {
-    c.style.position = "fixed";
-    c.style.left = "-10000px";
-    c.style.top = "0";
+    c.style.opacity = "0";
     c.style.pointerEvents = "none";
-    // Repose ce que hide() aurait pu raboter. Sans hauteur, pas de son.
+    // Repose la place que le composant lui donne, au cas où un masquage
+    // précédent l'aurait déplacée ou rabotée. Sans surface, pas de son.
+    c.style.position = "fixed";
+    c.style.left = "";
+    c.style.top = "";
+    c.style.right = "64px";
+    c.style.bottom = "0";
     c.style.maxHeight = "620px";
     c.style.height = "620px";
     c.style.width = "380px";
-    c.style.opacity = "1";
     c.style.display = "";
   }
   lanceurs().forEach((e) => { e.style.display = "none"; });
