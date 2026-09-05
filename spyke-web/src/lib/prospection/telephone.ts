@@ -268,6 +268,15 @@ export async function appeler(
   const chiffres = numeroE164.replace(/\D/g, "");
   probleme = "";
 
+  // Sans micro, le clavier de l'opérateur accepte l'ordre et ne compose rien.
+  if (!(await autoriserMicro())) {
+    probleme =
+      "Le micro est bloqué pour ce site. Clique sur le cadenas à gauche de l'adresse, autorise le micro, puis rappelle.";
+    appel = null;
+    prevenir();
+    return { ok: false, erreur: probleme };
+  }
+
   if (sdk && etat === "pret") {
     try {
       const rendu = sdk.dial(chiffres);
@@ -318,6 +327,39 @@ function composer(chiffres: string): boolean {
     return true;
   } catch (e) {
     trace("réémission impossible", e);
+    return false;
+  }
+}
+
+/**
+ * Demande le micro depuis Spyke, avant le premier appel.
+ *
+ * Le clavier de l'opérateur est un cadre d'un autre domaine, posé hors champ.
+ * Pour téléphoner il lui faut le micro, et un cadre étranger ne l'obtient que
+ * si la page qui l'héberge — spykeapp.fr — a elle-même l'autorisation. Or
+ * Chrome n'affiche pas volontiers sa demande pour un cadre invisible : elle
+ * part, personne ne la voit, elle est refusée en silence. Le clavier accepte
+ * alors l'ordre d'appel, dit oui, et ne compose rien. C'est exactement ce
+ * qu'on observait.
+ *
+ * On la demande donc nous-mêmes, depuis la page visible et au moment du clic.
+ * Une fois accordée à spykeapp.fr, le cadre en hérite sans redemander. Le flux
+ * est refermé aussitôt : Spyke n'écoute rien, il ouvre juste la porte.
+ */
+let micro: "inconnu" | "accorde" | "refuse" = "inconnu";
+
+export async function autoriserMicro(): Promise<boolean> {
+  if (micro === "accorde") return true;
+  if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) return true;
+  try {
+    const flux = await navigator.mediaDevices.getUserMedia({ audio: true });
+    flux.getTracks().forEach((piste) => piste.stop());
+    micro = "accorde";
+    trace("micro autorisé");
+    return true;
+  } catch (e) {
+    micro = "refuse";
+    trace("micro refusé", e);
     return false;
   }
 }

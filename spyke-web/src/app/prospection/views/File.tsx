@@ -6,7 +6,7 @@ import type { Ctx } from "../App";
 import type { Activity, Lead, Statut } from "@/lib/prospection/types";
 import { STATUS } from "@/lib/prospection/types";
 import { enE164, estMobile, fmtD, today } from "@/lib/prospection/format";
-import { appeler as appelerDepuisLeSite, etatCourant } from "@/lib/prospection/telephone";
+import { appeler as appelerDepuisLeSite, autoriserMicro, etatCourant } from "@/lib/prospection/telephone";
 import { jetonCourant } from "@/lib/prospection/auth";
 import { ficheSuivanteLocale } from "@/lib/prospection/horsligne";
 import ChoixCreneau from "./ChoixCreneau";
@@ -123,7 +123,12 @@ export default function VueFile({ ctx }: { ctx: Ctx }) {
     // logiciel installé s'il y en a un.
     if (e164 && etatCourant() === "pret") {
       e?.preventDefault();
-      void appelerDepuisLeSite(e164, (await jetonCourant()) ?? "");
+      // Le micro se demande pendant le clic : c'est le seul moment où Chrome
+      // accepte d'afficher sa question. Le jeton, lui, peut attendre.
+      const micro = autoriserMicro();
+      const jeton = (await jetonCourant()) ?? "";
+      await micro;
+      void appelerDepuisLeSite(e164, jeton);
     }
     try {
       await q.noter(fiche.id, "Appel passé", ctx.moi.id);
