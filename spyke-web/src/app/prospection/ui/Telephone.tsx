@@ -2,21 +2,21 @@
 
 import { useEffect, useState, useSyncExternalStore } from "react";
 import {
-  charger, etatCourant, sAbonner, afficher, masquer, estVisible, appelEnCours,
-  raccrocher, problemeCourant, type Etat, type Appel,
+  charger, etatCourant, sAbonner, appelEnCours, problemeCourant,
+  type Etat, type Appel,
 } from "@/lib/prospection/telephone";
-import { jetonCourant } from "@/lib/prospection/auth";
 
 /**
  * L'état du téléphone, aux couleurs de Spyke.
  *
- * L'interface de l'opérateur reste masquée : le commercial travaille dans
- * Spyke, il clique sur un numéro, ça appelle. Il n'a pas à apprendre un second
- * outil ni à savoir qui fournit la ligne.
+ * Le clavier de l'opérateur reste affiché dans un coin de l'écran. Le cacher a
+ * été essayé de quatre façons, et aucune ne laisse l'appel partir : il accepte
+ * l'ordre, dit oui, et ne compose rien. Plutôt qu'un cinquième essai, on garde
+ * ce qui marche.
  *
- * Le bouton « Raccrocher » coupe l'appel sans jamais montrer l'opérateur : le
- * composant ne sait pas le faire, mais l'API serveur si — la demande part donc
- * du serveur, seul endroit où la clé API a le droit d'exister.
+ * Il n'y a donc plus de bouton « Raccrocher » ici : l'appel se voit et se coupe
+ * là où il se passe, dans le clavier. Un bouton en double, dans un autre écran,
+ * ne ferait qu'ajouter une façon de se tromper.
  *
  * Sur téléphone, rien de tout ceci : le mobile appelle déjà avec le lien
  * « tel: », et embarquer une application entière consommerait la 4G d'un
@@ -45,26 +45,10 @@ export default function Telephone() {
   const appel = useSyncExternalStore(sAbonner, appelEnCours, () => null as Appel);
   const probleme = useSyncExternalStore(sAbonner, problemeCourant, () => "");
 
-  const [coupe, setCoupe] = useState(false);
-  // Si le raccrochage échoue — clé absente, opérateur qui refuse — on ne laisse
-  // pas la personne sans issue : le clavier réapparaît, avec la raison en
-  // infobulle.
-  const [echec, setEchec] = useState("");
-
   // Le compteur ne tourne que pendant un appel : rien ne s'anime dans le vide.
   const [, tic] = useState(0);
-  /* Le raccrochage passe par le serveur : la clé de l'opérateur n'a pas à
-     descendre dans le navigateur. En cas d'échec, la raison s'affiche en clair
-     — un bouton qui ne fait rien sans rien dire est pire que pas de bouton. */
-  const couper = async () => {
-    setCoupe(true);
-    const r = await raccrocher((await jetonCourant()) ?? "");
-    setCoupe(false);
-    setEchec(r.ok ? "" : r.erreur ?? "Raccrochage impossible.");
-  };
-
   useEffect(() => {
-    if (!appel) { setEchec(""); return; }
+    if (!appel) return;
     const t = window.setInterval(() => tic((n) => n + 1), 1000);
     return () => window.clearInterval(t);
   }, [appel]);
@@ -75,10 +59,7 @@ export default function Telephone() {
         <i />
         <b>{duree(appel.depuis)}</b>
         <span>{appel.confirme ? "Appel en cours" : "Connexion…"}</span>
-        <button disabled={coupe} onClick={couper}>
-          {coupe ? "…" : "Raccrocher"}
-        </button>
-        {echec && <em>{echec}</em>}
+        <em style={{ flex: 1 }}>Raccroche depuis le clavier Ringover.</em>
       </div>
     );
   }
@@ -97,13 +78,9 @@ export default function Telephone() {
   if (!libelle) return null;
 
   return (
-    <button
-      className="sync"
-      style={{ border: 0, background: "none", padding: "0 0 12px" }}
-      onClick={() => (estVisible() ? masquer() : afficher())}
-    >
+    <div className="sync" style={{ padding: "0 0 12px" }}>
       <i style={{ background: etat === "pret" ? "var(--won-lite)" : "var(--yellow)" }} />
       <span>{libelle}</span>
-    </button>
+    </div>
   );
 }

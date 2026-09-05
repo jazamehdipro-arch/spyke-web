@@ -18,10 +18,11 @@
  * vérifié dans sa source. Rien à corriger de ce côté ; ce qu'il fallait ouvrir,
  * c'est la politique du site, qui coupait le micro sur toutes les pages.
  *
- * Le composant ne sait pas raccrocher : ses six commandes sont dial, sendSMS,
- * openCallLog, changePage, reload et presenceSDK. L'API serveur de l'opérateur,
- * elle, le sait — le bouton « Raccrocher » de Spyke passe donc par le serveur,
- * seul endroit où la clé API a le droit d'exister.
+ * Le clavier de l'opérateur reste affiché, dans un coin. Le cacher a été essayé
+ * de quatre façons — display:none, son propre hide(), la sortie d'écran, la
+ * transparence — et chacune empêche l'appel de partir. On garde donc ce qui
+ * marche : le clavier montre l'appel et porte le bouton pour raccrocher, Spyke
+ * se contente de lui passer le numéro et de noter l'appel sur la fiche.
  *
  * Ce fichier ne suppose jamais que le composant est là. Sur un téléphone, ou si
  * Ringover est indisponible, l'écran retombe sur le lien « tel: » d'origine :
@@ -124,8 +125,8 @@ export function charger(): Promise<void> {
       if (!Constructeur) { poser("indisponible"); resolve(); return; }
       try {
         sdk = new Constructeur();
-        sdk.on("dialerReady", (d) => { trace("clavier prêt", d); poser("pret"); masquer(); });
-        sdk.on("login", (d) => { trace("connecté", d); poser("pret"); masquer(); });
+        sdk.on("dialerReady", (d) => { trace("clavier prêt", d); poser("pret"); });
+        sdk.on("login", (d) => { trace("connecté", d); poser("pret"); });
         sdk.on("logout", (d) => { trace("déconnecté", d); poser("a-connecter"); });
         for (const e of ["answeredCall", "changePage", "smsSent", "smsReceived"]) {
           sdk.on(e, (d) => trace("événement", e, d));
@@ -142,11 +143,7 @@ export function charger(): Promise<void> {
           }
         });
         sdk.on("ringingCall", (d) => {
-          // Le composant appelle show() de lui-même à chaque sonnerie — lu dans
-          // sa source. Sans ce remasquage, il réapparaîtrait à chaque appel et
-          // tout le travail de discrétion serait annulé.
           trace("sonnerie", d);
-          masquer();
           const brut = d as { to_number?: string; data?: { to_number?: string } } | undefined;
           const n = brut?.to_number ?? brut?.data?.to_number ?? appel?.numero ?? "";
           // La sonnerie est la preuve que l'appel est bien parti.
@@ -156,13 +153,10 @@ export function charger(): Promise<void> {
         });
         sdk.on("hangupCall", () => {
           if (veille) { window.clearTimeout(veille); veille = null; }
-          appel = null; probleme = ""; masquer(); prevenir();
+          appel = null; probleme = ""; prevenir();
         });
         sdk.generate({ type: "fixed", position: "bottom-right" });
         poser("a-connecter");
-        // Masqué dès l'ouverture : sans ça le clavier de l'opérateur s'installe
-        // dans un coin de l'écran et n'en bouge plus.
-        setTimeout(masquer, 0);
       } catch {
         poser("indisponible");
       }
@@ -174,15 +168,7 @@ export function charger(): Promise<void> {
   return chargement;
 }
 
-/**
- * Le composant pose deux éléments sur la page : son cadre et un lanceur
- * flottant. `hide()` ne s'occupe que du premier ; on masque les deux nous-mêmes.
- *
- * Le commercial ne doit pas voir l'interface de l'opérateur : il travaille dans
- * Spyke, il clique sur un numéro, ça appelle. Le clavier reste accessible d'un
- * bouton pour les cas où il faut raccrocher soi-même — le composant n'expose
- * pas de fonction pour le faire à sa place.
- */
+/** Le cadre que le composant pose sur la page. */
 function conteneur(): HTMLElement | null {
   return document.querySelector<HTMLElement>('[id^="ringover-iframe-container"]');
 }
@@ -193,8 +179,17 @@ function lanceurs(): HTMLElement[] {
     .filter((e) => e.tagName !== "IFRAME" && !e.id.startsWith("ringover-iframe-container"));
 }
 
-let cache = false;
-
+/**
+ * Remet le clavier de l'opérateur en évidence.
+ *
+ * Il reste affiché en permanence, et c'est un choix assumé. Quatre façons de le
+ * cacher ont été essayées — display:none, le hide() du composant, la sortie
+ * d'écran, la transparence — et aucune ne laisse l'appel partir : le clavier
+ * accepte l'ordre, dit oui, et ne compose rien. Plutôt qu'un cinquième essai,
+ * on garde ce qui marche. Le commercial voit un petit clavier dans le coin, il
+ * clique sur le numéro dans Spyke, ça appelle, et il raccroche là où l'appel
+ * se passe.
+ */
 export function afficher() {
   const c = conteneur();
   if (c) {
@@ -208,68 +203,19 @@ export function afficher() {
     c.style.maxHeight = "620px";
   }
   lanceurs().forEach((e) => { e.style.display = ""; });
-  cache = false;
   sdk?.show?.();
 }
 
 /**
- * On rend le cadre transparent, sans le déplacer ni le redimensionner.
+ * Compose le numéro.
  *
- * Quatre façons de cacher tuent l'appel, et je les ai toutes essayées :
+ * Le clavier de l'opérateur est affiché : c'est lui qui mène l'appel, montre
+ * l'état et porte le bouton pour raccrocher. Spyke se contente de lui passer le
+ * numéro, puis de noter l'appel dans l'historique de la fiche.
  *
- * - `display:none` suspend l'iframe : le navigateur cesse de la rendre.
- * - Le `hide()` du composant impose `max-height:0` : écrasée à zéro pixel.
- * - `left:-10000px` la sort du champ de vision du navigateur, qui la traite
- *   alors comme invisible : Chrome ralentit ses minuteries et lui refuse le
- *   micro. C'est la dernière en date, et c'est celle qui expliquait que le
- *   clavier accepte l'ordre — dial() renvoie true, l'ordre est délivré à la
- *   bonne origine — sans jamais composer.
- *
- * Le seul masquage qui laisse une iframe pleinement vivante est l'opacité :
- * elle reste à sa place, à sa taille, dans l'écran, donc le navigateur la rend
- * et la traite comme visible. Elle est simplement transparente, et ne prend
- * aucun clic.
- *
- * Rappel de ce qu'on sait : quand le clavier était affiché, cliquer sur le
- * numéro appelait. Tout ce qui a cassé depuis vient de la façon de le cacher.
- */
-export function masquer() {
-  const c = conteneur();
-  if (c) {
-    c.style.opacity = "0";
-    c.style.pointerEvents = "none";
-    // Repose la place que le composant lui donne, au cas où un masquage
-    // précédent l'aurait déplacée ou rabotée. Sans surface, pas de son.
-    c.style.position = "fixed";
-    c.style.left = "";
-    c.style.top = "";
-    c.style.right = "64px";
-    c.style.bottom = "0";
-    c.style.maxHeight = "620px";
-    c.style.height = "620px";
-    c.style.width = "380px";
-    c.style.display = "";
-  }
-  lanceurs().forEach((e) => { e.style.display = "none"; });
-  cache = true;
-}
-
-export function estVisible(): boolean {
-  return !cache;
-}
-
-/**
- * Compose le numéro. Deux voies, essayées dans l'ordre sur un seul clic.
- *
- * D'abord le composant embarqué, avec le numéro EN CHIFFRES SEULS. C'est le
- * format que leur API impose ailleurs — « digits only » — et le composant
- * transmet ce qu'on lui donne sans le corriger : envoyer « +33… » revenait
- * peut-être à lui parler une langue qu'il ne comprend pas, ce qui expliquerait
- * qu'il accepte l'ordre sans rien faire.
- *
- * Si rien ne sonne, on demande l'appel à leur serveur avec la clé API. Les deux
- * voies échouant pour des raisons différentes, les essayer toutes les deux est
- * le seul moyen d'en avoir une qui marche sans un aller-retour de plus.
+ * Le repli par le serveur ne sert plus que si le clavier n'est pas prêt — pas
+ * connecté, pas chargé. Tant qu'il l'est, on ne double pas l'ordre : deux voies
+ * lancées sur un seul clic, c'est le risque d'appeler deux fois.
  */
 export async function appeler(
   numeroE164: string,
@@ -278,31 +224,20 @@ export async function appeler(
   const chiffres = numeroE164.replace(/\D/g, "");
   probleme = "";
 
-  // Sans micro, le clavier de l'opérateur accepte l'ordre et ne compose rien.
-  if (!(await autoriserMicro())) {
-    probleme =
-      "Le micro est bloqué pour ce site. Clique sur le cadenas à gauche de l'adresse, autorise le micro, puis rappelle.";
-    appel = null;
-    prevenir();
-    return { ok: false, erreur: probleme };
-  }
-
   if (sdk && etat === "pret") {
+    // Le micro est demandé depuis Spyke : le clavier est un cadre d'un autre
+    // domaine, il n'obtient l'autorisation que si la page qui l'héberge l'a.
+    await autoriserMicro();
     try {
       const rendu = sdk.dial(chiffres);
       trace("composant : dial(", chiffres, ") →", rendu);
-      // Puis le même ordre, à la vraie adresse du cadre. Si celui du composant
-      // a été délivré, le second est simplement redondant.
       composer(chiffres);
+      afficher();
       if (rendu !== false) {
         appel = { numero: chiffres, depuis: Date.now(), confirme: false };
+        surveillerLeDepart();
         prevenir();
-        setTimeout(masquer, 0);
-        // Laissé quatre secondes pour sonner. Passé ce délai, on ne s'obstine
-        // pas : on passe à l'autre voie plutôt que d'attendre en vain.
-        const aSonne = await attendreSonnerie(4000);
-        if (aSonne) return { ok: true };
-        trace("composant : rien n'a sonné, on passe par le serveur");
+        return { ok: true };
       }
     } catch (e) {
       trace("composant : dial a échoué", e);
@@ -374,18 +309,6 @@ export async function autoriserMicro(): Promise<boolean> {
   }
 }
 
-/** Vrai si la sonnerie est annoncée avant l'échéance. */
-function attendreSonnerie(ms: number): Promise<boolean> {
-  return new Promise((resolve) => {
-    if (appel?.confirme) return resolve(true);
-    const fin = Date.now() + ms;
-    const t = window.setInterval(() => {
-      if (appel?.confirme) { window.clearInterval(t); resolve(true); }
-      else if (Date.now() > fin) { window.clearInterval(t); resolve(false); }
-    }, 150);
-  });
-}
-
 async function appelerParLeServeur(
   chiffres: string,
   jeton: string
@@ -414,27 +337,5 @@ async function appelerParLeServeur(
     probleme = "Le serveur n'a pas répondu.";
     prevenir();
     return { ok: false, erreur: probleme };
-  }
-}
-
-/**
- * Raccroche l'appel en cours.
- *
- * Le composant ne sait pas le faire ; l'API de l'opérateur, si. Elle exige la
- * clé API, qui reste sur le serveur : la demande passe donc par Spyke.
- */
-export async function raccrocher(jeton: string): Promise<{ ok: boolean; erreur?: string }> {
-  if (!appel) return { ok: false, erreur: "Aucun appel en cours." };
-  try {
-    const rep = await fetch("/api/prospection/raccrocher", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ jeton, numero: appel.numero }),
-    });
-    const r = (await rep.json()) as { ok: boolean; erreur?: string };
-    if (r.ok) { appel = null; probleme = ""; prevenir(); }
-    return r;
-  } catch {
-    return { ok: false, erreur: "Le serveur n'a pas répondu." };
   }
 }
