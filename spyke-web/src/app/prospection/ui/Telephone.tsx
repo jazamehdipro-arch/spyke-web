@@ -2,32 +2,33 @@
 
 import { useEffect, useState, useSyncExternalStore } from "react";
 import {
-  charger, etatCourant, sAbonner, appelEnCours, problemeCourant,
+  charger, etatCourant, sAbonner, appelEnCours, problemeCourant, DOCK,
   type Etat, type Appel,
 } from "@/lib/prospection/telephone";
 
 /**
- * L'état du téléphone, aux couleurs de Spyke.
+ * Le téléphone, encastré dans la colonne de droite.
  *
- * Le clavier de l'opérateur reste affiché dans un coin de l'écran. Le cacher a
- * été essayé de quatre façons, et aucune ne laisse l'appel partir : il accepte
- * l'ordre, dit oui, et ne compose rien. Plutôt qu'un cinquième essai, on garde
- * ce qui marche.
+ * Le clavier de l'opérateur vient se loger dans le cadre que Spyke lui dessine.
+ * Il garde son en-tête à nous — un point d'état, un nom, une durée — et l'outil
+ * de l'opérateur remplit le reste. Vu de la place du commercial, c'est un seul
+ * outil : il n'a ni à savoir qui fournit la ligne, ni à jongler entre deux
+ * fenêtres.
  *
- * Il n'y a donc plus de bouton « Raccrocher » ici : l'appel se voit et se coupe
- * là où il se passe, dans le clavier. Un bouton en double, dans un autre écran,
- * ne ferait qu'ajouter une façon de se tromper.
+ * Il reste affiché en permanence, et c'est un choix assumé : le cacher a été
+ * essayé de quatre façons, et chacune empêche l'appel de partir. On garde donc
+ * ce qui marche, et on le rend beau plutôt que discret.
  *
- * Sur téléphone, rien de tout ceci : le mobile appelle déjà avec le lien
- * « tel: », et embarquer une application entière consommerait la 4G d'un
- * commercial en voiture pour rien.
+ * L'emplacement ne disparaît jamais du DOM. Le démonter couperait la ligne au
+ * milieu d'un appel — c'est pour cela qu'il vit dans la coque, pas dans un
+ * écran.
  */
-const LIBELLES: Record<Etat, string | null> = {
-  absent: null,
-  chargement: null,
-  "a-connecter": "Connecte-toi à Ringover pour appeler d'ici",
-  pret: "Appels depuis l'ordinateur",
-  indisponible: null,
+const ETATS: Record<Etat, { texte: string; ton: "vert" | "jaune" | "gris" }> = {
+  absent: { texte: "Téléphone", ton: "gris" },
+  chargement: { texte: "Ouverture du clavier…", ton: "jaune" },
+  "a-connecter": { texte: "Connecte-toi pour appeler", ton: "jaune" },
+  pret: { texte: "Prêt à appeler", ton: "vert" },
+  indisponible: { texte: "Clavier indisponible", ton: "gris" },
 };
 
 function duree(depuis: number): string {
@@ -36,8 +37,13 @@ function duree(depuis: number): string {
 }
 
 export default function Telephone() {
+  const [surOrdi, setSurOrdi] = useState(false);
+
   useEffect(() => {
+    // Sur mobile, le lien « tel: » appelle déjà : embarquer une application
+    // entière consommerait la 4G d'un commercial en voiture pour rien.
     if (window.matchMedia("(pointer: coarse)").matches) return;
+    setSurOrdi(true);
     void charger();
   }, []);
 
@@ -53,34 +59,31 @@ export default function Telephone() {
     return () => window.clearInterval(t);
   }, [appel]);
 
-  if (appel) {
-    return (
-      <div className="encours">
-        <i />
-        <b>{duree(appel.depuis)}</b>
-        <span>{appel.confirme ? "Appel en cours" : "Connexion…"}</span>
-        <em style={{ flex: 1 }}>Raccroche depuis le clavier Ringover.</em>
-      </div>
-    );
-  }
+  if (!surOrdi) return null;
 
-  if (probleme) {
-    return (
-      <div className="encours">
-        <i style={{ background: "var(--hot-lite)", animation: "none" }} />
-        <span>Échec</span>
-        <em style={{ flex: 1 }}>{probleme}</em>
-      </div>
-    );
-  }
-
-  const libelle = LIBELLES[etat];
-  if (!libelle) return null;
+  const e = ETATS[etat];
 
   return (
-    <div className="sync" style={{ padding: "0 0 12px" }}>
-      <i style={{ background: etat === "pret" ? "var(--won-lite)" : "var(--yellow)" }} />
-      <span>{libelle}</span>
-    </div>
+    <aside className="dock" aria-label="Téléphone">
+      <div className={"tel" + (appel ? " live" : "")}>
+        <header>
+          <i className={"pt " + (appel ? "vert" : e.ton)} />
+          <span className="t">{appel ? "Appel en cours" : e.texte}</span>
+          {appel && <b className="chrono">{duree(appel.depuis)}</b>}
+        </header>
+
+        {probleme && !appel && <p className="alerte">{probleme}</p>}
+
+        {/* Le composant de l'opérateur vient se loger ici. Cet élément ne doit
+            jamais être démonté ni caché : l'appel s'arrêterait avec lui. */}
+        <div id={DOCK} className="frame" />
+
+        <footer>
+          {appel
+            ? "Raccroche depuis le clavier ci-dessus."
+            : "Clique sur le numéro d'une fiche : l'appel part d'ici."}
+        </footer>
+      </div>
+    </aside>
   );
 }

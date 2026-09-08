@@ -16,9 +16,8 @@ export const metadata = {
 export default function Confidentialite() {
   return (
     <>
-      <div className="top" style={{ position: "static" }}>
-        <div className="brand"><b>SPYKE</b><i /><span>Vos données</span></div>
-        <div style={{ height: 14 }} />
+      <div className="bandeau">
+        <div className="logo"><b>SPYKE</b><i /><span>Vos données</span></div>
       </div>
 
       <div className="wrap">

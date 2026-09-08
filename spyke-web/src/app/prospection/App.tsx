@@ -38,12 +38,44 @@ export type Ctx = {
 
 export type Onglet = "file" | "liste" | "agenda" | "pipe" | "admin";
 
-const ONGLETS: [Onglet, string][] = [
-  ["file", "File"],
-  ["liste", "Liste"],
-  ["agenda", "Agenda"],
-  ["pipe", "Pipeline"],
-  ["admin", "Réglages"],
+/**
+ * Les cinq écrans, avec ce qu'ils font écrit en toutes lettres.
+ *
+ * Un commercial qui prend l'outil en main ne devine pas ce que « Pipeline »
+ * recouvre. Le titre reste court pour le rail ; la phrase, elle, s'affiche en
+ * haut de l'écran ouvert et dit à quoi il sert.
+ */
+const ONGLETS: { cle: Onglet; nom: string; quoi: string; icone: React.ReactNode }[] = [
+  {
+    cle: "file", nom: "Appeler", quoi: "Une fiche à la fois, dans l'ordre. Clique le numéro, note le résultat.",
+    icone: (
+      <svg viewBox="0 0 24 24" aria-hidden><path d="M6.6 3.5 9 8l-2 1.8a13 13 0 0 0 7.2 7.2L16 15l4.5 2.4-1.2 3.1a2 2 0 0 1-2 1.2A17.5 17.5 0 0 1 2.3 6.7a2 2 0 0 1 1.2-2Z" /></svg>
+    ),
+  },
+  {
+    cle: "liste", nom: "Fichier", quoi: "Toutes les fiches. Cherche un nom, un numéro, une ville.",
+    icone: (
+      <svg viewBox="0 0 24 24" aria-hidden><path d="M4 5h16M4 12h16M4 19h10" /></svg>
+    ),
+  },
+  {
+    cle: "agenda", nom: "Rendez-vous", quoi: "Les créneaux calés, et ceux à clôturer.",
+    icone: (
+      <svg viewBox="0 0 24 24" aria-hidden><rect x="3" y="5" width="18" height="16" rx="2.5" /><path d="M3 10h18M8 3v4M16 3v4" /></svg>
+    ),
+  },
+  {
+    cle: "pipe", nom: "Affaires", quoi: "Ce qui est signé, ce qui est encaissé, ce qui reste dû.",
+    icone: (
+      <svg viewBox="0 0 24 24" aria-hidden><path d="M4 19V9M10 19V4M16 19v-7M22 19H2" /></svg>
+    ),
+  },
+  {
+    cle: "admin", nom: "Réglages", quoi: "L'équipe, l'import des fiches, les données personnelles.",
+    icone: (
+      <svg viewBox="0 0 24 24" aria-hidden><circle cx="12" cy="12" r="3.2" /><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1" /></svg>
+    ),
+  },
 ];
 
 /**
@@ -183,7 +215,6 @@ export default function App({
     return { rappels, chauds, rdv };
   }, [d]);
 
-  const rappelsDus = compteurs.rappels;
 
   async function quitter() {
     await createClient().auth.signOut();
@@ -191,75 +222,102 @@ export default function App({
     router.refresh();
   }
 
+  const ecran = ONGLETS.find((o) => o.cle === view)!;
+  const onglets = ONGLETS.filter((o) => o.cle !== "admin" || moi.role === "admin");
+  const badges: Partial<Record<Onglet, number>> = {
+    file: compteurs.rappels,
+    agenda: compteurs.rdv,
+  };
+
   return (
-    <>
-      <div className="top">
-        <div className="brand">
+    <div className="shell">
+      {/* ------------------------------------------------- rail de navigation */}
+      <nav className="rail" aria-label="Navigation">
+        <div className="logo">
           <b>SPYKE</b>
           <i />
           <span>Prospection</span>
-          <span className="who">
-            <b>{moi.nom}</b>
-            <button onClick={quitter}>Quitter</button>
-          </span>
         </div>
 
-        <div className="tally">
-          <div>
-            <span className="n">{compteurs.rappels}</span>
-            <span className="l">Rappels dus</span>
-          </div>
-          <div>
-            <span className="n hot">{compteurs.chauds}</span>
-            <span className="l">Chauds</span>
-          </div>
-          <div>
-            <span className="n won">{compteurs.rdv}</span>
-            <span className="l">RDV calés</span>
-          </div>
-        </div>
-
-        <Telephone />
-
-        <div className={"sync" + (enLigne ? "" : " off")}>
-          <i />
-          <span>
-            {enAttente > 0
-              ? `${enAttente} action${enAttente > 1 ? "s" : ""} en attente d'envoi`
-              : enLigne
-                ? "Synchronisé"
-                : "Hors ligne · tout est gardé sur le téléphone"}
-          </span>
-        </div>
-
-        <div className="tabs" role="tablist">
-          {ONGLETS.filter(([k]) => k !== "admin" || moi.role === "admin").map(([k, lab]) => (
+        <div className="nav" role="tablist">
+          {onglets.map((o) => (
             <button
-              key={k}
+              key={o.cle}
               role="tab"
-              aria-selected={view === k}
-              onClick={() => ctx.allerA(k)}
+              aria-selected={view === o.cle}
+              /* Sur un écran étroit le rail se réduit à ses icônes : le nom
+                 doit rester atteignable au survol. */
+              title={o.nom}
+              onClick={() => ctx.allerA(o.cle)}
             >
-              {lab}
-              {k === "file" && rappelsDus > 0 && <span className="badge">{rappelsDus}</span>}
-              {k === "agenda" && compteurs.rdv > 0 && <span className="badge">{compteurs.rdv}</span>}
+              {o.icone}
+              <span>{o.nom}</span>
+              {(badges[o.cle] ?? 0) > 0 && <em>{badges[o.cle]}</em>}
             </button>
           ))}
         </div>
-      </div>
 
-      <div className="wrap">
+        {/* Trois nombres, et aucun qui compte une cadence. Les commerciaux sont
+            des indépendants : « appels du jour » ne mesurait qu'un rythme
+            attendu, affiché à quelqu'un qui n'en a pas. Ne restent que ceux sur
+            lesquels on peut agir tout de suite — et chacun mène à l'écran qui
+            permet d'agir. */}
+        <div className="veille">
+          <span className="cap">À traiter</span>
+          <button onClick={() => ctx.allerA("file")}>
+            <b>{compteurs.rappels}</b>
+            <span>Rappels dus</span>
+          </button>
+          <button onClick={() => ctx.allerA("liste")}>
+            <b className="hot">{compteurs.chauds}</b>
+            <span>Prospects chauds</span>
+          </button>
+          <button onClick={() => ctx.allerA("agenda")}>
+            <b className="won">{compteurs.rdv}</b>
+            <span>Rendez-vous calés</span>
+          </button>
+        </div>
+
+        <div className="bas">
+          <div className={"net" + (enLigne ? "" : " off")}>
+            <i />
+            <span>
+              {enAttente > 0
+                ? `${enAttente} action${enAttente > 1 ? "s" : ""} à envoyer`
+                : enLigne
+                  ? "Tout est enregistré"
+                  : "Hors ligne · rien n'est perdu"}
+            </span>
+          </div>
+          <div className="moi">
+            <span>{moi.nom}</span>
+            <button onClick={quitter}>Quitter</button>
+          </div>
+        </div>
+      </nav>
+
+      {/* ------------------------------------------------------ zone de travail */}
+      <main className="main">
+        <header className="tete">
+          <h1>{ecran.nom}</h1>
+          <p>{ecran.quoi}</p>
+        </header>
+
         {view === "file" && <VueFile ctx={ctx} />}
         {view === "liste" && <VueListe ctx={ctx} />}
         {view === "agenda" && <VueAgenda ctx={ctx} />}
         {view === "pipe" && <VuePipeline ctx={ctx} />}
         {view === "admin" && moi.role === "admin" && <VueReglages ctx={ctx} />}
-      </div>
+      </main>
+
+      {/* Le téléphone vit dans la coque, jamais dans un écran : le démonter
+          couperait la ligne au milieu d'un appel. */}
+      <Telephone />
 
       <Sheet ouvert={sheet !== null} onClose={() => setSheet(null)}>
         {sheet}
       </Sheet>
       <Toast message={message} />
-    </>
+    </div>
   );
 }

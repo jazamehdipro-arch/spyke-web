@@ -32,6 +32,10 @@
 
 const CDN = "https://webcdn.ringover.com/resources/SDK/1.1.3/ringover-sdk.js";
 
+/* L'emplacement réservé au clavier dans la page. Spyke le dessine ; le
+   composant vient s'y loger. Voir charger(). */
+export const DOCK = "spk-dock-tel";
+
 /**
  * Traces. Trois hypothèses fausses sur pourquoi un appel ne partait pas ont
  * suffi : on écrit désormais ce qui se passe, plutôt que de le déduire.
@@ -155,7 +159,18 @@ export function charger(): Promise<void> {
           if (veille) { window.clearTimeout(veille); veille = null; }
           appel = null; probleme = ""; prevenir();
         });
-        sdk.generate({ type: "fixed", position: "bottom-right" });
+        // Le clavier ne flotte plus par-dessus la page : il est encastré dans
+        // la colonne de droite, à la taille de son emplacement. Sans cadre ni
+        // lanceur — Spyke lui dessine déjà les siens, et deux en-têtes l'un
+        // sur l'autre, c'est ce qui faisait « pièce rapportée ».
+        sdk.generate({
+          container: DOCK,
+          size: "auto",
+          type: "relative",
+          border: false,
+          trayicon: false,
+          animation: false,
+        });
         poser("a-connecter");
       } catch {
         poser("indisponible");
@@ -173,36 +188,27 @@ function conteneur(): HTMLElement | null {
   return document.querySelector<HTMLElement>('[id^="ringover-iframe-container"]');
 }
 
-/** Le lanceur flottant que le composant pose aussi sur la page. */
-function lanceurs(): HTMLElement[] {
-  return Array.from(document.querySelectorAll<HTMLElement>('[id^="ringover-"]'))
-    .filter((e) => e.tagName !== "IFRAME" && !e.id.startsWith("ringover-iframe-container"));
-}
-
 /**
- * Remet le clavier de l'opérateur en évidence.
+ * Rouvre le clavier au cas où quelque chose l'aurait replié.
  *
- * Il reste affiché en permanence, et c'est un choix assumé. Quatre façons de le
- * cacher ont été essayées — display:none, le hide() du composant, la sortie
- * d'écran, la transparence — et aucune ne laisse l'appel partir : le clavier
- * accepte l'ordre, dit oui, et ne compose rien. Plutôt qu'un cinquième essai,
- * on garde ce qui marche. Le commercial voit un petit clavier dans le coin, il
- * clique sur le numéro dans Spyke, ça appelle, et il raccroche là où l'appel
- * se passe.
+ * Il est encastré dans la page et reste affiché en permanence : le cacher a été
+ * essayé de quatre façons — display:none, son propre hide(), la sortie d'écran,
+ * la transparence — et chacune empêche l'appel de partir. Le composant, lui,
+ * se replie tout seul dans certains cas (son hide() interne). Cette fonction ne
+ * fait que défaire ça, sans jamais le déplacer : sa place, c'est Spyke qui la
+ * décide, en CSS.
  */
 export function afficher() {
   const c = conteneur();
   if (c) {
-    c.style.position = "fixed";
-    c.style.left = "";
-    c.style.top = "";
-    c.style.right = "64px";
-    c.style.bottom = "0";
-    c.style.pointerEvents = "";
     c.style.opacity = "1";
-    c.style.maxHeight = "620px";
+    c.style.maxHeight = "100%";
+    c.style.height = "100%";
+    c.style.width = "100%";
+    c.style.display = "";
+    c.style.boxShadow = "none";
+    c.style.borderRadius = "0";
   }
-  lanceurs().forEach((e) => { e.style.display = ""; });
   sdk?.show?.();
 }
 

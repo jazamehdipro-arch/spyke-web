@@ -60,7 +60,7 @@
   min-height:100vh;background:var(--paper);color:var(--body);
   font-family:var(--sans);font-size:15px;line-height:1.5;
   -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
-  padding-bottom:96px;
+
 }
 .spk button,.spk input,.spk select,.spk textarea{font:inherit;color:inherit}
 .spk button{cursor:pointer;border:none;background:none}
@@ -78,72 +78,187 @@
 }
 .spk .empty b::after{margin-left:auto;margin-right:auto}
 
-/* ------------------------------------------------------------- bandeau haut */
+/* ============================================================== la coque
+ *
+ * Trois colonnes, et chacune répond à une question du commercial :
+ *
+ *   à gauche  — « où je suis, et où je peux aller »
+ *   au centre — « ce que je fais maintenant »
+ *   à droite  — « mon téléphone »
+ *
+ * Le téléphone est encastré dans la troisième colonne au lieu de flotter
+ * par-dessus le travail. C'est le point de tout ce redécoupage : l'outil de
+ * l'opérateur cessait d'être une fenêtre posée sur Spyke pour devenir une
+ * partie de Spyke.
+ *
+ * Il ne peut jamais être caché — quatre façons de le faire ont été essayées,
+ * chacune empêche l'appel de partir. La mise en page est donc construite autour
+ * de lui, pas contre lui : il a sa colonne, il ne gêne personne.
+ */
 
-.spk .top{
-  background:var(--ink);color:var(--on-ink);padding:16px 18px 0;
-  position:sticky;top:0;z-index:40;
+.spk .shell{
+  display:grid;
+  grid-template-columns:250px minmax(0,1fr) 388px;
+  align-items:stretch;
+  min-height:100vh;
 }
-.spk .brand{display:flex;align-items:center;gap:9px}
-.spk .brand b{
+
+/* ------------------------------------------------------------------- rail */
+
+.spk .rail{
+  background:var(--ink);color:var(--on-ink);
+  display:flex;flex-direction:column;gap:26px;
+  padding:22px 16px 18px;
+  position:sticky;top:0;height:100vh;z-index:40;
+}
+.spk .logo{display:flex;align-items:center;gap:8px;padding:0 8px}
+.spk .logo b{
   font-family:var(--disp);font-size:19px;font-weight:700;letter-spacing:-.01em;
   color:var(--on-ink);
 }
-.spk .brand i{width:7px;height:7px;border-radius:50%;background:var(--yellow);display:block}
-.spk .brand span{font-size:12.5px;color:var(--on-ink-2);letter-spacing:.01em}
+.spk .logo i{width:7px;height:7px;border-radius:50%;background:var(--yellow);display:block}
+.spk .logo span{font-size:12.5px;color:var(--on-ink-2)}
 
-/* .who désigne deux choses différentes : la personne connectée dans le
-   bandeau, et l'entreprise attendue sur un créneau d'agenda. La règle du
-   bandeau est donc explicitement limitée au bandeau — sans quoi son
-   display:flex écrase l'empilement du créneau et colle le nom de
-   l'entreprise à côté de sa ville au lieu de le poser au-dessus. */
-.spk .top .who{display:flex;align-items:center;gap:10px;margin-left:auto}
-.spk .top .who b{font-size:12px;font-weight:600;color:var(--on-ink)}
-.spk .top .who button{
+.spk .nav{display:flex;flex-direction:column;gap:2px}
+.spk .nav button{
+  display:flex;align-items:center;gap:11px;width:100%;text-align:left;
+  padding:10px 11px;border-radius:11px;font-size:14px;font-weight:600;
+  color:var(--on-ink-2);transition:background .14s,color .14s;
+}
+.spk .nav button svg{
+  width:18px;height:18px;flex:0 0 18px;fill:none;stroke:currentColor;
+  stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;
+}
+/* L'icône du combiné est pleine : un trait de 1,7 px n'en dessine rien de
+   lisible à 18 px. */
+.spk .nav button:first-child svg{fill:currentColor;stroke:none}
+.spk .nav button span{flex:1}
+.spk .nav button em{
+  font-family:var(--mono);font-style:normal;font-size:11px;font-weight:600;
+  background:var(--yellow);color:var(--ink);border-radius:999px;padding:1px 7px;
+}
+.spk .nav button:hover{color:var(--on-ink);background:rgba(255,255,255,.05)}
+.spk .nav button[aria-selected=true]{
+  color:var(--ink);background:var(--yellow);
+}
+.spk .nav button[aria-selected=true] em{background:var(--ink);color:var(--yellow)}
+
+/* Trois nombres sur lesquels on peut agir, et chacun mène là où on agit. */
+.spk .veille{display:flex;flex-direction:column;gap:1px}
+.spk .veille .cap{
+  font-size:9px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;
+  color:var(--on-ink-3);padding:0 11px 7px;
+}
+.spk .veille button{
+  display:flex;align-items:baseline;gap:10px;width:100%;text-align:left;
+  padding:8px 11px;border-radius:10px;transition:background .14s;
+}
+.spk .veille button:hover{background:rgba(255,255,255,.05)}
+.spk .veille b{
+  font-family:var(--mono);font-size:19px;font-weight:600;color:var(--on-ink);
+  line-height:1;letter-spacing:-.02em;font-variant-numeric:tabular-nums;
+  min-width:22px;
+}
+.spk .veille b.hot{color:var(--hot-lite)}
+.spk .veille b.won{color:var(--won-lite)}
+.spk .veille span{
+  font-size:9.5px;font-weight:700;letter-spacing:.11em;text-transform:uppercase;
+  color:var(--on-ink-3);
+}
+
+.spk .rail .bas{margin-top:auto;display:flex;flex-direction:column;gap:12px}
+.spk .net{
+  display:flex;align-items:center;gap:8px;padding:0 11px;
+  font-size:9.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--on-ink-3);
+}
+.spk .net i{width:6px;height:6px;border-radius:50%;background:var(--won-lite);display:block;flex:0 0 6px}
+.spk .net.off{color:var(--hot-lite)}
+.spk .net.off i{background:var(--hot-lite);animation:spk-pulse 1.4s ease-in-out infinite}
+@keyframes spk-pulse{50%{opacity:.3}}
+
+.spk .moi{
+  display:flex;align-items:center;gap:10px;padding:11px;
+  border-top:1px solid var(--on-ink-line);
+}
+.spk .moi span{
+  flex:1;min-width:0;font-size:12.5px;font-weight:600;color:var(--on-ink);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.spk .moi button{
   font-size:11.5px;color:var(--on-ink-2);border:1px solid var(--on-ink-line);
   padding:4px 10px;border-radius:999px;transition:color .15s,border-color .15s;
 }
-.spk .top .who button:hover{color:var(--yellow);border-color:var(--yellow)}
+.spk .moi button:hover{color:var(--yellow);border-color:var(--yellow)}
 
-.spk .tally{display:flex;gap:22px;padding:16px 0 14px}
-.spk .tally div{display:flex;flex-direction:column;gap:3px}
-.spk .tally .n{
-  font-family:var(--mono);font-size:24px;font-weight:600;line-height:1;
-  color:var(--on-ink);letter-spacing:-.02em;font-variant-numeric:tabular-nums;
-}
-.spk .tally .l{
-  font-size:9px;letter-spacing:.13em;text-transform:uppercase;
-  color:var(--on-ink-3);font-weight:600;
-}
-.spk .tally .n.hot{color:var(--hot-lite)}
-.spk .tally .n.won{color:var(--won-lite)}
+/* ----------------------------------------------------------- zone centrale */
 
-.spk .sync{
-  display:flex;align-items:center;gap:7px;font-size:9.5px;font-weight:600;
-  letter-spacing:.11em;text-transform:uppercase;color:var(--on-ink-3);padding:0 0 12px;
+.spk .main{padding:30px 30px 80px;max-width:780px;width:100%;margin:0 auto}
+.spk .tete{margin-bottom:22px}
+.spk .tete h1{
+  font-family:var(--disp);font-size:29px;font-weight:700;color:var(--ink);
+  letter-spacing:-.032em;line-height:1.1;
 }
-.spk .sync i{width:6px;height:6px;border-radius:50%;background:var(--won-lite);display:block}
-.spk .sync.off{color:var(--hot-lite)}
-.spk .sync.off i{background:var(--hot-lite);animation:spk-pulse 1.4s ease-in-out infinite}
-@keyframes spk-pulse{50%{opacity:.3}}
-
-.spk .tabs{display:flex;gap:4px}
-.spk .tabs button{
-  flex:1;padding:12px 2px 11px;font-size:12.5px;font-weight:600;
-  color:var(--on-ink-3);border-bottom:2px solid transparent;
-  transition:color .15s,border-color .15s;
+.spk .tete h1::after{
+  content:"";display:block;width:34px;height:3px;border-radius:2px;
+  background:var(--yellow);margin-top:11px;
 }
-.spk .tabs button:hover{color:var(--on-ink-2)}
-.spk .tabs button[aria-selected=true]{color:var(--on-ink);border-bottom-color:var(--yellow)}
-.spk .tabs .badge{
-  font-family:var(--mono);font-size:10px;font-weight:600;background:var(--yellow);
-  color:var(--ink);border-radius:999px;padding:1px 6px;margin-left:5px;
-}
+.spk .tete p{font-size:13.5px;color:var(--muted);line-height:1.6;margin-top:11px;max-width:52ch}
 
-/* ------------------------------------------------------------------ colonne */
-
-.spk .wrap{max-width:740px;margin:0 auto;padding:20px 16px}
+/* Ancien conteneur, conservé pour les écrans qui vivent hors de la coque
+   (confidentialité, erreur) : là, il n'y a pas de rail à côté. */
+.spk .wrap{max-width:740px;margin:0 auto;padding:28px 20px}
 .spk .hint{font-size:13px;color:var(--muted);line-height:1.6}
+
+/* ------------------------------------------------------------- le téléphone
+ *
+ * Un cadre Spyke, avec notre en-tête et notre pied. Ce que l'opérateur affiche
+ * remplit le milieu. Vu de la place du commercial, c'est un seul outil.
+ */
+
+.spk .dock{padding:30px 26px 30px 0;position:sticky;top:0;height:100vh}
+.spk .tel{
+  height:100%;max-height:760px;display:flex;flex-direction:column;
+  background:var(--card);border:1px solid var(--line);border-radius:var(--r);
+  box-shadow:var(--lift-2);overflow:hidden;
+  transition:border-color .2s,box-shadow .2s;
+}
+.spk .tel.live{border-color:var(--won-line);box-shadow:0 6px 26px rgba(15,114,80,.14)}
+.spk .tel header{
+  display:flex;align-items:center;gap:9px;padding:14px 16px;
+  border-bottom:1px solid var(--line-2);background:var(--card);
+}
+.spk .tel .pt{width:8px;height:8px;border-radius:50%;display:block;flex:0 0 8px;background:var(--line)}
+.spk .tel .pt.vert{background:var(--won)}
+.spk .tel .pt.jaune{background:var(--yellow-d)}
+.spk .tel.live .pt{animation:spk-pulse 1.6s ease-in-out infinite}
+.spk .tel header .t{
+  flex:1;font-size:10px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--muted);
+}
+.spk .tel .chrono{
+  font-family:var(--mono);font-size:17px;font-weight:600;color:var(--won);
+  letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1;
+}
+.spk .tel .alerte{
+  font-size:12.5px;color:var(--hot);background:var(--hot-tint);
+  border-bottom:1px solid var(--hot-line);padding:11px 16px;line-height:1.5;
+}
+/* L'emplacement du clavier. Il ne doit jamais être réduit à zéro ni sorti de
+   l'écran : l'appel s'arrêterait avec lui. */
+.spk .tel .frame{flex:1;min-height:420px;position:relative;background:var(--sink)}
+.spk .tel .frame iframe{border:none;display:block}
+.spk .tel footer{
+  padding:11px 16px;border-top:1px solid var(--line-2);background:var(--sink);
+  font-size:11.5px;color:var(--muted);line-height:1.5;
+}
+
+/* Les pages qui vivent hors de la coque — confidentialité, erreur — n'ont pas
+   de rail à côté : elles gardent un bandeau simple. */
+.spk .bandeau{background:var(--ink);color:var(--on-ink);padding:18px}
+.spk .bandeau .logo{padding:0}
+
+/* ------------------------------------------------------------------- chips */
 
 .spk .chips{display:flex;gap:7px;overflow-x:auto;padding-bottom:14px;scrollbar-width:none}
 .spk .chips::-webkit-scrollbar{display:none}
@@ -612,31 +727,83 @@
   .spk .gate h1{font-size:40px}
 }
 
-/* L'appel en cours. Il remplace la ligne d'état dans le bandeau et doit se lire
-   d'un coup d'œil : la durée en gros, le bouton assez large pour le pouce. La
-   ligne d'état ordinaire, elle, reste discrète — ce n'est pas la même urgence. */
-.spk .encours{
-  display:flex;align-items:center;gap:12px;padding:10px 0 14px;flex-wrap:wrap;
+/* ====================================================== écrans plus étroits
+ *
+ * Le téléphone ne peut jamais être caché : quatre façons ont été essayées,
+ * chacune empêche l'appel de partir. Ce n'est donc pas lui qui cède quand la
+ * place manque, c'est le rail — il se réduit à ses icônes, et garde sa
+ * colonne. Le travail au centre ne perd jamais son téléphone de vue.
+ */
+
+@media (max-width:1340px){
+  .spk .shell{grid-template-columns:224px minmax(0,1fr) 352px}
+  .spk .main{padding:26px 22px 70px}
+  .spk .dock{padding:26px 20px 26px 0}
 }
-.spk .encours i{
-  width:9px;height:9px;border-radius:50%;background:var(--won-lite);display:block;
-  animation:spk-pulse 1.6s ease-in-out infinite;flex:0 0 auto;
+
+@media (max-width:1140px){
+  .spk .shell{grid-template-columns:74px minmax(0,1fr) 330px}
+  .spk .rail{padding:20px 12px 16px;gap:18px}
+  .spk .logo{justify-content:center}
+  .spk .logo b,.spk .logo span{display:none}
+  .spk .logo i{width:10px;height:10px}
+  .spk .nav button{justify-content:center;padding:12px 0}
+  .spk .nav button span{display:none}
+  .spk .nav button svg{width:20px;height:20px;flex:0 0 20px}
+  .spk .nav button em{
+    position:absolute;top:5px;right:9px;font-size:9.5px;padding:0 5px;
+  }
+  .spk .nav button{position:relative}
+  .spk .veille{display:none}
+  .spk .net{justify-content:center;padding:0}
+  .spk .net span{display:none}
+  .spk .moi{justify-content:center;padding:11px 0}
+  .spk .moi span{display:none}
+  .spk .moi button{padding:4px 8px;font-size:11px}
+  .spk .main{padding:24px 18px 70px}
+  .spk .dock{padding:24px 16px 24px 0}
+  .spk .tel .frame{min-height:400px}
 }
-.spk .encours b{
-  font-family:var(--mono);font-size:22px;font-weight:600;color:var(--on-ink);
-  letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1;
+
+/* -------------------------------------------------------- tablette et mobile
+ *
+ * Le clavier n'est pas chargé ici : le lien « tel: » appelle déjà, et embarquer
+ * une application entière consommerait la 4G d'un commercial en voiture. La
+ * coque se remet donc en colonne unique, avec la navigation en haut.
+ */
+@media (max-width:880px){
+  .spk .shell{display:block}
+  .spk .rail{
+    height:auto;position:sticky;top:0;flex-direction:row;flex-wrap:wrap;
+    align-items:center;gap:12px;padding:14px 16px 0;
+  }
+  .spk .logo{flex:1;padding:0;justify-content:flex-start}
+  .spk .logo b,.spk .logo span{display:revert}
+  .spk .logo i{width:7px;height:7px}
+  .spk .veille{display:none}
+  .spk .rail .bas{margin:0;flex-direction:row;align-items:center;gap:14px;order:2}
+  .spk .net{padding:0}
+  .spk .moi{border:0;padding:0}
+  .spk .nav{
+    order:3;flex:0 0 100%;flex-direction:row;gap:2px;
+    overflow-x:auto;scrollbar-width:none;
+  }
+  .spk .nav::-webkit-scrollbar{display:none}
+  .spk .nav button{
+    flex-direction:column;gap:5px;padding:9px 14px 11px;border-radius:0;
+    font-size:11.5px;white-space:nowrap;border-bottom:2px solid transparent;
+  }
+  .spk .nav button span{display:revert;flex:0 0 auto}
+  .spk .nav button[aria-selected=true]{
+    background:none;color:var(--on-ink);border-bottom-color:var(--yellow);
+  }
+  .spk .nav button em{top:3px;right:4px}
+  .spk .main{padding:22px 16px 70px;max-width:none}
+  .spk .tete h1{font-size:25px}
+  .spk .dock{display:none}
 }
-.spk .encours span{
-  font-size:10px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;
-  color:var(--on-ink-2);
-}
-.spk .encours button{
-  margin-left:auto;background:var(--hot-lite);color:var(--ink);
-  font-size:11.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
-  padding:9px 18px;border-radius:999px;transition:filter .15s;
-}
-.spk .encours button:hover{filter:brightness(1.08)}
-.spk .encours button:disabled{opacity:.5}
-.spk .encours em{
-  flex:0 0 100%;font-style:normal;font-size:12px;color:var(--hot-lite);line-height:1.5;
+
+@media (max-width:520px){
+  .spk .acts{grid-template-columns:repeat(2,1fr)}
+  .spk .tete p{display:none}
 }
