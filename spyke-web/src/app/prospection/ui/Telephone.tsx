@@ -74,6 +74,18 @@ export default function Telephone() {
 
         {probleme && !appel && <p className="alerte">{probleme}</p>}
 
+        {/* Un commercial qui arrive voit un écran de connexion qu'il n'a pas
+            demandé, juste après s'être connecté à Spyke. Sans un mot, il croit
+            qu'on lui redemande son mot de passe Spyke, il le tape, ça ne marche
+            pas, et il appelle son responsable. Autant le dire. */}
+        {etat === "a-connecter" && !appel && (
+          <p className="mode-emploi">
+            Ce n&apos;est pas ton mot de passe Spyke. Connecte-toi ci-dessous avec le
+            <b> compte Ringover que ton responsable t&apos;a donné</b> — une seule fois,
+            ça reste connecté ensuite.
+          </p>
+        )}
+
         {/* Le composant de l'opérateur vient se loger ici. Cet élément ne doit
             jamais être démonté ni caché : l'appel s'arrêterait avec lui. */}
         <div id={DOCK} className="frame" />
@@ -81,7 +93,9 @@ export default function Telephone() {
         <footer>
           {appel
             ? "Raccroche depuis le clavier ci-dessus."
-            : "Clique sur le numéro d'une fiche : l'appel part d'ici."}
+            : etat === "a-connecter"
+              ? "Une fois connecté, un clic sur le numéro d'une fiche suffit."
+              : "Clique sur le numéro d'une fiche : l'appel part d'ici."}
         </footer>
       </div>
     </aside>
