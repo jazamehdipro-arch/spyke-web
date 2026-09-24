@@ -15,6 +15,38 @@ export default function GateForm({
   const [mdp, setMdp] = useState("");
   const [erreur, setErreur] = useState("");
   const [occupe, setOccupe] = useState(false);
+  /* « entrer » : l'écran ordinaire. « oubli » : on ne demande que l'adresse.
+     « envoye » : le lien est parti, il n'y a plus rien à faire ici. */
+  const [mode, setMode] = useState<"entrer" | "oubli" | "envoye">("entrer");
+
+  /**
+   * Envoie le lien de réinitialisation.
+   *
+   * Sans ça, un mot de passe perdu était une impasse : ni bouton, ni page, et
+   * le responsable devait rouvrir la base pour lui-même comme pour chacun de
+   * ses commerciaux. L'opérateur du courriel est celui de la base ; Spyke ne
+   * stocke aucun mot de passe et n'en voit jamais aucun.
+   */
+  async function envoyerLeLien(e: React.FormEvent) {
+    e.preventDefault();
+    setErreur("");
+    if (!email.trim()) {
+      setErreur("Entre ton adresse e-mail.");
+      return;
+    }
+    setOccupe(true);
+    const { error } = await createClient().auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: `${window.location.origin}/prospection/connexion/nouveau`,
+    });
+    setOccupe(false);
+    if (error) {
+      setErreur("L'envoi a échoué. " + error.message);
+      return;
+    }
+    // On ne dit jamais si l'adresse existe : ce serait dire qui fait partie de
+    // l'équipe à qui veut le demander.
+    setMode("envoye");
+  }
 
   async function entrer(e: React.FormEvent) {
     e.preventDefault();
@@ -67,6 +99,52 @@ export default function GateForm({
     router.refresh();
   }
 
+  if (mode === "envoye") {
+    return (
+      <>
+        <h1>Regarde tes mails</h1>
+        <p>
+          Si un compte Spyke existe pour <b>{email.trim()}</b>, un lien vient d&apos;y
+          être envoyé. Il vaut une heure. Pense au dossier indésirables.
+        </p>
+        <button className="go" onClick={() => { setMode("entrer"); setErreur(""); }}>
+          Revenir à la connexion
+        </button>
+      </>
+    );
+  }
+
+  if (mode === "oubli") {
+    return (
+      <form onSubmit={envoyerLeLien}>
+        <h1>Mot de passe oublié</h1>
+        <p>Entre ton adresse : tu recevras un lien pour en choisir un nouveau.</p>
+
+        <label htmlFor="oE">E-mail</label>
+        <input
+          type="email"
+          id="oE"
+          placeholder="prenom@spyke.fr"
+          autoComplete="username"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+
+        <div className="err">{erreur}</div>
+        <button className="go" type="submit" disabled={occupe}>
+          {occupe ? "…" : "Envoyer le lien"}
+        </button>
+        <button
+          type="button"
+          className="alt"
+          onClick={() => { setMode("entrer"); setErreur(""); }}
+        >
+          Revenir à la connexion
+        </button>
+      </form>
+    );
+  }
+
   return (
     <form onSubmit={entrer}>
       <h1>{premierDemarrage ? "Premier démarrage" : "Ton espace"}</h1>
@@ -114,6 +192,16 @@ export default function GateForm({
       <button className="go" type="submit" disabled={occupe}>
         {occupe ? "…" : premierDemarrage ? "Créer mon accès" : "Entrer"}
       </button>
+
+      {!premierDemarrage && (
+        <button
+          type="button"
+          className="alt"
+          onClick={() => { setMode("oubli"); setErreur(""); }}
+        >
+          Mot de passe oublié ?
+        </button>
+      )}
     </form>
   );
 }
