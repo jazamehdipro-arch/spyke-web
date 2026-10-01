@@ -279,6 +279,46 @@
 .spk .chip[aria-pressed=true]{background:var(--ink);border-color:var(--ink);color:var(--on-ink)}
 .spk .chip .c{font-family:var(--mono);font-size:11px;opacity:.5;margin-left:6px}
 
+/* ------------------------------------------------------------- les filtres
+ *
+ * Quatre menus plutôt que quatre rangées de pastilles : vingt-quatre villes en
+ * pastilles, c'est une barre qu'on fait défiler pour rien. Chaque choix annonce
+ * le nombre de fiches qu'il sert, en tenant compte des autres critères déjà
+ * posés — un filtre qui promet trente fiches et n'en sert aucune, on ne s'en
+ * sert plus.
+ */
+
+.spk .filtres{
+  display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;
+  padding:14px 15px;margin-bottom:14px;
+  background:var(--card);border:1px solid var(--line);border-radius:var(--r);
+  box-shadow:var(--lift);
+}
+.spk .filtre{display:flex;flex-direction:column;gap:5px;margin:0}
+.spk .filtre > span{
+  font-size:9px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--muted);
+}
+.spk .filtre select{
+  appearance:none;-webkit-appearance:none;
+  padding:8px 28px 8px 11px;border:1px solid var(--line);border-radius:9px;
+  background:var(--card);font-size:13px;font-weight:600;color:var(--ink);
+  max-width:190px;cursor:pointer;transition:border-color .15s;
+  background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),
+                   linear-gradient(135deg,var(--muted) 50%,transparent 50%);
+  background-position:calc(100% - 15px) 52%,calc(100% - 10px) 52%;
+  background-size:5px 5px,5px 5px;background-repeat:no-repeat;
+}
+.spk .filtre select:hover{border-color:var(--faint)}
+.spk .filtres .compte{
+  margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--muted);
+  font-variant-numeric:tabular-nums;padding-bottom:9px;
+}
+.spk .filtres .effacer{
+  font-size:12px;font-weight:600;color:var(--ink);padding-bottom:9px;
+  border-bottom:2px solid var(--yellow);
+}
+
 /* ------------------------------------------------------------ fiche d'appel */
 
 .spk .card{
@@ -303,8 +343,48 @@
 }
 .spk .addr{font-size:13px;color:var(--muted);margin-top:6px;line-height:1.5}
 .spk .rev{
-  font-family:var(--mono);font-size:11.5px;color:var(--muted);margin-top:8px;
+  display:flex;flex-wrap:wrap;gap:7px 10px;margin-top:9px;
+  font-family:var(--mono);font-size:11.5px;color:var(--muted);
   font-variant-numeric:tabular-nums;
+}
+.spk .rev span{position:relative}
+.spk .rev span + span::before{content:"·";margin-right:10px;color:var(--line)}
+/* L'heure où la personne décroche vaut mieux qu'une note Google : c'est la
+   seule information de cette ligne sur laquelle le commercial peut agir. */
+.spk .rev .quand{color:var(--yellow-ink);font-weight:600}
+
+/* Qui demander au standard. Au-dessus du numéro, parce que c'est la première
+   phrase de l'appel. */
+.spk .demander{
+  display:flex;flex-direction:column;gap:3px;
+  margin:18px 20px 0;padding:13px 15px;
+  background:var(--sink);border:1px solid var(--line);border-radius:var(--r-s);
+}
+.spk .demander .l{
+  font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--muted);
+}
+.spk .demander b{
+  font-size:16px;font-weight:600;color:var(--ink);letter-spacing:-.01em;
+}
+.spk .demander small{font-size:12px;color:var(--muted);line-height:1.5}
+
+/* Ce qu'on dit, et pourquoi. Juste sous le numéro : on clique, ça sonne, on
+   lit pendant la sonnerie. */
+.spk .script{padding:18px 20px 20px}
+.spk .script .sechead{padding:0;margin-bottom:9px}
+.spk .dire{
+  font-family:var(--disp);font-size:16.5px;line-height:1.5;color:var(--ink);
+  letter-spacing:-.012em;
+  padding:14px 16px;border-radius:var(--r-s);
+  background:var(--yellow-tint);border-left:3px solid var(--yellow);
+}
+.spk .pourquoi{
+  margin-top:11px;font-size:13px;line-height:1.6;color:var(--body);
+}
+.spk .pourquoi span{
+  display:block;font-size:9px;font-weight:700;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--faint);margin-bottom:4px;
 }
 
 /* Le numéro. C'est l'élément le plus important de l'outil : un pouce, en

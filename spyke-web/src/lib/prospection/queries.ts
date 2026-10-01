@@ -1,7 +1,7 @@
 "use client";
 
 import { createClient } from "./supabase/client";
-import type { Activity, Creneau, Deal, Lead, Profile } from "./types";
+import type { Activity, Creneau, Deal, Filtres, Lead, Profile } from "./types";
 import { enfiler } from "./horsligne";
 
 const sb = () => createClient();
@@ -47,14 +47,17 @@ export async function chargerLeads(): Promise<Lead[]> {
  * croit tenir une fiche et casse dès qu'il en lit un champ.
  */
 export async function ficheSuivante(
-  secteur: string | null,
+  filtres: Filtres,
   sautees: string[],
   mode: "neufs" | "rappels" = "neufs"
 ) {
   const { data, error } = await sb().rpc("next_lead", {
-    p_secteur: secteur,
+    p_secteur: filtres.secteur,
     p_skip: sautees,
     p_mode: mode,
+    p_ville: filtres.ville,
+    p_effectif: filtres.effectif,
+    p_prio: filtres.prio,
   });
   if (error) throw error;
   const fiche = (Array.isArray(data) ? data[0] : data) as Lead | null;

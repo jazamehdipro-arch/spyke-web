@@ -1,14 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as q from "@/lib/prospection/queries";
 import type { Ctx } from "../App";
-import type { Activity, Lead, Statut } from "@/lib/prospection/types";
-import { STATUS } from "@/lib/prospection/types";
-import { enE164, estMobile, fmtD, today } from "@/lib/prospection/format";
+import type { Activity, Filtres, Lead, Prio, Statut } from "@/lib/prospection/types";
+import { SANS_FILTRE, STATUS } from "@/lib/prospection/types";
+import { enE164, estMobile, fmtD, norm, today } from "@/lib/prospection/format";
 import { appeler as appelerDepuisLeSite, autoriserMicro, etatCourant } from "@/lib/prospection/telephone";
 import { jetonCourant } from "@/lib/prospection/auth";
-import { ficheSuivanteLocale } from "@/lib/prospection/horsligne";
+import { correspond, ficheSuivanteLocale } from "@/lib/prospection/horsligne";
 import ChoixCreneau from "./ChoixCreneau";
 
 /** Les six boutons de résultat d'appel, dans l'ordre du prototype. */
@@ -21,8 +21,23 @@ const RESULTATS: [Statut, string, string][] = [
   ["refus", "Pas intéressé", "act dead"],
 ];
 
+/**
+ * L'adresse en une ligne, sans répéter ce qu'elle contient déjà.
+ *
+ * Les fichiers donnent l'adresse complète — « 27 rue Ferrandière, 69002 Lyon »
+ * — et, à côté, la ville et le code postal dans leurs propres colonnes. Les
+ * coller bout à bout affichait « 27 rue Ferrandière, 69002 Lyon · Lyon 69002 ».
+ */
+function adresseLisible(l: Lead): string {
+  const bouts = [l.adresse.trim()];
+  const deja = norm(l.adresse);
+  if (l.ville && !deja.includes(norm(l.ville))) bouts.push(l.ville);
+  if (l.cp && !deja.includes(l.cp)) bouts.push(l.cp);
+  return bouts.filter(Boolean).join(" · ");
+}
+
 export default function VueFile({ ctx }: { ctx: Ctx }) {
-  const [secteur, setSecteur] = useState<string | null>(null);
+  const [filtres, setFiltres] = useState<Filtres>(SANS_FILTRE);
   /* Deux files distinctes. « Neufs » est le travail du jour : des fiches jamais
      appelées. « Rappels » regroupe les échéances atteintes. Une fiche déjà
      qualifiée ne revient plus s'imposer entre deux appels — on la retrouve dans
@@ -52,12 +67,12 @@ export default function VueFile({ ctx }: { ctx: Ctx }) {
         let l: Lead | null;
         let hors = false;
         try {
-          l = await q.ficheSuivante(secteur, skip, mode);
+          l = await q.ficheSuivante(filtres, skip, mode);
         } catch {
           // Pas de réseau : la file est calculée ici, avec exactement l'ordre
           // de lead_rank() en base. Le commercial continue d'appeler.
           hors = true;
-          l = ficheSuivanteLocale(dernier.current.leads, secteur, skip, ctx.moi.id, today(), mode);
+          l = ficheSuivanteLocale(dernier.current.leads, filtres, skip, ctx.moi.id, today(), mode);
         }
         setFiche(l);
         setRappel(l?.rappel ?? "");
@@ -77,7 +92,7 @@ export default function VueFile({ ctx }: { ctx: Ctx }) {
         enCours.current = false;
       }
     },
-    [secteur, mode, ctx.moi.id]
+    [filtres, mode, ctx.moi.id]
   );
 
   useEffect(() => {
@@ -87,10 +102,11 @@ export default function VueFile({ ctx }: { ctx: Ctx }) {
     void servir([]);
   }, [servir]);
 
-  /* Changer de secteur repart d'une file vierge. */
-  function choisirSecteur(s: string | null) {
+  /* Changer un critère repart d'une file vierge : les fiches écartées l'ont
+     été pour l'ancienne sélection, pas pour la nouvelle. */
+  function choisirFiltre(partiel: Partial<Filtres>) {
     setSautees([]);
-    setSecteur(s);
+    setFiltres((f) => ({ ...f, ...partiel }));
   }
 
   function choisirMode(m: "neufs" | "rappels") {
@@ -202,23 +218,81 @@ export default function VueFile({ ctx }: { ctx: Ctx }) {
     (l) => l.statut === "rdv" && l.rdv && l.rdv.slice(0, 10) < today() && l.rdv_honore === null
   );
 
-  const secteurs = [...new Set(ctx.d.leads.map((l) => l.secteur))].sort();
   /* « Jamais composée », pas « à appeler » : le statut ne bouge que si le
      commercial clique un des six boutons de résultat, alors qu'il a bel et bien
      appelé. first_call est posé dès le clic sur le numéro. */
+  /* Les valeurs proposées sortent des fiches réellement présentes : aucune
+     liste écrite à la main ne survit à un nouvel import. Et le compte annoncé
+     par chaque choix tient compte des autres critères déjà posés — sinon le
+     bouton promet des fiches que la file ne sert pas. */
+  const choix = useMemo(() => {
+    const dans = (l: Lead) =>
+      mode === "rappels"
+        ? l.statut === "rappeler" && !!l.rappel && l.rappel <= today()
+        : l.statut === "a_appeler" && l.first_call === null;
+
+    const liste = (
+      cle: keyof Filtres,
+      valeur: (l: Lead) => string
+    ): { v: string; n: number }[] => {
+      const sansCeCritere = { ...filtres, [cle]: null } as Filtres;
+      const compte = new Map<string, number>();
+      for (const l of ctx.d.leads) {
+        if (!dans(l) || !correspond(l, sansCeCritere)) continue;
+        const v = valeur(l);
+        compte.set(v, (compte.get(v) ?? 0) + 1);
+      }
+      return [...compte.entries()]
+        .map(([v, n]) => ({ v, n }))
+        .sort((a, b) => (a.v === "" ? 1 : b.v === "" ? -1 : a.v.localeCompare(b.v, "fr")));
+    };
+
+    return {
+      secteur: liste("secteur", (l) => l.secteur),
+      ville: liste("ville", (l) => l.ville),
+      effectif: liste("effectif", (l) => l.effectif),
+      prio: liste("prio", (l) => l.prio),
+      total: ctx.d.leads.filter((l) => dans(l) && correspond(l, filtres)).length,
+    };
+  }, [ctx.d.leads, filtres, mode]);
+
   const neufs = ctx.d.leads.filter(
     (l) => l.statut === "a_appeler" && l.first_call === null
   ).length;
-  /* Le compteur d'un secteur suit la file affichée : sinon il annoncerait des
-     fiches que le bouton ne sert pas. */
-  const enFile = (s: string | null) =>
-    ctx.d.leads.filter(
-      (l) =>
-        (s === null || l.secteur === s) &&
-        (mode === "rappels"
-          ? l.statut === "rappeler" && !!l.rappel && l.rappel <= today()
-          : l.statut === "a_appeler" && l.first_call === null)
-    ).length;
+  const filtreActif = Object.values(filtres).some((v) => v !== null);
+
+  /** Un menu de filtre. Vide = « tout », et le compte suit les autres critères. */
+  function Menu({
+    cle, titre, valeurs, libelle,
+  }: {
+    cle: keyof Filtres;
+    titre: string;
+    valeurs: { v: string; n: number }[];
+    libelle?: (v: string) => string;
+  }) {
+    if (valeurs.length < 2) return null;
+    const courant = filtres[cle];
+    return (
+      <label className="filtre">
+        <span>{titre}</span>
+        <select
+          value={courant === null ? "\u0000" : courant}
+          onChange={(e) =>
+            choisirFiltre({
+              [cle]: e.target.value === "\u0000" ? null : e.target.value,
+            } as Partial<Filtres>)
+          }
+        >
+          <option value={"\u0000"}>Tous</option>
+          {valeurs.map(({ v, n }) => (
+            <option key={v || "_"} value={v}>
+              {(libelle ? libelle(v) : v) + " (" + n + ")"}
+            </option>
+          ))}
+        </select>
+      </label>
+    );
+  }
 
   return (
     <>
@@ -261,24 +335,29 @@ export default function VueFile({ ctx }: { ctx: Ctx }) {
         </button>
       </div>
 
-      <div className="chips">
-        <button
-          className="chip"
-          aria-pressed={secteur === null}
-          onClick={() => choisirSecteur(null)}
-        >
-          Tous<span className="c">{enFile(null)}</span>
-        </button>
-        {secteurs.map((s) => (
-          <button
-            key={s}
-            className="chip"
-            aria-pressed={secteur === s}
-            onClick={() => choisirSecteur(s)}
-          >
-            {s}<span className="c">{enFile(s)}</span>
+      <div className="filtres">
+        <Menu cle="secteur" titre="Secteur" valeurs={choix.secteur} />
+        <Menu cle="ville" titre="Ville" valeurs={choix.ville} />
+        <Menu
+          cle="effectif"
+          titre="Taille"
+          valeurs={choix.effectif}
+          libelle={(v) => v || "Taille inconnue"}
+        />
+        <Menu
+          cle="prio"
+          titre="Priorité"
+          valeurs={choix.prio}
+          libelle={(v) => "Priorité " + v}
+        />
+        <span className="compte">
+          {choix.total} fiche{choix.total > 1 ? "s" : ""}
+        </span>
+        {filtreActif && (
+          <button className="effacer" onClick={() => choisirFiltre(SANS_FILTRE)}>
+            Tout afficher
           </button>
-        ))}
+        )}
       </div>
 
       {fiche === undefined ? (
@@ -294,8 +373,10 @@ export default function VueFile({ ctx }: { ctx: Ctx }) {
             <b>{mode === "rappels" ? "Aucun rappel dû" : "File terminée"}</b>
             <p>
               {mode === "rappels"
-                ? "Rien à rappeler aujourd'hui dans ce secteur. Reviens demain ou repasse aux fiches à appeler."
-                : "Plus aucune fiche jamais appelée dans ce secteur. Change de secteur, ou passe à la Liste pour revoir celles que tu as déjà traitées."}
+                ? "Rien à rappeler aujourd'hui avec ces critères. Reviens demain, élargis les filtres, ou repasse aux fiches à appeler."
+                : filtreActif
+                  ? "Plus aucune fiche jamais appelée avec ces critères. Élargis les filtres pour en retrouver."
+                  : "Plus aucune fiche jamais appelée. Passe au Fichier pour revoir celles que tu as déjà traitées."}
             </p>
           </div>
         )
@@ -311,16 +392,26 @@ export default function VueFile({ ctx }: { ctx: Ctx }) {
                 )}
               </div>
               <div className="name">{fiche.nom}</div>
-              <div className="addr">
-                {fiche.adresse}
-                {fiche.ville && (fiche.adresse ? " · " : "") + fiche.ville} {fiche.cp}
+              <div className="addr">{adresseLisible(fiche)}</div>
+              <div className="rev">
+                {fiche.nb_avis != null && (
+                  <span>{fiche.note_google}/5 · {fiche.nb_avis} avis Google</span>
+                )}
+                {fiche.effectif && <span>{fiche.effectif}</span>}
+                {fiche.creneau && <span className="quand">{fiche.creneau}</span>}
               </div>
-              {fiche.nb_avis != null && (
-                <div className="rev">
-                  {fiche.note_google}/5 · {fiche.nb_avis} avis Google
-                </div>
-              )}
             </div>
+
+            {/* Qui demander. C'est la première phrase de l'appel : sans un nom,
+                on reste à l'accueil et on n'en sort pas. Donc au-dessus du
+                numéro, pas en dessous. */}
+            {fiche.decideur && (
+              <div className="demander">
+                <span className="l">Demander</span>
+                <b>{fiche.decideur}</b>
+                {fiche.associes && <small>Sinon : {fiche.associes}</small>}
+              </div>
+            )}
 
             {fiche.tel ? (
               <a
@@ -337,6 +428,27 @@ export default function VueFile({ ctx }: { ctx: Ctx }) {
               <div className="dial">
                 <div className="num">—</div>
                 <div className="cta">Numéro manquant</div>
+              </div>
+            )}
+
+            {/* Ce qu'on dit, et pourquoi. Placé juste sous le numéro : le
+                commercial clique, ça sonne, et il lit pendant la sonnerie.
+                L'accroche est écrite pour ce prospect-là — elle se lit, elle ne
+                s'invente pas au moment où quelqu'un décroche. */}
+            {(fiche.accroche || fiche.detail) && (
+              <div className="script">
+                {fiche.accroche && (
+                  <>
+                    <div className="sechead">Ton accroche</div>
+                    <p className="dire">{fiche.accroche}</p>
+                  </>
+                )}
+                {fiche.detail && (
+                  <p className="pourquoi">
+                    <span>Ce qu&apos;on a vu</span>
+                    {fiche.detail}
+                  </p>
+                )}
               </div>
             )}
 

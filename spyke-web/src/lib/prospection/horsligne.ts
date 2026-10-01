@@ -1,6 +1,6 @@
 "use client";
 
-import type { Activity, Deal, Lead, Profile, Creneau, Statut, Prio } from "./types";
+import type { Activity, Deal, Filtres, Lead, Profile, Creneau, Statut, Prio } from "./types";
 
 /**
  * Le mode hors ligne.
@@ -150,9 +150,21 @@ export function rang(statut: Statut, prio: Prio, rappel: string | null, aujourdh
   return 99;
 }
 
+/**
+ * Les mêmes critères que next_lead, à la ligne près — l'écran s'en sert aussi
+ * pour compter les fiches derrière chaque bouton de filtre. Une chaîne vide
+ * pour l'effectif est un filtre : « taille non renseignée ».
+ */
+export function correspond(l: Lead, f: Filtres): boolean {
+  return (f.secteur === null || l.secteur === f.secteur)
+    && (f.ville === null || l.ville === f.ville)
+    && (f.effectif === null || l.effectif === f.effectif)
+    && (f.prio === null || l.prio === f.prio);
+}
+
 export function ficheSuivanteLocale(
   leads: Lead[],
-  secteur: string | null,
+  filtres: Filtres,
   sautees: string[],
   moiId: string,
   aujourdhui: string,
@@ -167,7 +179,7 @@ export function ficheSuivanteLocale(
       // même si aucun résultat n'a été saisi. Les rappels, eux, sont faits pour
       // être rappelés.
       (mode === "rappels" || l.first_call === null) &&
-      (secteur === null || l.secteur === secteur) &&
+      correspond(l, filtres) &&
       !sautees.includes(l.id) &&
       (l.owner_id === null || l.owner_id === moiId);
     }

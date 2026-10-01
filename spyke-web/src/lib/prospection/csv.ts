@@ -51,6 +51,27 @@ export function secteurDuFichier(nom: string) {
  * Transforme un CSV en fiches. La déduplication n'est pas faite ici : c'est un
  * index unique en base qui tranche, y compris entre deux imports différents.
  */
+/**
+ * Les tailles déclarées à l'INSEE arrivent sous plusieurs formes pour dire la
+ * même chose : « Non renseigné », « Non vérifié », vide. Trois libellés pour
+ * une seule réalité, c'est trois cases dans le filtre et aucune qui regroupe
+ * les fiches concernées. On ramène tout à l'absence.
+ */
+function effectifPropre(v: string): string {
+  const x = norm(v);
+  if (!x || x.startsWith("non ")) return "";
+  return v.trim();
+}
+
+/**
+ * Transforme un CSV en fiches. La déduplication n'est pas faite ici : c'est un
+ * index unique en base qui tranche, y compris entre deux imports différents.
+ *
+ * Le secteur passé en argument ne sert que de repli : si le fichier porte une
+ * colonne « Secteur », c'est elle qui décide, ligne par ligne. Les fichiers
+ * mélangent désormais notaires, avocats, experts-comptables et agences dans un
+ * même export — leur coller le nom du fichier mettait tout dans le même sac.
+ */
 export function lireFiches(texte: string, secteur: string):
   | { erreur: string }
   | { fiches: Partial<Lead>[] } {
@@ -58,7 +79,7 @@ export function lireFiches(texte: string, secteur: string):
   if (rows.length < 2) return { fiches: [] };
   const h = rows[0];
 
-  const iN = colonne(h, ["cabinet", "agence", "etude", "etablissement", "nom", "office", "raison sociale"]);
+  const iN = colonne(h, ["cabinet organisme", "cabinet", "agence", "etude", "etablissement", "nom", "office", "raison sociale"]);
   if (iN < 0) return { erreur: "Colonne du nom introuvable dans ce fichier" };
 
   const iT = colonne(h, ["telephone", "tel", "numero", "phone"]);
@@ -69,6 +90,17 @@ export function lireFiches(texte: string, secteur: string):
   const iG = colonne(h, ["note google", "note"]);
   const iR = colonne(h, ["nb avis", "avis"]);
   const iX = colonne(h, ["notes"]);
+  const iS = colonne(h, ["secteur"]);
+
+  // Préparation d'appel.
+  const iD = colonne(h, ["decideur a demander", "decideur", "contact decideur"]);
+  const iO = colonne(h, ["autres associes", "associes"]);
+  const iE = colonne(h, ["effectif insee", "effectif", "taille"]);
+  const iB = colonne(h, ["detail observe", "detail", "observation"]);
+  const iH = colonne(h, ["accroche", "phrase d accroche"]);
+  const iK = colonne(h, ["creneau conseille", "creneau"]);
+  const iI = colonne(h, ["interlocuteur"]);
+  const iJ = colonne(h, ["date rappel"]);
 
   const get = (c: string[], i: number) => (i > -1 ? (c[i] ?? "").trim() : "");
   const fiches: Partial<Lead>[] = [];
@@ -79,16 +111,28 @@ export function lireFiches(texte: string, secteur: string):
     if (!nom) continue;
     const note = get(c, iG).replace(",", ".");
     const avis = get(c, iR).replace(/\D/g, "");
+    const p = get(c, iP).toUpperCase();
+    const rappel = get(c, iJ);
     fiches.push({
-      secteur,
+      secteur: get(c, iS) || secteur,
       nom,
       tel: get(c, iT),
       ville: get(c, iV),
       cp: get(c, iC),
-      prio: get(c, iP).toUpperCase() === "B" ? "B" : "A",
+      prio: p === "B" ? "B" : p === "C" ? "C" : "A",
       adresse: get(c, iA),
       note_google: note && !isNaN(Number(note)) ? Number(note) : null,
       nb_avis: avis ? Number(avis) : null,
+      decideur: get(c, iD),
+      associes: get(c, iO),
+      effectif: effectifPropre(get(c, iE)),
+      detail: get(c, iB),
+      accroche: get(c, iH),
+      creneau: get(c, iK),
+      contact: get(c, iI),
+      // Une date déjà posée dans le fichier ne vaut que si elle est lisible :
+      // sinon la base refuse toute la ligne et on perd la fiche entière.
+      rappel: /^\d{4}-\d{2}-\d{2}$/.test(rappel) ? rappel : null,
       notes: get(c, iX),
     });
   }

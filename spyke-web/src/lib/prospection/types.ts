@@ -1,7 +1,10 @@
 /** Types de la base — reflet de supabase/migrations. */
 
 export type Role = "admin" | "commercial";
-export type Prio = "A" | "B";
+/* Les fichiers de prospection classent en C les structures hors cible — trop
+   petites, trop récentes. Les ramener en A les faisait remonter en tête de file
+   devant de vrais prospects. */
+export type Prio = "A" | "B" | "C";
 export type Statut =
   | "a_appeler"
   | "rappeler"
@@ -31,6 +34,21 @@ export type Lead = {
   adresse: string;
   note_google: number | null;
   nb_avis: number | null;
+
+  /* Préparation d'appel : vient du fichier, jamais saisi au téléphone.
+     decideur — qui demander au standard. Sans ça, on reste à l'accueil.
+     associes — les autres noms, pour quand le décideur est absent.
+     effectif — la taille déclarée, c'est le critère de ciblage.
+     detail   — ce qu'on a observé, et qui justifie l'appel.
+     accroche — la phrase d'ouverture, écrite pour ce prospect-là.
+     creneau  — l'heure où la personne est joignable. */
+  decideur: string;
+  associes: string;
+  effectif: string;
+  detail: string;
+  accroche: string;
+  creneau: string;
+
   statut: Statut;
   rappel: string | null;
   contact: string;
@@ -42,6 +60,23 @@ export type Lead = {
   rdv_at: string | null;
   updated_at: string;
 };
+
+/**
+ * Les critères de la file, tels que l'écran les pose.
+ *
+ * `null` veut dire « pas de filtre ». Pour l'effectif, la chaîne vide est un
+ * filtre à part entière : c'est « taille non renseignée », et il y a des
+ * centaines de fiches dans ce cas — les confondre avec l'absence de filtre
+ * rendrait ces fiches impossibles à isoler.
+ */
+export type Filtres = {
+  secteur: string | null;
+  ville: string | null;
+  effectif: string | null;
+  prio: Prio | null;
+};
+
+export const SANS_FILTRE: Filtres = { secteur: null, ville: null, effectif: null, prio: null };
 
 export type Activity = {
   id: string;
