@@ -53,17 +53,11 @@ export default function FicheRdv({ ctx, lead }: { ctx: Ctx; lead: Lead }) {
         {lead.effectif && (
           <div className="stat"><span>Taille</span><b>{lead.effectif}</b></div>
         )}
-        {lead.creneau && (
-          <div className="stat"><span>Quand appeler</span><b>{lead.creneau}</b></div>
-        )}
         {ctx.moi.role === "admin" && (
           <div className="stat"><span>Amené par</span><b>{parQui || "—"}</b></div>
         )}
       </div>
 
-      {/* Rouvrir une fiche, c'est souvent pour la rappeler : l'accroche préparée
-          doit être là, pas seulement dans l'écran d'appel. */}
-      {lead.accroche && <p className="dire" style={{ marginBottom: 12 }}>{lead.accroche}</p>}
       {lead.detail && (
         <p className="hint" style={{ marginBottom: 14 }}>
           <b>Ce qu&apos;on a vu :</b> {lead.detail}

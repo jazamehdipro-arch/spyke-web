@@ -349,10 +349,6 @@
 }
 .spk .rev span{position:relative}
 .spk .rev span + span::before{content:"·";margin-right:10px;color:var(--line)}
-/* L'heure où la personne décroche vaut mieux qu'une note Google : c'est la
-   seule information de cette ligne sur laquelle le commercial peut agir. */
-.spk .rev .quand{color:var(--yellow-ink);font-weight:600}
-
 /* Qui demander au standard. Au-dessus du numéro, parce que c'est la première
    phrase de l'appel. */
 .spk .demander{
@@ -369,18 +365,11 @@
 }
 .spk .demander small{font-size:12px;color:var(--muted);line-height:1.5}
 
-/* Ce qu'on dit, et pourquoi. Juste sous le numéro : on clique, ça sonne, on
-   lit pendant la sonnerie. */
+/* Pourquoi on appelle celui-là. Juste sous le numéro : on clique, ça sonne, on
+   le relit pendant la sonnerie. */
 .spk .script{padding:18px 20px 20px}
-.spk .script .sechead{padding:0;margin-bottom:9px}
-.spk .dire{
-  font-family:var(--disp);font-size:16.5px;line-height:1.5;color:var(--ink);
-  letter-spacing:-.012em;
-  padding:14px 16px;border-radius:var(--r-s);
-  background:var(--yellow-tint);border-left:3px solid var(--yellow);
-}
 .spk .pourquoi{
-  margin-top:11px;font-size:13px;line-height:1.6;color:var(--body);
+  font-size:13px;line-height:1.6;color:var(--body);
 }
 .spk .pourquoi span{
   display:block;font-size:9px;font-weight:700;letter-spacing:.14em;

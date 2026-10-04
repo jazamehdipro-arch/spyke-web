@@ -398,7 +398,6 @@ export default function VueFile({ ctx }: { ctx: Ctx }) {
                   <span>{fiche.note_google}/5 · {fiche.nb_avis} avis Google</span>
                 )}
                 {fiche.effectif && <span>{fiche.effectif}</span>}
-                {fiche.creneau && <span className="quand">{fiche.creneau}</span>}
               </div>
             </div>
 
@@ -431,24 +430,16 @@ export default function VueFile({ ctx }: { ctx: Ctx }) {
               </div>
             )}
 
-            {/* Ce qu'on dit, et pourquoi. Placé juste sous le numéro : le
-                commercial clique, ça sonne, et il lit pendant la sonnerie.
-                L'accroche est écrite pour ce prospect-là — elle se lit, elle ne
-                s'invente pas au moment où quelqu'un décroche. */}
-            {(fiche.accroche || fiche.detail) && (
+            {/* Pourquoi on appelle celui-là. Placé juste sous le numéro : le
+                commercial clique, ça sonne, et il le relit pendant la sonnerie.
+                La phrase d'accroche préparée, elle, n'est plus affichée : elle
+                se lisait mot pour mot et s'entendait. */}
+            {fiche.detail && (
               <div className="script">
-                {fiche.accroche && (
-                  <>
-                    <div className="sechead">Ton accroche</div>
-                    <p className="dire">{fiche.accroche}</p>
-                  </>
-                )}
-                {fiche.detail && (
-                  <p className="pourquoi">
-                    <span>Ce qu&apos;on a vu</span>
-                    {fiche.detail}
-                  </p>
-                )}
+                <p className="pourquoi">
+                  <span>Ce qu&apos;on a vu</span>
+                  {fiche.detail}
+                </p>
               </div>
             )}
 
