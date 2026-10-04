@@ -182,3 +182,68 @@ export async function retirerCommercial(jeton: string, membreId: string): Promis
   return { ok: true, message: "Retiré." + fiches };
   });
 }
+
+/**
+ * Supprimer définitivement quelqu'un de l'équipe.
+ *
+ * Deux gestes distincts, et l'ordre compte. La base efface d'abord la fiche
+ * d'équipe et détache ses fiches ; on efface ensuite son identifiant de
+ * connexion. Si la seconde étape échoue, la personne ne peut de toute façon
+ * plus entrer : la base exige qu'elle ait été retirée avant, et un retrait
+ * bannit déjà le compte.
+ *
+ * L'inverse serait dangereux : supprimer le compte Supabase efface la fiche
+ * d'équipe en cascade, et ses fiches resteraient attachées à un identifiant
+ * qui n'existe plus.
+ */
+export async function supprimerCommercial(jeton: string, membreId: string): Promise<Resultat> {
+  return sansCasser(async () => {
+    const admin = await exigerAdmin(jeton);
+    if ("refus" in admin) return { ok: false, erreur: admin.refus };
+    if (membreId === admin.id) {
+      return { ok: false, erreur: "Tu ne peux pas te supprimer toi-même." };
+    }
+
+    const avecJeton = createClient(PROSPECTION_URL, PROSPECTION_KEY, {
+      global: { headers: { Authorization: `Bearer ${jeton}` } },
+    });
+    const { data, error } = await avecJeton.rpc("delete_member", {
+      p_member_id: membreId,
+    });
+    if (error) return { ok: false, erreur: error.message };
+
+    const bilan = (data ?? {}) as {
+      nom?: string; fiches?: number; rdv?: number; affaires?: number;
+    };
+    const nom = bilan.nom ?? "Le membre";
+    const n = Number(bilan.fiches ?? 0);
+    const fiches =
+      n > 0
+        ? ` ${n} fiche${n > 1 ? "s" : ""} ${n > 1 ? "sont reparties" : "est repartie"} au vivier.`
+        : "";
+
+    const sb = service();
+    if (!sb) {
+      return {
+        ok: true,
+        message:
+          `${nom} est effacé de l'équipe.` + fiches +
+          " Son identifiant de connexion n'a pas pu être supprimé (clé de service" +
+          " absente), mais il reste banni et ne peut pas entrer.",
+      };
+    }
+
+    const { error: e2 } = await sb.auth.admin.deleteUser(membreId);
+    if (e2) {
+      return {
+        ok: true,
+        message:
+          `${nom} est effacé de l'équipe.` + fiches +
+          " Son identifiant de connexion n'a pas pu être supprimé : " + e2.message +
+          " Il reste banni et ne peut pas entrer.",
+      };
+    }
+
+    return { ok: true, message: `${nom} est supprimé.` + fiches };
+  });
+}

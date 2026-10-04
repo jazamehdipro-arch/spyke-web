@@ -302,3 +302,20 @@ export async function renommerSecteur(ancien: string, nouveau: string) {
   if (error) throw error;
   return count ?? 0;
 }
+
+/**
+ * Jette une liste entière.
+ *
+ * La base garde ce qui a abouti : un rendez-vous calé reste dans l'agenda, une
+ * fiche encaissée reste dans le pipeline. Elle renvoie les deux comptes pour que
+ * l'écran puisse dire ce qui est parti et ce qui est resté, plutôt que d'annoncer
+ * une suppression totale qui n'en est pas une.
+ */
+export async function supprimerSecteur(secteur: string) {
+  const { data, error } = await sb().rpc("delete_sector", { p_secteur: secteur });
+  if (error) throw error;
+  return (data ?? { supprimees: 0, gardees: 0 }) as {
+    supprimees: number;
+    gardees: number;
+  };
+}

@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import type { Profile } from "@/lib/prospection/types";
 import { jetonCourant } from "@/lib/prospection/auth";
-import { ajouterCommercial, retirerCommercial } from "./actionsEquipe";
+import { ajouterCommercial, retirerCommercial, supprimerCommercial } from "./actionsEquipe";
 
 type Message = { ok: boolean; texte: string } | null;
 
@@ -20,6 +20,7 @@ export default function Equipe({
   const [email, setEmail] = useState("");
   const [mdp, setMdp] = useState("");
   const [message, setMessage] = useState<Message>(null);
+  const [aSupprimer, setASupprimer] = useState<Profile | null>(null);
   const [enCours, demarrer] = useTransition();
 
   const actifs = equipe.filter((m) => m.actif);
@@ -42,6 +43,16 @@ export default function Equipe({
       const jeton = await jetonCourant();
       const r = await retirerCommercial(jeton ?? "", id);
       setMessage({ ok: r.ok, texte: r.ok ? r.message : r.erreur });
+      if (r.ok) await recharger();
+    });
+  }
+
+  function supprimer(id: string) {
+    demarrer(async () => {
+      const jeton = await jetonCourant();
+      const r = await supprimerCommercial(jeton ?? "", id);
+      setMessage({ ok: r.ok, texte: r.ok ? r.message : r.erreur });
+      setASupprimer(null);
       if (r.ok) await recharger();
     });
   }
@@ -80,7 +91,8 @@ export default function Equipe({
           <p className="hint" style={{ marginTop: 4 }}>
             Retirés de l&apos;équipe. Ils ne peuvent plus se connecter, mais leur
             prénom reste dans l&apos;historique des appels et leurs commissions
-            dues restent visibles dans le pipeline.
+            dues restent visibles dans le pipeline. Les supprimer efface leur
+            fiche et leur identifiant de connexion.
           </p>
           <div style={{ margin: "8px 0 4px" }}>
             {partis.map((m) => (
@@ -89,9 +101,34 @@ export default function Equipe({
                   <b style={{ color: "var(--dead)" }}>{m.nom}</b>
                   <small>Parti</small>
                 </span>
+                <button className="x" onClick={() => { setASupprimer(m); setMessage(null); }}
+                  disabled={enCours}>
+                  Supprimer
+                </button>
               </div>
             ))}
           </div>
+
+          {aSupprimer && (
+            <div className="confirme">
+              <b>Supprimer {aSupprimer.nom} définitivement ?</b>
+              <p>
+                Sa fiche d&apos;équipe et son identifiant de connexion sont
+                effacés. Son prénom reste lisible dans l&apos;historique des
+                appels, mais les fiches qu&apos;il avait gagnées se détachent de
+                lui : le pipeline ne saura plus à qui verser sa commission.
+              </p>
+              <div className="btns">
+                <button className="btn warn" disabled={enCours}
+                  onClick={() => supprimer(aSupprimer.id)}>
+                  {enCours ? "…" : "Oui, supprimer"}
+                </button>
+                <button className="btn ghost" onClick={() => setASupprimer(null)}>
+                  Annuler
+                </button>
+              </div>
+            </div>
+          )}
         </>
       )}
 

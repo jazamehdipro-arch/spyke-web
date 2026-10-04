@@ -678,6 +678,40 @@
 }
 .spk .mem .x:hover{background:var(--hot-tint)}
 
+/* Une ligne de liste de prospection : le nom, ce qu'elle contient, et les deux
+   gestes possibles. Même ossature que .mem, mais deux boutons au lieu d'un. */
+.spk .liste{
+  display:flex;align-items:center;gap:10px;padding:13px 0;
+  border-bottom:1px solid var(--line-2);
+}
+.spk .liste:last-child{border:0}
+.spk .liste .t{flex:1;min-width:0}
+.spk .liste .t b{display:block;font-size:14.5px;font-weight:600;color:var(--ink)}
+.spk .liste .t small{font-size:12px;color:var(--muted)}
+.spk .liste .lien{
+  font-size:12px;color:var(--body);font-weight:600;padding:5px 11px;
+  border:1px solid var(--line);border-radius:999px;transition:background .14s;
+}
+.spk .liste .lien:hover{background:var(--sink)}
+.spk .liste .x{
+  font-size:12px;color:var(--hot);font-weight:600;padding:5px 11px;
+  border:1px solid var(--hot-line);border-radius:999px;transition:background .14s;
+}
+.spk .liste .x:hover{background:var(--hot-tint)}
+
+/* La confirmation d'une suppression. Elle dit ce qui part et ce qui reste, et
+   elle le dit en rouge : on ne confirme pas un effacement dans un cadre qui
+   ressemble au reste de l'écran. */
+.spk .confirme{
+  margin-top:14px;padding:16px;border-radius:var(--r-s);
+  background:var(--hot-tint);border:1px solid var(--hot-line);
+}
+.spk .confirme b{
+  display:block;font-size:14.5px;font-weight:700;color:var(--ink);margin-bottom:7px;
+}
+.spk .confirme p{font-size:13.5px;color:var(--body);line-height:1.6}
+.spk .confirme .btns{margin-top:14px}
+
 .spk .scoreboard{display:grid;gap:12px}
 .spk .score{
   border:1px solid var(--line);border-radius:var(--r);padding:15px 16px;background:var(--card);
