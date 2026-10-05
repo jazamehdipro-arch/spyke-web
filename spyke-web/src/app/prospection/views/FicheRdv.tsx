@@ -53,6 +53,20 @@ export default function FicheRdv({ ctx, lead }: { ctx: Ctx; lead: Lead }) {
         {lead.effectif && (
           <div className="stat"><span>Taille</span><b>{lead.effectif}</b></div>
         )}
+        {lead.email && (
+          <div className="stat"><span>E-mail</span><b>{lead.email}</b></div>
+        )}
+        {lead.linkedin && (
+          <div className="stat">
+            <span>LinkedIn</span>
+            <b>
+              <a href={lead.linkedin} target="_blank" rel="noreferrer noopener"
+                 style={{ color: "var(--ink)", textDecoration: "underline" }}>
+                Voir le profil
+              </a>
+            </b>
+          </div>
+        )}
         {ctx.moi.role === "admin" && (
           <div className="stat"><span>Amené par</span><b>{parQui || "—"}</b></div>
         )}

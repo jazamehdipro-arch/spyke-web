@@ -10,6 +10,7 @@ import { appeler as appelerDepuisLeSite, autoriserMicro, etatCourant } from "@/l
 import { jetonCourant } from "@/lib/prospection/auth";
 import { correspond, ficheSuivanteLocale } from "@/lib/prospection/horsligne";
 import ChoixCreneau from "./ChoixCreneau";
+import Email from "./Email";
 
 /** Les six boutons de résultat d'appel, dans l'ordre du prototype. */
 const RESULTATS: [Statut, string, string][] = [
@@ -576,6 +577,34 @@ export default function VueFile({ ctx }: { ctx: Ctx }) {
                 </>
               )}
             </div>
+
+            {/* Les deux autres portes d'entrée, sous le numéro parce qu'elles
+                viennent après lui : on appelle d'abord, on écrit ensuite. Le
+                profil LinkedIn sert surtout à vérifier à qui on parle. */}
+            {(fiche.email || fiche.linkedin) && (
+              <div className="joindre">
+                {fiche.email && (
+                  <button
+                    className="voie mail"
+                    onClick={() => ctx.ouvrirSheet(<Email ctx={ctx} lead={fiche} />)}
+                  >
+                    <span className="l">E-mail</span>
+                    <b>{fiche.email}</b>
+                  </button>
+                )}
+                {fiche.linkedin && (
+                  <a
+                    className="voie in"
+                    href={fiche.linkedin}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                  >
+                    <span className="l">LinkedIn</span>
+                    <b>Voir le profil</b>
+                  </a>
+                )}
+              </div>
+            )}
 
             {/* Pourquoi on appelle celui-là. Placé juste sous le numéro : le
                 commercial clique, ça sonne, et il le relit pendant la sonnerie.

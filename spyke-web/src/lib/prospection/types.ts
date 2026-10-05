@@ -49,6 +49,12 @@ export type Lead = {
   accroche: string;
   creneau: string;
 
+  /* Les deux autres façons de joindre le décideur, quand le fichier les porte.
+     email    — pour écrire depuis Spyke sans ouvrir sa messagerie.
+     linkedin — pour vérifier à qui on parle avant de composer. */
+  email: string;
+  linkedin: string;
+
   statut: Statut;
   rappel: string | null;
   contact: string;

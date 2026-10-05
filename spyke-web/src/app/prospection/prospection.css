@@ -365,6 +365,28 @@
 }
 .spk .demander small{font-size:12px;color:var(--muted);line-height:1.5}
 
+/* Les deux autres portes d'entrée, juste sous le numéro. Deux rectangles de
+   même poids, assez hauts pour un pouce, et nettement moins voyants que la case
+   noire : on appelle d'abord, on écrit ensuite. */
+.spk .joindre{display:grid;gap:8px;margin:0 20px;grid-template-columns:1fr}
+.spk .joindre:has(.voie + .voie){grid-template-columns:1fr 1fr}
+.spk .voie{
+  display:block;text-align:left;text-decoration:none;
+  padding:11px 14px;border-radius:var(--r-s);
+  background:var(--sink);border:1px solid var(--line);
+  transition:background .14s,border-color .14s;min-width:0;
+}
+.spk .voie:hover{background:var(--card);border-color:var(--faint)}
+.spk .voie .l{
+  display:block;font-size:9px;font-weight:700;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--muted);margin-bottom:3px;
+}
+.spk .voie b{
+  display:block;font-size:13px;font-weight:600;color:var(--ink);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.spk .voie.mail b{font-family:var(--mono);font-size:12px}
+
 /* Pourquoi on appelle celui-là. Juste sous le numéro : on clique, ça sonne, on
    le relit pendant la sonnerie. */
 .spk .script{padding:18px 20px 20px}

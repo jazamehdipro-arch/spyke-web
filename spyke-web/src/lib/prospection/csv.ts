@@ -2,6 +2,32 @@ import { norm } from "./format";
 import type { Lead } from "./types";
 
 /** Lecteur CSV du prototype : virgule ou point-virgule, guillemets doublés. */
+/**
+ * Une adresse, ou rien.
+ *
+ * Les fichiers portent « Non renseigné », « n/a », ou une cellule qui n'a
+ * jamais contenu d'adresse. Une chaîne qui ne ressemble pas à une adresse vaut
+ * mieux absente : affichée, elle ferait cliquer dans le vide, et le commercial
+ * croirait avoir écrit à quelqu'un.
+ */
+function emailPropre(v: string): string {
+  const t = v.trim();
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(t) ? t.toLowerCase() : "";
+}
+
+/**
+ * Un lien LinkedIn utilisable tel quel.
+ *
+ * Les fichiers donnent tantôt l'adresse complète, tantôt « linkedin.com/in/… »
+ * sans protocole. Sans « https:// » devant, le navigateur traite le lien comme
+ * une page de Spyke et ouvre une erreur.
+ */
+function lienPropre(v: string): string {
+  const t = v.trim();
+  if (!t || !/linkedin\./i.test(t)) return "";
+  return /^https?:\/\//i.test(t) ? t : "https://" + t.replace(/^\/+/, "");
+}
+
 export function parseCSV(txt: string): string[][] {
   txt = txt.replace(/^﻿/, "");
   const rows: string[][] = [];
@@ -102,6 +128,10 @@ export function lireFiches(texte: string, secteur: string):
   const iI = colonne(h, ["interlocuteur"]);
   const iJ = colonne(h, ["date rappel"]);
 
+  // Les deux autres façons de joindre quelqu'un.
+  const iM = colonne(h, ["email", "e mail", "mail", "adresse mail", "courriel"]);
+  const iL = colonne(h, ["linkedin", "lien linkedin", "profil linkedin", "url linkedin"]);
+
   const get = (c: string[], i: number) => (i > -1 ? (c[i] ?? "").trim() : "");
   const fiches: Partial<Lead>[] = [];
 
@@ -130,6 +160,8 @@ export function lireFiches(texte: string, secteur: string):
       accroche: get(c, iH),
       creneau: get(c, iK),
       contact: get(c, iI),
+      email: emailPropre(get(c, iM)),
+      linkedin: lienPropre(get(c, iL)),
       // Une date déjà posée dans le fichier ne vaut que si elle est lisible :
       // sinon la base refuse toute la ligne et on perd la fiche entière.
       rappel: /^\d{4}-\d{2}-\d{2}$/.test(rappel) ? rappel : null,
