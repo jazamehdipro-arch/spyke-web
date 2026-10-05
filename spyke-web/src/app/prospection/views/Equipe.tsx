@@ -30,7 +30,6 @@ export default function Equipe({
      et ce qui est tapé. Un seul à la fois, comme pour la suppression. */
   const [adresseDe, setAdresseDe] = useState<string | null>(null);
   const [adresse, setAdresse] = useState("");
-  const [tel, setTel] = useState("");
   const [enCours, demarrer] = useTransition();
 
   const actifs = equipe.filter((m) => m.actif);
@@ -60,7 +59,7 @@ export default function Equipe({
   function enregistrerAdresse(id: string) {
     demarrer(async () => {
       const jeton = await jetonCourant();
-      const r = await fixerAdresseEnvoi(jeton ?? "", id, adresse, tel);
+      const r = await fixerAdresseEnvoi(jeton ?? "", id, adresse);
       setMessage({ ok: r.ok, texte: r.ok ? r.message : r.erreur });
       if (r.ok) {
         setAdresseDe(null);
@@ -106,12 +105,11 @@ export default function Equipe({
                 onClick={() => {
                   setAdresseDe(m.id);
                   setAdresse(m.email_envoi ?? "");
-                  setTel(m.telephone ?? "");
                   setMessage(null);
                 }}
                 disabled={enCours}
               >
-                Signature
+                Adresse
               </button>
               {m.id !== moi.id && (
                 <button className="x" onClick={() => retirer(m.id)} disabled={enCours}>
@@ -139,21 +137,6 @@ export default function Equipe({
                   Laisse vide pour revenir à l&apos;adresse par défaut.
                 </p>
 
-                <div style={{ marginTop: 14 }}>
-                  <label htmlFor={"tel-" + m.id}>Numéro dans sa signature</label>
-                  <input
-                    id={"tel-" + m.id}
-                    type="tel"
-                    placeholder="06 12 34 56 78"
-                    value={tel}
-                    onChange={(e) => setTel(e.target.value)}
-                  />
-                  <p className="hint" style={{ marginTop: 7 }}>
-                    Un prospect qui veut répondre vite décroche son téléphone
-                    plutôt que d&apos;écrire. Laisse vide pour ne pas afficher de
-                    numéro.
-                  </p>
-                </div>
                 <div className="btns">
                   <button className="btn" disabled={enCours}
                     onClick={() => enregistrerAdresse(m.id)}>
