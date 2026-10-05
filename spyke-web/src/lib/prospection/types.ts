@@ -20,6 +20,10 @@ export type Profile = {
   nom: string;
   role: Role;
   actif: boolean;
+  /* L'adresse d'où partent ses e-mails de prospection. Vide = celle du projet.
+     Seul le responsable la fixe : sinon chacun pourrait écrire au nom d'un
+     collègue. */
+  email_envoi: string;
   created_at: string;
 };
 

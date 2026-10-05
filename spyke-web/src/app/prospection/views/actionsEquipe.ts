@@ -247,3 +247,42 @@ export async function supprimerCommercial(jeton: string, membreId: string): Prom
     return { ok: true, message: `${nom} est supprimé.` + fiches };
   });
 }
+
+/**
+ * Fixer l'adresse d'où partent les e-mails d'un membre.
+ *
+ * Le contrôle est refait côté base : la policy profiles_update_self autorise
+ * chacun à modifier sa propre fiche, et sans ce garde-fou un commercial
+ * pourrait se donner l'adresse d'un collègue et écrire en son nom.
+ */
+export async function fixerAdresseEnvoi(
+  jeton: string,
+  membreId: string,
+  adresse: string
+): Promise<Resultat> {
+  return sansCasser(async () => {
+    const admin = await exigerAdmin(jeton);
+    if ("refus" in admin) return { ok: false, erreur: admin.refus };
+
+    const propre = adresse.trim().toLowerCase();
+    if (propre && !/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(propre)) {
+      return { ok: false, erreur: "Ce n'est pas une adresse e-mail valide." };
+    }
+
+    const avecJeton = createClient(PROSPECTION_URL, PROSPECTION_KEY, {
+      global: { headers: { Authorization: `Bearer ${jeton}` } },
+    });
+    const { error } = await avecJeton
+      .from("profiles")
+      .update({ email_envoi: propre })
+      .eq("id", membreId);
+    if (error) return { ok: false, erreur: error.message };
+
+    return {
+      ok: true,
+      message: propre
+        ? `Ses e-mails partiront de ${propre}.`
+        : "Ses e-mails repartent de l'adresse par défaut.",
+    };
+  });
+}

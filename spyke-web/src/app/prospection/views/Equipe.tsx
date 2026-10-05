@@ -3,7 +3,12 @@
 import { useState, useTransition } from "react";
 import type { Profile } from "@/lib/prospection/types";
 import { jetonCourant } from "@/lib/prospection/auth";
-import { ajouterCommercial, retirerCommercial, supprimerCommercial } from "./actionsEquipe";
+import {
+  ajouterCommercial,
+  retirerCommercial,
+  supprimerCommercial,
+  fixerAdresseEnvoi,
+} from "./actionsEquipe";
 
 type Message = { ok: boolean; texte: string } | null;
 
@@ -21,6 +26,10 @@ export default function Equipe({
   const [mdp, setMdp] = useState("");
   const [message, setMessage] = useState<Message>(null);
   const [aSupprimer, setASupprimer] = useState<Profile | null>(null);
+  /* L'adresse d'expédition en cours de modification : l'identifiant du membre,
+     et ce qui est tapé. Un seul à la fois, comme pour la suppression. */
+  const [adresseDe, setAdresseDe] = useState<string | null>(null);
+  const [adresse, setAdresse] = useState("");
   const [enCours, demarrer] = useTransition();
 
   const actifs = equipe.filter((m) => m.actif);
@@ -47,6 +56,18 @@ export default function Equipe({
     });
   }
 
+  function enregistrerAdresse(id: string) {
+    demarrer(async () => {
+      const jeton = await jetonCourant();
+      const r = await fixerAdresseEnvoi(jeton ?? "", id, adresse);
+      setMessage({ ok: r.ok, texte: r.ok ? r.message : r.erreur });
+      if (r.ok) {
+        setAdresseDe(null);
+        await recharger();
+      }
+    });
+  }
+
   function supprimer(id: string) {
     demarrer(async () => {
       const jeton = await jetonCourant();
@@ -69,18 +90,62 @@ export default function Equipe({
 
       <div style={{ margin: "12px 0" }}>
         {actifs.map((m) => (
-          <div className="mem" key={m.id}>
-            <span className="t">
-              <b>{m.nom}</b>
-              <small>
-                {m.role === "admin" ? "Responsable" : "Commercial"}
-                {m.id === moi.id ? " · toi" : ""}
-              </small>
-            </span>
-            {m.id !== moi.id && (
-              <button className="x" onClick={() => retirer(m.id)} disabled={enCours}>
-                Retirer
+          <div key={m.id}>
+            <div className="mem">
+              <span className="t">
+                <b>{m.nom}</b>
+                <small>
+                  {m.role === "admin" ? "Responsable" : "Commercial"}
+                  {m.id === moi.id ? " · toi" : ""}
+                  {m.email_envoi ? " · " + m.email_envoi : " · adresse par défaut"}
+                </small>
+              </span>
+              <button
+                className="lien"
+                onClick={() => {
+                  setAdresseDe(m.id);
+                  setAdresse(m.email_envoi ?? "");
+                  setMessage(null);
+                }}
+                disabled={enCours}
+              >
+                Adresse
               </button>
+              {m.id !== moi.id && (
+                <button className="x" onClick={() => retirer(m.id)} disabled={enCours}>
+                  Retirer
+                </button>
+              )}
+            </div>
+
+            {adresseDe === m.id && (
+              <div className="envoi">
+                <label htmlFor={"ad-" + m.id}>
+                  Adresse d&apos;expédition de {m.nom}
+                </label>
+                <input
+                  id={"ad-" + m.id}
+                  type="email"
+                  placeholder="jb.perez@spykeconseil.fr"
+                  value={adresse}
+                  onChange={(e) => setAdresse(e.target.value)}
+                />
+                <p className="hint" style={{ marginTop: 7 }}>
+                  Ses e-mails de prospection partiront de cette adresse, et les
+                  réponses des prospects y arriveront. Elle doit donc recevoir le
+                  courrier : une vraie boîte, ou une redirection vers la sienne.
+                  Laisse vide pour revenir à l&apos;adresse par défaut.
+                </p>
+                <div className="btns">
+                  <button className="btn" disabled={enCours}
+                    onClick={() => enregistrerAdresse(m.id)}>
+                    {enCours ? "…" : "Enregistrer"}
+                  </button>
+                  <button className="btn ghost" onClick={() => setAdresseDe(null)}>
+                    Annuler
+                  </button>
+                </div>
+              </div>
             )}
           </div>
         ))}

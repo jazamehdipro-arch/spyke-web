@@ -114,7 +114,7 @@ export async function POST(req: Request) {
    */
   const { data: moi } = await sb
     .from('profiles')
-    .select('nom, role, actif')
+    .select('nom, role, actif, email_envoi')
     .eq('id', user.id)
     .maybeSingle()
 
@@ -124,7 +124,25 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, erreur: 'Cette fiche est suivie par un collègue.' })
   }
 
-  const repondreA = user.email ?? (resend ? resend.from : smtp!.from)
+  /**
+   * L'expéditeur.
+   *
+   * Chaque membre peut porter sa propre adresse, posée par le responsable. Le
+   * service d'envoi est autorisé sur tout le domaine : aucune clé ni aucun mot
+   * de passe supplémentaire n'est nécessaire pour une adresse de plus.
+   *
+   * La réponse part vers cette même adresse quand elle existe. C'est voulu :
+   * un prospect qui répond à Jean-Baptiste doit tomber chez Jean-Baptiste, pas
+   * dans une boîte commune où quelqu'un devra faire suivre. L'adresse doit donc
+   * recevoir le courrier, boîte réelle ou simple redirection.
+   */
+  const sienne = (moi.email_envoi ?? '').trim()
+  const defaut = resend ? resend.from : smtp!.from
+  const expediteur = sienne || defaut
+  const repondreA = sienne || user.email || defaut
+
+  // Par SMTP, l'hébergeur refuse un expéditeur qu'il n'a pas approuvé et
+  // répond « 550 Sender mismatch ». Par Resend, le domaine suffit.
 
   if (resend) {
     const r = await fetch('https://api.resend.com/emails', {
@@ -134,7 +152,7 @@ export async function POST(req: Request) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: `${moi.nom} <${resend.from}>`,
+        from: `${moi.nom} <${expediteur}>`,
         to: [fiche.email],
         reply_to: repondreA,
         subject: sujet,
@@ -161,7 +179,7 @@ export async function POST(req: Request) {
 
     try {
       await transporteur.sendMail({
-        from: `${moi.nom} <${smtp!.from}>`,
+        from: `${moi.nom} <${expediteur}>`,
         to: fiche.email,
         replyTo: repondreA,
         subject: sujet,
