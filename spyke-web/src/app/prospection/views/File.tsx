@@ -3,24 +3,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as q from "@/lib/prospection/queries";
 import type { Ctx } from "../App";
-import type { Activity, Filtres, Lead, ModeFile, Prio, Statut } from "@/lib/prospection/types";
-import { FILES, SANS_FILTRE, STATUS } from "@/lib/prospection/types";
-import { enE164, estMobile, fmtD, norm, today } from "@/lib/prospection/format";
-import { appeler as appelerDepuisLeSite, autoriserMicro, etatCourant } from "@/lib/prospection/telephone";
-import { jetonCourant } from "@/lib/prospection/auth";
+import type { Filtres, Lead, ModeFile } from "@/lib/prospection/types";
+import { FILES, SANS_FILTRE } from "@/lib/prospection/types";
+import { today } from "@/lib/prospection/format";
 import { correspond, ficheSuivanteLocale } from "@/lib/prospection/horsligne";
-import ChoixCreneau from "./ChoixCreneau";
-import Email from "./Email";
-
-/** Les six boutons de résultat d'appel, dans l'ordre du prototype. */
-const RESULTATS: [Statut, string, string][] = [
-  ["chaud", "Chaud", "act hot"],
-  ["tiede", "Tiède", "act warm"],
-  ["rdv", "RDV calé", "act won"],
-  ["rappeler", "À rappeler", "act"],
-  ["injoignable", "Injoignable", "act dead"],
-  ["refus", "Pas intéressé", "act dead"],
-];
+import Carte from "./Carte";
 
 /** Ce qu'on dit quand une file est vide. Un message par file : « File
     terminée » ne veut rien dire quand on vient d'ouvrir ses prospects chauds. */
@@ -63,21 +50,6 @@ function dansLaFile(l: Lead, mode: ModeFile): boolean {
   return l.statut === mode;
 }
 
-/**
- * L'adresse en une ligne, sans répéter ce qu'elle contient déjà.
- *
- * Les fichiers donnent l'adresse complète — « 27 rue Ferrandière, 69002 Lyon »
- * — et, à côté, la ville et le code postal dans leurs propres colonnes. Les
- * coller bout à bout affichait « 27 rue Ferrandière, 69002 Lyon · Lyon 69002 ».
- */
-function adresseLisible(l: Lead): string {
-  const bouts = [l.adresse.trim()];
-  const deja = norm(l.adresse);
-  if (l.ville && !deja.includes(norm(l.ville))) bouts.push(l.ville);
-  if (l.cp && !deja.includes(l.cp)) bouts.push(l.cp);
-  return bouts.filter(Boolean).join(" · ");
-}
-
 export default function VueFile({ ctx }: { ctx: Ctx }) {
   const [filtres, setFiltres] = useState<Filtres>(SANS_FILTRE);
   /* Cinq files distinctes. « À appeler » est le travail du jour : des fiches
@@ -89,17 +61,7 @@ export default function VueFile({ ctx }: { ctx: Ctx }) {
      de chauds quand il a le temps de les reprendre. */
   const [mode, setMode] = useState<ModeFile>("neufs");
   const [fiche, setFiche] = useState<Lead | null | undefined>(undefined);
-  const [hist, setHist] = useState<Activity[]>([]);
   const [sautees, setSautees] = useState<string[]>([]);
-  /* La correction du numéro. Elle vit à part des autres champs : ceux-là
-     s'enregistrent en quittant la case, celui-ci demande une validation
-     explicite. Se tromper d'un chiffre sur un numéro, c'est perdre la fiche. */
-  const [corrigeTel, setCorrigeTel] = useState(false);
-  const [telSaisi, setTelSaisi] = useState("");
-  const [telErreur, setTelErreur] = useState("");
-  const [rappel, setRappel] = useState("");
-  const [contact, setContact] = useState("");
-  const [notes, setNotes] = useState("");
   const enCours = useRef(false);
 
   /* Les fiches et l'historique servent au repli hors ligne, mais ils ne doivent
@@ -116,29 +78,14 @@ export default function VueFile({ ctx }: { ctx: Ctx }) {
       enCours.current = true;
       try {
         let l: Lead | null;
-        let hors = false;
         try {
           l = await q.ficheSuivante(filtres, skip, mode);
         } catch {
           // Pas de réseau : la file est calculée ici, avec exactement l'ordre
           // de lead_rank() en base. Le commercial continue d'appeler.
-          hors = true;
           l = ficheSuivanteLocale(dernier.current.leads, filtres, skip, ctx.moi.id, today(), mode);
         }
         setFiche(l);
-        setCorrigeTel(false);
-        setTelErreur("");
-        setRappel(l?.rappel ?? "");
-        setContact(l?.contact ?? "");
-        setNotes(l?.notes ?? "");
-        if (!l) setHist([]);
-        else if (hors) {
-          setHist(
-            dernier.current.activities.filter((a) => a.lead_id === l!.id).slice(0, 20)
-          );
-        } else {
-          setHist(await q.historique(l.id));
-        }
       } catch {
         setFiche(null);
       } finally {
@@ -167,136 +114,10 @@ export default function VueFile({ ctx }: { ctx: Ctx }) {
     setMode(m);
   }
 
-  /* Enregistre ce qui est tapé dans les champs avant de changer de fiche. */
-  const enregistrerChamps = useCallback(async () => {
-    if (!fiche) return;
-    const patch: Partial<Lead> = {};
-    if ((fiche.rappel ?? "") !== rappel) patch.rappel = rappel || null;
-    if (fiche.contact !== contact) patch.contact = contact;
-    if (fiche.notes !== notes) patch.notes = notes;
-    if (Object.keys(patch).length) await q.majLead(fiche.id, patch);
-  }, [fiche, rappel, contact, notes]);
-
-  /**
-   * Un clic sur le numéro. Si Ringover est chargé et connecté, l'appel part
-   * d'ici et le lien « tel: » est neutralisé. Sinon on le laisse agir : sur un
-   * téléphone il ouvre le clavier, sur un ordinateur il passe la main au
-   * logiciel installé s'il y en a un. Dans tous les cas, l'appel est noté.
-   */
-  async function appeler(e?: React.MouseEvent) {
-    if (!fiche) return;
-    const e164 = enE164(fiche.tel);
-    // Quand le clavier de l'opérateur est ouvert et connecté, l'appel part du
-    // serveur et le lien « tel: » est neutralisé. Sinon on le laisse agir : sur
-    // un téléphone il ouvre le clavier, sur un ordinateur il passe la main au
-    // logiciel installé s'il y en a un.
-    if (e164 && etatCourant() === "pret") {
-      e?.preventDefault();
-      // Le micro se demande pendant le clic : c'est le seul moment où Chrome
-      // accepte d'afficher sa question. Le jeton, lui, peut attendre.
-      const micro = autoriserMicro();
-      const jeton = (await jetonCourant()) ?? "";
-      await micro;
-      void appelerDepuisLeSite(e164, jeton);
-    }
-    try {
-      await q.noter(fiche.id, "Appel passé", ctx.moi.id);
-      setHist(await q.historique(fiche.id));
-      void ctx.recharger();
-    } catch {
-      ctx.toast("Appel non enregistré, il repartira à la reconnexion");
-    }
-  }
-
-  /**
-   * Enregistre le numéro corrigé.
-   *
-   * La base refuse un numéro déjà porté par une autre fiche : c'est l'index
-   * unique qui tient la déduplication de tout le fichier, et on ne le contourne
-   * pas. On traduit simplement son refus en une phrase lisible au téléphone.
-   */
-  async function enregistrerTel() {
-    if (!fiche) return;
-    const propre = telSaisi.trim();
-    if (!propre) {
-      setTelErreur("Il faut un numéro.");
-      return;
-    }
-    if (propre === fiche.tel) {
-      setCorrigeTel(false);
-      return;
-    }
-    setTelErreur("");
-    const ancien = fiche.tel;
-    try {
-      const maj = await q.majLead(fiche.id, { tel: propre });
-      // Hors ligne, majLead met la correction en file et ne renvoie rien : on
-      // pose quand même le nouveau numéro à l'écran, il partira au retour du
-      // réseau comme le reste.
-      setFiche(maj ?? { ...fiche, tel: propre });
-      await q.noter(fiche.id, `Numéro corrigé : ${ancien} → ${propre}`, ctx.moi.id);
-      setHist(await q.historique(fiche.id).catch(() => hist));
-      setCorrigeTel(false);
-      ctx.toast("Numéro corrigé");
-      void ctx.recharger();
-    } catch (e) {
-      const err = e as { code?: string; message?: string };
-      setTelErreur(
-        err.code === "23505"
-          ? "Ce numéro est déjà sur une autre fiche."
-          : err.message ?? "Enregistrement impossible."
-      );
-    }
-  }
-
-  async function poser(statut: Statut) {
-    if (!fiche) return;
-    await enregistrerChamps();
-
-    if (statut === "rdv") {
-      // Caler un rendez-vous sans réseau reviendrait à promettre un horaire
-      // qu'un collègue vient peut-être de prendre : seule la base peut garantir
-      // qu'un créneau réservé est bloqué pour tout le monde. On refuse et on le
-      // dit, plutôt que de faire déplacer quelqu'un pour rien.
-      if (typeof navigator !== "undefined" && !navigator.onLine) {
-        ctx.toast("Pas de réseau : note « chaud » et cale le RDV en revenant");
-        return;
-      }
-      ctx.ouvrirSheet(<ChoixCreneau ctx={ctx} lead={fiche} />);
-      return;
-    }
-
-    let dateRappel = rappel;
-    if (statut === "rappeler" && !dateRappel) {
-      const d = new Date();
-      d.setDate(d.getDate() + 7);
-      dateRappel = d.toLocaleDateString("sv-SE");
-    }
-
-    try {
-      await q.majLead(fiche.id, {
-        statut,
-        rdv: null,
-        rappel: dateRappel || null,
-        contact,
-        notes,
-      });
-      await q.noter(
-        fiche.id,
-        STATUS[statut].l + (statut === "rappeler" ? " le " + fmtD(dateRappel) : ""),
-        ctx.moi.id
-      );
-      ctx.toast(STATUS[statut].l + " · enregistré");
-      void ctx.recharger();
-      await servir(sautees);
-    } catch (e) {
-      ctx.toast((e as { message?: string }).message ?? "Enregistrement impossible");
-    }
-  }
-
   async function passer() {
     if (!fiche) return;
-    await enregistrerChamps();
+    // Les champs s'enregistrent en quittant la case, et cliquer ici fait
+    // justement sortir du champ en cours.
     const skip = [...sautees, fiche.id];
     setSautees(skip);
     await q.relacherFiche(fiche.id).catch(() => {});
@@ -482,199 +303,13 @@ export default function VueFile({ ctx }: { ctx: Ctx }) {
         )
       ) : (
         <>
-          <div className="card">
-            <div className="card-h">
-              <div className="meta">
-                <span className={"tagp " + fiche.prio.toLowerCase()}>{fiche.prio}</span>
-                <span className="sect">{fiche.secteur}</span>
-                {fiche.statut === "rappeler" && fiche.rappel && fiche.rappel <= today() && (
-                  <span className="tagp a">RAPPEL DU {fmtD(fiche.rappel)}</span>
-                )}
-              </div>
-              <div className="name">{fiche.nom}</div>
-              <div className="addr">{adresseLisible(fiche)}</div>
-              <div className="rev">
-                {fiche.nb_avis != null && (
-                  <span>{fiche.note_google}/5 · {fiche.nb_avis} avis Google</span>
-                )}
-                {fiche.effectif && <span>{fiche.effectif}</span>}
-              </div>
-            </div>
-
-            {/* Qui demander. C'est la première phrase de l'appel : sans un nom,
-                on reste à l'accueil et on n'en sort pas. Donc au-dessus du
-                numéro, pas en dessous. */}
-            {fiche.decideur && (
-              <div className="demander">
-                <span className="l">Demander</span>
-                <b>{fiche.decideur}</b>
-                {fiche.associes && <small>Sinon : {fiche.associes}</small>}
-              </div>
-            )}
-
-            {/* Le numéro, et de quoi le corriger sans quitter la fiche.
-                L'accueil donne la ligne directe du décideur pendant l'appel :
-                c'est le seul moment où on a l'information, et la noter ailleurs
-                revient à refaire le même appel la semaine suivante. */}
-            <div className="dialzone">
-              {corrigeTel ? (
-                <div className="dial edit">
-                  <input
-                    className="num"
-                    type="tel"
-                    inputMode="tel"
-                    autoFocus
-                    aria-label="Numéro de téléphone"
-                    value={telSaisi}
-                    onChange={(e) => setTelSaisi(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") void enregistrerTel();
-                      if (e.key === "Escape") { setCorrigeTel(false); setTelErreur(""); }
-                    }}
-                  />
-                  {telErreur && <div className="err">{telErreur}</div>}
-                  <div className="deux">
-                    <button className="ok" onClick={() => void enregistrerTel()}>
-                      Enregistrer
-                    </button>
-                    <button
-                      className="non"
-                      onClick={() => { setCorrigeTel(false); setTelErreur(""); }}
-                    >
-                      Annuler
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  {fiche.tel ? (
-                    <a
-                      className={"dial" + (estMobile(fiche.tel) ? " mob" : "")}
-                      href={"tel:" + fiche.tel.replace(/\s/g, "")}
-                      onClick={appeler}
-                    >
-                      <div className="num">{fiche.tel}</div>
-                      <div className="cta">
-                        {estMobile(fiche.tel) ? "Ligne directe · Appeler" : "Appeler le standard"}
-                      </div>
-                    </a>
-                  ) : (
-                    <div className="dial">
-                      <div className="num">—</div>
-                      <div className="cta">Numéro manquant</div>
-                    </div>
-                  )}
-                  <button
-                    className="corriger"
-                    onClick={() => {
-                      setTelSaisi(fiche.tel);
-                      setTelErreur("");
-                      setCorrigeTel(true);
-                    }}
-                  >
-                    {fiche.tel ? "Corriger" : "Saisir"}
-                  </button>
-                </>
-              )}
-            </div>
-
-            {/* Les deux autres portes d'entrée, sous le numéro parce qu'elles
-                viennent après lui : on appelle d'abord, on écrit ensuite. Le
-                profil LinkedIn sert surtout à vérifier à qui on parle. */}
-            {(fiche.email || fiche.linkedin) && (
-              <div className="joindre">
-                {fiche.email && (
-                  <button
-                    className="voie mail"
-                    onClick={() => ctx.ouvrirSheet(<Email ctx={ctx} lead={fiche} />)}
-                  >
-                    <span className="l">E-mail</span>
-                    <b>{fiche.email}</b>
-                  </button>
-                )}
-                {fiche.linkedin && (
-                  <a
-                    className="voie in"
-                    href={fiche.linkedin}
-                    target="_blank"
-                    rel="noreferrer noopener"
-                  >
-                    <span className="l">LinkedIn</span>
-                    <b>Voir le profil</b>
-                  </a>
-                )}
-              </div>
-            )}
-
-            {/* Pourquoi on appelle celui-là. Placé juste sous le numéro : le
-                commercial clique, ça sonne, et il le relit pendant la sonnerie.
-                La phrase d'accroche préparée, elle, n'est plus affichée : elle
-                se lisait mot pour mot et s'entendait. */}
-            {fiche.detail && (
-              <div className="script">
-                <p className="pourquoi">
-                  <span>Ce qu&apos;on a vu</span>
-                  {fiche.detail}
-                </p>
-              </div>
-            )}
-
-            <div className="sechead">Résultat de l&apos;appel</div>
-            <div className="acts">
-              {RESULTATS.map(([s, lab, cls]) => (
-                <button key={s} className={cls} onClick={() => poser(s)}>
-                  {lab}
-                </button>
-              ))}
-            </div>
-
-            <div className="fields">
-              <div className="row2">
-                <div>
-                  <label htmlFor="f-rap">Rappeler le</label>
-                  <input
-                    type="date" id="f-rap" value={rappel}
-                    onChange={(e) => setRappel(e.target.value)}
-                    onBlur={enregistrerChamps}
-                  />
-                </div>
-                <div>
-                  <label htmlFor="f-int">Interlocuteur</label>
-                  <input
-                    type="text" id="f-int" value={contact} placeholder="Nom, fonction"
-                    onChange={(e) => setContact(e.target.value)}
-                    onBlur={enregistrerChamps}
-                  />
-                </div>
-              </div>
-              <div>
-                <label htmlFor="f-not">Notes</label>
-                <textarea
-                  id="f-not" value={notes}
-                  placeholder="Ce qu'il a dit, ce qu'il faut retenir…"
-                  onChange={(e) => setNotes(e.target.value)}
-                  onBlur={enregistrerChamps}
-                />
-                <p className="hint" style={{ marginTop: 6 }}>
-                  Ces notes sont communicables à la personne concernée si elle les demande.
-                </p>
-              </div>
-            </div>
-
-            {hist.length > 0 && (
-              <div className="log">
-                <div className="sechead" style={{ padding: "0 0 7px" }}>Historique</div>
-                <ul>
-                  {hist.slice(0, 6).map((h) => (
-                    <li key={h.id}>
-                      <time>{fmtD(h.date)}</time>
-                      <span>{h.label}{h.author_nom ? " · " + h.author_nom : ""}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
+          <Carte
+            ctx={ctx}
+            lead={fiche}
+            onLead={setFiche}
+            apresResultat={() => servir(sautees)}
+            historiqueLocal={ctx.d.activities}
+          />
 
           <button className="skip" onClick={passer}>
             Passer cette fiche

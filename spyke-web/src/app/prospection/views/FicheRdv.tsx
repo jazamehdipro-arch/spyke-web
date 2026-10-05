@@ -1,31 +1,52 @@
 "use client";
 
+import { useState } from "react";
 import * as q from "@/lib/prospection/queries";
 import type { Ctx } from "../App";
 import type { Lead } from "@/lib/prospection/types";
-import { longD, fmtD } from "@/lib/prospection/format";
+import { longD } from "@/lib/prospection/format";
+import Carte from "./Carte";
 import ChoixCreneau from "./ChoixCreneau";
 import Argent from "./Argent";
 
-/** Le panneau d'une fiche : le showRdv() du prototype. */
+/**
+ * Une fiche ouverte depuis le fichier ou l'agenda.
+ *
+ * C'est la même carte que dans la file d'appel, avec les mêmes informations et
+ * les mêmes outils : composer, corriger le numéro, écrire, poser un résultat,
+ * prendre des notes. Un commercial qui retrouve un prospect dans la liste doit
+ * pouvoir le traiter sur place, sans se demander où est passé le bouton qu'il
+ * avait sous les yeux dix minutes plus tôt.
+ *
+ * S'y ajoute ce qui n'a de sens qu'ici : clôturer un rendez-vous passé, le
+ * déplacer, l'annuler, et suivre l'argent.
+ */
 export default function FicheRdv({ ctx, lead }: { ctx: Ctx; lead: Lead }) {
-  const parQui = ctx.d.equipe.find((m) => m.id === lead.owner_id)?.nom ?? "";
-  const passe = lead.rdv ? lead.rdv.slice(0, 10) <= new Date().toLocaleDateString("sv-SE") : false;
+  /* La fiche vit le temps du panneau : corriger le numéro ou enregistrer une
+     note doit se voir tout de suite, sans attendre le rechargement général. */
+  const [fiche, setFiche] = useState<Lead>(lead);
+
+  const parQui = ctx.d.equipe.find((m) => m.id === fiche.owner_id)?.nom ?? "";
+  const passe = fiche.rdv
+    ? fiche.rdv.slice(0, 10) <= new Date().toLocaleDateString("sv-SE")
+    : false;
 
   async function cloturer(honore: boolean) {
-    await q.majLead(lead.id, {
+    await q.majLead(fiche.id, {
       rdv_honore: honore,
       ...(honore ? {} : { statut: "no_show" as const }),
     });
-    await q.noter(lead.id, honore ? "RDV honoré" : "Client absent", ctx.moi.id);
+    await q.noter(fiche.id, honore ? "RDV honoré" : "Client absent", ctx.moi.id);
     await ctx.recharger();
     ctx.fermerSheet();
-    ctx.toast(honore ? "Rendez-vous honoré" : "Absence enregistrée, la fiche revient dans la file");
+    ctx.toast(
+      honore ? "Rendez-vous honoré" : "Absence enregistrée, la fiche revient dans la file"
+    );
   }
 
   async function annuler() {
-    await q.majLead(lead.id, { statut: "chaud", rdv: null, rdv_honore: null });
-    await q.noter(lead.id, "RDV annulé", ctx.moi.id);
+    await q.majLead(fiche.id, { statut: "chaud", rdv: null, rdv_honore: null });
+    await q.noter(fiche.id, "RDV annulé", ctx.moi.id);
     await ctx.recharger();
     ctx.fermerSheet();
     ctx.toast("RDV annulé, fiche repassée en chaud");
@@ -33,86 +54,69 @@ export default function FicheRdv({ ctx, lead }: { ctx: Ctx; lead: Lead }) {
 
   return (
     <>
-      <h2>{lead.nom}</h2>
-      <p className="hint" style={{ marginBottom: 14 }}>
-        {lead.rdv
-          ? longD(lead.rdv.slice(0, 10)) + " à " +
-            new Date(lead.rdv).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })
-          : "Heure à fixer"}{" "}
-        · audit 500 €
-      </p>
+      {fiche.rdv && (
+        <p className="hint" style={{ marginBottom: 14 }}>
+          Rendez-vous le{" "}
+          <b>
+            {longD(fiche.rdv.slice(0, 10))} à{" "}
+            {new Date(fiche.rdv).toLocaleTimeString("fr-FR", {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </b>{" "}
+          · audit 500 €
+        </p>
+      )}
 
-      <div className="panel" style={{ margin: "0 0 12px" }}>
-        <div className="stat"><span>Secteur</span><b>{lead.secteur}</b></div>
-        <div className="stat"><span>Ville</span><b>{lead.ville || "—"}</b></div>
-        <div className="stat"><span>Téléphone</span><b>{lead.tel || "—"}</b></div>
-        <div className="stat"><span>Interlocuteur</span><b>{lead.contact || "—"}</b></div>
-        {lead.decideur && (
-          <div className="stat"><span>Décideur à demander</span><b>{lead.decideur}</b></div>
-        )}
-        {lead.effectif && (
-          <div className="stat"><span>Taille</span><b>{lead.effectif}</b></div>
-        )}
-        {lead.email && (
-          <div className="stat"><span>E-mail</span><b>{lead.email}</b></div>
-        )}
-        {lead.linkedin && (
-          <div className="stat">
-            <span>LinkedIn</span>
-            <b>
-              <a href={lead.linkedin} target="_blank" rel="noreferrer noopener"
-                 style={{ color: "var(--ink)", textDecoration: "underline" }}>
-                Voir le profil
-              </a>
-            </b>
+      <Carte
+        ctx={ctx}
+        lead={fiche}
+        onLead={setFiche}
+        apresResultat={() => ctx.fermerSheet()}
+        historiqueLocal={ctx.d.activities}
+      />
+
+      {fiche.statut === "rdv" && passe && fiche.rdv_honore === null && (
+        <>
+          <div className="sechead" style={{ padding: "18px 0 10px" }}>
+            Ce rendez-vous a-t-il eu lieu ?
           </div>
-        )}
-        {ctx.moi.role === "admin" && (
-          <div className="stat"><span>Amené par</span><b>{parQui || "—"}</b></div>
-        )}
-      </div>
-
-      {lead.detail && (
-        <p className="hint" style={{ marginBottom: 14 }}>
-          <b>Ce qu&apos;on a vu :</b> {lead.detail}
-        </p>
-      )}
-
-      {lead.notes && (
-        <p className="hint" style={{ marginBottom: 14 }}>
-          <b>Notes du commercial :</b> {lead.notes}
-        </p>
-      )}
-
-      {lead.statut === "rdv" && passe && lead.rdv_honore === null && (
-        <div className="outcome">
-          <button className="act won" onClick={() => cloturer(true)}>Rendez-vous honoré</button>
-          <button className="act dead" onClick={() => cloturer(false)}>Client absent</button>
-        </div>
+          <div className="outcome">
+            <button className="act won" onClick={() => cloturer(true)}>
+              Rendez-vous honoré
+            </button>
+            <button className="act dead" onClick={() => cloturer(false)}>
+              Client absent
+            </button>
+          </div>
+        </>
       )}
 
       <div className="btns">
-        {lead.tel && (
-          <a className="btn" href={"tel:" + lead.tel.replace(/\s/g, "")}>Appeler</a>
-        )}
-        <button className="btn ghost" onClick={() => ctx.ouvrirSheet(<Argent ctx={ctx} lead={lead} />)}>
+        <button
+          className="btn ghost"
+          onClick={() => ctx.ouvrirSheet(<Argent ctx={ctx} lead={fiche} />)}
+        >
           Suivre l&apos;argent
         </button>
-        {lead.statut === "rdv" && (
+        {fiche.statut === "rdv" && (
           <>
             <button
               className="btn ghost"
-              onClick={() => ctx.ouvrirSheet(<ChoixCreneau ctx={ctx} lead={lead} />)}
+              onClick={() => ctx.ouvrirSheet(<ChoixCreneau ctx={ctx} lead={fiche} />)}
             >
               Changer de créneau
             </button>
-            <button className="btn warn" onClick={annuler}>Annuler le RDV</button>
+            <button className="btn warn" onClick={annuler}>
+              Annuler le RDV
+            </button>
           </>
         )}
       </div>
-      {lead.rdv && (
-        <p className="hint" style={{ marginTop: 10 }}>
-          Rendez-vous calé le {fmtD(lead.rdv.slice(0, 10))}.
+
+      {ctx.moi.role === "admin" && (
+        <p className="hint" style={{ marginTop: 12 }}>
+          Fiche suivie par {parQui || "personne"}.
         </p>
       )}
     </>
