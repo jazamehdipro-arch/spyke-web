@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as q from "@/lib/prospection/queries";
 import type { Ctx } from "../App";
-import type { Activity, Filtres, Lead, Prio, Statut } from "@/lib/prospection/types";
-import { SANS_FILTRE, STATUS } from "@/lib/prospection/types";
+import type { Activity, Filtres, Lead, ModeFile, Prio, Statut } from "@/lib/prospection/types";
+import { FILES, SANS_FILTRE, STATUS } from "@/lib/prospection/types";
 import { enE164, estMobile, fmtD, norm, today } from "@/lib/prospection/format";
 import { appeler as appelerDepuisLeSite, autoriserMicro, etatCourant } from "@/lib/prospection/telephone";
 import { jetonCourant } from "@/lib/prospection/auth";
@@ -20,6 +20,47 @@ const RESULTATS: [Statut, string, string][] = [
   ["injoignable", "Injoignable", "act dead"],
   ["refus", "Pas intéressé", "act dead"],
 ];
+
+/** Ce qu'on dit quand une file est vide. Un message par file : « File
+    terminée » ne veut rien dire quand on vient d'ouvrir ses prospects chauds. */
+const VIDE: Record<ModeFile, { titre: string; texte: string }> = {
+  neufs: {
+    titre: "File terminée",
+    texte: "Plus aucune fiche jamais appelée.",
+  },
+  rappels: {
+    titre: "Aucun rappel dû",
+    texte: "Rien à rappeler aujourd'hui. Reviens demain, ou repasse aux fiches à appeler.",
+  },
+  chaud: {
+    titre: "Aucun prospect chaud",
+    texte: "Les fiches que tu marques « Chaud » arrivent ici, pour que tu puisses les reprendre quand tu as le temps.",
+  },
+  tiede: {
+    titre: "Aucun prospect tiède",
+    texte: "Les fiches que tu marques « Tiède » arrivent ici.",
+  },
+  injoignable: {
+    titre: "Aucun injoignable",
+    texte: "Les fiches où personne n'a décroché arrivent ici, pour être retentées plus tard.",
+  },
+};
+
+/**
+ * Cette fiche est-elle dans cette file ?
+ *
+ * Le même critère sert à trois endroits : le compte annoncé sur l'onglet, les
+ * comptes des menus de filtre, et le message affiché quand la file est vide.
+ * L'écrire une fois évite qu'un onglet promette des fiches que la file ne sert
+ * pas. La base applique exactement les mêmes règles dans next_lead().
+ */
+function dansLaFile(l: Lead, mode: ModeFile): boolean {
+  if (mode === "neufs") return l.statut === "a_appeler" && l.first_call === null;
+  if (mode === "rappels") {
+    return l.statut === "rappeler" && !!l.rappel && l.rappel <= today();
+  }
+  return l.statut === mode;
+}
 
 /**
  * L'adresse en une ligne, sans répéter ce qu'elle contient déjà.
@@ -38,11 +79,14 @@ function adresseLisible(l: Lead): string {
 
 export default function VueFile({ ctx }: { ctx: Ctx }) {
   const [filtres, setFiltres] = useState<Filtres>(SANS_FILTRE);
-  /* Deux files distinctes. « Neufs » est le travail du jour : des fiches jamais
-     appelées. « Rappels » regroupe les échéances atteintes. Une fiche déjà
-     qualifiée ne revient plus s'imposer entre deux appels — on la retrouve dans
-     la Liste quand on la cherche. */
-  const [mode, setMode] = useState<"neufs" | "rappels">("neufs");
+  /* Cinq files distinctes. « À appeler » est le travail du jour : des fiches
+     jamais appelées. « Rappels » regroupe les échéances atteintes. Les trois
+     dernières servent les fiches déjà qualifiées — chaudes, tièdes,
+     injoignables — pour qu'un prospect qui a dit « rappelez-moi » ne finisse
+     pas au fond du fichier après un seul clic. Une fiche qualifiée ne vient
+     jamais s'imposer entre deux appels : c'est le commercial qui ouvre sa file
+     de chauds quand il a le temps de les reprendre. */
+  const [mode, setMode] = useState<ModeFile>("neufs");
   const [fiche, setFiche] = useState<Lead | null | undefined>(undefined);
   const [hist, setHist] = useState<Activity[]>([]);
   const [sautees, setSautees] = useState<string[]>([]);
@@ -109,7 +153,7 @@ export default function VueFile({ ctx }: { ctx: Ctx }) {
     setFiltres((f) => ({ ...f, ...partiel }));
   }
 
-  function choisirMode(m: "neufs" | "rappels") {
+  function choisirMode(m: ModeFile) {
     setSautees([]);
     setMode(m);
   }
@@ -226,10 +270,7 @@ export default function VueFile({ ctx }: { ctx: Ctx }) {
      par chaque choix tient compte des autres critères déjà posés — sinon le
      bouton promet des fiches que la file ne sert pas. */
   const choix = useMemo(() => {
-    const dans = (l: Lead) =>
-      mode === "rappels"
-        ? l.statut === "rappeler" && !!l.rappel && l.rappel <= today()
-        : l.statut === "a_appeler" && l.first_call === null;
+    const dans = (l: Lead) => dansLaFile(l, mode);
 
     const liste = (
       cle: keyof Filtres,
@@ -256,9 +297,18 @@ export default function VueFile({ ctx }: { ctx: Ctx }) {
     };
   }, [ctx.d.leads, filtres, mode]);
 
-  const neufs = ctx.d.leads.filter(
-    (l) => l.statut === "a_appeler" && l.first_call === null
-  ).length;
+  /* Le compte annoncé sur chaque onglet ignore les filtres : il dit ce qu'il y
+     a dans cette file, pas ce qui reste une fois la sélection faite. Sinon
+     l'onglet « Chauds » afficherait zéro parce qu'un filtre de ville est posé,
+     et le commercial croirait n'avoir aucun prospect chaud. */
+  const comptes = useMemo(() => {
+    const c = {} as Record<ModeFile, number>;
+    for (const { cle } of FILES) {
+      c[cle] = ctx.d.leads.filter((l) => dansLaFile(l, cle)).length;
+    }
+    return c;
+  }, [ctx.d.leads]);
+
   const filtreActif = Object.values(filtres).some((v) => v !== null);
 
   /** Un menu de filtre. Vide = « tout », et le compte suit les autres critères. */
@@ -325,14 +375,16 @@ export default function VueFile({ ctx }: { ctx: Ctx }) {
       </div>
 
       <div className="chips">
-        <button className="chip" aria-pressed={mode === "neufs"}
-          onClick={() => choisirMode("neufs")}>
-          À appeler<span className="c">{neufs}</span>
-        </button>
-        <button className="chip" aria-pressed={mode === "rappels"}
-          onClick={() => choisirMode("rappels")}>
-          Rappels<span className="c">{dus.length}</span>
-        </button>
+        {FILES.map(({ cle, nom }) => (
+          <button
+            key={cle}
+            className="chip"
+            aria-pressed={mode === cle}
+            onClick={() => choisirMode(cle)}
+          >
+            {nom}<span className="c">{comptes[cle]}</span>
+          </button>
+        ))}
       </div>
 
       <div className="filtres">
@@ -370,13 +422,11 @@ export default function VueFile({ ctx }: { ctx: Ctx }) {
           </div>
         ) : (
           <div className="empty">
-            <b>{mode === "rappels" ? "Aucun rappel dû" : "File terminée"}</b>
+            <b>{VIDE[mode].titre}</b>
             <p>
-              {mode === "rappels"
-                ? "Rien à rappeler aujourd'hui avec ces critères. Reviens demain, élargis les filtres, ou repasse aux fiches à appeler."
-                : filtreActif
-                  ? "Plus aucune fiche jamais appelée avec ces critères. Élargis les filtres pour en retrouver."
-                  : "Plus aucune fiche jamais appelée. Passe au Fichier pour revoir celles que tu as déjà traitées."}
+              {filtreActif
+                ? VIDE[mode].texte + " Élargis les filtres pour en retrouver."
+                : VIDE[mode].texte}
             </p>
           </div>
         )

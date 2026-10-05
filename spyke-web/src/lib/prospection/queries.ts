@@ -1,7 +1,7 @@
 "use client";
 
 import { createClient } from "./supabase/client";
-import type { Activity, Creneau, Deal, Filtres, Lead, Profile } from "./types";
+import type { Activity, Creneau, Deal, Filtres, Lead, ModeFile, Profile } from "./types";
 import { enfiler } from "./horsligne";
 
 const sb = () => createClient();
@@ -49,7 +49,7 @@ export async function chargerLeads(): Promise<Lead[]> {
 export async function ficheSuivante(
   filtres: Filtres,
   sautees: string[],
-  mode: "neufs" | "rappels" = "neufs"
+  mode: ModeFile = "neufs"
 ) {
   const { data, error } = await sb().rpc("next_lead", {
     p_secteur: filtres.secteur,

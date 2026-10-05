@@ -104,6 +104,24 @@ export type Deal = {
 export type Creneau = { weekday: number; heure: string };
 
 /** Libellés et pastilles du prototype, à l'identique. */
+/**
+ * Les files de l'écran d'appel.
+ *
+ * Les deux premières se calculent sur le rang : ce qui n'a jamais été appelé,
+ * et ce dont l'échéance est atteinte. Les trois autres servent les fiches qui
+ * portent l'étiquette du même nom, pour qu'un prospect qualifié ne finisse pas
+ * au fond de la liste après un seul clic.
+ */
+export type ModeFile = "neufs" | "rappels" | "chaud" | "tiede" | "injoignable";
+
+export const FILES: { cle: ModeFile; nom: string }[] = [
+  { cle: "neufs", nom: "À appeler" },
+  { cle: "rappels", nom: "Rappels" },
+  { cle: "chaud", nom: "Chauds" },
+  { cle: "tiede", nom: "Tièdes" },
+  { cle: "injoignable", nom: "Injoignables" },
+];
+
 export const STATUS: Record<Statut, { l: string; c: string }> = {
   a_appeler: { l: "À appeler", c: "" },
   rappeler: { l: "À rappeler", c: "rappeler" },

@@ -1,6 +1,6 @@
 "use client";
 
-import type { Activity, Deal, Filtres, Lead, Profile, Creneau, Statut, Prio } from "./types";
+import type { Activity, Deal, Filtres, Lead, ModeFile, Profile, Creneau, Statut, Prio } from "./types";
 
 /**
  * Le mode hors ligne.
@@ -168,20 +168,23 @@ export function ficheSuivanteLocale(
   sautees: string[],
   moiId: string,
   aujourdhui: string,
-  mode: "neufs" | "rappels" = "neufs"
+  mode: ModeFile = "neufs"
 ): Lead | null {
+  // Les trois files par étiquette portent le nom du statut qu'elles servent.
+  const parStatut: Statut | null =
+    mode === "chaud" || mode === "tiede" || mode === "injoignable" ? mode : null;
   const [min, max] = mode === "rappels" ? [0, 0] : [1, 89];
   const candidates = leads.filter(
     (l) => {
+      if (!correspond(l, filtres)) return false;
+      if (sautees.includes(l.id)) return false;
+      if (l.owner_id !== null && l.owner_id !== moiId) return false;
+      if (parStatut) return l.statut === parStatut;
       const r = rang(l.statut, l.prio, l.rappel, aujourdhui);
-      return r >= min && r <= max &&
       // Même critère qu'en base : un numéro déjà composé sort de « À appeler »,
       // même si aucun résultat n'a été saisi. Les rappels, eux, sont faits pour
       // être rappelés.
-      (mode === "rappels" || l.first_call === null) &&
-      correspond(l, filtres) &&
-      !sautees.includes(l.id) &&
-      (l.owner_id === null || l.owner_id === moiId);
+      return r >= min && r <= max && (mode === "rappels" || l.first_call === null);
     }
   );
   if (!candidates.length) return null;
@@ -190,6 +193,10 @@ export function ficheSuivanteLocale(
     const ra = rang(a.statut, a.prio, a.rappel, aujourdhui);
     const rb = rang(b.statut, b.prio, b.rappel, aujourdhui);
     if (ra !== rb) return ra - rb;
+    // Dans une file par étiquette, la plus ancienne d'abord, comme en base.
+    if (parStatut && a.updated_at !== b.updated_at) {
+      return a.updated_at < b.updated_at ? -1 : 1;
+    }
     if (a.prio !== b.prio) return a.prio < b.prio ? -1 : 1;
     // « rappel nulls last », comme en base.
     if (a.rappel !== b.rappel) {
