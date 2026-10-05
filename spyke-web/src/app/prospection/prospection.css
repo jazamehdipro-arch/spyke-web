@@ -398,6 +398,40 @@
 }
 .spk .dial.mob .cta{color:var(--yellow)}
 
+/* Corriger le numéro sans quitter la fiche. Le bouton se pose dans le coin de
+   la case noire, en dehors du lien d'appel : un bouton dans un lien n'est pas
+   du HTML valide, et surtout le pouce ne doit jamais le toucher par erreur en
+   visant le numéro. */
+.spk .dialzone{position:relative}
+.spk .dialzone .corriger{
+  position:absolute;top:30px;right:30px;
+  font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--on-ink-3);background:transparent;
+  border:1px solid var(--on-ink-line);border-radius:999px;padding:6px 11px;
+  transition:color .14s,border-color .14s;
+}
+.spk .dialzone .corriger:hover{color:var(--on-ink);border-color:var(--on-ink-3)}
+
+/* La case noire en saisie. Même boîte, même taille de chiffres : on corrige le
+   numéro là où on le lit, pas dans un formulaire plus bas. */
+.spk .dial.edit{cursor:default}
+.spk .dial.edit .num{
+  width:100%;background:transparent;border:0;border-bottom:2px solid var(--on-ink-3);
+  text-align:center;padding:2px 0 6px;outline:none;
+}
+.spk .dial.edit .num:focus{border-bottom-color:var(--yellow)}
+.spk .dial.edit .err{
+  font-size:12px;color:var(--yellow);margin-top:11px;line-height:1.45;
+}
+.spk .dial.edit .deux{display:flex;gap:9px;justify-content:center;margin-top:15px}
+.spk .dial.edit .deux button{
+  font-size:12.5px;font-weight:600;padding:9px 17px;border-radius:999px;
+  transition:opacity .14s;
+}
+.spk .dial.edit .deux .ok{background:var(--on-ink);color:var(--ink)}
+.spk .dial.edit .deux .non{color:var(--on-ink-2);border:1px solid var(--on-ink-line)}
+.spk .dial.edit .deux button:hover{opacity:.85}
+
 .spk .sechead{
   font-size:9.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
   color:var(--faint);padding:0 20px;margin-bottom:10px;

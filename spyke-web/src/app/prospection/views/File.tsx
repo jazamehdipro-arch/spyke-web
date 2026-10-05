@@ -90,6 +90,12 @@ export default function VueFile({ ctx }: { ctx: Ctx }) {
   const [fiche, setFiche] = useState<Lead | null | undefined>(undefined);
   const [hist, setHist] = useState<Activity[]>([]);
   const [sautees, setSautees] = useState<string[]>([]);
+  /* La correction du numéro. Elle vit à part des autres champs : ceux-là
+     s'enregistrent en quittant la case, celui-ci demande une validation
+     explicite. Se tromper d'un chiffre sur un numéro, c'est perdre la fiche. */
+  const [corrigeTel, setCorrigeTel] = useState(false);
+  const [telSaisi, setTelSaisi] = useState("");
+  const [telErreur, setTelErreur] = useState("");
   const [rappel, setRappel] = useState("");
   const [contact, setContact] = useState("");
   const [notes, setNotes] = useState("");
@@ -119,6 +125,8 @@ export default function VueFile({ ctx }: { ctx: Ctx }) {
           l = ficheSuivanteLocale(dernier.current.leads, filtres, skip, ctx.moi.id, today(), mode);
         }
         setFiche(l);
+        setCorrigeTel(false);
+        setTelErreur("");
         setRappel(l?.rappel ?? "");
         setContact(l?.contact ?? "");
         setNotes(l?.notes ?? "");
@@ -196,6 +204,47 @@ export default function VueFile({ ctx }: { ctx: Ctx }) {
       void ctx.recharger();
     } catch {
       ctx.toast("Appel non enregistré, il repartira à la reconnexion");
+    }
+  }
+
+  /**
+   * Enregistre le numéro corrigé.
+   *
+   * La base refuse un numéro déjà porté par une autre fiche : c'est l'index
+   * unique qui tient la déduplication de tout le fichier, et on ne le contourne
+   * pas. On traduit simplement son refus en une phrase lisible au téléphone.
+   */
+  async function enregistrerTel() {
+    if (!fiche) return;
+    const propre = telSaisi.trim();
+    if (!propre) {
+      setTelErreur("Il faut un numéro.");
+      return;
+    }
+    if (propre === fiche.tel) {
+      setCorrigeTel(false);
+      return;
+    }
+    setTelErreur("");
+    const ancien = fiche.tel;
+    try {
+      const maj = await q.majLead(fiche.id, { tel: propre });
+      // Hors ligne, majLead met la correction en file et ne renvoie rien : on
+      // pose quand même le nouveau numéro à l'écran, il partira au retour du
+      // réseau comme le reste.
+      setFiche(maj ?? { ...fiche, tel: propre });
+      await q.noter(fiche.id, `Numéro corrigé : ${ancien} → ${propre}`, ctx.moi.id);
+      setHist(await q.historique(fiche.id).catch(() => hist));
+      setCorrigeTel(false);
+      ctx.toast("Numéro corrigé");
+      void ctx.recharger();
+    } catch (e) {
+      const err = e as { code?: string; message?: string };
+      setTelErreur(
+        err.code === "23505"
+          ? "Ce numéro est déjà sur une autre fiche."
+          : err.message ?? "Enregistrement impossible."
+      );
     }
   }
 
@@ -462,23 +511,71 @@ export default function VueFile({ ctx }: { ctx: Ctx }) {
               </div>
             )}
 
-            {fiche.tel ? (
-              <a
-                className={"dial" + (estMobile(fiche.tel) ? " mob" : "")}
-                href={"tel:" + fiche.tel.replace(/\s/g, "")}
-                onClick={appeler}
-              >
-                <div className="num">{fiche.tel}</div>
-                <div className="cta">
-                  {estMobile(fiche.tel) ? "Ligne directe · Appeler" : "Appeler le standard"}
+            {/* Le numéro, et de quoi le corriger sans quitter la fiche.
+                L'accueil donne la ligne directe du décideur pendant l'appel :
+                c'est le seul moment où on a l'information, et la noter ailleurs
+                revient à refaire le même appel la semaine suivante. */}
+            <div className="dialzone">
+              {corrigeTel ? (
+                <div className="dial edit">
+                  <input
+                    className="num"
+                    type="tel"
+                    inputMode="tel"
+                    autoFocus
+                    aria-label="Numéro de téléphone"
+                    value={telSaisi}
+                    onChange={(e) => setTelSaisi(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") void enregistrerTel();
+                      if (e.key === "Escape") { setCorrigeTel(false); setTelErreur(""); }
+                    }}
+                  />
+                  {telErreur && <div className="err">{telErreur}</div>}
+                  <div className="deux">
+                    <button className="ok" onClick={() => void enregistrerTel()}>
+                      Enregistrer
+                    </button>
+                    <button
+                      className="non"
+                      onClick={() => { setCorrigeTel(false); setTelErreur(""); }}
+                    >
+                      Annuler
+                    </button>
+                  </div>
                 </div>
-              </a>
-            ) : (
-              <div className="dial">
-                <div className="num">—</div>
-                <div className="cta">Numéro manquant</div>
-              </div>
-            )}
+              ) : (
+                <>
+                  {fiche.tel ? (
+                    <a
+                      className={"dial" + (estMobile(fiche.tel) ? " mob" : "")}
+                      href={"tel:" + fiche.tel.replace(/\s/g, "")}
+                      onClick={appeler}
+                    >
+                      <div className="num">{fiche.tel}</div>
+                      <div className="cta">
+                        {estMobile(fiche.tel) ? "Ligne directe · Appeler" : "Appeler le standard"}
+                      </div>
+                    </a>
+                  ) : (
+                    <div className="dial">
+                      <div className="num">—</div>
+                      <div className="cta">Numéro manquant</div>
+                    </div>
+                  )}
+                  <button
+                    className="corriger"
+                    onClick={() => {
+                      setTelSaisi(fiche.tel);
+                      setTelErreur("");
+                      setCorrigeTel(true);
+                    }}
+                  >
+                    {fiche.tel ? "Corriger" : "Saisir"}
+                  </button>
+                </>
+              )}
+            </div>
 
             {/* Pourquoi on appelle celui-là. Placé juste sous le numéro : le
                 commercial clique, ça sonne, et il le relit pendant la sonnerie.
