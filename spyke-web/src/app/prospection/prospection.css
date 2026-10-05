@@ -698,6 +698,11 @@
 .spk .gate .go:active{transform:scale(.99)}
 .spk .gate .go:disabled{opacity:.45;cursor:not-allowed}
 .spk .gate .err{font-size:13px;color:var(--hot);margin-bottom:14px;min-height:18px;line-height:1.5}
+/* Un lien discret dans un panneau : « Ajouter une copie cachée », et les
+   réglages de ce genre, qu'on ne montre pas tant qu'on n'en a pas besoin. */
+.spk .panel .alt{font-size:13px;color:var(--muted);text-decoration:underline}
+.spk .panel .alt:hover{color:var(--ink)}
+
 .spk .gate .alt{
   display:block;width:100%;text-align:center;font-size:13px;color:var(--muted);
   margin-top:20px;text-decoration:underline;

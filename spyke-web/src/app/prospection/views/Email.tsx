@@ -26,6 +26,8 @@ export default function Email({ ctx, lead }: { ctx: Ctx; lead: Lead }) {
       "Spyke",
     ].join("\n")
   );
+  const [copie, setCopie] = useState("");
+  const [montrerCopie, setMontrerCopie] = useState(false);
   const [erreur, setErreur] = useState("");
   const [envoi, setEnvoi] = useState(false);
 
@@ -37,7 +39,7 @@ export default function Email({ ctx, lead }: { ctx: Ctx; lead: Lead }) {
       const r = await fetch("/api/prospection/email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jeton, leadId: lead.id, objet, message }),
+        body: JSON.stringify({ jeton, leadId: lead.id, objet, message, copie }),
       });
       const d = (await r.json()) as { ok: boolean; erreur?: string };
       if (!d.ok) {
@@ -77,6 +79,29 @@ export default function Email({ ctx, lead }: { ctx: Ctx; lead: Lead }) {
           onChange={(e) => setMessage(e.target.value)}
         />
       </div>
+
+      {montrerCopie ? (
+        <div style={{ marginTop: 12 }}>
+          <label htmlFor="e-cc">Copie cachée</label>
+          <input
+            id="e-cc" type="text" value={copie}
+            placeholder="une ou plusieurs adresses, séparées par des virgules"
+            onChange={(e) => setCopie(e.target.value)}
+          />
+          <p className="hint" style={{ marginTop: 6 }}>
+            Le prospect ne les verra pas. Elles s&apos;ajoutent aux adresses de
+            supervision déjà réglées, s&apos;il y en a.
+          </p>
+        </div>
+      ) : (
+        <button
+          className="alt"
+          style={{ marginTop: 12 }}
+          onClick={() => setMontrerCopie(true)}
+        >
+          Ajouter une copie cachée
+        </button>
+      )}
 
       {erreur && (
         <p className="hint" style={{ marginTop: 12, color: "var(--hot)" }}>{erreur}</p>

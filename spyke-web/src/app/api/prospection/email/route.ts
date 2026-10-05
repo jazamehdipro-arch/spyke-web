@@ -31,6 +31,18 @@ export const runtime = 'nodejs'
  */
 const MAX_OBJET = 200
 const MAX_CORPS = 10000
+const MAX_COPIES = 5
+const CLE_COPIE_CACHEE = 'email_copie_cachee'
+
+const ADRESSE = /^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/
+
+/** Une liste d'adresses tapée à la main : virgules, points-virgules, espaces. */
+function adresses(brut: string): string[] {
+  return brut
+    .split(/[,;\s]+/)
+    .map((a) => a.trim().toLowerCase())
+    .filter(Boolean)
+}
 
 function viaResend() {
   const cle = process.env.PROSPECTION_RESEND_API_KEY
@@ -70,11 +82,12 @@ export async function POST(req: Request) {
     })
   }
 
-  const { jeton, leadId, objet, message } = (await req.json().catch(() => ({}))) as {
+  const { jeton, leadId, objet, message, copie } = (await req.json().catch(() => ({}))) as {
     jeton?: string
     leadId?: string
     objet?: string
     message?: string
+    copie?: string
   }
 
   if (!jeton) return NextResponse.json({ ok: false, erreur: 'Session expirée.' })
@@ -144,6 +157,30 @@ export async function POST(req: Request) {
   // Par SMTP, l'hébergeur refuse un expéditeur qu'il n'a pas approuvé et
   // répond « 550 Sender mismatch ». Par Resend, le domaine suffit.
 
+  /**
+   * La copie cachée.
+   *
+   * Deux sources : les adresses de supervision posées une fois pour toutes
+   * dans les réglages, et celles que le commercial ajoute pour ce message-là.
+   * Le prospect ne voit ni les unes ni les autres.
+   */
+  const { data: reglage } = await sb
+    .from('settings')
+    .select('value')
+    .eq('key', CLE_COPIE_CACHEE)
+    .maybeSingle()
+
+  const permanentes = Array.isArray(reglage?.value) ? (reglage.value as string[]) : []
+  const ponctuelles = adresses(String(copie ?? ''))
+  const mauvaise = ponctuelles.find((a) => !ADRESSE.test(a))
+  if (mauvaise) {
+    return NextResponse.json({ ok: false, erreur: `« ${mauvaise} » n'est pas une adresse valide.` })
+  }
+
+  const cachees = [...new Set([...permanentes, ...ponctuelles].filter((a) => ADRESSE.test(a)))]
+    .filter((a) => a !== fiche.email)
+    .slice(0, MAX_COPIES)
+
   if (resend) {
     const r = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -154,6 +191,7 @@ export async function POST(req: Request) {
       body: JSON.stringify({
         from: `${moi.nom} <${expediteur}>`,
         to: [fiche.email],
+        ...(cachees.length ? { bcc: cachees } : {}),
         reply_to: repondreA,
         subject: sujet,
         text: corps,
@@ -181,6 +219,7 @@ export async function POST(req: Request) {
       await transporteur.sendMail({
         from: `${moi.nom} <${expediteur}>`,
         to: fiche.email,
+        ...(cachees.length ? { bcc: cachees } : {}),
         replyTo: repondreA,
         subject: sujet,
         text: corps,

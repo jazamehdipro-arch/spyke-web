@@ -202,6 +202,33 @@ export async function equipe(): Promise<Profile[]> {
   return (data ?? []) as Profile[];
 }
 
+/* --------------------------------------------------------- copie cachée */
+
+/**
+ * Les adresses mises en copie cachée de chaque e-mail de prospection.
+ *
+ * Rangées dans la table des réglages, dont l'écriture est réservée au
+ * responsable : c'est une décision d'organisation, pas un choix de commercial.
+ * Le prospect ne les voit jamais, et elles ne figurent pas non plus dans
+ * l'écran de rédaction.
+ */
+export const CLE_COPIE_CACHEE = "email_copie_cachee";
+
+export async function copieCachee(): Promise<string[]> {
+  const { data, error } = await sb()
+    .from("settings").select("value").eq("key", CLE_COPIE_CACHEE).maybeSingle();
+  if (error) throw error;
+  const v = (data as { value?: unknown } | null)?.value;
+  return Array.isArray(v) ? (v as string[]) : [];
+}
+
+export async function fixerCopieCachee(adresses: string[]) {
+  const { error } = await sb()
+    .from("settings")
+    .upsert({ key: CLE_COPIE_CACHEE, value: adresses }, { onConflict: "key" });
+  if (error) throw error;
+}
+
 /* ------------------------------------------------------------------ import */
 
 export async function importerLeads(lignes: Partial<Lead>[]) {
