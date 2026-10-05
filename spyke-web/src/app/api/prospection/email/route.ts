@@ -8,20 +8,38 @@ export const runtime = 'nodejs'
 /**
  * Écrire à un prospect depuis Spyke.
  *
- * Le message part d'une boîte aux lettres unique, celle de l'entreprise, et pas
- * du compte personnel du commercial : lui donner un accès SMTP reviendrait à
- * stocker son mot de passe de messagerie, ce qu'on ne veut nulle part. Son
- * prénom signe le message, et le Reply-To porte sa propre adresse, pour que la
- * réponse lui arrive à lui et pas dans une boîte commune que personne ne relit.
+ * Le message part d'une adresse de l'entreprise, pas du compte personnel du
+ * commercial : lui demander ses identifiants de messagerie reviendrait à les
+ * stocker quelque part, ce qu'on ne veut nulle part. Son prénom signe le
+ * message, et le Reply-To porte sa propre adresse, pour que la réponse lui
+ * arrive à lui et pas dans une boîte commune que personne ne relit.
  *
- * Les identifiants vivent dans les variables d'environnement du projet Vercel,
- * jamais en base : une clé lisible par l'écran d'administration est une clé
- * qui finit par circuler.
+ * Deux façons d'envoyer, dans cet ordre :
+ *
+ *   1. Resend, sur le domaine de la prospection. C'est la bonne voie pour du
+ *      volume : le domaine est signé (DKIM), le tableau de bord dit ce qui est
+ *      arrivé et ce qui a été rejeté, et n'importe quelle adresse du domaine
+ *      peut servir d'expéditeur sans configuration supplémentaire.
+ *   2. SMTP, en repli. Une messagerie ordinaire n'est pas faite pour envoyer
+ *      quarante messages par jour : au-delà, l'hébergeur limite.
+ *
+ * Les clés vivent dans les variables d'environnement du projet Vercel, jamais
+ * en base : une clé lisible par l'écran d'administration est une clé qui finit
+ * par circuler. Celles de la prospection portent leur propre nom, distinct de
+ * celles de la facturation : les deux activités ne partagent ni domaine, ni
+ * réputation d'expéditeur, et une clé révoquée d'un côté ne coupe pas l'autre.
  */
 const MAX_OBJET = 200
 const MAX_CORPS = 10000
 
-function reglages() {
+function viaResend() {
+  const cle = process.env.PROSPECTION_RESEND_API_KEY
+  const from = process.env.PROSPECTION_RESEND_FROM
+  if (!cle || !from) return null
+  return { cle, from }
+}
+
+function viaSmtp() {
   const user = process.env.PROSPECTION_SMTP_USER ?? process.env.INFOMANIAK_SMTP_USER
   const pass = process.env.PROSPECTION_SMTP_PASSWORD ?? process.env.INFOMANIAK_SMTP_PASSWORD
   if (!user || !pass) return null
@@ -40,13 +58,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, erreur: 'Configuration incomplète.' }, { status: 500 })
   }
 
-  const smtp = reglages()
-  if (!smtp) {
+  const resend = viaResend()
+  const smtp = resend ? null : viaSmtp()
+  if (!resend && !smtp) {
     return NextResponse.json({
       ok: false,
       erreur:
-        "L'envoi d'e-mails n'est pas configuré : il manque PROSPECTION_SMTP_USER et " +
-        'PROSPECTION_SMTP_PASSWORD sur le projet Vercel spyke-web. En attendant, ' +
+        "L'envoi d'e-mails n'est pas configuré : il manque PROSPECTION_RESEND_API_KEY " +
+        'et PROSPECTION_RESEND_FROM sur le projet Vercel spyke-web. En attendant, ' +
         'copie le message et envoie-le depuis ta messagerie.',
     })
   }
@@ -105,24 +124,53 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, erreur: 'Cette fiche est suivie par un collègue.' })
   }
 
-  const transporteur = nodemailer.createTransport({
-    host: smtp.host,
-    port: smtp.port,
-    secure: smtp.port === 465,
-    auth: { user: smtp.user, pass: smtp.pass },
-  })
+  const repondreA = user.email ?? (resend ? resend.from : smtp!.from)
 
-  try {
-    await transporteur.sendMail({
-      from: `${moi.nom} <${smtp.from}>`,
-      to: fiche.email,
-      replyTo: user.email ?? smtp.from,
-      subject: sujet,
-      text: corps,
+  if (resend) {
+    const r = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${resend.cle}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: `${moi.nom} <${resend.from}>`,
+        to: [fiche.email],
+        reply_to: repondreA,
+        subject: sujet,
+        text: corps,
+      }),
+    }).catch(() => null)
+
+    if (!r || !r.ok) {
+      const j = (await r?.json().catch(() => null)) as { message?: string } | null
+      return NextResponse.json({
+        ok: false,
+        erreur:
+          "L'envoi a échoué : " +
+          (j?.message ?? `Resend a répondu ${r ? r.status : 'rien'}`),
+      })
+    }
+  } else {
+    const transporteur = nodemailer.createTransport({
+      host: smtp!.host,
+      port: smtp!.port,
+      secure: smtp!.port === 465,
+      auth: { user: smtp!.user, pass: smtp!.pass },
     })
-  } catch (e) {
-    const m = e instanceof Error ? e.message : String(e)
-    return NextResponse.json({ ok: false, erreur: "L'envoi a échoué : " + m })
+
+    try {
+      await transporteur.sendMail({
+        from: `${moi.nom} <${smtp!.from}>`,
+        to: fiche.email,
+        replyTo: repondreA,
+        subject: sujet,
+        text: corps,
+      })
+    } catch (e) {
+      const m = e instanceof Error ? e.message : String(e)
+      return NextResponse.json({ ok: false, erreur: "L'envoi a échoué : " + m })
+    }
   }
 
   // Trace dans la fiche. L'objet seul : le corps du message appartient à
