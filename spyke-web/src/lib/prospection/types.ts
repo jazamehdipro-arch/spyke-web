@@ -24,6 +24,8 @@ export type Profile = {
      Seul le responsable la fixe : sinon chacun pourrait écrire au nom d'un
      collègue. */
   email_envoi: string;
+  /* Le numéro direct affiché dans sa signature. Vide = ligne absente. */
+  telephone: string;
   created_at: string;
 };
 

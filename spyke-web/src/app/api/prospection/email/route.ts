@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import nodemailer from 'nodemailer'
 import { PROSPECTION_URL, PROSPECTION_KEY } from '@/lib/prospection/supabase/config'
+import { enHtml, signatureHtml, signatureTexte } from '@/lib/prospection/signature'
 
 export const runtime = 'nodejs'
 
@@ -32,6 +33,17 @@ export const runtime = 'nodejs'
 const MAX_OBJET = 200
 const MAX_CORPS = 10000
 const MAX_COPIES = 5
+const MAX_PIECES = 3
+/**
+ * Le poids des pièces jointes.
+ *
+ * La limite n'est pas celle d'une messagerie mais celle de la plateforme : une
+ * fonction serveur refuse les requêtes au-delà de 4,5 Mo, et l'encodage en
+ * base64 gonfle les fichiers d'un tiers. On s'arrête donc à 2,5 Mo de fichiers
+ * réels, et on le dit avant l'envoi plutôt que de laisser tomber une requête
+ * sans explication.
+ */
+const MAX_PIECES_OCTETS = 2_500_000
 const CLE_COPIE_CACHEE = 'email_copie_cachee'
 
 const ADRESSE = /^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/
@@ -82,13 +94,15 @@ export async function POST(req: Request) {
     })
   }
 
-  const { jeton, leadId, objet, message, copie } = (await req.json().catch(() => ({}))) as {
-    jeton?: string
-    leadId?: string
-    objet?: string
-    message?: string
-    copie?: string
-  }
+  const { jeton, leadId, objet, message, copie, pieces } =
+    (await req.json().catch(() => ({}))) as {
+      jeton?: string
+      leadId?: string
+      objet?: string
+      message?: string
+      copie?: string
+      pieces?: { nom?: string; contenu?: string }[]
+    }
 
   if (!jeton) return NextResponse.json({ ok: false, erreur: 'Session expirée.' })
   const { data: { user } } = await createClient(PROSPECTION_URL, PROSPECTION_KEY)
@@ -101,6 +115,28 @@ export async function POST(req: Request) {
   if (!corps) return NextResponse.json({ ok: false, erreur: 'Le message est vide.' })
   if (sujet.length > MAX_OBJET || corps.length > MAX_CORPS) {
     return NextResponse.json({ ok: false, erreur: 'Message trop long.' })
+  }
+
+  const jointes = (Array.isArray(pieces) ? pieces : [])
+    .filter((p) => p && typeof p.nom === 'string' && typeof p.contenu === 'string')
+    .slice(0, MAX_PIECES)
+    .map((p) => ({ nom: String(p.nom).slice(0, 180), contenu: String(p.contenu) }))
+
+  if (jointes.length !== (Array.isArray(pieces) ? pieces.length : 0)) {
+    return NextResponse.json({
+      ok: false,
+      erreur: `Trois pièces jointes au maximum.`,
+    })
+  }
+  // 4 caractères de base64 pour 3 octets : on mesure le fichier, pas l'encodage.
+  const poids = jointes.reduce((n, p) => n + Math.floor((p.contenu.length * 3) / 4), 0)
+  if (poids > MAX_PIECES_OCTETS) {
+    return NextResponse.json({
+      ok: false,
+      erreur:
+        'Les pièces jointes dépassent 2,5 Mo. Envoie un lien de téléchargement ' +
+        'plutôt qu\'un fichier lourd : il passera les filtres anti-spam, pas lui.',
+    })
   }
 
   const sb = createClient(PROSPECTION_URL, cleService, {
@@ -127,7 +163,7 @@ export async function POST(req: Request) {
    */
   const { data: moi } = await sb
     .from('profiles')
-    .select('nom, role, actif, email_envoi')
+    .select('nom, role, actif, email_envoi, telephone')
     .eq('id', user.id)
     .maybeSingle()
 
@@ -181,6 +217,26 @@ export async function POST(req: Request) {
     .filter((a) => a !== fiche.email)
     .slice(0, MAX_COPIES)
 
+  /**
+   * Le message, en deux versions.
+   *
+   * Le HTML porte la signature mise en forme ; le texte brut reprend la même
+   * chose sans décor. Les deux partent ensemble : la messagerie du destinataire
+   * choisit, et celle qui refuse le HTML ne reçoit pas un message vide.
+   */
+  const signataire = {
+    nom: moi.nom,
+    email: expediteur,
+    telephone: (moi.telephone ?? '').trim(),
+  }
+  const corpsHtml =
+    `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;` +
+    `font-size:15px;line-height:1.6;color:#121315">` +
+    enHtml(corps) +
+    signatureHtml(signataire) +
+    `</div>`
+  const corpsTexte = corps + '\n\n--\n' + signatureTexte(signataire)
+
   if (resend) {
     const r = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -194,7 +250,11 @@ export async function POST(req: Request) {
         ...(cachees.length ? { bcc: cachees } : {}),
         reply_to: repondreA,
         subject: sujet,
-        text: corps,
+        text: corpsTexte,
+        html: corpsHtml,
+        ...(jointes.length
+          ? { attachments: jointes.map((p) => ({ filename: p.nom, content: p.contenu })) }
+          : {}),
       }),
     }).catch(() => null)
 
@@ -222,10 +282,38 @@ export async function POST(req: Request) {
         ...(cachees.length ? { bcc: cachees } : {}),
         replyTo: repondreA,
         subject: sujet,
-        text: corps,
+        text: corpsTexte,
+        html: corpsHtml,
+        ...(jointes.length
+          ? {
+              attachments: jointes.map((p) => ({
+                filename: p.nom,
+                content: Buffer.from(p.contenu, 'base64'),
+              })),
+            }
+          : {}),
       })
     } catch (e) {
       const m = e instanceof Error ? e.message : String(e)
+
+      /**
+       * « 550 Sender mismatch » veut dire quelque chose de précis, et le dire
+       * en clair épargne une demi-heure de recherche : l'hébergeur refuse
+       * d'envoyer depuis une adresse qu'il n'a pas approuvée pour la boîte qui
+       * s'est authentifiée. C'est la limite propre au SMTP, et la raison pour
+       * laquelle les adresses par commercial passent par Resend.
+       */
+      if (/sender mismatch|5\.7\.1|\b550\b/i.test(m)) {
+        return NextResponse.json({
+          ok: false,
+          erreur:
+            `L'hébergeur refuse d'envoyer depuis ${expediteur}. ` +
+            'Une adresse par commercial demande Resend : ajoute ' +
+            'PROSPECTION_RESEND_API_KEY et PROSPECTION_RESEND_FROM sur le projet ' +
+            'Vercel, puis redéploie. Sinon, laisse vide son adresse ' +
+            "d'expédition dans Réglages.",
+        })
+      }
       return NextResponse.json({ ok: false, erreur: "L'envoi a échoué : " + m })
     }
   }
