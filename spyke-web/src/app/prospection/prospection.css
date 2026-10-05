@@ -386,6 +386,21 @@
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
 }
 .spk .voie.mail b{font-family:var(--mono);font-size:12px}
+/* Le bouton qui ouvre la correction. Volontairement plus discret que les deux
+   autres : c'est un geste d'entretien, pas une porte d'entrée vers le
+   prospect. */
+.spk .voie.ajout{background:transparent;border-style:dashed}
+.spk .voie.ajout .l{color:var(--faint)}
+.spk .voie.ajout b{color:var(--muted);font-weight:600}
+/* Trois éléments sur une ligne, c'est trop étroit : la correction passe
+   dessous, sur toute la largeur. */
+.spk .joindre:has(.voie + .voie + .voie) .voie.ajout{grid-column:1 / -1}
+
+.spk .voies-edit{
+  margin:0 20px;padding:15px 16px;border-radius:var(--r-s);
+  background:var(--sink);border:1px solid var(--line);
+}
+.spk .voies-edit .btns{margin-top:13px}
 
 /* Pourquoi on appelle celui-là. Juste sous le numéro : on clique, ça sonne, on
    le relit pendant la sonnerie. */

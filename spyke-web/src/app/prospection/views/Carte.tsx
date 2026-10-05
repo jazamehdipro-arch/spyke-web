@@ -72,6 +72,13 @@ export default function Carte({
   const [corrigeTel, setCorrigeTel] = useState(false);
   const [telSaisi, setTelSaisi] = useState("");
   const [telErreur, setTelErreur] = useState("");
+  /* L'adresse et le LinkedIn se corrigent ensemble : ce sont les deux mêmes
+     informations, trouvées au même moment, et deux boutons séparés feraient
+     deux allers-retours là où un seul suffit. */
+  const [corrigeVoies, setCorrigeVoies] = useState(false);
+  const [emailSaisi, setEmailSaisi] = useState("");
+  const [linkedinSaisi, setLinkedinSaisi] = useState("");
+  const [voiesErreur, setVoiesErreur] = useState("");
   const [rappel, setRappel] = useState(lead.rappel ?? "");
   const [contact, setContact] = useState(lead.contact);
   const [notes, setNotes] = useState(lead.notes);
@@ -83,6 +90,8 @@ export default function Carte({
   useEffect(() => {
     setCorrigeTel(false);
     setTelErreur("");
+    setCorrigeVoies(false);
+    setVoiesErreur("");
     setRappel(lead.rappel ?? "");
     setContact(lead.contact);
     setNotes(lead.notes);
@@ -172,6 +181,53 @@ export default function Carte({
           ? "Ce numéro est déjà sur une autre fiche."
           : err.message ?? "Enregistrement impossible."
       );
+    }
+  }
+
+  /**
+   * Enregistre l'adresse et le profil corrigés.
+   *
+   * La base refuse une adresse mal écrite et un lien sans protocole : la
+   * première enverrait le message dans le vide, le second serait traité par le
+   * navigateur comme une page de Spyke. On vérifie donc ici aussi, pour le dire
+   * avant l'aller-retour plutôt qu'après.
+   */
+  async function enregistrerVoies() {
+    const mail = emailSaisi.trim().toLowerCase();
+    const lien = linkedinSaisi.trim();
+
+    if (mail && !/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(mail)) {
+      setVoiesErreur("Cette adresse e-mail n'est pas valide.");
+      return;
+    }
+    // Un lien donné sans « https:// » est complété plutôt que refusé : c'est la
+    // forme sous laquelle LinkedIn le présente quand on le copie.
+    const lienPropre =
+      lien && !/^https?:\/\//i.test(lien) ? "https://" + lien.replace(/^\/+/, "") : lien;
+
+    if (mail === lead.email && lienPropre === lead.linkedin) {
+      setCorrigeVoies(false);
+      return;
+    }
+
+    setVoiesErreur("");
+    try {
+      const maj = await q.majLead(lead.id, { email: mail, linkedin: lienPropre });
+      onLead(maj ?? { ...lead, email: mail, linkedin: lienPropre });
+      if (mail !== lead.email) {
+        await q.noter(
+          lead.id,
+          mail ? "Adresse e-mail corrigée" : "Adresse e-mail retirée",
+          ctx.moi.id
+        );
+      }
+      setHist(await q.historique(lead.id).catch(() => hist));
+      setCorrigeVoies(false);
+      ctx.toast("Fiche à jour");
+      void ctx.recharger();
+    } catch (e) {
+      const err = e as { message?: string };
+      setVoiesErreur(err.message ?? "Enregistrement impossible.");
     }
   }
 
@@ -318,8 +374,57 @@ export default function Carte({
 
       {/* Les deux autres portes d'entrée, sous le numéro parce qu'elles
           viennent après lui : on appelle d'abord, on écrit ensuite. Le profil
-          LinkedIn sert surtout à vérifier à qui on parle. */}
-      {(lead.email || lead.linkedin) && (
+          LinkedIn sert surtout à vérifier à qui on parle.
+
+          Elles se corrigent comme le numéro, et pour la même raison : l'accueil
+          épelle l'adresse du décideur pendant l'appel, et c'est le seul moment
+          où on l'a. Les deux ensemble, parce qu'on les trouve au même moment. */}
+      {corrigeVoies ? (
+        <div className="voies-edit">
+          <div>
+            <label htmlFor={"v-mail-" + lead.id}>Adresse e-mail</label>
+            <input
+              id={"v-mail-" + lead.id}
+              type="email"
+              inputMode="email"
+              autoFocus
+              placeholder="prenom.nom@cabinet.fr"
+              value={emailSaisi}
+              onChange={(e) => setEmailSaisi(e.target.value)}
+            />
+          </div>
+          <div style={{ marginTop: 11 }}>
+            <label htmlFor={"v-in-" + lead.id}>Profil LinkedIn</label>
+            <input
+              id={"v-in-" + lead.id}
+              type="url"
+              placeholder="linkedin.com/in/…"
+              value={linkedinSaisi}
+              onChange={(e) => setLinkedinSaisi(e.target.value)}
+            />
+          </div>
+          {voiesErreur && (
+            <p className="hint" style={{ marginTop: 9, color: "var(--hot)" }}>
+              {voiesErreur}
+            </p>
+          )}
+          <div className="btns">
+            <button className="btn" onClick={() => void enregistrerVoies()}>
+              Enregistrer
+            </button>
+            <button
+              className="btn ghost"
+              onClick={() => { setCorrigeVoies(false); setVoiesErreur(""); }}
+            >
+              Annuler
+            </button>
+          </div>
+          <p className="hint" style={{ marginTop: 10 }}>
+            Vide l&apos;un des deux champs pour retirer l&apos;information de la
+            fiche.
+          </p>
+        </div>
+      ) : (
         <div className="joindre">
           {lead.email && (
             <button
@@ -341,6 +446,22 @@ export default function Carte({
               <b>Voir le profil</b>
             </a>
           )}
+          <button
+            className="voie ajout"
+            onClick={() => {
+              setEmailSaisi(lead.email);
+              setLinkedinSaisi(lead.linkedin);
+              setVoiesErreur("");
+              setCorrigeVoies(true);
+            }}
+          >
+            <span className="l">{lead.email || lead.linkedin ? "Corriger" : "Compléter"}</span>
+            <b>
+              {lead.email || lead.linkedin
+                ? "E-mail et LinkedIn"
+                : "Ajouter une adresse ou un profil"}
+            </b>
+          </button>
         </div>
       )}
 
