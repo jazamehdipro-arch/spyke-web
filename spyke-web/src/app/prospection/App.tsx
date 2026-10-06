@@ -134,7 +134,10 @@ export default function App({
         q.affaires(),
         q.creneaux(),
         moi.role === "admin" ? q.equipe() : Promise.resolve([] as Profile[]),
-        q.modeles(),
+        // Les modèles sont un confort, pas le cœur du métier : s'ils ne
+        // chargent pas, le commercial doit quand même pouvoir appeler. Sans
+        // cette tolérance, une table absente emporte tout l'écran.
+        q.modeles().catch(() => []),
       ]);
       const frais = { leads, activities, deals, creneaux, equipe, modeles };
       // Ce qui vient d'arriver servira d'écran de secours à la prochaine

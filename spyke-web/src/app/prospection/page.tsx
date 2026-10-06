@@ -30,7 +30,9 @@ export default function Prospection() {
       q.affaires(),
       q.creneaux(),
       profil.role === "admin" ? q.equipe() : Promise.resolve([] as Profile[]),
-      q.modeles(),
+      // Les modèles sont un confort, pas le cœur du métier : s'ils ne chargent
+      // pas, le commercial doit quand même pouvoir appeler.
+      q.modeles().catch(() => []),
     ]);
     setMoi(profil);
     setDonnees({ leads, activities, deals, creneaux, equipe, modeles });
