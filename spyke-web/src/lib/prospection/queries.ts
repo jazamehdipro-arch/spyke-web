@@ -1,7 +1,7 @@
 "use client";
 
 import { createClient } from "./supabase/client";
-import type { Activity, Creneau, Deal, Filtres, Lead, ModeFile, Profile } from "./types";
+import type { Activity, Creneau, Deal, Filtres, Lead, ModeFile, Modele, Profile } from "./types";
 import { enfiler } from "./horsligne";
 
 const sb = () => createClient();
@@ -226,6 +226,20 @@ export async function fixerCopieCachee(adresses: string[]) {
   const { error } = await sb()
     .from("settings")
     .upsert({ key: CLE_COPIE_CACHEE, value: adresses }, { onConflict: "key" });
+  if (error) throw error;
+}
+
+/* ----------------------------------------------------------------- modèles */
+
+export async function modeles(): Promise<Modele[]> {
+  const { data, error } = await sb()
+    .from("modeles").select("*").order("rang").order("titre");
+  if (error) throw error;
+  return (data ?? []) as Modele[];
+}
+
+export async function majModele(id: string, patch: Partial<Modele>) {
+  const { error } = await sb().from("modeles").update(patch).eq("id", id);
   if (error) throw error;
 }
 

@@ -11,6 +11,7 @@ import Equipe from "./Equipe";
 import Rgpd from "./Rgpd";
 import Secteurs from "./Secteurs";
 import CopieCachee from "./CopieCachee";
+import Modeles from "./Modeles";
 
 export default function VueReglages({ ctx }: { ctx: Ctx }) {
   const [secteurImport, setSecteurImport] = useState("");
@@ -289,6 +290,8 @@ export default function VueReglages({ ctx }: { ctx: Ctx }) {
       <Equipe moi={ctx.moi} equipe={ctx.d.equipe} recharger={ctx.recharger} />
 
       <Secteurs ctx={ctx} />
+
+      <Modeles ctx={ctx} />
 
       <CopieCachee ctx={ctx} />
 

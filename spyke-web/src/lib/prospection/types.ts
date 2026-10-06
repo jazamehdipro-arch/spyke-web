@@ -145,6 +145,32 @@ export const STATUS: Record<Statut, { l: string; c: string }> = {
   injoignable: { l: "Injoignable", c: "injoignable" },
 };
 
+/**
+ * Un modèle d'e-mail de prospection.
+ *
+ * secteur vide = valable pour toutes les fiches. Les options sont les lignes
+ * que le commercial coche : le corps porte {{problemes}} et {{solutions}} là
+ * où les lignes retenues viennent se poser.
+ */
+export type OptionModele = {
+  cle: string;
+  libelle: string;
+  probleme: string;
+  solution: string;
+};
+
+export type Modele = {
+  id: string;
+  secteur: string;
+  titre: string;
+  objet: string;
+  corps: string;
+  piece: string;
+  options: OptionModele[];
+  rang: number;
+  actif: boolean;
+};
+
 export const DAYS = [
   "Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi",
 ];

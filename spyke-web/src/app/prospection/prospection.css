@@ -736,6 +736,20 @@
   width:100%;font-size:13px;color:var(--body);padding:10px 0;
 }
 
+/* Les points à garder dans un modèle d'e-mail. Des cases à cocher plutôt
+   qu'un texte à élaguer : un commercial pressé enverrait la consigne au
+   prospect. */
+.spk .cocher{
+  margin-top:14px;padding:14px 15px;border-radius:var(--r-s);
+  background:var(--sink);border:1px solid var(--line);
+}
+.spk .case{
+  display:flex;align-items:flex-start;gap:10px;padding:7px 0;cursor:pointer;
+  font-size:13.5px;line-height:1.5;color:var(--body);
+}
+.spk .case input{width:17px;height:17px;flex:0 0 17px;margin-top:1px;accent-color:var(--ink)}
+.spk .case:hover span{color:var(--ink)}
+
 /* Un lien discret dans un panneau : « Ajouter une copie cachée », et les
    réglages de ce genre, qu'on ne montre pas tant qu'on n'en a pas besoin. */
 .spk .panel .alt{font-size:13px;color:var(--muted);text-decoration:underline}

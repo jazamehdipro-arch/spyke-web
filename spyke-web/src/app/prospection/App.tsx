@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/prospection/supabase/client";
 import * as q from "@/lib/prospection/queries";
-import type { Activity, Creneau, Deal, Lead, Profile } from "@/lib/prospection/types";
+import type { Activity, Creneau, Deal, Lead, Modele, Profile } from "@/lib/prospection/types";
 import { today } from "@/lib/prospection/format";
 import {
   sauverInstantane, lireInstantane, combienEnAttente, enAttente as fileEnAttente, appliquerFile,
@@ -24,6 +24,7 @@ export type Donnees = {
   deals: Deal[];
   creneaux: Creneau[];
   equipe: Profile[];
+  modeles: Modele[];
 };
 
 export type Ctx = {
@@ -127,14 +128,15 @@ export default function App({
 
   const recharger = useCallback(async () => {
     try {
-      const [leads, activities, deals, creneaux, equipe] = await Promise.all([
+      const [leads, activities, deals, creneaux, equipe, modeles] = await Promise.all([
         q.chargerLeads(),
         q.toutHistorique(),
         q.affaires(),
         q.creneaux(),
         moi.role === "admin" ? q.equipe() : Promise.resolve([] as Profile[]),
+        q.modeles(),
       ]);
-      const frais = { leads, activities, deals, creneaux, equipe };
+      const frais = { leads, activities, deals, creneaux, equipe, modeles };
       // Ce qui vient d'arriver servira d'écran de secours à la prochaine
       // coupure : mieux vaut des fiches d'il y a dix minutes que rien.
       void sauverInstantane(frais);
@@ -143,7 +145,7 @@ export default function App({
     } catch {
       setBaseJoignable(false);
       const secours = await lireInstantane();
-      if (secours) setD(await avecFileParDessus(secours));
+      if (secours) setD(await avecFileParDessus({ modeles: [], ...secours }));
     }
     setEnAttente(await combienEnAttente());
   }, [moi.role]);

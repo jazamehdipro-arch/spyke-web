@@ -1,8 +1,11 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Ctx } from "../App";
-import type { Lead } from "@/lib/prospection/types";
+import type { Lead, Modele } from "@/lib/prospection/types";
+import * as q from "@/lib/prospection/queries";
+import { manquantes, pourLaFiche, remplir } from "@/lib/prospection/modeles";
+import { prochainsCreneaux } from "@/lib/prospection/slots";
 import { jetonCourant } from "@/lib/prospection/auth";
 
 type Piece = { nom: string; contenu: string; octets: number };
@@ -45,6 +48,17 @@ export default function Email({ ctx, lead }: { ctx: Ctx; lead: Lead }) {
       "",
     ].join("\n")
   );
+  /* Les modèles du secteur de la fiche. Un commercial sur un notaire ne doit
+     pas voir passer l'e-mail des agences : c'est l'erreur que ce tri évite. */
+  const choix = useMemo(
+    () => pourLaFiche(ctx.d.modeles, lead.secteur),
+    [ctx.d.modeles, lead.secteur]
+  );
+  const [modele, setModele] = useState<Modele | null>(null);
+  const [cochees, setCochees] = useState<string[]>([]);
+  /* Les deux prochains créneaux d'audit libres, pour {{creneau_1}} et 2. Ils
+     viennent du serveur parce qu'un collègue a pu en réserver un entre-temps. */
+  const [creneaux, setCreneaux] = useState<string[]>([]);
   const [copie, setCopie] = useState("");
   const [montrerCopie, setMontrerCopie] = useState(false);
   const [pieces, setPieces] = useState<Piece[]>([]);
@@ -53,6 +67,34 @@ export default function Email({ ctx, lead }: { ctx: Ctx; lead: Lead }) {
   const champFichier = useRef<HTMLInputElement>(null);
 
   const poids = pieces.reduce((n, p) => n + p.octets, 0);
+
+  useEffect(() => {
+    const du = new Date();
+    const au = new Date();
+    au.setDate(au.getDate() + 28);
+    q.creneauxPris(du, au)
+      .then((pris) =>
+        setCreneaux(
+          prochainsCreneaux(ctx.d.creneaux, pris)
+            .filter((s) => !s.pris)
+            .slice(0, 2)
+            .map((s) => `${s.jour} à ${s.heure}`)
+        )
+      )
+      .catch(() => setCreneaux([]));
+  }, [ctx.d.creneaux]);
+
+  /* Poser un modèle, ou le reposer quand les cases changent. Ce qui a été tapé
+     à la main est écrasé : c'est le sens du geste, et le commercial vient de
+     choisir un autre objet. */
+  function poserModele(m: Modele | null, cases: string[]) {
+    setModele(m);
+    setCochees(cases);
+    if (!m) return;
+    const r = remplir(m, { lead, moi: ctx.moi, creneaux, choisies: cases });
+    setObjet(r.objet);
+    setMessage(r.corps);
+  }
 
   /**
    * Les fichiers sont lus ici, en base64, et voyagent dans le corps de la
@@ -92,6 +134,15 @@ export default function Email({ ctx, lead }: { ctx: Ctx; lead: Lead }) {
   }
 
   async function envoyer() {
+    // Une variable non remplie partirait telle quelle chez le prospect. Mieux
+    // vaut un refus net qu'un « Bonjour {{appel}} » dans sa boîte.
+    const trous = manquantes(objet + "\n" + message);
+    if (trous.length) {
+      setErreur(
+        `Il reste à compléter : ${trous.join(", ")}. Remplace-les avant d'envoyer.`
+      );
+      return;
+    }
     setEnvoi(true);
     setErreur("");
     try {
@@ -130,6 +181,63 @@ export default function Email({ ctx, lead }: { ctx: Ctx; lead: Lead }) {
         À <b>{lead.email}</b>. Ta signature est ajoutée automatiquement à la fin,
         avec ton numéro et ton adresse : n&apos;en écris pas une.
       </p>
+
+      {choix.length > 0 && (
+        <div style={{ marginTop: 16 }}>
+          <label htmlFor="e-mod">Modèle</label>
+          <select
+            id="e-mod"
+            value={modele?.id ?? ""}
+            onChange={(e) => {
+              const m = choix.find((x) => x.id === e.target.value) ?? null;
+              // Tout cocher d'emblée serait pire que rien : le commercial doit
+              // garder un ou deux points, pas les quatre.
+              poserModele(m, []);
+            }}
+          >
+            <option value="">Écrire moi-même</option>
+            {choix.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.secteur ? m.titre : m.titre + " (tous secteurs)"}
+              </option>
+            ))}
+          </select>
+          {modele?.piece && (
+            <p className="hint" style={{ marginTop: 7 }}>
+              À joindre : <b>{modele.piece}</b>.
+            </p>
+          )}
+        </div>
+      )}
+
+      {modele && modele.options.length > 0 && (
+        <div className="cocher">
+          <div className="sechead" style={{ padding: 0, marginBottom: 9 }}>
+            Ce dont vous avez parlé
+          </div>
+          <p className="hint" style={{ marginBottom: 10 }}>
+            Garde un ou deux points. Le message se réécrit avec ceux que tu
+            coches, et les solutions suivent dans le même ordre.
+          </p>
+          {modele.options.map((o) => (
+            <label className="case" key={o.cle}>
+              <input
+                type="checkbox"
+                checked={cochees.includes(o.cle)}
+                onChange={(e) =>
+                  poserModele(
+                    modele,
+                    e.target.checked
+                      ? [...cochees, o.cle]
+                      : cochees.filter((c) => c !== o.cle)
+                  )
+                }
+              />
+              <span>{o.libelle}</span>
+            </label>
+          ))}
+        </div>
+      )}
 
       <div style={{ marginTop: 16 }}>
         <label htmlFor="e-obj">Objet</label>

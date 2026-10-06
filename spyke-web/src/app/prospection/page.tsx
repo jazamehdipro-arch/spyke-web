@@ -24,15 +24,16 @@ export default function Prospection() {
       router.replace("/prospection/connexion");
       return;
     }
-    const [leads, activities, deals, creneaux, equipe] = await Promise.all([
+    const [leads, activities, deals, creneaux, equipe, modeles] = await Promise.all([
       q.chargerLeads(),
       q.toutHistorique(),
       q.affaires(),
       q.creneaux(),
       profil.role === "admin" ? q.equipe() : Promise.resolve([] as Profile[]),
+      q.modeles(),
     ]);
     setMoi(profil);
-    setDonnees({ leads, activities, deals, creneaux, equipe });
+    setDonnees({ leads, activities, deals, creneaux, equipe, modeles });
   }, [router]);
 
   useEffect(() => {

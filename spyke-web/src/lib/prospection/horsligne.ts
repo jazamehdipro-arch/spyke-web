@@ -1,6 +1,6 @@
 "use client";
 
-import type { Activity, Deal, Filtres, Lead, ModeFile, Profile, Creneau, Statut, Prio } from "./types";
+import type { Activity, Deal, Filtres, Lead, ModeFile, Modele, Profile, Creneau, Statut, Prio } from "./types";
 
 /**
  * Le mode hors ligne.
@@ -57,6 +57,10 @@ export type Instantane = {
   deals: Deal[];
   creneaux: Creneau[];
   equipe: Profile[];
+  /* Les modèles d'e-mail suivent : sans réseau, le commercial doit pouvoir
+     écrire avec le bon texte plutôt qu'avec une page vide. Un instantané plus
+     ancien n'en portait pas, d'où le point d'interrogation. */
+  modeles?: Modele[];
 };
 
 /* ------------------------------------------------------------------ socle */
