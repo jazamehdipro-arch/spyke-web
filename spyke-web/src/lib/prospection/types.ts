@@ -67,6 +67,13 @@ export type Lead = {
   email: string;
   linkedin: string;
 
+  /* Ce que vend la structure, et ce qu'elle raconte en ce moment. Lus avant de
+     décrocher : un cabinet d'affaires ne s'aborde pas comme un cabinet de
+     droit de la famille, et c'est souvent la page LinkedIn qui donne
+     l'accroche — un recrutement, une fusion, une nouvelle offre. */
+  site: string;
+  linkedin_entreprise: string;
+
   statut: Statut;
   rappel: string | null;
   contact: string;

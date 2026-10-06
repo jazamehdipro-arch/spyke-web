@@ -295,6 +295,26 @@ export default function Carte({
         </div>
       </div>
 
+      {/* Le positionnement, avant de décrocher. Un cabinet d'affaires ne
+          s'aborde pas comme un cabinet de droit de la famille, et la page
+          LinkedIn dit ce que la structure raconte en ce moment — un
+          recrutement, une fusion — ce qui fait souvent l'accroche. Donc tout
+          en haut : ça se lit avant l'appel, pas pendant. */}
+      {(lead.site || lead.linkedin_entreprise) && (
+        <div className="positionnement">
+          {lead.site && (
+            <a href={lead.site} target="_blank" rel="noreferrer noopener">
+              Site du cabinet
+            </a>
+          )}
+          {lead.linkedin_entreprise && (
+            <a href={lead.linkedin_entreprise} target="_blank" rel="noreferrer noopener">
+              Page LinkedIn
+            </a>
+          )}
+        </div>
+      )}
+
       {/* Qui demander. C'est la première phrase de l'appel : sans un nom, on
           reste à l'accueil et on n'en sort pas. Donc au-dessus du numéro, pas
           en dessous. */}

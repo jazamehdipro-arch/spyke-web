@@ -16,17 +16,34 @@ function emailPropre(v: string): string {
 }
 
 /**
- * Un lien LinkedIn utilisable tel quel.
+ * Un lien cliquable, extrait d'une cellule écrite à la main.
  *
- * Les fichiers donnent tantôt l'adresse complète, tantôt « linkedin.com/in/… »
- * sans protocole. Sans « https:// » devant, le navigateur traite le lien comme
- * une page de Spyke et ouvre une erreur.
+ * Les cellules ne contiennent pas que l'adresse. On y trouve le nom devant
+ * (« Paul Senlecq : https://… »), un « ? » derrière quand celui qui a enrichi
+ * le fichier n'est pas certain d'avoir le bon profil, et parfois l'adresse
+ * sans protocole (« herillard-ameline.notaires.fr »). Collée telle quelle dans
+ * un lien, chacune de ces trois formes mène à une page d'erreur : le « ? »
+ * part dans l'URL, et sans « https:// » le navigateur cherche la page dans
+ * Spyke.
+ *
+ * Le doute de l'enrichissement ne se perd pas pour autant : il reste dans la
+ * colonne Notes, qui est faite pour ça et que le commercial lit avant
+ * d'appeler.
  */
-function lienPropre(v: string): string {
-  const t = v.trim();
-  if (!t || !/linkedin\./i.test(t)) return "";
-  return /^https?:\/\//i.test(t) ? t : "https://" + t.replace(/^\/+/, "");
+function lienPropre(v: string, hote?: RegExp): string {
+  const dans = v.match(/https?:\/\/\S+/i);
+  const t = (dans ? dans[0] : v.trim().split(/\s/)[0])
+    .replace(/[\s?.,;:]+$/, "")
+    .replace(/^\/+/, "");
+  if (!t) return "";
+  // Une cellule sans protocole n'est une adresse que si elle ressemble à un
+  // domaine : « Non renseigné » ou « à chercher » n'en sont pas.
+  if (!dans && !/^[\w-]+(\.[\w-]+)+(\/|$)/.test(t)) return "";
+  if (hote && !hote.test(t)) return "";
+  return /^https?:\/\//i.test(t) ? t : "https://" + t;
 }
+
+const EN_LINKEDIN = /linkedin\./i;
 
 export function parseCSV(txt: string): string[][] {
   txt = txt.replace(/^﻿/, "");
@@ -51,9 +68,19 @@ export function parseCSV(txt: string): string[][] {
   return rows;
 }
 
+/**
+ * Un en-tête de colonne réduit à ses mots.
+ *
+ * Les fichiers écrivent la même colonne de trois façons : « Cabinet/Organisme »,
+ * « Cabinet / Organisme », « E-mail ». Comparer la chaîne telle quelle oblige à
+ * lister chaque ponctuation possible, et le jour où il en manque une le fichier
+ * est refusé pour une barre oblique.
+ */
+const motsEntete = (k: string) => norm(k).replace(/[^a-z0-9]+/g, " ").trim();
+
 const colonne = (entete: string[], noms: string[]) => {
   for (const n of noms) {
-    const i = entete.findIndex((k) => norm(k) === n);
+    const i = entete.findIndex((k) => motsEntete(k) === n);
     if (i > -1) return i;
   }
   return -1;
@@ -130,7 +157,11 @@ export function lireFiches(texte: string, secteur: string):
 
   // Les deux autres façons de joindre quelqu'un.
   const iM = colonne(h, ["email", "e mail", "mail", "adresse mail", "courriel"]);
-  const iL = colonne(h, ["linkedin", "lien linkedin", "profil linkedin", "url linkedin"]);
+  const iL = colonne(h, ["linkedin decideur", "linkedin", "lien linkedin", "profil linkedin", "url linkedin"]);
+
+  // Ce que vend la structure, et ce qu'elle raconte en ce moment.
+  const iW = colonne(h, ["site web", "site", "site internet", "url", "www"]);
+  const iQ = colonne(h, ["linkedin entreprise", "linkedin societe", "linkedin cabinet", "page linkedin"]);
 
   const get = (c: string[], i: number) => (i > -1 ? (c[i] ?? "").trim() : "");
   const fiches: Partial<Lead>[] = [];
@@ -161,7 +192,9 @@ export function lireFiches(texte: string, secteur: string):
       creneau: get(c, iK),
       contact: get(c, iI),
       email: emailPropre(get(c, iM)),
-      linkedin: lienPropre(get(c, iL)),
+      linkedin: lienPropre(get(c, iL), EN_LINKEDIN),
+      site: lienPropre(get(c, iW)),
+      linkedin_entreprise: lienPropre(get(c, iQ), EN_LINKEDIN),
       // Une date déjà posée dans le fichier ne vaut que si elle est lisible :
       // sinon la base refuse toute la ligne et on perd la fiche entière.
       rappel: /^\d{4}-\d{2}-\d{2}$/.test(rappel) ? rappel : null,

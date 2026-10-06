@@ -248,14 +248,24 @@ export async function majModele(id: string, patch: Partial<Modele>) {
 export async function importerLeads(lignes: Partial<Lead>[]) {
   // Les doublons de numéro sont refusés par un index unique en base ; on insère
   // ligne par ligne pour qu'un doublon n'annule pas tout le fichier.
-  let ajoutes = 0, doublons = 0;
+  //
+  // Un numéro déjà connu n'est pas un rebut : le fichier repart à
+  // l'enrichissement et revient avec le site, la page LinkedIn, un décideur
+  // enfin identifié. La fiche est donc complétée en base — qui décide seule de
+  // ce que le fichier écrase et de ce qu'il respecte, cf. enrichir_fiche().
+  let ajoutes = 0, enrichies = 0, doublons = 0;
   for (const l of lignes) {
     const { error } = await sb().from("leads").insert(l);
-    if (!error) ajoutes++;
-    else if (error.code === "23505") doublons++;
-    else throw error;
+    if (!error) { ajoutes++; continue; }
+    if (error.code !== "23505") throw error;
+    const { data, error: e2 } = await sb().rpc("enrichir_fiche", {
+      p_tel: l.tel ?? "",
+      p_fiche: l,
+    });
+    if (e2) throw e2;
+    if (data) enrichies++; else doublons++;
   }
-  return { ajoutes, doublons };
+  return { ajoutes, enrichies, doublons };
 }
 
 /* --------------------------------------------------------- rejeu hors ligne */

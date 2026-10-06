@@ -49,21 +49,23 @@ export default function VueReglages({ ctx }: { ctx: Ctx }) {
   async function importer(files: FileList | null) {
     if (!files?.length) return;
     setEnCours(true);
-    let a = 0, d = 0;
+    let a = 0, e = 0, d = 0;
     try {
       for (const f of Array.from(files)) {
         const res = lireFiches(await f.text(), secteurImport.trim() || secteurDuFichier(f.name));
         if ("erreur" in res) { ctx.toast(res.erreur); continue; }
         const r = await q.importerLeads(res.fiches);
-        a += r.ajoutes; d += r.doublons;
+        a += r.ajoutes; e += r.enrichies; d += r.doublons;
       }
       await ctx.recharger();
-      ctx.toast(
-        a
-          ? `${a} fiche${a > 1 ? "s" : ""} ajoutée${a > 1 ? "s" : ""}` +
-            (d ? ` · ${d} doublon${d > 1 ? "s" : ""} ignoré${d > 1 ? "s" : ""}` : "")
-          : d ? "Tout était déjà importé" : "Aucune fiche trouvée"
-      );
+      // Réimporter un fichier enrichi est le cas courant, pas l'exception : on
+      // compte les fiches complétées à part, sinon l'import a l'air sans effet.
+      const bouts = [
+        a && `${a} fiche${a > 1 ? "s" : ""} ajoutée${a > 1 ? "s" : ""}`,
+        e && `${e} complétée${e > 1 ? "s" : ""}`,
+        d && `${d} doublon${d > 1 ? "s" : ""} ignoré${d > 1 ? "s" : ""}`,
+      ].filter(Boolean);
+      ctx.toast(bouts.length ? bouts.join(" · ") : "Aucune fiche trouvée");
     } catch (e) {
       ctx.toast((e as { message?: string }).message ?? "Import impossible");
     }
