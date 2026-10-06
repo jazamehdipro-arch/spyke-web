@@ -74,16 +74,24 @@ export default function Email({ ctx, lead }: { ctx: Ctx; lead: Lead }) {
     const au = new Date();
     au.setDate(au.getDate() + 28);
     q.creneauxPris(du, au)
-      .then((pris) =>
+      .then((pris) => {
+        /* Deux jours différents, pas deux heures du même matin.
+           Proposer 11h ou 12h le même jour, c'est proposer une seule date : si
+           la personne est prise ce jour-là, elle doit répondre pour en demander
+           une autre, et chaque aller-retour perd un rendez-vous. */
+        const libres = prochainsCreneaux(ctx.d.creneaux, pris).filter((s) => !s.pris);
+        const vus = new Set<string>();
+        const deuxJours = libres.filter((s) =>
+          vus.has(s.jour) ? false : (vus.add(s.jour), true)
+        );
         setCreneaux(
-          prochainsCreneaux(ctx.d.creneaux, pris)
-            .filter((s) => !s.pris)
+          deuxJours
             .slice(0, 2)
             // « 2026-10-06 à 11:00 » dans un e-mail à un notaire, c'est un
             // identifiant de base de données, pas une proposition de rendez-vous.
             .map((s) => `${longD(s.jour)} à ${s.heure.replace(":", "h")}`)
-        )
-      )
+        );
+      })
       .catch(() => setCreneaux([]));
   }, [ctx.d.creneaux]);
 
