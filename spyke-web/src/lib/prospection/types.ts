@@ -24,8 +24,7 @@ export type Profile = {
      Seul le responsable la fixe : sinon chacun pourrait écrire au nom d'un
      collègue. */
   email_envoi: string;
-  /* Colonne conservée mais inutilisée : la signature n'affiche plus de
-     numéro. Remettre la ligne demande deux lignes dans signature.ts. */
+  /* Le numéro direct affiché dans sa signature. Vide = ligne absente. */
   telephone: string;
   created_at: string;
 };

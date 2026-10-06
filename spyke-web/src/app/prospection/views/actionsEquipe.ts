@@ -258,7 +258,8 @@ export async function supprimerCommercial(jeton: string, membreId: string): Prom
 export async function fixerAdresseEnvoi(
   jeton: string,
   membreId: string,
-  adresse: string
+  adresse: string,
+  telephone: string
 ): Promise<Resultat> {
   return sansCasser(async () => {
     const admin = await exigerAdmin(jeton);
@@ -274,7 +275,7 @@ export async function fixerAdresseEnvoi(
     });
     const { error } = await avecJeton
       .from("profiles")
-      .update({ email_envoi: propre })
+      .update({ email_envoi: propre, telephone: telephone.trim().slice(0, 30) })
       .eq("id", membreId);
     if (error) return { ok: false, erreur: error.message };
 

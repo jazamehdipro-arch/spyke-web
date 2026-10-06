@@ -163,7 +163,7 @@ export async function POST(req: Request) {
    */
   const { data: moi } = await sb
     .from('profiles')
-    .select('nom, role, actif, email_envoi')
+    .select('nom, role, actif, email_envoi, telephone')
     .eq('id', user.id)
     .maybeSingle()
 
@@ -224,7 +224,11 @@ export async function POST(req: Request) {
    * chose sans décor. Les deux partent ensemble : la messagerie du destinataire
    * choisit, et celle qui refuse le HTML ne reçoit pas un message vide.
    */
-  const signataire = { nom: moi.nom, email: expediteur }
+  const signataire = {
+    nom: moi.nom,
+    email: expediteur,
+    telephone: (moi.telephone ?? '').trim(),
+  }
   const corpsHtml =
     `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;` +
     `font-size:15px;line-height:1.6;color:#121315">` +
