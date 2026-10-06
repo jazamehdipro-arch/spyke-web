@@ -17,6 +17,7 @@ import VueListe from "./views/Liste";
 import VueAgenda from "./views/Agenda";
 import VuePipeline from "./views/Pipeline";
 import VueReglages from "./views/Reglages";
+import Modeles from "./views/Modeles";
 
 export type Donnees = {
   leads: Lead[];
@@ -228,7 +229,17 @@ export default function App({
   }
 
   const ecran = ONGLETS.find((o) => o.cle === view)!;
-  const onglets = ONGLETS.filter((o) => o.cle !== "admin" || moi.role === "admin");
+  /* L'onglet des réglages s'ouvre aussi à qui peut écrire les modèles, mais il
+     ne lui montre que ceux-là : ni l'équipe, ni l'import, ni l'argent. Son
+     titre change en conséquence, pour ne pas promettre ce qu'il ne contient
+     pas. */
+  const redacteur = moi.role !== "admin" && moi.redacteur;
+  const onglets = ONGLETS.filter((o) => o.cle !== "admin" || moi.role === "admin" || redacteur)
+    .map((o) =>
+      o.cle === "admin" && redacteur
+        ? { ...o, nom: "Modèles", quoi: "Les e-mails types envoyés aux prospects." }
+        : o
+    );
   const badges: Partial<Record<Onglet, number>> = {
     file: compteurs.rappels,
     agenda: compteurs.rdv,
@@ -313,6 +324,7 @@ export default function App({
         {view === "agenda" && <VueAgenda ctx={ctx} />}
         {view === "pipe" && <VuePipeline ctx={ctx} />}
         {view === "admin" && moi.role === "admin" && <VueReglages ctx={ctx} />}
+        {view === "admin" && redacteur && <Modeles ctx={ctx} />}
       </main>
 
       {/* Le téléphone vit dans la coque, jamais dans un écran : le démonter

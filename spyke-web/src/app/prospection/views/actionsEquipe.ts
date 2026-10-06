@@ -292,3 +292,37 @@ export async function fixerAdresseEnvoi(
     };
   });
 }
+
+/**
+ * Donner ou reprendre le droit de modifier les modèles d'e-mail.
+ *
+ * Le contrôle est refait côté base : la policy profiles_update_self autorise
+ * chacun à écrire sa propre fiche, et sans garde-fou un commercial se
+ * donnerait le droit à lui-même.
+ */
+export async function fixerRedacteur(
+  jeton: string,
+  membreId: string,
+  peut: boolean
+): Promise<Resultat> {
+  return sansCasser(async () => {
+    const admin = await exigerAdmin(jeton);
+    if ("refus" in admin) return { ok: false, erreur: admin.refus };
+
+    const avecJeton = createClient(PROSPECTION_URL, PROSPECTION_KEY, {
+      global: { headers: { Authorization: `Bearer ${jeton}` } },
+    });
+    const { error } = await avecJeton
+      .from("profiles")
+      .update({ redacteur: peut })
+      .eq("id", membreId);
+    if (error) return { ok: false, erreur: error.message };
+
+    return {
+      ok: true,
+      message: peut
+        ? "Il peut maintenant modifier les modèles d'e-mail."
+        : "Il ne modifie plus les modèles d'e-mail.",
+    };
+  });
+}

@@ -28,6 +28,10 @@ export type Profile = {
   telephone: string;
   /* Son intitulé de poste, affiché sous son nom dans la signature. */
   poste: string;
+  /* Le droit de modifier les modèles d'e-mail. Donné par le responsable à qui
+     il veut : celui qui passe ses journées au téléphone sait quelle phrase
+     fait raccrocher. */
+  redacteur: boolean;
   created_at: string;
 };
 

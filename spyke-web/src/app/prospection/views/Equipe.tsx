@@ -8,6 +8,7 @@ import {
   retirerCommercial,
   supprimerCommercial,
   fixerAdresseEnvoi,
+  fixerRedacteur,
 } from "./actionsEquipe";
 
 type Message = { ok: boolean; texte: string } | null;
@@ -70,6 +71,15 @@ export default function Equipe({
     });
   }
 
+  function basculerRedacteur(m: Profile) {
+    demarrer(async () => {
+      const jeton = await jetonCourant();
+      const r = await fixerRedacteur(jeton ?? "", m.id, !m.redacteur);
+      setMessage({ ok: r.ok, texte: r.ok ? r.message : r.erreur });
+      if (r.ok) await recharger();
+    });
+  }
+
   function supprimer(id: string) {
     demarrer(async () => {
       const jeton = await jetonCourant();
@@ -100,6 +110,7 @@ export default function Equipe({
                   {m.role === "admin" ? "Responsable" : "Commercial"}
                   {m.id === moi.id ? " · toi" : ""}
                   {m.email_envoi ? " · " + m.email_envoi : " · adresse par défaut"}
+                  {m.redacteur && " · modifie les modèles"}
                 </small>
               </span>
               <button
@@ -181,6 +192,31 @@ export default function Equipe({
                     Annuler
                   </button>
                 </div>
+
+                {/* Un droit, pas un réglage d'affichage : il s'applique tout
+                    de suite, sans passer par le bouton Enregistrer, et il est
+                    posé à part pour qu'on ne le coche pas distraitement. */}
+                {m.id !== moi.id && (
+                  <div className="droit">
+                    <label className="case">
+                      <input
+                        type="checkbox"
+                        checked={m.redacteur}
+                        disabled={enCours}
+                        onChange={() => basculerRedacteur(m)}
+                      />
+                      <span>
+                        Peut modifier les modèles d&apos;e-mail
+                      </span>
+                    </label>
+                    <p className="hint" style={{ marginTop: 6 }}>
+                      Celui qui passe ses journées au téléphone sait quelle
+                      phrase fait raccrocher. Ce droit ne lui ouvre rien
+                      d&apos;autre : ni les fiches des collègues, ni
+                      l&apos;équipe, ni l&apos;argent.
+                    </p>
+                  </div>
+                )}
               </div>
             )}
           </div>

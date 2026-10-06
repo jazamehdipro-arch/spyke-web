@@ -815,6 +815,9 @@
   background:var(--sink);border:1px solid var(--line);
 }
 .spk .envoi .btns{margin-top:12px}
+/* Un droit donné à quelqu'un, pas un champ de plus : séparé par un trait, pour
+   qu'on ne le coche pas en passant. */
+.spk .envoi .droit{margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
 
 /* Une ligne de liste de prospection : le nom, ce qu'elle contient, et les deux
    gestes possibles. Même ossature que .mem, mais deux boutons au lieu d'un. */
