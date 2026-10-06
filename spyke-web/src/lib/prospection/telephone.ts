@@ -163,14 +163,7 @@ export function charger(): Promise<void> {
         // la colonne de droite, à la taille de son emplacement. Sans cadre ni
         // lanceur — Spyke lui dessine déjà les siens, et deux en-têtes l'un
         // sur l'autre, c'est ce qui faisait « pièce rapportée ».
-        sdk.generate({
-          container: DOCK,
-          size: "auto",
-          type: "relative",
-          border: false,
-          trayicon: false,
-          animation: false,
-        });
+        sdk.generate(CADRE);
         poser("a-connecter");
       } catch {
         poser("indisponible");
@@ -181,6 +174,40 @@ export function charger(): Promise<void> {
     document.head.appendChild(s);
   });
   return chargement;
+}
+
+/**
+ * Les réglages du cadre, écrits une fois.
+ *
+ * Ils servent au premier affichage et à chaque réouverture : deux copies
+ * finiraient par diverger, et le clavier rouvert ne ressemblerait plus à celui
+ * du départ.
+ */
+const CADRE = {
+  container: DOCK,
+  size: "auto",
+  type: "relative",
+  border: false,
+  trayicon: false,
+  animation: false,
+} as const;
+
+/**
+ * Repose le clavier dans son cadre après une fermeture.
+ *
+ * Fermer le clavier démonte son emplacement, et avec lui l'iframe de
+ * l'opérateur. Le rouvrir ne peut donc pas se contenter de rendre l'élément
+ * visible : il faut redemander au composant de se dessiner. La session de
+ * l'opérateur, elle, tient à ses propres cookies — on ne redemande pas le mot
+ * de passe à chaque réouverture.
+ */
+export function reposer() {
+  if (!sdk) return;
+  try {
+    sdk.generate(CADRE);
+  } catch {
+    poser("indisponible");
+  }
 }
 
 /** Le cadre que le composant pose sur la page. */

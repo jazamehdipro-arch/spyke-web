@@ -2,9 +2,14 @@
 
 import { useEffect, useState, useSyncExternalStore } from "react";
 import {
-  charger, etatCourant, sAbonner, appelEnCours, problemeCourant, DOCK,
+  charger, etatCourant, sAbonner, appelEnCours, problemeCourant, reposer, DOCK,
   type Etat, type Appel,
 } from "@/lib/prospection/telephone";
+
+/* Le choix du commercial, retenu d'une session à l'autre : celui qui travaille
+   au téléphone veut le clavier ouvert, celui qui relance par e-mail veut la
+   place. Leur reposer la question chaque matin serait une corvée. */
+const CLE_FERME = "spk-tel-ferme";
 
 /**
  * Le téléphone, encastré dans la colonne de droite.
@@ -15,13 +20,16 @@ import {
  * outil : il n'a ni à savoir qui fournit la ligne, ni à jongler entre deux
  * fenêtres.
  *
- * Il reste affiché en permanence, et c'est un choix assumé : le cacher a été
- * essayé de quatre façons, et chacune empêche l'appel de partir. On garde donc
- * ce qui marche, et on le rend beau plutôt que discret.
+ * Il peut être refermé, mais pas masqué : le cacher en CSS a été essayé de
+ * quatre façons — display:none, le hide() du composant, la sortie d'écran, la
+ * transparence — et chacune empêche l'appel de partir. Refermer démonte donc
+ * franchement l'emplacement, et rouvrir redemande au composant de se dessiner.
+ * La session de l'opérateur tient à ses propres cookies : on ne retape pas son
+ * mot de passe à chaque fois.
  *
- * L'emplacement ne disparaît jamais du DOM. Le démonter couperait la ligne au
- * milieu d'un appel — c'est pour cela qu'il vit dans la coque, pas dans un
- * écran.
+ * Pendant un appel, le bouton disparaît. Démonter l'emplacement couperait la
+ * ligne, et aucune place gagnée à l'écran ne vaut un appel coupé au milieu
+ * d'une phrase.
  */
 const ETATS: Record<Etat, { texte: string; ton: "vert" | "jaune" | "gris" }> = {
   absent: { texte: "Téléphone", ton: "gris" },
@@ -38,14 +46,42 @@ function duree(depuis: number): string {
 
 export default function Telephone() {
   const [surOrdi, setSurOrdi] = useState(false);
+  /* Lu au premier rendu plutôt que dans un effet : l'état de départ se connaît
+     sans attendre, et rien ne clignote. Le rendu du serveur n'en dépend pas,
+     le composant ne s'affiche qu'une fois « surOrdi » posé. */
+  const [ferme, setFerme] = useState(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      return window.localStorage.getItem(CLE_FERME) === "1";
+    } catch {
+      // Navigation privée, réglages restrictifs : on ouvre, c'est le défaut.
+      return false;
+    }
+  });
 
   useEffect(() => {
     // Sur mobile, le lien « tel: » appelle déjà : embarquer une application
     // entière consommerait la 4G d'un commercial en voiture pour rien.
     if (window.matchMedia("(pointer: coarse)").matches) return;
     setSurOrdi(true);
-    void charger();
+    if (!ferme) void charger();
+    // Au démarrage seulement : rouvrir plus tard passe par basculer().
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  function basculer(versFerme: boolean) {
+    setFerme(versFerme);
+    try {
+      window.localStorage.setItem(CLE_FERME, versFerme ? "1" : "0");
+    } catch {
+      // Le choix ne survivra pas à la session, ce n'est pas une raison de
+      // refuser le geste.
+    }
+    if (versFerme) return;
+    // Rouvrir : charger le composant s'il ne l'était pas, puis lui redemander
+    // de se dessiner une fois l'emplacement de retour dans la page.
+    void charger().then(() => window.setTimeout(reposer, 0));
+  }
 
   const etat = useSyncExternalStore(sAbonner, etatCourant, () => "absent" as Etat);
   const appel = useSyncExternalStore(sAbonner, appelEnCours, () => null as Appel);
@@ -61,6 +97,17 @@ export default function Telephone() {
 
   if (!surOrdi) return null;
 
+  if (ferme) {
+    return (
+      <aside className="dock replie" aria-label="Téléphone">
+        <button className="rouvrir" onClick={() => basculer(false)}>
+          <span className="pt" aria-hidden="true" />
+          Ouvrir le clavier
+        </button>
+      </aside>
+    );
+  }
+
   const e = ETATS[etat];
 
   return (
@@ -70,6 +117,13 @@ export default function Telephone() {
           <i className={"pt " + (appel ? "vert" : e.ton)} />
           <span className="t">{appel ? "Appel en cours" : e.texte}</span>
           {appel && <b className="chrono">{duree(appel.depuis)}</b>}
+          {/* Pendant un appel, pas de bouton : fermer couperait la ligne. */}
+          {!appel && (
+            <button className="fermer" onClick={() => basculer(true)}
+              title="Fermer le clavier" aria-label="Fermer le clavier">
+              ×
+            </button>
+          )}
         </header>
 
         {probleme && !appel && <p className="alerte">{probleme}</p>}
