@@ -26,6 +26,8 @@ export type Profile = {
   email_envoi: string;
   /* Le numéro direct affiché dans sa signature. Vide = ligne absente. */
   telephone: string;
+  /* Son intitulé de poste, affiché sous son nom dans la signature. */
+  poste: string;
   created_at: string;
 };
 

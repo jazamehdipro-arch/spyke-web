@@ -163,7 +163,7 @@ export async function POST(req: Request) {
    */
   const { data: moi } = await sb
     .from('profiles')
-    .select('nom, role, actif, email_envoi, telephone')
+    .select('nom, role, actif, email_envoi, telephone, poste')
     .eq('id', user.id)
     .maybeSingle()
 
@@ -228,6 +228,7 @@ export async function POST(req: Request) {
     nom: moi.nom,
     email: expediteur,
     telephone: (moi.telephone ?? '').trim(),
+    poste: (moi.poste ?? '').trim(),
   }
   const corpsHtml =
     `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;` +

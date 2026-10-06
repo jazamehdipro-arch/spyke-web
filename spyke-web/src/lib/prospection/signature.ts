@@ -29,6 +29,8 @@ export type Signataire = {
   nom: string;
   email: string;
   telephone: string;
+  /* L'intitulé de poste. Vide, la phrase de l'entreprise reste affichée. */
+  poste: string;
 };
 
 /** Le texte tapé devient du HTML : on échappe, puis les retours à la ligne. */
@@ -53,7 +55,7 @@ export function signatureHtml(s: Signataire): string {
       <div style="font-size:15px;font-weight:600;color:${ENCRE};letter-spacing:-0.2px">${s.nom}</div>
       <div style="font-size:12px;color:${GRIS};padding-top:2px">
         <span style="font-weight:700;color:${ENCRE};letter-spacing:1.4px">SPYKE</span>
-        &nbsp;Automatisation IA pour PME
+        &nbsp;${s.poste.trim() || "Automatisation IA pour PME"}
       </div>
       <div style="height:11px;line-height:11px">&nbsp;</div>
       ${
@@ -80,7 +82,7 @@ export function signatureHtml(s: Signataire): string {
 
 /** La même chose en texte brut, pour les messageries qui refusent le HTML. */
 export function signatureTexte(s: Signataire): string {
-  const l = [s.nom, "Spyke — Automatisation IA pour PME"];
+  const l = [s.nom, "Spyke — " + (s.poste.trim() || "Automatisation IA pour PME")];
   if (s.telephone.trim()) l.push(s.telephone.trim());
   l.push(s.email, "spykeconseil.fr");
   l.push(

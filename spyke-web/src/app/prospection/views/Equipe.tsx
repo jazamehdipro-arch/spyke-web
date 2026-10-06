@@ -31,6 +31,7 @@ export default function Equipe({
   const [adresseDe, setAdresseDe] = useState<string | null>(null);
   const [adresse, setAdresse] = useState("");
   const [tel, setTel] = useState("");
+  const [poste, setPoste] = useState("");
   const [enCours, demarrer] = useTransition();
 
   const actifs = equipe.filter((m) => m.actif);
@@ -60,7 +61,7 @@ export default function Equipe({
   function enregistrerAdresse(id: string) {
     demarrer(async () => {
       const jeton = await jetonCourant();
-      const r = await fixerAdresseEnvoi(jeton ?? "", id, adresse, tel);
+      const r = await fixerAdresseEnvoi(jeton ?? "", id, adresse, tel, poste);
       setMessage({ ok: r.ok, texte: r.ok ? r.message : r.erreur });
       if (r.ok) {
         setAdresseDe(null);
@@ -107,6 +108,7 @@ export default function Equipe({
                   setAdresseDe(m.id);
                   setAdresse(m.email_envoi ?? "");
                   setTel(m.telephone ?? "");
+                  setPoste(m.poste ?? "");
                   setMessage(null);
                 }}
                 disabled={enCours}
@@ -138,6 +140,22 @@ export default function Equipe({
                   courrier : une vraie boîte, ou une redirection vers la sienne.
                   Laisse vide pour revenir à l&apos;adresse par défaut.
                 </p>
+
+                <div style={{ marginTop: 14 }}>
+                  <label htmlFor={"poste-" + m.id}>Intitulé de poste</label>
+                  <input
+                    id={"poste-" + m.id}
+                    type="text"
+                    placeholder="Chargé d'affaires consultant IA et Automatisation"
+                    value={poste}
+                    onChange={(e) => setPoste(e.target.value)}
+                  />
+                  <p className="hint" style={{ marginTop: 7 }}>
+                    Affiché sous son nom, à la place de la phrase de
+                    l&apos;entreprise. Laisse vide pour garder
+                    « Automatisation IA pour PME ».
+                  </p>
+                </div>
 
                 <div style={{ marginTop: 14 }}>
                   <label htmlFor={"tel-" + m.id}>Numéro dans sa signature</label>
