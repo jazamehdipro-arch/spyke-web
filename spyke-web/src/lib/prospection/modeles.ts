@@ -54,7 +54,9 @@ export function remplir(m: Modele, c: Contexte): { objet: string; corps: string 
     creneau_2: c.creneaux[1] ?? "{{creneau_2}}",
     date_rdv: rdv ? longD(l.rdv!.slice(0, 10)) : "{{date_rdv}}",
     heure_rdv: rdv
-      ? rdv.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })
+      ? rdv
+          .toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })
+          .replace(":", "h")
       : "{{heure_rdv}}",
     adresse_rdv: l.adresse || "{{adresse_rdv}}",
     nom_consultant: c.moi.nom,

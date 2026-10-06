@@ -6,6 +6,7 @@ import type { Lead, Modele } from "@/lib/prospection/types";
 import * as q from "@/lib/prospection/queries";
 import { manquantes, pourLaFiche, remplir } from "@/lib/prospection/modeles";
 import { prochainsCreneaux } from "@/lib/prospection/slots";
+import { longD } from "@/lib/prospection/format";
 import { jetonCourant } from "@/lib/prospection/auth";
 
 type Piece = { nom: string; contenu: string; octets: number };
@@ -78,7 +79,9 @@ export default function Email({ ctx, lead }: { ctx: Ctx; lead: Lead }) {
           prochainsCreneaux(ctx.d.creneaux, pris)
             .filter((s) => !s.pris)
             .slice(0, 2)
-            .map((s) => `${s.jour} à ${s.heure}`)
+            // « 2026-10-06 à 11:00 » dans un e-mail à un notaire, c'est un
+            // identifiant de base de données, pas une proposition de rendez-vous.
+            .map((s) => `${longD(s.jour)} à ${s.heure.replace(":", "h")}`)
         )
       )
       .catch(() => setCreneaux([]));
