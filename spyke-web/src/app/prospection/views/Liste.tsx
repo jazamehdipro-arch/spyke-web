@@ -7,6 +7,42 @@ import { correspond } from "@/lib/prospection/horsligne";
 import { fmtD, norm } from "@/lib/prospection/format";
 import FicheRdv from "./FicheRdv";
 
+/**
+ * Un menu de filtre.
+ *
+ * Déclaré ici, au niveau du module, et non dans le corps de VueListe : un
+ * composant défini pendant le rendu est un composant neuf à chaque rendu, donc
+ * un <select> démonté et reconstruit à chaque frappe dans la recherche. Le
+ * menu qu'on venait d'ouvrir se referme, et le champ perd le curseur.
+ */
+function Menu({
+  titre, valeurs, courant, onChoisir, libelle,
+}: {
+  titre: string;
+  valeurs: { v: string; n: number }[];
+  courant: string | null;
+  onChoisir: (v: string | null) => void;
+  libelle?: (v: string) => string;
+}) {
+  if (valeurs.length < 2) return null;
+  return (
+    <label className="filtre">
+      <span>{titre}</span>
+      <select
+        value={courant === null ? "\u0000" : courant}
+        onChange={(e) => onChoisir(e.target.value === "\u0000" ? null : e.target.value)}
+      >
+        <option value={"\u0000"}>Tous</option>
+        {valeurs.map(({ v, n }) => (
+          <option key={v || "_"} value={v}>
+            {(libelle ? libelle(v) : v) + " (" + n + ")"}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
 export default function VueListe({ ctx }: { ctx: Ctx }) {
   const [recherche, setRecherche] = useState("");
   const [statut, setStatut] = useState<Statut | null>(null);
@@ -50,39 +86,6 @@ export default function VueListe({ ctx }: { ctx: Ctx }) {
 
   const filtreActif = Object.values(filtres).some((v) => v !== null);
 
-  function Menu({
-    cle, titre, valeurs, libelle,
-  }: {
-    cle: keyof Filtres;
-    titre: string;
-    valeurs: { v: string; n: number }[];
-    libelle?: (v: string) => string;
-  }) {
-    if (valeurs.length < 2) return null;
-    const courant = filtres[cle];
-    return (
-      <label className="filtre">
-        <span>{titre}</span>
-        <select
-          value={courant === null ? "\u0000" : courant}
-          onChange={(e) =>
-            setFiltres((f) => ({
-              ...f,
-              [cle]: e.target.value === "\u0000" ? null : e.target.value,
-            }))
-          }
-        >
-          <option value={"\u0000"}>Tous</option>
-          {valeurs.map(({ v, n }) => (
-            <option key={v || "_"} value={v}>
-              {(libelle ? libelle(v) : v) + " (" + n + ")"}
-            </option>
-          ))}
-        </select>
-      </label>
-    );
-  }
-
   return (
     <>
       <input
@@ -93,11 +96,15 @@ export default function VueListe({ ctx }: { ctx: Ctx }) {
       />
 
       <div className="filtres">
-        <Menu cle="secteur" titre="Secteur" valeurs={choix.secteur} />
-        <Menu cle="ville" titre="Ville" valeurs={choix.ville} />
-        <Menu cle="effectif" titre="Taille" valeurs={choix.effectif}
+        <Menu titre="Secteur" valeurs={choix.secteur} courant={filtres.secteur}
+          onChoisir={(v) => setFiltres((f) => ({ ...f, secteur: v }))} />
+        <Menu titre="Ville" valeurs={choix.ville} courant={filtres.ville}
+          onChoisir={(v) => setFiltres((f) => ({ ...f, ville: v }))} />
+        <Menu titre="Taille" valeurs={choix.effectif} courant={filtres.effectif}
+          onChoisir={(v) => setFiltres((f) => ({ ...f, effectif: v }))}
           libelle={(v) => v || "Taille inconnue"} />
-        <Menu cle="prio" titre="Priorité" valeurs={choix.prio}
+        <Menu titre="Priorité" valeurs={choix.prio} courant={filtres.prio}
+          onChoisir={(v) => setFiltres((f) => ({ ...f, prio: v }))}
           libelle={(v) => "Priorité " + v} />
         <span className="compte">{out.length} fiche{out.length > 1 ? "s" : ""}</span>
         {filtreActif && (
