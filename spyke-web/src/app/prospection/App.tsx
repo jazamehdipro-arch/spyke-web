@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/prospection/supabase/client";
 import * as q from "@/lib/prospection/queries";
 import type { Activity, Creneau, Deal, Lead, Modele, Profile } from "@/lib/prospection/types";
+import { protegerEntree } from "@/lib/prospection/clavier";
 import { today } from "@/lib/prospection/format";
 import {
   sauverInstantane, lireInstantane, combienEnAttente, enAttente as fileEnAttente, appliquerFile,
@@ -153,6 +154,11 @@ export default function App({
     }
     setEnAttente(await combienEnAttente());
   }, [moi.role]);
+
+  /* Posée au montage, donc avant que le composant téléphonique de l'opérateur
+     n'aille chercher son script : la garde est en place quand ses écouteurs
+     arrivent. Voir protegerEntree(). */
+  useEffect(protegerEntree, []);
 
   /* Au retour du réseau, on renvoie d'abord ce qui a été saisi sans lui, puis
      on recharge — dans cet ordre, sinon le rechargement écraserait à l'écran
