@@ -80,6 +80,12 @@ export default function Carte({
   const [emailSaisi, setEmailSaisi] = useState("");
   const [linkedinSaisi, setLinkedinSaisi] = useState("");
   const [voiesErreur, setVoiesErreur] = useState("");
+  /* Qui demander, et à défaut qui d'autre : les deux se corrigent ensemble,
+     parce que l'accueil les donne dans la même phrase. */
+  const [corrigeQui, setCorrigeQui] = useState(false);
+  const [decideurSaisi, setDecideurSaisi] = useState("");
+  const [associesSaisi, setAssociesSaisi] = useState("");
+  const [quiErreur, setQuiErreur] = useState("");
   const [rappel, setRappel] = useState(lead.rappel ?? "");
   const [contact, setContact] = useState(lead.contact);
   const [notes, setNotes] = useState(lead.notes);
@@ -93,6 +99,8 @@ export default function Carte({
     setTelErreur("");
     setCorrigeVoies(false);
     setVoiesErreur("");
+    setCorrigeQui(false);
+    setQuiErreur("");
     setRappel(lead.rappel ?? "");
     setContact(lead.contact);
     setNotes(lead.notes);
@@ -232,6 +240,43 @@ export default function Carte({
     }
   }
 
+  /**
+   * Corriger qui demander.
+   *
+   * « Maître Untel ? Il est parti il y a deux ans. » C'est la phrase la plus
+   * utile de l'appel, et elle se perdait : le commercial suivant redemandait la
+   * même personne et se faisait renvoyer de la même façon. On l'inscrit donc
+   * sur la fiche, et on la note dans l'historique — qui a changé le nom et
+   * quand, c'est ce qui permet d'y revenir si le standard s'est trompé.
+   */
+  async function enregistrerQui() {
+    const qui = decideurSaisi.trim();
+    const autres = associesSaisi.trim();
+    if (qui === lead.decideur && autres === lead.associes) {
+      setCorrigeQui(false);
+      return;
+    }
+    setQuiErreur("");
+    try {
+      const maj = await q.majLead(lead.id, { decideur: qui, associes: autres });
+      onLead(maj ?? { ...lead, decideur: qui, associes: autres });
+      if (qui !== lead.decideur) {
+        await q.noter(
+          lead.id,
+          qui ? `Décideur corrigé : ${qui}` : "Décideur retiré",
+          ctx.moi.id
+        );
+      }
+      setHist(await q.historique(lead.id).catch(() => hist));
+      setCorrigeQui(false);
+      ctx.toast("Fiche à jour");
+      void ctx.recharger();
+    } catch (e) {
+      const err = e as { message?: string };
+      setQuiErreur(err.message ?? "Enregistrement impossible.");
+    }
+  }
+
   async function poser(statut: Statut) {
     await enregistrerChamps();
 
@@ -319,11 +364,70 @@ export default function Carte({
       {/* Qui demander. C'est la première phrase de l'appel : sans un nom, on
           reste à l'accueil et on n'en sort pas. Donc au-dessus du numéro, pas
           en dessous. */}
-      {lead.decideur && (
+      {corrigeQui ? (
+        <div className="demander edit">
+          <div>
+            <label htmlFor={"q-dec-" + lead.id}>Demander</label>
+            <input
+              id={"q-dec-" + lead.id}
+              type="text"
+              autoFocus
+              placeholder="Maître Dupont"
+              value={decideurSaisi}
+              onChange={(e) => setDecideurSaisi(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") void enregistrerQui();
+                if (e.key === "Escape") { setCorrigeQui(false); setQuiErreur(""); }
+              }}
+            />
+          </div>
+          <div style={{ marginTop: 11 }}>
+            <label htmlFor={"q-ass-" + lead.id}>Sinon</label>
+            <input
+              id={"q-ass-" + lead.id}
+              type="text"
+              placeholder="Les autres noms donnés par l'accueil"
+              value={associesSaisi}
+              onChange={(e) => setAssociesSaisi(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") void enregistrerQui();
+                if (e.key === "Escape") { setCorrigeQui(false); setQuiErreur(""); }
+              }}
+            />
+          </div>
+          {quiErreur && (
+            <p className="hint" style={{ marginTop: 9, color: "var(--hot)" }}>
+              {quiErreur}
+            </p>
+          )}
+          <div className="btns">
+            <button className="btn" onClick={() => void enregistrerQui()}>
+              Enregistrer
+            </button>
+            <button
+              className="btn ghost"
+              onClick={() => { setCorrigeQui(false); setQuiErreur(""); }}
+            >
+              Annuler
+            </button>
+          </div>
+        </div>
+      ) : (
         <div className="demander">
           <span className="l">Demander</span>
-          <b>{lead.decideur}</b>
+          <b>{lead.decideur || "Nom inconnu"}</b>
           {lead.associes && <small>Sinon : {lead.associes}</small>}
+          <button
+            className="corriger"
+            onClick={() => {
+              setDecideurSaisi(lead.decideur);
+              setAssociesSaisi(lead.associes);
+              setQuiErreur("");
+              setCorrigeQui(true);
+            }}
+          >
+            {lead.decideur ? "Corriger" : "Saisir"}
+          </button>
         </div>
       )}
 

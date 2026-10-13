@@ -401,6 +401,24 @@
   font-size:16px;font-weight:600;color:var(--ink);letter-spacing:-.01em;
 }
 .spk .demander small{font-size:12px;color:var(--muted);line-height:1.5}
+/* « Il est parti il y a deux ans, maintenant c'est Maître Une telle. » Le
+   bouton est là, dans le bloc, parce que c'est là qu'on lit le nom qui ne va
+   pas — et discret, parce qu'on corrige une fois sur vingt. */
+.spk .demander{position:relative}
+.spk .demander .corriger{
+  position:absolute;top:11px;right:12px;
+  font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--muted);background:transparent;
+  border:1px solid var(--line);border-radius:999px;padding:5px 10px;
+  transition:color .14s,border-color .14s;
+}
+.spk .demander .corriger:hover{color:var(--ink);border-color:var(--ink)}
+/* La place du bouton, reservee : les noms d'etude sont longs et passeraient
+   dessous. La ligne « Sinon » est plus bas, elle garde toute la largeur. */
+.spk .demander .l,.spk .demander b{padding-right:84px}
+.spk .demander.edit .l,.spk .demander.edit b{padding-right:0}
+.spk .demander.edit{gap:0}
+.spk .demander.edit .btns{margin-top:13px}
 
 /* Les deux autres portes d'entrée, juste sous le numéro. Deux rectangles de
    même poids, assez hauts pour un pouce, et nettement moins voyants que la case
