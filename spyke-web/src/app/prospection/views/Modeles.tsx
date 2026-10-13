@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import * as q from "@/lib/prospection/queries";
 import type { Ctx } from "../App";
 import type { Modele } from "@/lib/prospection/types";
+import ZoneTexte from "../ui/ZoneTexte";
 
 /**
  * Les modèles d'e-mail, modifiables sans passer par un développeur.
@@ -154,9 +155,9 @@ export default function Modeles({ ctx }: { ctx: Ctx }) {
 
                   <div style={{ marginTop: 12 }}>
                     <label htmlFor={"m-c-" + m.id}>Message</label>
-                    <textarea
-                      id={"m-c-" + m.id} value={corps} rows={14}
-                      onChange={(e) => setCorps(e.target.value)}
+                    <ZoneTexte
+                      id={"m-c-" + m.id} valeur={corps} minLignes={14}
+                      onTexte={setCorps}
                     />
                   </div>
 

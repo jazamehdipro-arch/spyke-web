@@ -698,11 +698,19 @@
   z-index:60;opacity:0;pointer-events:none;transition:opacity .2s;
 }
 .spk .scrim.on{opacity:1;pointer-events:auto}
+/* --clavier : la place prise par le clavier du téléphone, mesurée dans Sheet.
+   Le panneau se cale dessus, sinon le bouton Envoyer et les dernières lignes
+   écrites finissent derrière le clavier, hors d'atteinte. */
 .spk .sheet{
-  position:fixed;left:0;right:0;bottom:0;z-index:61;background:var(--paper);
-  border-radius:var(--r-l) var(--r-l) 0 0;max-height:88vh;overflow:auto;
+  position:fixed;left:0;right:0;bottom:var(--clavier,0px);z-index:61;
+  background:var(--paper);
+  border-radius:var(--r-l) var(--r-l) 0 0;overflow:auto;
+  max-height:max(160px, calc(88dvh - var(--clavier,0px)));
   transform:translateY(101%);transition:transform .28s cubic-bezier(.3,1,.4,1);
   box-shadow:0 -8px 40px rgba(18,19,21,.16);
+}
+@supports not (height:1dvh){
+  .spk .sheet{max-height:max(160px, calc(88vh - var(--clavier,0px)))}
 }
 .spk .sheet.on{transform:translateY(0)}
 .spk .sheet-in{max-width:740px;margin:0 auto;padding:20px 18px 32px}

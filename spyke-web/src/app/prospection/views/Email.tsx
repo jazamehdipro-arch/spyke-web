@@ -8,6 +8,7 @@ import { manquantes, pourLaFiche, remplir } from "@/lib/prospection/modeles";
 import { prochainsCreneaux } from "@/lib/prospection/slots";
 import { longD } from "@/lib/prospection/format";
 import { jetonCourant } from "@/lib/prospection/auth";
+import ZoneTexte from "../ui/ZoneTexte";
 
 type Piece = { nom: string; contenu: string; octets: number };
 
@@ -260,9 +261,8 @@ export default function Email({ ctx, lead }: { ctx: Ctx; lead: Lead }) {
 
       <div style={{ marginTop: 12 }}>
         <label htmlFor="e-msg">Message</label>
-        <textarea
-          id="e-msg" value={message} rows={12}
-          onChange={(e) => setMessage(e.target.value)}
+        <ZoneTexte
+          id="e-msg" valeur={message} minLignes={12} onTexte={setMessage}
         />
       </div>
 

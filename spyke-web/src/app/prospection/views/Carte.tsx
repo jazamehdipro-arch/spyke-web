@@ -12,6 +12,7 @@ import {
   etatCourant,
 } from "@/lib/prospection/telephone";
 import { jetonCourant } from "@/lib/prospection/auth";
+import ZoneTexte from "../ui/ZoneTexte";
 import ChoixCreneau from "./ChoixCreneau";
 import Email from "./Email";
 
@@ -526,10 +527,10 @@ export default function Carte({
         </div>
         <div>
           <label htmlFor={"f-not-" + lead.id}>Notes</label>
-          <textarea
-            id={"f-not-" + lead.id} value={notes}
+          <ZoneTexte
+            id={"f-not-" + lead.id} valeur={notes}
             placeholder="Ce qu'il a dit, ce qu'il faut retenir…"
-            onChange={(e) => setNotes(e.target.value)}
+            onTexte={setNotes}
             onBlur={enregistrerChamps}
           />
           <p className="hint" style={{ marginTop: 6 }}>
